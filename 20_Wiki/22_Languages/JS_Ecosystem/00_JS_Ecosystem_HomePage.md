@@ -5,6 +5,7 @@ tags:
   - HomePage
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[00_HTML_HomePage]]"
 ---
 # 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
 

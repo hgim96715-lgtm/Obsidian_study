@@ -1,3 +1,12 @@
+---
+aliases:
+  - 00_HTML_HomePage
+tags:
+  - HomePage
+related:
+  - "[[00_CSS_HomePage]]"
+  - "[[00_JS_Ecosystem_HomePage]]"
+---
 
 ```
 HTML = 웹 페이지의 구조와 의미를 정의하는 마크업 언어

@@ -1,3 +1,20 @@
+---
+aliases:
+  - README
+tags:
+  - README
+related:
+  - "[[00_Toolbox_HomePage]]"
+  - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[00_Toolbox_HomePage]]"
+  - "[[00_HTML_HomePage]]"
+  - "[[00_CSS_HomePage]]"
+  - "[[00_SQL_HomePage]]"
+  - "[[00_Git_HomePage]]"
+  - "[[00_Linux_HomePage]]"
+---
+
 # Obsidian_study
 
 백엔드·프론트엔드·인프라·데이터를 중심으로 학습한 내용을 정리한 **개인 Obsidian 지식 베이스**입니다.  
@@ -44,6 +61,7 @@ Obsidian_study/
 
 각 주제 묶음은 홈페이지 노트에서 목차 형태로 연결됩니다.
 
+- `00_Toolbox_HomePage` — Obsidian · VS Code · Postman · Mac
 - `00_JS_Ecosystem_HomePage` — JS · TS · React · Next.js
 - `00_NestJS_Ecosystem_HomePage` — NestJS · NodeJS
 
