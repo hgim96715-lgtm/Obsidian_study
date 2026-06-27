@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 remote = 원격 저장소 연결 관리
 clone  = 원격 저장소 복제
 fetch  = 원격 변경사항 가져오기 (병합 안 함)
@@ -51,7 +51,7 @@ git remote remove origin
 git remote rename origin upstream
 ```
 
-```
+```txt
 origin:
   원격 저장소의 기본 이름 (관례)
   git clone 하면 자동으로 origin 으로 설정됨
@@ -78,7 +78,7 @@ git clone -b develop https://github.com/user/repo.git
 git clone git@github.com:user/repo.git
 ```
 
-```
+```txt
 clone vs init:
   clone  원격 저장소를 그대로 복제 (remote 자동 설정)
   init   빈 저장소 새로 시작 (remote 직접 설정 필요)
@@ -94,7 +94,7 @@ git clone --depth=1 https://github.com/github/gitignore
 git clone --depth=5 https://github.com/user/repo.git
 ```
 
-```
+```txt
 --depth 옵션:
   전체 히스토리 없이 최신 N개 커밋만 복제
   shallow clone (얕은 복제) 이라고 부름
@@ -126,7 +126,7 @@ git submodule status
 git submodule update --init --recursive
 ```
 
-```
+```txt
 submodule 이란:
   저장소 안에 다른 Git 저장소를 포함시키는 기능
   외부 라이브러리 / 공통 코드를 별도 저장소로 관리하면서
@@ -170,7 +170,7 @@ git log origin/main --oneline
 git merge origin/main
 ```
 
-```
+```txt
 fetch 언제 쓰나:
   원격에 무슨 변경이 있는지 먼저 확인
   직접 merge 할 시점 선택하고 싶을 때
@@ -199,7 +199,7 @@ git pull
 git pull --rebase origin main
 ```
 
-```
+```txt
 pull = fetch + merge
 pull --rebase = fetch + rebase (히스토리 깔끔)
 
@@ -230,7 +230,7 @@ git push -f origin main
 git push origin --tags
 ```
 
-```
+```txt
 push 거부될 때:
   원격에 내가 없는 커밋 있음 → pull 먼저
 

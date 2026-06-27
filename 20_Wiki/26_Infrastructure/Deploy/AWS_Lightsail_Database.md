@@ -14,7 +14,7 @@ related:
 
 # AWS_Lightsail_Database — 라이트세일 DB 연결
 
-```
+```txt
 Lightsail 에서 제공하는 관리형 PostgreSQL 데이터베이스
 서버(인스턴스) 와 별도로 DB 를 생성해서 연결
 ```
@@ -25,7 +25,7 @@ Lightsail 에서 제공하는 관리형 PostgreSQL 데이터베이스
 
 # DB 생성 순서
 
-```
+```txt
 1. Lightsail 콘솔 → Databases 탭
 2. Create database 클릭
 3. 엔진 선택 → PostgreSQL 선택 (현재 18.4버전)
@@ -43,7 +43,7 @@ Lightsail 에서 제공하는 관리형 PostgreSQL 데이터베이스
 
 # 연결 정보 확인 ⭐️
 
-```
+```txt
 DB 생성 완료 후 → Connection details 탭에서 확인
 
   User name    dbmasteruser
@@ -67,7 +67,7 @@ DB_PASSWORD="비밀번호 붙여넣기"
 DB_DATABASE=postgres
 ```
 
-```
+```txt
 DB_HOST   Lightsail 에서 제공한 Endpoint 그대로 붙여넣기
 DB_USER   기본값 dbmasteruser
 DB_DATABASE  기본 DB 이름 postgres
@@ -104,7 +104,7 @@ TypeOrmModule.forRootAsync({
 
 ## ssl.rejectUnauthorized: false 란?
 
-```
+```txt
 Lightsail DB 는 외부에서 접속할 때 SSL(암호화 통신) 을 요구함
 → SSL 없이 접속하면 연결 거부
 
@@ -131,7 +131,7 @@ rejectUnauthorized: false
 pnpm start:dev
 ```
 
-```
+```txt
 연결 성공 시:
   TypeORM 이 Lightsail DB 에 연결됨
   로그에 에러 없이 서버 시작
@@ -147,18 +147,18 @@ pnpm start:dev
 
 # Networking — 외부 접속 허용 ⭐️
 
-```
+```txt
 Lightsail DB 는 기본적으로 외부 접속이 막혀 있음
 로컬 / DataGrip 에서 접속하려면 Public mode 를 열어줘야 함
 ```
 
-```
+```txt
 Lightsail 콘솔 → Databases → 해당 DB 클릭
 → Networking 탭
 → Public mode → Enable
 ```
 
-```
+```txt
 ⚠️ Public mode 는 개발·테스트 용도로만 사용
    운영 환경에서는 VPC 내부에서만 접속하도록 설정 권장
    (외부에 DB 포트가 열리면 보안 위험)
@@ -170,7 +170,7 @@ Lightsail 콘솔 → Databases → 해당 DB 클릭
 
 # DataGrip 연결
 
-```
+```txt
 DataGrip → New Connection → PostgreSQL
 
   Host      Lightsail Endpoint 붙여넣기
@@ -189,7 +189,7 @@ Advanced 탭 → sslmode = require 또는 disable
 
 # 핵심 흐름 정리
 
-```
+```txt
 Lightsail → Databases → PostgreSQL 생성 (Standard)
     ↓
 Connection details → Endpoint / User / Password 확인

@@ -17,7 +17,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 기존 타입을 변환해서 새 타입을 만드는 내장 유틸리티
 TS 가 기본 제공 / import 없이 바로 사용
 ```
@@ -134,7 +134,7 @@ type CreateUserDto = Omit<User, 'id'>;
 // { name: string; email: string; password: string; }
 ```
 
-```
+```txt
 Pick vs Omit:
   Pick  포함할 키 나열 (적을 때 편함)
   Omit  제외할 키 나열 (제외가 적을 때 편함)
@@ -146,7 +146,7 @@ Pick vs Omit:
 
 # Omit + 교차(&) — 특정 필드만 다른 타입으로 재정의 ⭐️⭐️⭐️
 
-```
+```txt
 지금까지 본 Omit 은 "키를 그냥 빼버리는" 용도였음
 근데 실무에서 더 자주 보는 패턴은 "빼고 → 그 자리에 다른 타입을 다시 채워넣는" 것
 → 라이브러리가 이미 정의해둔 타입(RequestInit 등)을 그대로 쓰되
@@ -159,7 +159,7 @@ type AdminFetchInit = Omit<RequestInit, "headers"> & {
 };
 ```
 
-```
+```txt
 한 줄씩:
   RequestInit                          fetch 의 두 번째 인자 타입 (method/body/headers 등 다 포함)
                                         원래 headers 의 타입은 HeadersInit
@@ -180,7 +180,7 @@ type AdminFetchInit = Omit<RequestInit, "headers"> & {
 type Bad = RequestInit & { headers?: Record<string, string> };
 ```
 
-```
+```txt
 헷갈리기 쉬운 지점: "& 로 합치면 새로 적은 게 그냥 덮어쓰는 거 아닌가?"
 → 아님. & (교차 타입)은 "두 타입 모두를 동시에 만족" 해야 하는 타입을 만듦
   같은 이름의 속성(headers)이 양쪽에 다 있으면, "덮어쓰기" 가 아니라
@@ -211,7 +211,7 @@ async function AdminFetch(path: string, init: AdminFetchInit = {}) {
 }
 ```
 
-```
+```txt
 원래 HeadersInit 타입은 3가지 형태를 다 허용함:
   Record<string,string>   { 'Content-Type': 'application/json' } 같은 평범한 객체
   string[][]               [['Content-Type','application/json']] 같은 배열
@@ -227,7 +227,7 @@ async function AdminFetch(path: string, init: AdminFetchInit = {}) {
   → 호출하는 쪽이 실수로 Headers 인스턴스나 배열을 넘기는 걸 TS 가 미리 막아줌
 ```
 
-```
+```txt
 일반화한 패턴 — 다른 곳에도 그대로 적용 가능:
   서드파티 타입(RequestInit, HTMLAttributes 등)을 가져다 쓰는데
   그 중 한 필드만 내 코드에 맞게 더 좁히거나 다른 타입으로 바꾸고 싶을 때
@@ -305,7 +305,7 @@ type UpdateMovieDto = Partial<Omit<Movie, 'id' | 'password'>>;
 type MovieResponse = Omit<Movie, 'password'>;
 ```
 
-```
+```txt
 이 조합들과 위 "Omit + &" 의 차이:
   Partial<Omit<T, K>>   "키를 빼고, 남은 키들을 선택적으로" — 변형(transform)을 두 번 적용
   Omit<T, K> & {...}    "키를 빼고, 그 자리에 다른 타입을 다시 넣음" — 한 필드를 교체(override)
@@ -331,7 +331,7 @@ type MovieResponse = Omit<Movie, 'password'>;
 |`Record<K, V>`|키-값 맵|상태 맵 / 딕셔너리|
 |`ReturnType<T>`|함수 반환 타입|타입 재사용|
 
-```
+```txt
 필드 타입을 바꾸고 싶을 때 기억할 한 줄:
   그냥 & 로 더하면 타입이 뒤섞임 → 항상 Omit 으로 먼저 지우고 & 로 새로 채울 것
 ```

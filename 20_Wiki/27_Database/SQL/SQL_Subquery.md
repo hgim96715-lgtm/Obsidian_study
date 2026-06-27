@@ -18,7 +18,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 서브쿼리 = 쿼리 안에 쿼리
 위치에 따라 스칼라 / 인라인 뷰 / WHERE 서브쿼리로 구분
 ```
@@ -29,7 +29,7 @@ related:
 
 # 왜 서브쿼리가 필요한가 ⭐️
 
-```
+```txt
 "전체 평균보다 급여가 높은 직원" 같은 질문에 답하려면
 "전체 평균" 이라는 계산 결과가 먼저 있어야, 그걸 기준으로 다시 비교할 수 있음
 
@@ -44,7 +44,7 @@ related:
 
 # 서브쿼리 위치 3가지 ⭐️
 
-```
+```txt
 SELECT 절 → 스칼라 서브쿼리  (행마다 단일 값 반환)
 FROM 절   → 인라인 뷰        (가상 테이블)
 WHERE 절  → 조건 서브쿼리    (필터링)
@@ -56,7 +56,7 @@ WHERE 절  → 조건 서브쿼리    (필터링)
 
 # 스칼라 서브쿼리 — SELECT / WHERE 안에서 ⭐️
 
-```
+```txt
 단일 값 하나를 반환하는 서브쿼리
 SELECT 절 또는 WHERE 절 안에서 사용
 ```
@@ -97,7 +97,7 @@ GROUP BY r.contest_id
 ORDER BY percentage DESC, r.contest_id ASC;
 ```
 
-```
+```txt
 PostgreSQL vs MySQL 나눗셈 차이 ⭐️:
   PostgreSQL: 정수 / 정수 = 정수 (소수점 버림)
     COUNT(*) = 3, Users = 10 → 3/10 = 0  ← 0 이 나옴!
@@ -116,7 +116,7 @@ PostgreSQL vs MySQL 나눗셈 차이 ⭐️:
 
 # 상관 서브쿼리 vs 비상관 서브쿼리 ⭐️⭐️
 
-```
+```txt
 이 구분을 모르면 "왜 어떤 서브쿼리는 바깥 테이블 컬럼을 쓸 수 있는지" 헷갈릴 수 있음
 ```
 
@@ -136,7 +136,7 @@ WHERE EXISTS (
 );
 ```
 
-```
+```txt
 비상관 서브쿼리:
   바깥 쿼리 없이도 "혼자서" 실행 가능 (Users 수는 그 자체로 의미가 있는 질문)
   → 한 번만 계산해서 결과를 재사용 (보통 더 빠름)
@@ -229,7 +229,7 @@ FROM employees
 WHERE dept_id IN (SELECT id FROM departments WHERE location = 'Seoul');
 ```
 
-```
+```txt
 이 두 예시는 비상관 서브쿼리 (바깥 쿼리 없이도 각자 완성된 질문)
 ```
 
@@ -250,7 +250,7 @@ WHERE EXISTS (
 );
 ```
 
-```
+```txt
 EXISTS:
   서브쿼리가 행을 하나라도 반환하면 TRUE
   반환 값은 중요하지 않음 → SELECT 1 관례 (실제 값을 안 쓰고 "존재하는지" 만 보기 때문)
@@ -277,7 +277,7 @@ LEFT JOIN orders o ON o.customer_id = c.id
 WHERE o.customer_id IS NULL;
 ```
 
-```
+```txt
 둘 다 "주문이 없는 고객" 을 찾는 같은 목적
 NOT EXISTS  → 상관 서브쿼리 — "이 고객(c.id) 에 대한 주문이 하나라도 있나?" 를 직접 물어봄
 Anti-Join   → JOIN 으로 일단 다 붙여보고, 안 붙은(NULL) 것만 거름
@@ -293,7 +293,7 @@ Anti-Join   → JOIN 으로 일단 다 붙여보고, 안 붙은(NULL) 것만 거
 
 # 종합 — 같은 문제, 4가지 해법 비교 ⭐️⭐️⭐️
 
-```
+```txt
 "두 테이블 중 정확히 한쪽에만 있는 employee_id 찾기" 를
 네 가지 완전히 다른 접근으로 풀 수 있음 — 결과는 같지만 사고방식이 다름
 ```
@@ -314,7 +314,7 @@ SELECT employee_id FROM Salaries s
 WHERE NOT EXISTS (SELECT 1 FROM Employees e WHERE e.employee_id = s.employee_id);
 ```
 
-```
+```txt
 어느 게 "정답" 인 건 아님 — 같은 문제를 보는 4가지 다른 사고방식:
   Anti-Join 식       "조인해보고 안 붙은 거 찾기" 라는 시각적/관계 중심 사고
   GROUP BY+HAVING 식  "다 모아놓고 개수로 판단" 이라는 집계 중심 사고 — 코드가 가장 짧음
@@ -337,7 +337,7 @@ WHERE NOT EXISTS (SELECT 1 FROM Employees e WHERE e.employee_id = s.employee_id)
 |FROM 절|인라인 뷰|가상 테이블|
 |WHERE 절|조건 서브쿼리|동적 필터링|
 
-```
+```txt
 비율 계산 시:
   PostgreSQL → COUNT(*)::numeric / 전체수 * 100
   MySQL      → COUNT(*) / 전체수 * 100

@@ -23,7 +23,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 psycopg2 로 PostgreSQL 에 연결하고
 SQL 을 실행해서 데이터를 읽고 쓰는 방법
 ```
@@ -34,7 +34,7 @@ SQL 을 실행해서 데이터를 읽고 쓰는 방법
 
 # ① 전체 흐름
 
-```
+```txt
 ① DB_CONFIG 준비      → 연결 정보 (.env → os.getenv)
          │
          ▼
@@ -74,7 +74,7 @@ DB_CONFIG = {
 }
 ```
 
-```
+```txt
 ⚠️ psycopg2 가 인식하는 키 이름:
   "dbname" ✅   "db" ❌ → KeyError 발생
   "host"   ✅
@@ -95,7 +95,7 @@ conn = psycopg2.connect(**DB_CONFIG)   # DB 연결
 cur  = conn.cursor()                   # 커서 생성
 ```
 
-```
+```txt
 conn = DB 와 열린 연결 자체 (전화 연결)
 cur  = 연결 위에서 SQL 을 실행하는 도구 (전화기)
 
@@ -103,7 +103,7 @@ cur  = 연결 위에서 SQL 을 실행하는 도구 (전화기)
 실무에서는 보통 커서 하나로 순서대로 사용
 ```
 
-```
+```txt
 with conn.cursor() as cur:  →  cur.close() 자동 (커서만 닫힘)
 with conn:                  →  commit / rollback 관리 (커넥션 닫기 아님)
 conn.close()                →  직접 호출 필요 (커넥션 자체를 닫음)
@@ -139,7 +139,7 @@ finally:
         conn.close()                    # 반드시 닫기
 ```
 
-```
+```txt
 conn = None 초기화가 필요한 이유:
   psycopg2.connect() 가 실패하면 conn 변수 자체가 만들어지지 않음
   finally 에서 conn.close() 시도 → NameError 발생
@@ -175,7 +175,7 @@ count = row[0]   # 47
 count = cur.fetchone()[0]
 ```
 
-```
+```txt
 fetchone() 은 항상 튜플을 반환
 
 SELECT COUNT(*)        → (47,)
@@ -215,7 +215,7 @@ for loc, cnt in rows:   # 튜플 언패킹
     print(f"{loc}: {cnt}개")
 ```
 
-```
+```txt
 fetchone()   → 튜플 1개          ('서울', 30)
 fetchall()   → 튜플 리스트       [('서울', 30), ('부산', 5)]
 fetchmany(n) → 튜플 n개 리스트   (거의 안 씀)
@@ -330,7 +330,7 @@ if updated > 0:
     print(f"  {updated}개 비활성화")
 ```
 
-```
+```txt
 cur.rowcount 반환값:
   INSERT → 삽입된 행 수
   UPDATE → 변경된 행 수
@@ -362,7 +362,7 @@ execute_values(cur, sql, values)
 # cur + sql + values = 3개
 ```
 
-```
+```txt
 비유:
   cur.execute()    → 전화기(cur)에 달린 버튼을 누름
                      전화기가 누구인지 이미 알고 있음
@@ -424,7 +424,7 @@ finally:
         conn.close()
 ```
 
-```
+```txt
 execute_values(cur, sql, values)
                 ↑    ↑     ↑
               커서   SQL  행 리스트 (각 행은 튜플)
@@ -454,7 +454,7 @@ execute_values(cur, "INSERT INTO t VALUES %s", values)  # ✅ 1번 왕복
 
 ## 왜 필요한가
 
-```
+```txt
 DB 컬럼 타입이 JSONB 일 때:
 
   plain str 로 그냥 넣으면:
@@ -523,7 +523,7 @@ print(prices[0]["name"])    # "성인"
 print(prices[0]["price"])   # 23000
 ```
 
-```
+```txt
 쓰기: str → Json() 래핑 필요 (psycopg2 가 JSONB 로 보내도록)
 읽기: 자동 변환 (JSONB → Python dict/list) → 별도 처리 불필요
 ```
@@ -551,7 +551,7 @@ for row in rows:
     print(row['exhibition_id'])
 ```
 
-```
+```txt
 기본 커서     → row[0], row[1]    (순서 알아야 함)
 RealDictCursor → row['컬럼명']    (이름으로 접근, 가독성 좋음)
 
@@ -608,7 +608,7 @@ def upsert(self, exhibitions: List[Dict[str, Any]]) -> int:
     ...
 ```
 
-```
+```txt
 psycopg2.extensions.connection
   → psycopg2.connect() 가 반환하는 객체의 타입
   → IDE 자동완성용. 실행에 영향 없음.

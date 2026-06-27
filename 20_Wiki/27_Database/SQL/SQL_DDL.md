@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 DDL = Data Definition Language
 테이블 생성 / 수정 / 삭제
 CREATE / ALTER / DROP / TRUNCATE
@@ -70,7 +70,7 @@ CREATE TABLE movie_detail (
 );
 ```
 
-```
+```txt
 PostgreSQL vs MySQL:
   자동 증가: SERIAL          vs AUTO_INCREMENT
   현재 시간: NOW()           vs CURRENT_TIMESTAMP
@@ -198,7 +198,7 @@ TRUNCATE TABLE movie CASCADE;
 TRUNCATE TABLE movie RESTART IDENTITY CASCADE;
 ```
 
-```
+```txt
 언제 쓰나:
   개발 중 테스트 데이터 쌓여서 id 가 1,5,12... 뒤죽박죽
   → 데이터 다 지우고 id 를 1부터 다시 시작하고 싶을 때
@@ -212,7 +212,7 @@ TRUNCATE TABLE movie RESTART IDENTITY CASCADE;
   TRUNCATE TABLE movie_detail RESTART IDENTITY CASCADE;
 ```
 
-```
+```txt
 ⚠️ 주의:
   롤백 불가 → 복구 안 됨
   CASCADE → 연관 데이터 전부 삭제

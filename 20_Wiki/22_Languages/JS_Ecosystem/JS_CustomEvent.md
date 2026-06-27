@@ -22,7 +22,7 @@ related:
 
 # dispatchEvent / addEventListener — 이벤트 시스템 기초 ⭐️⭐️
 
-```
+```txt
 브라우저의 모든 이벤트(click, scroll, resize...)는 전부 같은 시스템 위에서 동작함:
 
   EventTarget                  이벤트를 보내고 받을 수 있는 객체 (window/document/DOM 엘리먼트 전부)
@@ -43,7 +43,7 @@ window.addEventListener('my-event', fn);
 // → 그래서 내가 직접 window.dispatchEvent(...) 로 "지금 발생했다" 라고 쏴줘야 함
 ```
 
-```
+```txt
 dispatchEvent 한 줄 정의:
   "이벤트를 직접, 수동으로 발생시키는 메서드"
   click 이 사용자 동작으로 자동 발생하듯, 내가 만든 이벤트는 dispatchEvent 로 직접 쏴야 함
@@ -59,7 +59,7 @@ window.dispatchEvent(new CustomEvent('my-event', { detail: { id: 1 } }));
 //                    ↑ CustomEvent 는 detail 속성에 원하는 데이터를 담아서 보낼 수 있음
 ```
 
-```
+```txt
 일반 Event:   "무슨 일이 있었다" 라는 신호만 전달 (데이터 없음)
 CustomEvent:  신호 + 같이 보낼 데이터(detail) 까지 전달
 
@@ -79,7 +79,7 @@ CustomEvent:  신호 + 같이 보낼 데이터(detail) 까지 전달
 |`new CustomEvent(name, { detail })`|데이터(`detail`)를 담을 수 있는 이벤트 객체|
 |`e.detail`|구독 쪽에서 `CustomEvent` 에 담긴 데이터 꺼내기|
 
-```
+```txt
 정리:
   addEventListener = 듣기 (subscribe)
   dispatchEvent     = 쏘기 (publish)
@@ -90,7 +90,7 @@ CustomEvent:  신호 + 같이 보낼 데이터(detail) 까지 전달
 
 # 왜 필요한가 — 트리 관계 없는 컴포넌트 동기화 ⭐️⭐️⭐️
 
-```
+```txt
 일반적인 문제 상황:
   서로 부모-자식 관계가 아닌 두 컴포넌트(또는 레이아웃)가
   각자 따로 데이터를 들고 있는데, 한쪽에서 값이 바뀌면
@@ -138,7 +138,7 @@ useEffect(() => {
 |② 발행|값을 바꾸는 쪽|`window.dispatchEvent(new CustomEvent(...))`|
 |③ 구독|값을 보여주는 쪽 (여러 곳 가능)|`useEffect` 안에서 `addEventListener` + 클린업|
 
-```
+```txt
 이 템플릿이 일반적인 이유:
   바뀌는 데이터가 닉네임이든, 알림 개수든, 장바구니 개수든
   ①②③ 구조 자체는 항상 동일 — 이름/타입만 바뀜
@@ -178,7 +178,7 @@ const result = await updateNickname(newNickname);
 notifyAuthUserUpdated(result.user);
 ```
 
-```
+```txt
 왜 헤더와 다른 레이아웃이 각자 유저 정보를 따로 구독하나:
   서로 다른 레이아웃 트리라 한쪽 상태를 다른 쪽이 직접 알 방법이 없었음
   → 이벤트 발행 한 번으로 양쪽 다 동시에 갱신 (페이지 전체를 다시 불러올 필요 없어짐)
@@ -219,7 +219,7 @@ const handleThemeChange = (preference: ThemePreference) => {
 };
 ```
 
-```
+```txt
 유저 정보 예제와 정확히 같은 정의·발행·구독 구조 — 이름과 타입만 ThemePreference 로 바뀐 것
 ```
 
@@ -227,7 +227,7 @@ const handleThemeChange = (preference: ThemePreference) => {
 
 # (`e as CustomEvent<T>`) 타입 단언이 항상 필요한 이유
 
-```
+```txt
 addEventListener 콜백의 매개변수 타입은 기본적으로 Event
 실제로 들어오는 건 detail 을 가진 CustomEvent
 → TypeScript 에게 "이건 사실 CustomEvent야" 라고 알려줘야 detail 에 접근 가능
@@ -245,7 +245,7 @@ addEventListener 콜백의 매개변수 타입은 기본적으로 Event
 |적합한 경우|레이아웃이 달라 트리 관계가 먼 컴포넌트 동기화|앱 전역에서 자주 같이 쓰는 상태|
 |예|헤더 ↔ 다른 레이아웃의 닉네임/알림 동기화|로그인 유저 정보를 앱 전체에서 공유|
 
-```
+```txt
 판단 기준:
   이미 Context Provider 로 관리 중인 상태  → 그 Context 에 갱신 함수 추가가 더 자연스러움
   Provider 트리가 다르거나 새로 만들기엔 과한 상황  → CustomEvent 가 가벼움

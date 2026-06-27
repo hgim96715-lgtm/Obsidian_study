@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 cat   = 파일 전체 출력 (짧은 파일) "concatenate(연결하다)"의 약자
 nl   = 줄 번호 포함 출력
 less  = 페이지 단위로 보기 (긴 파일)
@@ -72,7 +72,7 @@ cat -A file.txt
 # Hello^IWorld$
 ```
 
-```
+```txt
 언제 쓰나:
   -E  줄 끝 확인 → Windows(CRLF) vs Linux(LF) 개행 문자 디버깅
   -T  들여쓰기가 탭인지 스페이스인지 구분
@@ -104,7 +104,7 @@ cat /etc/passwd | head -5
 cat app.log
 ```
 
-```
+```txt
 cat 을 쓸 때:
   파일이 짧을 때 → cat (전부 한 번에)
   파일이 길 때   → less (페이지 단위로)
@@ -142,7 +142,7 @@ nl -b p'^[^#]' config.txt
 #  → 주석(#) 줄 제외하고 실제 내용 있는 줄에만 번호
 ```
 
-```
+```txt
 -b a   모든 줄 (빈 줄 포함)
 -b n   번호 없음
 -b p'패턴'  정규식 패턴과 일치하는 줄만
@@ -169,7 +169,7 @@ nl -n ln config.txt
 #  1       Hello
 ```
 
-```
+```txt
 -n rn   오른쪽 정렬 (기본값)
 -n rz   오른쪽 정렬 + 앞자리 0 채움 (000001, 000002)
 -n ln   왼쪽 정렬
@@ -185,7 +185,7 @@ nl -b a -n rz -s ': ' -w 3 config.txt
 #  003: World
 ```
 
-```
+```txt
 -s '구분자'  번호와 내용 사이 구분자 지정 (기본값: 탭)
 -w N        번호 필드 너비 지정 (기본값: 6)
 -v N        시작 번호 지정 (기본값: 1)
@@ -194,7 +194,7 @@ nl -b a -n rz -s ': ' -w 3 config.txt
 
 ## 언제 nl vs cat -n ️
 
-```
+```txt
 cat -n   빠르게 / 빈 줄 포함 전체 번호
 nl       빈 줄 제외 / 특정 줄만 / 형식 커스텀 필요할 때
 ```
@@ -228,7 +228,7 @@ less +/ERROR server_log.txt     # 첫 번째 ERROR 위치부터 열기
 
 ## less 단축키
 
-```
+```txt
 방향키 ↑↓  줄 이동
 Space       한 페이지 아래
 b           한 페이지 위 (back)
@@ -243,7 +243,7 @@ q           종료 ← 가장 중요!
 
 ## 옵션 정리
 
-```
+```txt
 -N   행 번호 표시
      ⚠️ 행 번호는 /검색어 로 검색 불가 (내용만 검색됨)
 
@@ -266,7 +266,7 @@ q           종료 ← 가장 중요!
      → 파일 열자마자 ERROR 있는 줄로 이동
 ```
 
-```
+```txt
 ⚠️ less 에서 나오려면 q 키
   모르면 갇힌 것처럼 느껴짐
 ```
@@ -283,7 +283,7 @@ more /var/log/syslog
 
 ## more 단축키
 
-```
+```txt
 Space     다음 페이지
 Enter     한 줄 아래
 b         이전 페이지
@@ -306,7 +306,7 @@ more -10 weather_data.txt     # 10줄씩
 more +/"2023-07-15" weather_data.txt
 ```
 
-```
+```txt
 옵션 요약:
   +N        N번째 라인부터 시작
   -N        한 번에 N줄씩 표시
@@ -318,7 +318,7 @@ more +/"2023-07-15" weather_data.txt
 
 ## more vs less 차이
 
-```
+```txt
 more  구버전 / 앞으로만 이동 (b 키로 이전 가능하지만 제한적)
 less  신버전 / 앞뒤 자유 이동 / 검색 기능 강력 / 대용량 파일 빠름
 
@@ -361,7 +361,7 @@ head access.log error.log
 
 ## 옵션
 
-```
+```txt
 -n N   앞 N줄 출력 (기본값 10)
 -c N   앞 N바이트 출력 (줄 단위 아님)
 -q     여러 파일 확인 시 파일 이름 헤더 숨기기
@@ -379,7 +379,7 @@ grep "ERROR" app.log | head -20
 # ERROR 로그 최신 20개 확인
 ```
 
-```
+```txt
 grep 으로 필터링 → head 로 개수 제한
 로그가 수만 줄이어도 필요한 만큼만 빠르게 확인
 ```
@@ -395,7 +395,7 @@ grep "ERROR" app.log | head -20
 # → 에러 로그 중 처음 20개만 빠르게 확인
 ```
 
-```
+```txt
 head + grep 조합 왜 쓰나:
   grep 만 쓰면 결과가 수백 줄 나올 수 있음
   head 로 앞부분만 잘라서 빠르게 확인
@@ -433,7 +433,7 @@ tail -n +50 /home/labex/project/system.log
 tail -n +3 file.txt
 ```
 
-```
+```txt
 -n N   파일 끝에서 N줄 (기본 방향)
 -n +N  N번째 줄부터 끝까지 (+ 기호가 방향 바꿈)
 
@@ -459,7 +459,7 @@ tail -n 3 -f /home/labex/project/system.log
 # 마지막 3줄 먼저 출력 → 이후 추가되는 내용 실시간 출력
 ```
 
-```
+```txt
 tail -f 는 Ctrl + C 로 종료
 서버 로그 실시간 모니터링의 핵심 패턴
 Airflow DAG 실행 로그 추적 시 매우 유용
@@ -476,7 +476,7 @@ Airflow DAG 실행 로그 추적 시 매우 유용
 tail -f /dev/null
 ```
 
-```
+```txt
 /dev/null:
   리눅스의 블랙홀 장치
   어떤 내용을 써도 사라짐
@@ -507,7 +507,7 @@ echo "서버 준비 완료"
 tail -f /dev/null     # 스크립트가 종료되지 않고 대기
 ```
 
-```
+```txt
 Docker 에서 자주 보이는 이유:
   컨테이너는 CMD(메인 프로세스) 가 종료되면 즉시 종료됨
   데몬이 없는 컨테이너를 띄워두고 싶을 때

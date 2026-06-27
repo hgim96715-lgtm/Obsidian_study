@@ -24,7 +24,7 @@ related:
 |Swagger UI|서버가 제공하는 API 명세 확인, 간단한 실행 테스트|
 |Postman|요청 저장, 환경변수, 테스트 스크립트, 여러 요청 흐름 실행|
 
-```
+```txt
 역할이 달라서 둘 다 쓰는 경우가 많음 — Swagger 는 "문서 + 빠른 테스트", Postman 은 "본격적인 테스트 워크플로우"
 ```
 
@@ -65,7 +65,7 @@ async function bootstrap() {
 |`.addBearerAuth()` / `.addBasicAuth()`|인증 방식 추가 — 아래 별도 설명|
 |`.build()`|위 설정들을 하나의 config 객체로 완성|
 
-```
+```txt
 createDocument(app, config): 앱의 모든 컨트롤러·DTO 를 스캔해서 Swagger 문서 생성
 setup('api', app, document): 'api' 경로에 Swagger UI 연결 → http://localhost:3000/api 에서 접속
 ```
@@ -74,7 +74,7 @@ setup('api', app, document): 'api' 경로에 Swagger UI 연결 → http://localh
 
 # setVersion — 뭘로 맞추나 ⭐️⭐️
 
-```
+```txt
 Swagger 의 문서/API 스펙 버전 라벨 — npm 패키지(package.json)의 version 과 같을 필요는 없음
 다만 맞춰두면 "코드 버전 = API 문서 버전" 이라 헷갈릴 일이 줄어듦 (작은 프로젝트엔 이게 편함)
 ```
@@ -85,7 +85,7 @@ Swagger 의 문서/API 스펙 버전 라벨 — npm 패키지(package.json)의 v
 |`1.0.0`|"외부에 공개하는 API 가 안정됐다" 고 볼 수 있을 때 (첫 정식 배포 등)|
 |`1.1.0`, `2.0.0` ...|이후엔 SemVer 관례대로: 기능 추가는 minor, 호환 깨지는 변경은 major|
 
-```
+```txt
 튜토리얼에 적힌 '1.0' 은 대부분 그냥 예시 값임 — 그대로 따라 적을 필요 없음
 지금 한창 개발/재구현 중이라면 0.0.1 이 맞고, 처음으로 외부에 내놓을 때(포트폴리오 배포 등) 1.0.0 으로 올리면 됨
 
@@ -96,7 +96,7 @@ API 자체의 버전 관리(v1, v2 같은 URI/Header 버전)와는 다른 개념
 
 # addBearerAuth() vs addBasicAuth() — 언제 쓰나 ⭐️⭐️⭐️
 
-```
+```txt
 이 둘은 "Swagger UI 에 인증 입력 버튼을 추가하는 것" 일 뿐 — 실제로 어떤 걸 추가해야 하는지는
 내 API 가 Authorization 헤더를 "어떤 방식으로" 검사하는지에 따라 결정됨
 ```
@@ -106,7 +106,7 @@ API 자체의 버전 관리(v1, v2 같은 URI/Header 버전)와는 다른 개념
 |`addBearerAuth()`|`Authorization: Bearer <토큰>`|JWT 기반 인증 — `@UseGuards(JwtAuthGuard)` 가 붙은 라우트가 하나라도 있다면 거의 항상 필요|
 |`addBasicAuth()`|`Authorization: Basic <base64(id:pw)>`|엔드포인트가 진짜로 이 형식의 헤더를 직접 검사할 때만 — 흔하지 않음|
 
-```
+```txt
 ⚠️ 흔한 오해 정정 — "로그인(login) 엔드포인트엔 Basic Auth" 가 아님
   로그인이 email/password 를 요청 Body(DTO)로 받는 일반적인 구조라면, 이건 Basic Auth 와 전혀 무관함
   (Swagger 상에서는 @ApiBody({ type: LoginDto }) 로 표현 — 인증 방식 추가와는 별개)
@@ -128,7 +128,7 @@ API 자체의 버전 관리(v1, v2 같은 URI/Header 버전)와는 다른 개념
 
 # addBearerAuth() 옵션과 보안 스킴 이름 — @ApiBearerAuth()와 짝맞추기 ⭐️⭐️⭐️
 
-```
+```txt
 addBearerAuth() 는 인자 없이 써도 동작하지만, 실제 시그니처는 다음과 같음:
 
   addBearerAuth(options?: SecuritySchemeObject, name?: string): this
@@ -165,7 +165,7 @@ const config = new DocumentBuilder()
 
 ## name — 왜 @ApiBearerAuth()와 맞춰야 하나 ⭐️⭐️⭐️
 
-```
+```txt
 addBearerAuth(options, 'access-token') 처럼 이름을 직접 지정했다면,
 그 보안 스킴을 라우트에 적용할 때도 같은 이름을 @ApiBearerAuth()에 넘겨야 함:
 
@@ -183,7 +183,7 @@ addBearerAuth(options, 'access-token') 처럼 이름을 직접 지정했다면,
 |addBearerAuth에만 커스텀 이름|`'access-token'`|이름 생략 (`'bearer'` 찾음)|불일치 ⚠️|
 |둘 다 같은 커스텀 이름|`'access-token'`|`'access-token'`|일치 ✅|
 
-```
+```txt
 왜 굳이 이름을 커스텀하게 짓는 경우가 있나:
   Bearer 토큰을 종류별로 여러 개 문서화해야 할 때 (예: access-token / refresh-token을
   서로 다른 보안 스킴으로 따로 보여주고 싶을 때) — 이런 경우가 아니면 그냥 기본값(이름 생략)으로 충분
@@ -193,7 +193,7 @@ addBearerAuth(options, 'access-token') 처럼 이름을 직접 지정했다면,
 
 # OpenAPI CLI Plugin — 자동 유추 ⭐️
 
-```
+```txt
 문제: @ApiProperty 를 모든 DTO 필드에 하나씩 붙이면 코드가 복잡해짐
 해결: TypeScript Reflection 으로 유추 가능한 값은 자동 처리 — @ApiProperty 생략해도 스키마 자동 생성
 ```
@@ -209,7 +209,7 @@ addBearerAuth(options, 'access-token') 처럼 이름을 직접 지정했다면,
 }
 ```
 
-```
+```txt
 Plugin 활성화 후:
   DTO 의 타입/필드명 → 자동 유추
   @IsOptional() → required: false 자동 반영
@@ -218,7 +218,7 @@ Plugin 활성화 후:
 
 ## 옵션을 직접 지정하고 싶다면 — 객체 형태 ⭐️⭐️⭐️
 
-```
+```txt
 문자열("@nestjs/swagger")만 적으면 전부 기본값으로 동작함
 세부 동작을 바꾸고 싶다면 { name, options } 객체 형태로 적어야 함
 ```
@@ -258,7 +258,7 @@ export class CreateMovieDto {
 }
 ```
 
-```
+```txt
 ⚠️ dtoFileNameSuffix 를 직접 지정하면 기본값(['.dto.ts', '.entity.ts'])이 "대체" 됨(합쳐지는 게 아님)
    → entity.ts 파일도 같이 스캔하고 싶다면 ['.dto.ts', '.entity.ts'] 처럼 둘 다 명시해야 함
 
@@ -271,7 +271,7 @@ export class CreateMovieDto {
 
 ## 컨트롤러 / 엔드포인트
 
-```
+```txt
 @ApiTags 없어도 자동 태그 ⭐️:
   @nestjs/swagger 는 기본적으로 autoTagControllers: true
   @ApiTags() 가 없어도 Controller 이름에서 'Controller' 를 제거한 값을 자동 태그로 사용
@@ -306,7 +306,7 @@ export class MovieController {
 }
 ```
 
-```
+```txt
 로그인 자체(이메일/비밀번호 검증)는 별도 컨트롤러에 @ApiBody({ type: LoginDto }) 로 표현 —
 @ApiBasicAuth() 를 붙이는 게 아님 (위 "언제 쓰나" 섹션 참고)
 ```
@@ -330,7 +330,7 @@ export class CreateMovieDto {
 }
 ```
 
-```
+```txt
 @ApiProperty 없으면 Swagger 가 해당 필드를 문서에 표시 못 함 (Plugin 활성화 시엔 기본값은 자동 유추됨)
 description / example / required / enum 등으로 문서를 더 풍부하게 만들 수 있음
 ```
@@ -367,7 +367,7 @@ export class UserDto {
 }
 ```
 
-```
+```txt
 언제 쓰나: password / 내부 토큰처럼 문서에 노출되면 안 되는 필드
 @ApiExcludeEndpoint(): 내부 관리용/테스트용 엔드포인트를 문서에서 통째로 숨김
 @ApiExcludeController(): 컨트롤러 전체를 문서에서 숨김
@@ -377,7 +377,7 @@ export class UserDto {
 
 # Swagger UI 인증 버튼(Authorize 🔒) ⭐️
 
-```
+```txt
 Swagger UI 의 Authorize 버튼은 DocumentBuilder 에 추가한 인증 방식만큼만 나타남
 → 필요한 방식만 추가하면 됨 — addBasicAuth/addBearerAuth 둘 다 필수는 아님 (위 "언제 쓰나" 참고)
 이름을 커스텀하게 지었다면 위 "addBearerAuth() 옵션과 보안 스킴 이름" 섹션의 매칭 규칙을 따를 것
@@ -391,7 +391,7 @@ const config = new DocumentBuilder()
   .build();
 ```
 
-```
+```txt
 ⚠️ addBearerAuth() 를 안 추가하면: @ApiBearerAuth() 를 컨트롤러에 붙여도
    UI 에 토큰 입력란 자체가 안 나타나서 인증된 테스트가 불가능함
    → @ApiXxxAuth() 데코레이터(엔드포인트에 붙이는 표시)와 addXxxAuth()(UI 버튼 생성)는 항상 짝이 맞아야 함
@@ -401,7 +401,7 @@ const config = new DocumentBuilder()
 
 # Authorization 헤더를 직접 다뤄야 할 때 — 커스텀 데코레이터로 숨기기 ⭐️
 
-```
+```txt
 @Headers('authorization') 를 파라미터에 직접 쓰면 Swagger 가 이를 "일반 헤더 입력값" 으로 인식해서
 UI 에 별도 입력란이 노출됨 — @ApiBearerAuth()/@ApiBasicAuth() 의 자물쇠 버튼과는 별개로 중복 표시됨
 ```
@@ -433,7 +433,7 @@ introspect(@Authorization() token: string) {}
 // → Swagger UI 에 중복 입력란 없이, 자물쇠 버튼 하나로만 인증 표현
 ```
 
-```
+```txt
 이런 패턴이 필요해지는 경우: Guard 를 거치지 않고 라우트 안에서 토큰 원문을 직접 다뤄야 할 때
 (토큰 검증은 보통 Guard 가 처리하므로 — 이 패턴 자체는 자주 쓰이진 않음, 필요할 때만)
 커스텀 Param 데코레이터 자체의 일반 패턴은 [[NestJS_Controller]] 참고
@@ -443,7 +443,7 @@ introspect(@Authorization() token: string) {}
 
 # PartialType import 변경 ⭐️
 
-```
+```txt
 Swagger 와 함께 UpdateDto 를 쓰려면 PartialType 을 @nestjs/mapped-types 가 아닌 @nestjs/swagger 에서 import 해야 함
 ```
 
@@ -462,7 +462,7 @@ export class UpdateMovieDto extends PartialType(CreateMovieDto) {}
 |`@nestjs/mapped-types`|NestJS 검증 전용 — Swagger 메타데이터 전달 안 함|
 |`@nestjs/swagger`|Swagger 메타데이터(`@ApiProperty` 정보)도 같이 상속|
 
-```
+```txt
 OmitType / PickType / IntersectionType 도 동일한 규칙 — Swagger 와 함께 쓰면 @nestjs/swagger 에서 import
 DTO 자체의 자세한 패턴은 [[NestJS_DTO]] 참고
 ```
@@ -471,7 +471,7 @@ DTO 자체의 자세한 패턴은 [[NestJS_DTO]] 참고
 
 # 한눈에
 
-```
+```txt
 setVersion: package.json 과 같을 필요 없음 — 개발 중 0.0.1, 외부 정식 공개 시 1.0.0
 addBearerAuth(): JWT 기반이면 거의 항상 필요 (Bearer 토큰 인증)
 addBasicAuth(): "Authorization: Basic" 헤더를 진짜로 검사하는 엔드포인트가 있을 때만 — 로그인 자체와는 무관

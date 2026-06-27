@@ -16,7 +16,7 @@ related:
 ---
 # SQL_Date_Functions — 날짜 함수
 
-```
+```txt
 날짜 데이터를 쪼개고 / 더하고 / 포맷 변환
 월별 집계 / 날짜 범위 필터 / 날짜 차이 계산
 ```
@@ -62,7 +62,7 @@ DATE_FORMAT(trans_date, '%Y-%m-%d')           -- '2024-01-27'
 DATE_FORMAT(trans_date, '%Y-%m-%d %H:%i:%s')  -- '2024-01-27 14:30:00'
 ```
 
-```
+```txt
 포맷 코드 비교:
   PostgreSQL   MySQL   의미
   YYYY         %Y      4자리 연도
@@ -96,7 +96,7 @@ HOUR(trans_date)      -- 시간
 DAYOFWEEK(trans_date) -- 요일 (1:일 ~ 7:토)
 ```
 
-```
+```txt
 GROUP BY 에서 연도·월 추출:
   EXTRACT(YEAR FROM date)   → 숫자 (2024)
   TO_CHAR(date, 'YYYY-MM')  → 문자열 '2024-01'
@@ -122,7 +122,7 @@ DATE_TRUNC('day',   trans_date)          -- 2024-01-27 00:00:00
 GROUP BY DATE_TRUNC('month', trans_date)
 ```
 
-```
+```txt
 DATE_TRUNC vs TO_CHAR:
   DATE_TRUNC  날짜 타입 유지 → 날짜 정렬·연산 가능
   TO_CHAR     문자열로 변환 → 출력 목적
@@ -170,7 +170,7 @@ TIMESTAMPDIFF(MONTH, '2024-01-01', '2024-12-31')  -- 11  (월 차이)
 TIMESTAMPDIFF(YEAR,  '2000-01-01', '2024-01-01')  -- 24  (년 차이)
 ```
 
-```
+```txt
 PostgreSQL:
   날짜 - 날짜 = 정수 (일 수)
   AGE(끝날짜, 시작날짜) = interval 타입

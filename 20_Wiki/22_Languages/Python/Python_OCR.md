@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 OCR (Optical Character Recognition)
 = 이미지 / PDF 안의 텍스트를 읽어서 문자열로 변환
 ```
@@ -34,7 +34,7 @@ OCR (Optical Character Recognition)
 |**Tesseract**|⭐⭐⭐|느림|무료|시스템 설치 필요|
 |**Google Vision**|⭐⭐⭐⭐⭐|빠름|유료|API Key|
 
-```
+```txt
 선택 기준:
   빠르게 시작 / 무료 / 한글 필요   → EasyOCR  ← 추천
   서버에 설치 / 오프라인 / 무료     → Tesseract
@@ -53,7 +53,7 @@ OCR (Optical Character Recognition)
 pip install easyocr pillow numpy
 ```
 
-```
+```txt
 처음 실행 시 언어 모델 자동 다운로드 (수백 MB)
 GPU 없어도 CPU 로 동작 (느리지만 됨)
 ```
@@ -82,7 +82,7 @@ class Scraper:
         return self.ocr_reader.readtext(img_array, detail=0)
 ```
 
-```
+```txt
 초기화는 무겁기 때문에:
   __init__ 에서 한 번만 생성
   매번 Reader() 만들면 성능 저하
@@ -117,7 +117,7 @@ results = reader.readtext(
 )
 ```
 
-```
+```txt
 자주 쓰는 조합:
 
 # 빠르게 텍스트만
@@ -208,7 +208,7 @@ img_array = np.array(img)
 results = reader.readtext(img_array, detail=0)
 ```
 
-```
+```txt
 왜 np.array() 가 필요한가:
   PIL Image 는 EasyOCR 이 직접 못 받는 경우 있음
   np.array() 로 변환하면 어떤 이미지 형식이든 통일됨
@@ -391,7 +391,7 @@ print(df[["text", "confidence"]])
 
 # ⑤ 언어 코드 목록
 
-```
+```txt
 "ko"    한국어
 "en"    영어
 "ja"    일본어

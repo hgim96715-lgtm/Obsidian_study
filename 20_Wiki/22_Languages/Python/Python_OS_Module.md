@@ -37,7 +37,7 @@ import os
 
 # 왜 필요한가
 
-```
+```txt
 pathlib 가 나온 이후에도 os 모듈을 버릴 수 없는 이유:
 
 ① 환경 변수 (os.environ / os.getenv)
@@ -74,7 +74,7 @@ api_key = os.getenv("TRAIN_API_KEY")
 api_key = os.getenv("TRAIN_API_KEY", "기본값")       # 없을 때 기본값 지정
 ```
 
-```
+```txt
 os.environ.get() 과 os.getenv() 는 동작이 완전히 동일함
 os.getenv() 가 더 짧아서 실무에서 더 많이 씀
 
@@ -121,7 +121,7 @@ if not api_key:
     raise ValueError("TRAIN_API_KEY 환경 변수가 설정되지 않았습니다.")
 ```
 
-```
+```txt
 os.getenv() 는 항상 문자열(str) 로 반환
 숫자가 필요하면 int() / float() 으로 변환해야 함
 ```
@@ -218,7 +218,7 @@ joined = os.path.join("data", "uploads", "train.csv")
 # Mac/Linux: data/uploads/train.csv
 ```
 
-```
+```txt
 경로 합칠 때 os.path.join 쓰는 이유:
   "data" + "/" + "uploads"  → Windows 에서 깨질 수 있음
   os.path.join("data", "uploads")  → 운영체제에 맞게 자동 처리
@@ -255,7 +255,7 @@ for dirpath, dirnames, filenames in os.walk("data"):
 
 # os vs pathlib — 언제 뭘 쓰나
 
-```
+```txt
 os.getenv / os.environ    → 무조건 os (pathlib 대체 불가)
 환경 변수는 os 의 영역
 
@@ -277,7 +277,7 @@ os.getenv / os.environ    → 무조건 os (pathlib 대체 불가)
 
 # 초보자 실수 포인트
 
-```
+```txt
 ① os.environ["KEY"] 로 접근 → 없으면 KeyError
    os.getenv("KEY") 또는 os.environ.get("KEY") 를 써야 안전
 

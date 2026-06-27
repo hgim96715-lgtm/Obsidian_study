@@ -39,7 +39,7 @@ docker run -d \
   redis-server --requirepass 비밀번호
 ```
 
-```
+```txt
 기본 포트: 6379
 -v redis-data:/data → 컨테이너 삭제해도 데이터 유지
 ```
@@ -78,7 +78,7 @@ PING "hello"
 # → "hello"  (메시지 포함)
 ```
 
-```
+```txt
 PING 의 역할:
   Redis 서버가 실제로 실행 중이고 응답하는지 확인
   헬스 체크(Health Check) 의 가장 기본적인 방법

@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 dmesg       = 커널 / 하드웨어 메시지 (부팅 시 로그)
 journalctl  = systemd 기반 전체 시스템 로그 (현재 표준)
 syslog      = 전통적 로그 파일 (/var/log/)
@@ -31,7 +31,7 @@ logrotate   = 로그 파일 자동 관리 (압축 / 삭제)
 
 # ① 로그 시스템 구조
 
-```
+```txt
 커널 메시지:
   커널 링 버퍼 → dmesg 로 조회
   부팅 과정 / 드라이버 / 하드웨어 이벤트
@@ -55,7 +55,7 @@ logrotate   = 로그 파일 자동 관리 (압축 / 삭제)
 
 # ② dmesg — 커널 링 버퍼 메시지 ⭐️
 
-```
+```txt
 dmesg = Diagnostic MeSsaGe
   커널이 부팅 과정에서 남긴 메시지
   하드웨어 인식 / 드라이버 로드 / 장치 오류
@@ -113,7 +113,7 @@ dmesg -T          # 사람이 읽기 좋은 날짜/시간 형식
 
 ## 언제 dmesg 쓰나
 
-```
+```txt
 새 하드웨어 장착 후 인식 안 됨
   → sudo dmesg | tail -30  (방금 발생한 이벤트)
 
@@ -133,7 +133,7 @@ USB 연결 확인
 
 # ③ journalctl — systemd 통합 로그 ⭐️
 
-```
+```txt
 systemd 가 관리하는 모든 서비스 로그를 한 곳에서 조회
 dmesg + 서비스 로그 + 시스템 이벤트 통합
 현재 리눅스의 표준 로그 조회 도구
@@ -243,7 +243,7 @@ du -sh /var/log/
 
 # ⑤ logrotate — 로그 자동 관리 ⭐️
 
-```
+```txt
 문제: 로그 파일이 계속 커져서 디스크 꽉 참
 해결: logrotate = 로그 파일 자동 순환 (rotate)
 
@@ -267,7 +267,7 @@ cat /etc/logrotate.d/postgresql
 
 ## logrotate 설정 예시
 
-```
+```txt
 # /etc/logrotate.d/myapp
 /var/log/myapp/*.log {
     daily              # 매일

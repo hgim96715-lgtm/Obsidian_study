@@ -22,7 +22,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 키(Key) 로 값(Value) 을 찾는 이름표 저장소
 Hash Table 구조 → 데이터 100만 개여도 즉시 조회
 ```
@@ -79,7 +79,7 @@ items = (
 )
 ```
 
-```
+```txt
 동작 원리:
   "body" 가 없으면 → {} 반환
   {} 에서 다음 .get() → 역시 없음
@@ -129,7 +129,7 @@ config.items()[0]          # TypeError!
 list(config.items())[0]    # ("owner", "team_A") ✅
 ```
 
-```
+```txt
 착각 주의:
   for k, v in config.items() 에서
   k = 인덱스(0,1,2)로 착각하기 쉬움
@@ -143,7 +143,7 @@ list(config.items())[0]    # ("owner", "team_A") ✅
 
 ## key= 가 하는 일
 
-```
+```txt
 sorted(리스트, key=함수)
 
 key= 는 "각 요소를 어떤 값으로 비교할지" 정하는 것
@@ -215,7 +215,7 @@ sorted(answer.items(), key=lambda x: (x[1], -x[0]))
 # [4, 2, 3, 1]
 ```
 
-```
+```txt
 lambda x: (x[1], -x[0]) 읽는 법:
   x       → (키, 값) 튜플
   x[0]    → 키
@@ -226,7 +226,7 @@ lambda x: (x[1], -x[0]) 읽는 법:
 
 ## key= 에 계산식 넣기 ⭐️
 
-```
+```txt
 딕셔너리 없이 리스트를 직접 정렬할 때
 key= 에 abs() 같은 계산식을 바로 넣을 수 있음
 ```
@@ -248,7 +248,7 @@ sorted(numlist, key=lambda x: (abs(x-n), n-x))
 # n-x      = 거리 같을 때 작은 수 우선 (두 번째 기준)
 ```
 
-```
+```txt
 n-x 가 두 번째 기준인 이유:
   n=4, x=2 → n-x = 2  (양수)
   n=4, x=6 → n-x = -2 (음수)
@@ -299,7 +299,7 @@ d["a"].append(1)
 print(d)   # {"a": [1], "b": []}  ← 각자 독립 ✅
 ```
 
-```
+```txt
 fromkeys 적합:  모든 키에 같은 단순 값 (0, None, "")
 Dict Comp 적합: 키마다 다른 값 / 계산식 / 리스트 등 가변 객체
 ```
@@ -324,7 +324,7 @@ set([3, 1, 2, 1, 3, 4])  # {1, 2, 3, 4}  순서 제각각 ❌
 
 # ⑦ Dict Comprehension — 키마다 다른 값
 
-```
+```txt
 {key: value_expression for key in iterable}
 ```
 
@@ -404,7 +404,7 @@ merged = {**a, **b}   # b 값이 a 덮어씀
 ---
 # ⑨ 실전 패턴 — 등수 계산
 
-```
+```txt
 리스트 원본 순서는 유지하면서
 각 원소에 등수를 부여해야 할 때
 
@@ -442,7 +442,7 @@ result = [rank_dict[s] for s in scores]
 # [2, 4, 3, 4, 1]  ← 원본 순서 유지, 동점 같은 등수
 ```
 
-```
+```txt
 흐름:
   ① 정렬 + 중복 제거 → 등수 기준 만들기
   ② {값: 등수} 딕셔너리 생성
@@ -473,7 +473,7 @@ result = [arr_sort.index(v) + 1 for v in scores]
 # [2, 4, 3, 4, 1]
 ```
 
-```
+```txt
 arr_sort.index(v):
   정렬된 리스트에서 v 의 위치(0부터) 반환
   + 1 → 등수 (1부터)
@@ -485,7 +485,7 @@ arr_sort.index(v):
 
 ## 두 방법 비교
 
-```
+```txt
 딕셔너리 방법:
   등수를 한 번만 계산 → 딕셔너리에 저장 → 꺼내서 사용
   데이터 많을 때 빠름 (딕셔너리 조회 = O(1))
@@ -529,7 +529,7 @@ sorted(d.items(), key=lambda x: x[1])
 
 # 한눈에 정리
 
-```
+```txt
 조회:    d.get("key", 기본값)           안전 조회
 순회:    for k, v in d.items()
 정렬:    sorted(d.items(), key=lambda x: x[1])

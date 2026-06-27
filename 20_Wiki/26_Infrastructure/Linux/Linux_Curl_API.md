@@ -13,7 +13,7 @@ related:
 
 # Linux_Curl — curl & API 테스트
 
-```
+```txt
 curl = 터미널에서 URL 로 데이터를 주고받는 명령어
 브라우저 주소창에 붙여 넣는 것과 같은 동작
 → XML / JSON 텍스트가 터미널에 출력됨
@@ -32,7 +32,7 @@ curl -S https://example.com           # 에러 나면 메시지 표시
 curl -sS https://example.com          # 보통 -sS 같이 씀
 ```
 
-```
+```txt
 -s  silent — 진행 표시 줄임 (스크립트 / 파이프에서 유용)
 -S  에러 나면 메시지 표시 (-s 와 함께 사용)
 -sS 조용히 실행하되 에러는 보여줌 → API 테스트 표준 패턴
@@ -57,7 +57,7 @@ echo ${API_KEY}
 curl -sS "${API_URL}/endpoint?serviceKey=${API_KEY}"
 ```
 
-```
+```txt
 grep -E '^API_' .env:
   .env 에서 API_ 로 시작하는 줄만 추출
 
@@ -89,7 +89,7 @@ curl -sS "${API_BASE_URL}/period2?serviceKey=${API_KEY}&PageNo=1&numOfrows=10&se
 curl -sS "${API_BASE_URL}/detail2?serviceKey=${API_KEY}&seq=315928"
 ```
 
-```
+```txt
 성공 여부 확인:
   XML 안에 이게 있으면 OK
   <resultCode>00</resultCode>
@@ -120,7 +120,7 @@ curl -sS https://api.example.com/movies \
 curl -sS -i https://api.example.com/movies
 ```
 
-```
+```txt
 -X POST     HTTP 메서드 지정
 -H          헤더 추가 (여러 번 사용 가능)
 -d          요청 body 데이터
@@ -131,7 +131,7 @@ curl -sS -i https://api.example.com/movies
 ---
 # 쿠키 — 저장 & 전송 ⭐️
 
-```
+```txt
 -c  쿠키 저장 (cookie write)   → 로그인 응답 쿠키를 파일에 저장
 -b  쿠키 전송 (cookie bring)   → 저장된 쿠키 파일을 요청에 포함
 
@@ -157,7 +157,7 @@ curl -sS http://localhost:3000/admin/me \
   -c cookies.txt
 ```
 
-```
+```txt
 -c cookies.txt  로그인 응답의 Set-Cookie 를 파일에 저장
 -b cookies.txt  이후 요청마다 파일의 쿠키를 요청에 포함
 
@@ -198,7 +198,7 @@ curl -sS https://api.example.com/movies | jq .
 curl -sS https://api.example.com/movies | jq '.data[0].title'
 ```
 
-```
+```txt
 xmllint 없으면:
   긴 한 줄 XML 로 나와도
   resultCode / 원하는 태그 grep 으로 찾으면 됨

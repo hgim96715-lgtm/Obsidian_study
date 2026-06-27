@@ -19,7 +19,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 파이썬 인터프리터(실행기) 를 직접 제어하는 도구
 
 시스템 정보 조회, 스크립트 강제 종료,
@@ -32,7 +32,7 @@ related:
 
 # ① sys.stdout — 표준 출력
 
-```
+```txt
 Standard Output (표준 출력)
 print() 함수가 글자를 내보내는 기본 통로 (터미널/모니터)
 
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 logger.info("Producer 시작")
 ```
 
-```
+```txt
 stream=sys.stdout 없으면:
   로그가 stderr 로 나가거나 파일에 숨겨짐
   docker logs 컨테이너명 으로 안 보일 수 있음
@@ -71,7 +71,7 @@ stream=sys.stdout 있으면:
 
 # ② sys.argv — 실행 인자
 
-```
+```txt
 Argument Vector
 터미널에서 스크립트 실행할 때 뒤에 붙인 단어들을 리스트로 받아옴
 
@@ -107,7 +107,7 @@ else:
     print("개발 서버 접속")
 ```
 
-```
+```txt
 ⚠️ 인자 없이 실행하면 sys.argv = ['my_job.py'] (파일명만)
    sys.argv[1] 접근하면 IndexError
    → len(sys.argv) > 1 체크 or try/except 필수
@@ -119,7 +119,7 @@ else:
 
 # ③ sys.exit() — 강제 종료
 
-```
+```txt
 프로그램 즉시 종료
 중요 설정 없거나 DB 연결 끊겼을 때 "더 이상 못 해!" 하고 멈출 때
 
@@ -155,7 +155,7 @@ if env not in ('dev', 'prod'):
     sys.exit(1)
 ```
 
-```
+```txt
 Airflow / Docker 에서의 의미:
   sys.exit(0)  → Airflow 가 태스크 성공으로 인식
   sys.exit(1)  → Airflow 가 태스크 실패로 인식 → 재시도 or 알림
@@ -167,7 +167,7 @@ Airflow / Docker 에서의 의미:
 
 # ④ sys.path — 모듈 경로 ⭐️
 
-```
+```txt
 파이썬이 import 할 때 파일을 찾는 폴더 목록 (리스트)
 "Module Not Found" 에러 뜰 때 여기를 확인
 
@@ -191,7 +191,7 @@ print(sys.path)
 
 ## sys.path 기본 구성
 
-```
+```txt
 sys.path 에 자동으로 들어오는 것들:
   ''(빈 문자열)      현재 작업 디렉토리
   PYTHONPATH        환경변수로 지정한 경로
@@ -216,7 +216,7 @@ sys.path.append('/opt/airflow/producer')
 sys.path.insert(0, '/opt/airflow/producer')
 ```
 
-```
+```txt
 차이:
   append        → 기존 경로 다 탐색 후 마지막에 확인
   insert(0, ...) → 가장 먼저 확인
@@ -246,7 +246,7 @@ sys.path.insert(0, '/opt/airflow/producer')
 from producer import TrainProducer
 ```
 
-```
+```txt
 자주 겪는 ModuleNotFoundError 원인:
   가상환경 활성화 안 됨    → source venv/bin/activate
   pip 설치 안 됨          → pip install 패키지명
@@ -287,7 +287,7 @@ print(os.environ.get('PYTHONPATH', '없음'))
 # PYTHONPATH=/opt/airflow/producer:/opt/airflow/common
 ```
 
-```
+```txt
 ⚠️ 주의:
   sys.path 조작은 임시방편
   패키지 구조를 제대로 잡거나 pip install -e . 이 더 깔끔

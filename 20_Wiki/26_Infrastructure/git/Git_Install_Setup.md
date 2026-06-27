@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 git config = Git 의 제어판
 --global   = 이 컴퓨터 전체에 적용
 (로컬)     = 이 저장소에만 적용
@@ -50,7 +50,7 @@ git init
 # Initialized empty Git repository in .../my-project/.git/
 ```
 
-```
+```txt
 .git 폴더가 생기면 Git 저장소. ls-la로 확인 [[Linux_Directory_Commands]] 참고
 .git 폴더 안에 모든 이력이 저장됨
 절대 .git 폴더 직접 수정하지 말 것
@@ -76,7 +76,7 @@ git config core.editor
 
 ## 3가지 설정 범위
 
-```
+```txt
 --system   시스템 전체 (모든 사용자)   /etc/gitconfig
 --global   현재 사용자 전체           ~/.gitconfig
 (없음)     현재 저장소만              .git/config
@@ -106,7 +106,7 @@ git config user.name
 git config user.email
 ```
 
-```
+```txt
 사용자 정보가 왜 필요한가:
   커밋할 때마다 "누가 만들었는지" 기록됨
   git log 에서 Author 로 표시
@@ -150,7 +150,7 @@ git config --global core.editor "code --wait"
 git config core.editor
 ```
 
-```
+```txt
 에디터 언제 쓰나:
   git commit  → 메시지 없이 실행 시 에디터 열림
   git rebase  → 대화형 작업 시
@@ -176,7 +176,7 @@ git config --global color.ui auto
 git config color.ui
 ```
 
-```
+```txt
 auto:
   터미널 출력 → 색상 사용 (파란색 브랜치, 빨간색 삭제 등)
   파일/파이프로 보낼 때 → 일반 텍스트
@@ -201,7 +201,7 @@ git config --global core.autocrlf true
 git config core.autocrlf
 ```
 
-```
+```txt
 왜 필요한가:
   Windows: 줄바꿈 = CRLF (\r\n)
   Linux/macOS: 줄바꿈 = LF (\n)
@@ -226,7 +226,7 @@ true (Windows):
 
 ## alias 구조 이해
 
-```
+```txt
 git config --global alias.별칭 "실제명령어"
                           ↑
                     alias. 뒤에 내가 쓸 단축키 이름
@@ -314,7 +314,7 @@ git config --global --edit
 nano ~/.gitconfig
 ```
 
-```
+```txt
 ~/.gitconfig 예시:
   [user]
     name = Your Name

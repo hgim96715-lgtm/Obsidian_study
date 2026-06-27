@@ -89,7 +89,7 @@ related:
 
 # 설정 파일 위치 참고
 
-```
+```txt
 .obsidian/
 ├── app.json              # vault 동작
 ├── appearance.json       # 테마·스니펫

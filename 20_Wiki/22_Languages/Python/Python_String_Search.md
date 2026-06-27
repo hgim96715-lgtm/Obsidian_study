@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 문자열 안에서 "내가 찾는 글자"가 몇 번째 칸에 있는지 찾아내는 함수
 위치(인덱스) 를 숫자로 반환 → 슬라이싱과 조합해서 원하는 부분만 추출
 ```
@@ -27,7 +27,7 @@ related:
 
 # ① 인덱스는 0부터 시작 ⭐️
 
-```
+```txt
 파이썬 문자열 인덱스는 무조건 0부터
 
   h  e  l  l  o     w  o  r  l  d
@@ -65,7 +65,7 @@ print(str(num).find(str(k)))   # 2  (9→0, 8→1, 7→2)
 
 # ② find vs index — 없을 때 차이
 
-```
+```txt
 find   → 없으면 -1 반환  (프로그램 안 죽음, 안전)
 index  → 없으면 ValueError 에러 발생 (프로그램 멈춤)
 ```
@@ -82,7 +82,7 @@ text.index("o")   # 4
 text.index("z")   # ValueError: substring not found ← 프로그램 멈춤
 ```
 
-```
+```txt
 언제 뭘 쓰나:
   find   → "있으면 처리하고, 없으면 말지" → if result != -1: 패턴
   index  → "이 값이 무조건 있어야 한다"   → 없으면 에러로 알고 싶을 때
@@ -106,7 +106,7 @@ else:
 
 # ③ find vs rfind — 찾는 방향 차이
 
-```
+```txt
 find   → 왼쪽(앞) 에서부터 탐색 → 처음 나오는 위치
 rfind  → 오른쪽(뒤) 에서부터 탐색 → 마지막으로 나오는 위치
 
@@ -141,7 +141,7 @@ data.rfind("apple")   # 12  ← 마지막 apple
 
 # ④ 범위 지정 — find(문자열, 시작, 끝)
 
-```
+```txt
 find(찾을값, 시작위치, 끝위치)
   시작위치 이후부터만 탐색
   두 번째, 세 번째 등 특정 순서의 위치를 찾을 때 사용
@@ -161,7 +161,7 @@ data.find("apple", 7)     # 12  ← 7번 이후부터 → 세 번째 apple
 
 # ⑤ 리스트에서는 find 못 씀
 
-```
+```txt
 find / rfind → 문자열(str) 전용
 리스트(list) 에는 index() 만 사용 가능
 ```
@@ -220,7 +220,7 @@ second = text.find("a", first + 1)   # 3
 |`index(s)`|앞 → 뒤|`ValueError`|처음 위치, 반드시 있어야 할 때|
 |`rindex(s)`|뒤 → 앞|`ValueError`|마지막 위치, 반드시 있어야 할 때|
 
-```
+```txt
 공통:
   반환값은 항상 0부터 시작하는 양수 인덱스
   rfind 라고 음수 나오는 게 아님

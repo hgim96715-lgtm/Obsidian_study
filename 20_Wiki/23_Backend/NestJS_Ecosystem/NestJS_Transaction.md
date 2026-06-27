@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 여러 오퍼레이션을 하나의 논리적인 작업으로 묶기
 전부 성공 or 전부 실패 (원자성)
 은행 거래처럼: 출금 + 입금이 같이 성공해야 함
@@ -27,7 +27,7 @@ related:
 
 # ① 트랜잭션이란 ⭐️
 
-```
+```txt
 예시: 은행 이체
   1. A 계좌에서 10만원 출금
   2. B 계좌에 10만원 입금
@@ -50,7 +50,7 @@ related:
 
 ## Lost Update (업데이트 손실)
 
-```
+```txt
 두 트랜잭션이 같은 데이터를 읽고 업데이트
 
   T1: 재고 10 읽음 → 9 로 수정 시도
@@ -63,7 +63,7 @@ related:
 
 ## Dirty Read (더티 읽기)
 
-```
+```txt
 아직 커밋 안 된 데이터를 다른 트랜잭션이 읽는 경우
 
   T1: 잔액 1000 → 2000 으로 변경 (아직 커밋 안 함)
@@ -76,7 +76,7 @@ related:
 
 ## Non-repeatable Read (반복 불가 읽기)
 
-```
+```txt
 같은 데이터를 두 번 읽었는데 결과가 다른 경우
 
   T1: 잔액 1000 읽음
@@ -88,7 +88,7 @@ related:
 
 ## Phantom Read (팬텀 읽기)
 
-```
+```txt
 조건에 맞는 행을 조회했는데 나중에 다시 조회하면 행 수가 다른 경우
 
   T1: SELECT * FROM orders WHERE amount > 1000  → 3건
@@ -111,7 +111,7 @@ related:
 |Repeatable Read|✅ 방지|✅ 방지|발생|
 |Serializable|✅ 방지|✅ 방지|✅ 방지|
 
-```
+```txt
 격리 수준 높을수록:
   더 안전 / 더 느림 (성능 저하)
 
@@ -138,7 +138,7 @@ await qr.startTransaction('REPEATABLE READ');   // Non-repeatable Read 방지
 await qr.startTransaction('SERIALIZABLE');      // 가장 엄격 / 가장 느림
 ```
 
-```
+```txt
 언제 기본값 외 격리 수준을 쓰나:
 
   REPEATABLE READ:
@@ -164,7 +164,7 @@ await qr.startTransaction('SERIALIZABLE');      // 가장 엄격 / 가장 느림
 
 ## DataSource 란? ⭐️
 
-```
+```txt
 Repository = 특정 Entity 하나의 CRUD 담당
   @InjectRepository(Movie) → Movie 테이블만
 
@@ -199,7 +199,7 @@ export class MovieService {
 }
 ```
 
-```
+```txt
 @InjectRepository 는 왜 없나:
   Repository 는 Entity 마다 따로 생성되므로
   @InjectRepository(Movie) 처럼 어떤 Entity 인지 명시 필요
@@ -288,7 +288,7 @@ async createMovie(createMovieDto: CreateMovieDto) {
 
 ## qr.manager 란 ⭐️
 
-```
+```txt
 qr.manager = EntityManager
   QueryRunner 에 속한 DB 작업 실행기
   이 manager 로 실행하는 모든 작업이 같은 트랜잭션에 묶임
@@ -328,7 +328,7 @@ return await this.movieRepository.findOne({
 
 ## ⚠️ 자주 하는 실수
 
-```
+```txt
 release() 빠뜨리기:
   finally 없으면 에러 시 release() 안 됨
   → 커넥션 풀 고갈 → 전체 서버 장애
@@ -357,7 +357,7 @@ async createMovie(dto: CreateMovieDto) {
 }
 ```
 
-```
+```txt
 방법 1 vs 방법 2:
   QueryRunner  더 세밀한 제어 가능 / 중간에 상태 확인 가능
   transaction()  코드 간결 / 자동 커밋/롤백

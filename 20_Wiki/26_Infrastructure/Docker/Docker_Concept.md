@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 애플리케이션 + 실행 환경을 하나로 묶어서 어디서든 동일하게 실행
 "내 컴퓨터에서는 되는데?" 문제 해결
 ```
@@ -28,7 +28,7 @@ related:
 
 ## Container (컨테이너)
 
-```
+```txt
 소프트웨어를 실행하는 데 필요한 모든 것을 포함하는
 가볍고 독립적이며 실행 가능한 패키지
 
@@ -43,7 +43,7 @@ VM(가상머신) 과 차이:
 
 ## Image (이미지)
 
-```
+```txt
 컨테이너를 만들기 위한 설계도 / 템플릿
 컨테이너를 생성하는 데 필요한 모든 지침 포함
 
@@ -60,7 +60,7 @@ VM(가상머신) 과 차이:
 
 ## Docker Hub
 
-```
+```txt
 Docker 이미지를 위한 GitHub 같은 곳
 클라우드 기반 이미지 레지스트리
 
@@ -79,7 +79,7 @@ https://hub.docker.com
 
 ## Docker Engine
 
-```
+```txt
 사용자 컴퓨터에서 컨테이너를 실행하고 관리하는 핵심 기술
 백그라운드에서 실행되는 데몬 (서비스)
 
@@ -95,7 +95,7 @@ https://hub.docker.com
 
 # ② 전체 흐름 ⭐️
 
-```
+```txt
 Docker Hub (이미지 저장소)
     ↕ pull / push
 Docker Engine (로컬 실행 환경)
@@ -111,7 +111,7 @@ Images (설계도)
 docker run hello-world
 ```
 
-```
+```txt
 1. Docker 클라이언트 → Docker 데몬에 명령 전달
 2. 데몬이 로컬에 이미지 있는지 확인
 3. 없으면 → Docker Hub 에서 자동 pull
@@ -147,7 +147,7 @@ docker ps -a
 
 ## docker images 출력 읽기
 
-```
+```txt
 REPOSITORY    이미지 이름
 TAG           버전 (지정 안 하면 latest 자동 사용)
 IMAGE ID      이미지 고유 ID (앞 12자리만 표시)
@@ -165,7 +165,7 @@ SIZE          디스크 크기
 
 # ④ Docker Hub 이미지 찾기
 
-```
+```txt
 https://hub.docker.com 에서 검색
 
 확인할 것:
@@ -193,7 +193,7 @@ docker pull postgres      # = docker pull postgres:latest
 
 # ⑤ Docker 가 필요한 이유
 
-```
+```txt
 문제 상황:
   개발자 A: "내 맥에서는 잘 돼요"
   서버:     "여기선 에러가 납니다"

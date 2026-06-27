@@ -14,7 +14,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 python3 main.py --mode test --pages 5
 → --옵션 스타일 인자를 깔끔하게 받는 표준 방법
 ```
@@ -45,7 +45,7 @@ print(args.mode)    # "test"
 print(args.pages)   # 5
 ```
 
-```
+```txt
 sys.argv:
   순서 의존 → --mode 와 --pages 순서 바뀌면 틀림
   타입 변환 없음 → 전부 문자열

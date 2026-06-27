@@ -14,7 +14,7 @@ related:
 
 # React_TailwindCSS — Tailwind CSS
 
-```
+```txt
 Tailwind CSS = 유틸리티 클래스 기반 CSS 프레임워크
 미리 정의된 클래스를 조합해서 스타일 적용
 CSS 파일 따로 안 써도 됨
@@ -26,7 +26,7 @@ CSS 파일 따로 안 써도 됨
 
 # 왜 쓰나 ⭐️
 
-```
+```txt
 기존 CSS:
   .card { padding: 16px; background: white; border-radius: 8px; }
   .card-title { font-size: 18px; font-weight: bold; }
@@ -76,7 +76,7 @@ npx tailwindcss init -p
 
 ## 여백
 
-```
+```txt
 p-4    padding: 16px (전체)
 px-4   padding 좌우
 py-4   padding 상하
@@ -93,7 +93,7 @@ mt-4   margin 위
 
 ## 크기
 
-```
+```txt
 w-full      width: 100%
 w-1/2       width: 50%
 w-[200px]   width: 200px  (임의값)
@@ -104,7 +104,7 @@ max-w-xl    max-width: 576px
 
 ## 텍스트
 
-```
+```txt
 text-sm     font-size: 14px
 text-base   font-size: 16px
 text-lg     font-size: 18px
@@ -122,7 +122,7 @@ truncate        말줄임 (overflow hidden + ellipsis)
 
 ## 배경 & 테두리
 
-```
+```txt
 bg-white        background: white
 bg-gray-100     background: 연한 회색
 bg-blue-500     background: 파란색
@@ -137,7 +137,7 @@ border-gray-200 border-color: 연한 회색
 
 ## Flexbox
 
-```
+```txt
 flex            display: flex
 items-center    align-items: center
 justify-center  justify-content: center
@@ -149,7 +149,7 @@ flex-wrap       flex-wrap: wrap
 
 ## Grid
 
-```
+```txt
 grid            display: grid
 grid-cols-2     grid-template-columns: repeat(2, 1fr)
 grid-cols-3     3열
@@ -163,7 +163,7 @@ col-span-2      grid-column: span 2
 
 # 반응형 ⭐️
 
-```
+```txt
 접두사 없음   모바일 기본 (모든 크기)
 sm:           640px 이상
 md:           768px 이상
@@ -195,7 +195,7 @@ xl:           1280px 이상
 
 # 상태 변형 ⭐️
 
-```
+```txt
 hover:   마우스 올렸을 때
 focus:   포커스됐을 때
 active:  클릭 중
@@ -228,7 +228,7 @@ disabled: 비활성화
 
 # 다크모드 ⭐️
 
-```
+```txt
 dark: 접두사 = 다크모드일 때 적용
 ```
 
@@ -276,7 +276,7 @@ import { cn } from '@/lib/utils';
 )}>
 ```
 
-```
+```txt
 문자열 템플릿 리터럴로 조건부 클래스:
   공백 실수 / 클래스 충돌 위험 있음
 
@@ -289,7 +289,7 @@ clsx / cn 권장:
 ---
 # 아이콘 — lucide-react ⭐️
 
-```
+```txt
 lucide-react = Tailwind 와 함께 가장 많이 쓰는 아이콘 라이브러리
 SVG 아이콘을 React 컴포넌트로 제공
 className 으로 Tailwind 클래스 바로 적용 가능
@@ -316,7 +316,7 @@ import { ArrowRight, Search, X, ChevronDown, Heart } from 'lucide-react';
 </button>
 ```
 
-```
+```txt
 크기 기준:
   w-4 h-4   16px  (작은 인라인 아이콘)
   w-5 h-5   20px  (기본)

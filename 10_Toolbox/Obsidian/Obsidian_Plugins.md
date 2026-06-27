@@ -13,7 +13,7 @@ related:
 > 아래 목록은 이 vault의 `.obsidian/community-plugins.json` 기준 (2026-06-27).  
 > 플러그인 추가·삭제 후에는 이 노트도 같이 업데이트.
 
-```
+```txt
 설정 경로: Obsidian → Settings → Community plugins
 ```
 
@@ -100,7 +100,7 @@ flowchart LR
 
 # 플러그인 관리 기준
 
-```
+```txt
 지금 노트 작성에 쓰는가?        → 활성 유지 + 이 표에 한 줄 메모
 VS Code / 다른 도구와 겹치는가?  → 하나만 켜기 (예: code-files vs VS Code)
 한 달 안 켰다?                  → 비활성 표로 옮기고 나중에 삭제

@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Repository = 특정 Entity 에 대한 CRUD 쿼리 담당
 SQL 직접 작성 없이 메서드로 DB 조작
 ```
@@ -42,7 +42,7 @@ user.name = 'Code Factory';
 await userRepository.save(user);
 ```
 
-```
+```txt
 Repository 역할:
   지정한 Entity 에 대한 CRUD 쿼리를 할 수 있게 해줌
   TypeORM 에 정의된 메서드 사용
@@ -51,7 +51,7 @@ Repository 역할:
 
 ## NestJS 에서 Repository 사용 흐름 ⭐️
 
-```
+```txt
 1. Module 에서 forFeature 로 Entity 등록
    → Repository 생성됨
 
@@ -97,7 +97,7 @@ export class MovieService {
 }
 ```
 
-```
+```txt
 @InjectRepository(Movie):
   NestJS DI 컨테이너에서 Movie 의 Repository 를 주입해달라는 표시
   forFeature([Movie]) 로 등록된 Repository 를 가져옴
@@ -143,7 +143,7 @@ const user = repository.create({
 });
 ```
 
-```
+```txt
 create() vs save():
   create()  객체만 생성 (메모리에만 존재 / DB 저장 안 됨)
   save()    실제 DB 에 저장
@@ -166,7 +166,7 @@ await repository.save(user);
 await repository.save([category1, category2, category3]);
 ```
 
-```
+```txt
 save() 주의사항 ⚠️:
   이미 Row 가 존재하면 (primary key 기준) → UPDATE
   없으면 → INSERT
@@ -197,7 +197,7 @@ await repository.upsert(
 // ON CONFLICT (externalId) DO UPDATE firstName = EXCLUDED.firstName
 ```
 
-```
+```txt
 upsert() vs save():
   save()    primary key 기준으로 insert/update
             여러 번 실행 시 각각 별도 트랜잭션
@@ -340,7 +340,7 @@ export class Movie {
 }
 ```
 
-```
+```txt
 softDelete vs delete:
   delete()      Row 를 실제로 삭제 (복구 불가)
   softDelete()  deletedAt 에 시간만 기록 (복구 가능)
@@ -368,7 +368,7 @@ await repository.update(
 );
 ```
 
-```
+```txt
 update() vs save():
   save()    Entity 인스턴스 필요 → 조회 후 수정
   update()  조건만 알면 바로 UPDATE → 조회 없이 수정
@@ -413,7 +413,7 @@ const [movies, total] = await repository.findAndCount({
 // total: number    전체 개수 (take/skip 무시)
 ```
 
-```
+```txt
 페이징 API 에서 자주 씀:
   데이터 목록 + 전체 개수 한번에 필요할 때
   → 프론트에서 페이지 수 계산 가능
@@ -434,7 +434,7 @@ const movie = await repository.preload({
 // ⚠️ DB 업데이트는 안 됨 → save() 로 저장해야 함
 ```
 
-```
+```txt
 preload() 패턴:
   1. preload() 로 기존 값 + 새 값 병합된 객체 생성
   2. save() 로 실제 저장
@@ -476,7 +476,7 @@ await repository.find({
 | `take`      | LIMIT (FindManyOptions)  |
 | `skip`      | OFFSET (FindManyOptions) |
 
-```
+```txt
 FindOneOptions vs FindManyOptions:
   FindOneOptions   단건 조회 (findOne / findOneBy)
   FindManyOptions  복수 조회 (find) → + take / skip 추가
@@ -488,7 +488,7 @@ FindOneOptions vs FindManyOptions:
 
 ## relations — 관계 테이블 선택 조회 ⭐️
 
-```
+```txt
 relations 를 지정하지 않으면:
   관계 Entity 데이터를 가져오지 않음 (성능 최적화)
 
@@ -506,7 +506,7 @@ relations: ['detail', 'director', 'genres']
 relations: { detail: true, director: true, genres: true }
 ```
 
-```
+```txt
 TypeORM 1.0.0 부터:
   relations 타입이 string[] 아님
   → FindOptionsRelations<Entity> 객체 타입
@@ -556,7 +556,7 @@ async getMovieById(id: number) {
 }
 ```
 
-```
+```txt
 왜 목록에서 relations 를 안 쓰나:
   목록 = 카드/리스트 → title, genre 만 필요
   상세 = 클릭해서 들어간 페이지 → detail 도 필요
@@ -593,7 +593,7 @@ async remove(id: number) {
 }
 ```
 
-```
+```txt
 relations: { movies: true } 로 로드했을 때:
   연결된 movie 없음 → movies = []  (빈 배열)
   연결된 movie 있음 → movies = [Movie{}, Movie{}, ...]
@@ -688,7 +688,7 @@ const duplicate = await this.genreRepository.findOne({
 if (duplicate) throw new ConflictException('이미 존재하는 이름');
 ```
 
-```
+```txt
 왜 Not(id) 가 필요한가:
   PATCH /genre/1 { name: "drama" }
   자기 자신(id=1) 이름이 "drama" 인데 그대로 업데이트하는 경우
@@ -753,7 +753,7 @@ const genres = await this.genreRepository.find({
 });
 ```
 
-```
+```txt
 언제 쓰나:
   프론트에서 genreIds: [1, 2, 3] 배열로 받았을 때
   루프로 하나씩 조회 (N번) 대신
@@ -795,7 +795,7 @@ async createMovie(createMovieDto: CreateMovieDto) {
 }
 ```
 
-```
+```txt
 검증 패턴 핵심:
   요청: genreIds = [1, 2, 99]  (99는 없는 id)
   조회: genres = [Genre{id:1}, Genre{id:2}]  (2개만 나옴)
@@ -811,7 +811,7 @@ async createMovie(createMovieDto: CreateMovieDto) {
 
 ## Array 오퍼레이터 (PostgreSQL array 타입) ️
 
-```
+```txt
 예시 데이터:
   Record 1: tags = ['a', 'b']
   Record 2: tags = ['b', 'c']

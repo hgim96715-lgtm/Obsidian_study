@@ -15,7 +15,7 @@ related:
 
 # AWS_ElasticBeanstalk — Elastic Beanstalk 배포
 
-```
+```txt
 Elastic Beanstalk = 코드만 올리면 인프라 자동 구성
 EC2 / 로드밸런서 / 오토스케일링 / 배포 자동 처리
 개발자는 인프라 몰라도 배포 가능
@@ -27,7 +27,7 @@ EC2 / 로드밸런서 / 오토스케일링 / 배포 자동 처리
 
 # Lightsail vs Elastic Beanstalk ⭐️
 
-```
+```txt
 Lightsail
   단일 서버 / 고정 요금 / 간단한 설정
   직접 SSH 접속해서 배포
@@ -62,7 +62,7 @@ EB 생성 전 IAM 역할 2개가 있어야 함
 
 ## 1단계 — 애플리케이션 생성
 
-```
+```txt
 AWS 콘솔 → Elastic Beanstalk
 → 애플리케이션 생성
 
@@ -72,7 +72,7 @@ AWS 콘솔 → Elastic Beanstalk
 
 ## 2단계 — 환경 생성
 
-```
+```txt
 애플리케이션 생성 후 → 환경 생성
 
   환경 이름: NestJS-Netflix (자동 생성 또는 직접 입력)
@@ -80,7 +80,7 @@ AWS 콘솔 → Elastic Beanstalk
 
 ## 3단계 — 플랫폼 선택
 
-```
+```txt
 플랫폼:         Node.js
 플랫폼 브랜치:  Node.js 최신 버전
                 ↑ NestJS 는 Node.js 서버이므로 Node.js 선택
@@ -88,7 +88,7 @@ AWS 콘솔 → Elastic Beanstalk
 
 ## 4단계 — 사전 설정 선택
 
-```
+```txt
 고가용성    로드밸런서 + 오토스케일링 (운영 서비스)
 단일 인스턴스  서버 1대 (개발·학습용) ← 지금은 이것 선택
 
@@ -97,7 +97,7 @@ AWS 콘솔 → Elastic Beanstalk
 
 ## 5단계 — 서비스 액세스 구성 ⭐️ (중요)
 
-```
+```txt
 서비스 역할:
   기존 역할 사용 → aws-elasticbeanstalk-service-role
   없으면 역할 생성 버튼 클릭 → 자동 생성
@@ -109,14 +109,14 @@ EC2 인스턴스 프로파일: ⭐️ 반드시 확인
 
 ## 6단계 — VPC 설정
 
-```
+```txt
 VPC:        기본 VPC 선택
 인스턴스 서브넷: 전체 선택 (가용 영역 다중화)
 ```
 
 ## 7단계 — 인스턴스 트래픽 및 크기 조정 ⭐️
 
-```
+```txt
 인스턴스 유형 선택:
 
   t3.micro    프리 티어 / 무료
@@ -128,7 +128,7 @@ VPC:        기본 VPC 선택
   t3.medium   메모리 4GB / 중규모 서비스
 ```
 
-```
+```txt
 오토스케일링 그룹이란:
   트래픽이 늘어나면 인스턴스를 자동으로 늘림
   트래픽이 줄어들면 인스턴스를 자동으로 줄임
@@ -147,7 +147,7 @@ VPC:        기본 VPC 선택
 
 ## 8단계 — 검토 & 생성
 
-```
+```txt
 설정 검토 후 제출
 → 환경 생성 완료까지 약 5~10분 소요
 → 상태가 Ok (초록) 되면 배포 준비 완료
@@ -159,7 +159,7 @@ VPC:        기본 VPC 선택
 
 # ⚠️ 자주 하는 실수
 
-```
+```txt
 EC2 인스턴스 프로파일 미선택:
   aws-elasticbeanstalk-ec2-role 이 선택 안 되어 있으면
   EC2 가 S3 / CloudWatch 접근 불가 → 배포 실패
@@ -180,7 +180,7 @@ t3.micro 메모리 부족:
 
 # 핵심 흐름 정리
 
-```
+```txt
 IAM → aws-elasticbeanstalk-ec2-role 생성 확인
     ↓
 EB → 애플리케이션 생성 (NestJS-Netflix-EB)
@@ -212,7 +212,7 @@ await app.listen(process.env.PORT || 3001);
 //               ↑ EB 가 주입하는 포트 / 없으면 로컬용 3001
 ```
 
-```
+```txt
 EB 내부 동작:
   EB 가 nginx 를 통해 특정 포트로 트래픽 전달
   앱이 그 포트에서 실행되지 않으면 → 502 Bad Gateway
@@ -221,16 +221,16 @@ EB 내부 동작:
 
 ## 2. Procfile — 실행 커맨드 지정
 
-```
+```txt
 Procfile = EB 가 앱을 어떻게 실행할지 알려주는 파일
 프로젝트 최상위 루트에 위치 (확장자 없음)
 ```
 
-```
+```txt
 web: node dist/main.js
 ```
 
-```
+```txt
 web:       웹 서버 프로세스임을 선언
 node dist/main.js  빌드된 파일 실행
 
@@ -263,7 +263,7 @@ zip -r deploy.zip \
   -x "__MACOSX/*"
 ```
 
-```
+```txt
 포함할 것:
   package.json      의존성 목록
   pnpm-lock.yaml    정확한 버전 고정
@@ -280,7 +280,7 @@ zip -r deploy.zip \
 
 ## 5. 환경 속성 설정 (환경변수)
 
-```
+```txt
 EB 콘솔 → 환경 클릭 → 구성(Configuration)
 → 업데이트, 모니터링 및 로깅 → 편집
 → 환경 속성
@@ -298,7 +298,7 @@ EB 콘솔 → 환경 클릭 → 구성(Configuration)
 
 ## 6. 업로드 & 배포
 
-```
+```txt
 EB 콘솔 → 환경 클릭
 → 업로드 및 배포
 → deploy.zip 첨부
@@ -315,7 +315,7 @@ EB 콘솔 → 환경 클릭
 
 # ⚠️ 502 Bad Gateway 원인 & 해결 ⭐️
 
-```
+```txt
 502 Bad Gateway = nginx 가 앱으로 요청을 전달했는데 응답 없음
 
 원인 1 — process.env.PORT 누락

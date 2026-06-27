@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 쉘 스크립트 = 리눅스 명령어들을 파일에 모아놓고 순서대로 실행
 반복 작업 자동화 / 서버 관리 / 백업 등에 필수
 ```
@@ -54,7 +54,7 @@ chmod +x log_manager.sh
 #!/bin/bash
 ```
 
-```
+```txt
 스크립트 파일의 맨 첫 줄에 반드시 써야 함
 "이 파일을 /bin/bash 로 실행해라" 는 의미
 없으면 어떤 인터프리터로 실행할지 몰라 오류 발생
@@ -77,7 +77,7 @@ ls -l log_manager.sh
 bash log_manager.sh # chmod +x 없이도 실행 가능
 ```
 
-```
+```txt
 Permission denied 에러 = chmod +x 안 한 것
 실행 전에 chmod +x 는 습관으로
 ```
@@ -105,7 +105,7 @@ echo "로그 경로: $LOG_DIR"
 echo "백업 경로: ${BACKUP_DIR}"   # {} 로 감싸면 더 안전
 ```
 
-```
+```txt
 변수 규칙:
   선언: 변수명=값    (= 앞뒤 공백 없음)
   사용: $변수명      ($ 붙이기)
@@ -142,7 +142,7 @@ read BACKUP_FILENAME
 echo "Backing up logs to: $BACKUP_FILENAME"
 ```
 
-```
+```txt
 read 명령어:
   스크립트 실행 멈추고 키보드 입력 대기
   Enter 누르면 변수에 저장
@@ -260,7 +260,7 @@ fi
 # 기타 = 프로그램별 에러 코드
 ```
 
-```
+```txt
 Airflow 에서의 의미:
   exit 0 → 태스크 성공
   exit 1 → 태스크 실패 → 재시도 or 알림
@@ -289,7 +289,7 @@ done
 echo "백업 완료."
 ```
 
-```
+```txt
 for file in $LOG_DIR/*.log; do
     ...
 done

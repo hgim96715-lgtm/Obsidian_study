@@ -36,7 +36,7 @@ pnpm add fast-xml-parser
 
 # 폴더 구조
 
-```
+```txt
 src/
   exhibition/
     culture-api.types.ts    API 응답 타입 정의
@@ -44,7 +44,7 @@ src/
     exhibition.service.ts   실제 API 호출
 ```
 
-```
+```txt
 파서를 서비스에서 분리하는 이유:
   파싱 로직이 복잡해질 수 있음
   타입 캐스팅 / 에러 처리 등을 한 곳에서 관리
@@ -100,7 +100,7 @@ const parser = new XMLParser({
 });
 ```
 
-```
+```txt
 XMLParser 옵션:
   ignoreAttributes: true
     <tag attr="값"> 처럼 태그 속성은 무시
@@ -152,7 +152,7 @@ export const parseCultureResponse = (xml: string) => {
 };
 ```
 
-```
+```txt
 parser.parse(xml) as { response?: ... }:
   fast-xml-parser 는 반환 타입이 any
   → as 로 예상 구조를 TypeScript 에 알려줌
@@ -184,7 +184,7 @@ export const parseDetailItem = (xml: string) => {
 };
 ```
 
-```
+```txt
 body.items as { item?: CultureListItem[] }:
   body 는 Record<string, unknown> 타입
   → items 에 접근하려면 타입 단언 필요
@@ -203,7 +203,7 @@ parseDetailItem 이 [0] 만 반환하는 이유:
 ---
 # culture-api.client.ts — API 클라이언트 분리 ⭐️
 
-```
+```txt
 서비스에서 fetch 를 직접 호출하면:
   URL 조합 / 에러 처리 / 파싱 로직이 서비스에 섞임
   엔드포인트가 늘어날수록 서비스가 복잡해짐
@@ -268,7 +268,7 @@ export class CultureApiClient {
 }
 ```
 
-```
+```txt
 buildUrl 패턴 ⭐️:
   new URL(base) 로 URL 객체 생성
   url.searchParams.set() 으로 파라미터 추가
@@ -294,7 +294,7 @@ res.ok 체크:
 ---
 # culture.mapper.ts — API → Prisma 변환 ⭐️
 
-```
+```txt
 API 에서 받은 데이터 형태와 DB 저장 형태가 다를 때
 변환 로직을 mapper 에서 담당
 ```
@@ -408,7 +408,7 @@ API_EXHIBITION_KEY=여기에_실제_키
 
 # curl 테스트 → NestJS 구현 흐름
 
-```
+```txt
 1. curl 로 API 구조 확인            → [[Linux_Curl_API]]
    curl -sS "${API_URL}/period2?..."
 

@@ -20,7 +20,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 Dockerfile = 이미지를 만드는 설명서
 각 명령어 한 줄 = 레이어 하나
 docker build -t 이름 .  → 이미지 생성
@@ -50,7 +50,7 @@ CMD ["python", "app.py"]             # 컨테이너 시작 명령
 
 # Dockerfile 작성 후 → 빌드 → 실행 흐름 ⭐️
 
-```
+```txt
 1. Dockerfile 작성
 2. docker build 로 이미지 생성
 3. docker run 으로 컨테이너 실행
@@ -90,7 +90,7 @@ docker build --build-arg VERSION=1.0 -t my-app .
 docker build --no-cache -t my-app .
 ```
 
-```
+```txt
 -t  이미지 이름[:태그] 지정 (tag)
 -f  Dockerfile 경로 지정 (기본값: ./Dockerfile)
 .   빌드 컨텍스트 — COPY 등 명령어가 접근할 수 있는 범위
@@ -120,7 +120,7 @@ docker rmi my-app
 docker image prune
 ```
 
-```
+```txt
 빌드 실패할 때 확인 순서:
   1. 에러 메시지 읽기 — Step N/N 에서 어떤 명령어가 실패했는지
   2. 그 줄 위아래 Dockerfile 문법 확인
@@ -142,7 +142,7 @@ FROM nginx:alpine       # alpine 기반 / 매우 가벼움
 FROM ubuntu:22.04
 ```
 
-```
+```txt
 모든 Dockerfile 의 첫 줄
 베이스 이미지 위에 레이어를 쌓아올림
 가벼운 이미지(alpine, slim) 선택 → 최종 이미지 크기 감소
@@ -188,7 +188,7 @@ COPY src/ /app/src/
 ADD . /app
 ```
 
-```
+```txt
 ⚠️ ADD 문법 주의:
   ADD./app    ← 에러! (공백 없음)
   ADD . /app  ← 올바름 (출처, 목적지 공백으로 구분)
@@ -213,7 +213,7 @@ RUN pip install -r requirements.txt  # 2. 설치
 COPY . .                             # 3. 소스코드 나중에
 ```
 
-```
+```txt
 왜 순서가 중요한가 — 레이어 캐시:
   ❌ 비효율:
     COPY . .                  소스 변경 시
@@ -242,7 +242,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*   # 캐시 삭제 → 이미지 크기 감소
 ```
 
-```
+```txt
 RUN 실행 시점:
   docker build 할 때 실행 → 이미지 레이어로 저장
   컨테이너 실행 시가 아님
@@ -274,7 +274,7 @@ ENV NODE_ENV=production \
     PORT=3000
 ```
 
-```
+```txt
 컨테이너 런타임에도 환경변수로 남아 있음
 docker run -e PORT=8080 → 런타임에 덮어쓰기 가능
 
@@ -303,7 +303,7 @@ ENTRYPOINT ["nginx"]
 CMD ["-g", "daemon off;"]   # docker run 에서 이 부분만 교체 가능
 ```
 
-```
+```txt
 CMD vs ENTRYPOINT:
   CMD         docker run 뒤 명령어로 덮어씌워짐
   ENTRYPOINT  항상 실행 / docker run 인자는 CMD 를 대체
@@ -340,7 +340,7 @@ VOLUME /data
 docker run -it -v $(pwd)/data:/data my-image bash
 ```
 
-```
+```txt
 VOLUME 선언만으로는 호스트 경로 지정 안 됨
 docker run -v 로 실제 마운트 연결 필요
 → [[Docker_Volume]] 참조
@@ -363,7 +363,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost/ || exit 1
 ```
 
-```
+```txt
 ⚠️ EXPOSE 는 실제로 포트를 열지 않음
    문서화 / 가독성 용도
    실제 포트 오픈 = docker run -p 8080:8080
@@ -375,7 +375,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 
 # 레이어 생성 여부
 
-```
+```txt
 레이어 생성 O (이미지 크기에 영향):
   FROM / COPY / ADD / RUN
 
@@ -402,7 +402,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 |`EXPOSE 포트`|포트 문서화|실제 오픈 아님|
 |`VOLUME /경로`|볼륨 선언|-v 로 실제 연결|
 
-```
+```txt
 빌드 → 실행 한 줄 요약:
   docker build -t my-app .    이미지 생성
   docker images               이미지 확인

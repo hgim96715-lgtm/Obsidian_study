@@ -11,7 +11,7 @@ related:
 ---
 # NestJS_Seeding — DB 시딩
 
-```
+```txt
 Seeding = 개발/테스트용 초기 데이터를 DB 에 미리 넣는 것
 
 방법 1: Prisma seed 스크립트 — 관리자 계정 / 필수 초기 데이터
@@ -24,7 +24,7 @@ Seeding = 개발/테스트용 초기 데이터를 DB 에 미리 넣는 것
 
 # Seeding 이 필요한 이유
 
-```
+```txt
 개발 시작할 때 DB 가 비어있으면:
   로그인 테스트 → 계정이 없음
   목록 조회 테스트 → 데이터가 없음
@@ -41,7 +41,7 @@ Seeding 으로 해결:
 
 # 방법 1 — Prisma seed 스크립트 ⭐️
 
-```
+```txt
 prisma/seed.ts 파일에 초기 데이터 삽입 로직 작성
 pnpm seed 명령어 하나로 실행
 
@@ -64,7 +64,7 @@ pnpm seed 명령어 하나로 실행
 }
 ```
 
-```
+```txt
 tsx vs ts-node:
 
 ts-node + CommonJS 방식의 문제:
@@ -146,7 +146,7 @@ main()
 ```
 
 
-```
+```txt
 왜 이렇게 작성하나:
 
 import 'dotenv/config':
@@ -204,7 +204,7 @@ pnpm seed
 
 # 방법 2 — Postman Runner (샘플 대량 생성) ⭐️
 
-```
+```txt
 Prisma seed 와 다른 목적:
   Prisma seed   → 필수 초기 데이터 (관리자 등)
   Postman Runner → 개발 중 테스트용 랜덤 샘플 대량 생성
@@ -213,7 +213,7 @@ Prisma seed 와 다른 목적:
 
 ## Postman 랜덤 변수 ⭐️
 
-```
+```txt
 {{$randomFullName}}       랜덤 이름 (John Doe)
 {{$randomCountry}}        랜덤 나라 (Korea)
 {{$randomNoun}}           랜덤 명사 (table / river)
@@ -285,7 +285,7 @@ pm.test('Status code is 201', function () {
 });
 ```
 
-```
+```txt
 왜 누적하나:
   영화 생성 시 directorId / genreIds 가 필요
   Director / Genre 가 생성될 때마다 ID 를 쌓아둠
@@ -323,7 +323,7 @@ while (pickedGenreIds.length < 3 && failCount < 20) {
 pm.environment.set('genres', pickedGenreIds);
 ```
 
-```
+```txt
 lodash 자주 쓰는 함수:
   _.sample(array)     배열에서 랜덤 1개 선택
   _.shuffle(array)    배열 랜덤 섞기
@@ -334,7 +334,7 @@ lodash 자주 쓰는 함수:
 
 ## Postman Runner 실행
 
-```
+```txt
 1. Postman 상단 Runner 탭 클릭
 2. seed 폴더 선택
 3. Iterations = 반복 횟수 (10 → 10번 실행)
@@ -347,7 +347,7 @@ Iterations: 10 이면:
 
 ## Seeding 폴더 구조
 
-```
+```txt
 📁 seed (Postman 컬렉션 폴더)
   POST /auth/login     → accessToken 환경변수 저장
   POST /director       → directorIds 누적 (5회)
@@ -361,7 +361,7 @@ Iterations: 10 이면:
 
 # 두 방법 비교
 
-```
+```txt
 Prisma seed (pnpm seed):
   목적    필수 초기 데이터 (관리자 계정 등)
   시점    앱 배포 / DB 초기화 후

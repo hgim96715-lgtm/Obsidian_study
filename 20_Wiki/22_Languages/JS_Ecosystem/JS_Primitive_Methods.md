@@ -34,7 +34,7 @@ Math    수학 연산 (floor·ceil·round·random)
 
 # ⚠️ String 과 Array, 같은 이름인데 다른 메서드 ⭐️⭐️
 
-```
+```txt
 indexOf / slice / includes 는 String 에도, Array 에도 둘 다 존재함
 → 이름이 같아서 "같은 메서드를 그냥 다른 타입에도 쓰는 것" 처럼 보이지만
   실제로는 String.prototype 과 Array.prototype 에 각각 따로 정의된 별개의 메서드임
@@ -247,7 +247,7 @@ parseFloat('3.14.15')  // 3.14 (두 번째 . 부터 무시)
 +'abc'   // NaN
 ```
 
-```
+```txt
 언제 뭘 쓰나:
   Number()     엄격하게 전체가 숫자인지 확인
   parseInt()   '42px' 처럼 앞부분 숫자만 필요할 때
@@ -319,7 +319,7 @@ Number.isSafeInteger(9007199254740991)   // true  (MAX_SAFE_INTEGER)
 Number.isSafeInteger(9007199254740992)   // false
 ```
 
-```
+```txt
 Number.isNaN vs isNaN ⭐️:
   isNaN('abc')        → true  (문자열을 Number 변환 후 확인)
   Number.isNaN('abc') → false (변환 없이 NaN 그 자체인지만 확인)
@@ -384,7 +384,7 @@ Math.floor(Math.random() * 6) + 1    // 주사위 1~6
 
 # 실전 — 배열 순환(cycle) 토글 패턴 ⭐️⭐️
 
-```
+```txt
 "여러 옵션을 순서대로 돌려가며 다음 값으로 바꾸기" — 흔한 UI 패턴
 예: light → dark → system → light → ... (테마 토글 버튼 클릭마다 다음 값으로)
 ```
@@ -401,7 +401,7 @@ const onClick = () => {
 };
 ```
 
-```
+```txt
 한 조각씩 분해:
 
   CYCLE.indexOf(preference)

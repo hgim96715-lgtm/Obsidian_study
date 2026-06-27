@@ -33,7 +33,7 @@ related:
 
 ## Step 1 — DevTools로 API 발굴
 
-```
+```txt
 1. 크롤링할 페이지를 Chrome에서 열기
 2. F12 → Network 탭
 3. 상단 필터: [Fetch/XHR] 선택  ← 핵심 (All 말고)
@@ -45,7 +45,7 @@ related:
 
 ### API 요청인지 확인하는 기준
 
-```
+```txt
 ✅ API 요청 (찾는 것)
   Sec-Fetch-Dest: empty
   Content-Type: application/json
@@ -343,7 +343,7 @@ for data in items:
 
 ## 전체 흐름 정리
 
-```
+```txt
 DevTools → Fetch/XHR 에서 API URL + 파라미터 확인
        │
        ▼

@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 묶여있는 데이터(리스트/튜플)를
 개별 변수 여러 개로 한 번에 풀어서 담는 문법
 
@@ -46,7 +46,7 @@ print(age)    # 25
 x, y, z = [1, 2, 3]
 ```
 
-```
+```txt
 ⚠️ 개수 일치 필수
   a, b = [1, 2, 3]       # ValueError: too many values to unpack
   a, b, c, d = [1, 2, 3] # ValueError: not enough values to unpack
@@ -73,7 +73,7 @@ for name, score in scores:
 # Lee 학생: 80점
 ```
 
-```
+```txt
 내부 리스트가 2개씩이면 변수도 2개
 for name, score in scores    ← 안쪽 [이름, 점수] = 2개
 for a, b in sizes            ← 안쪽 [가로, 세로] = 2개
@@ -140,7 +140,7 @@ print(a, b)     # 10 20
 print(rest)     # [30, 40, 50]
 ```
 
-```
+```txt
 규칙:
   * 는 한 식에 1개만 사용 가능
   * 앞에 오면 맨 앞부터 / 뒤에 오면 나머지 전부
@@ -176,7 +176,7 @@ _, max_val = divmod(100, 7)   # 몫은 버리고 나머지만
 
 # ⑥ 두 값 정렬 패턴 — 회전 가능 문제 ⭐️
 
-```
+```txt
 "회전 가능 / 방향 선택 가능" 조건이 보이면
 → 두 값을 (큰 것, 작은 것) 으로 통일
 
@@ -208,7 +208,7 @@ def solution(sizes):
     return w * h
 ```
 
-```
+```txt
 if a < b: a, b = b, a 의 의미:
   "a 가 더 작으면, 둘을 바꿔서 a 가 항상 더 크도록 만든다"
 
@@ -220,7 +220,7 @@ if a < b: a, b = b, a 의 의미:
 
 ## 적용 상황
 
-```
+```txt
 이 패턴이 필요한 문제 유형:
   "명함/카드를 회전 가능"
   "박스 넣기 (방향 자유)"

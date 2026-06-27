@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 테이블 간 관계를 데코레이터로 정의
 Many 붙은 쪽 → 배열 [] / One 만 있는 쪽 → 단일 객체
 ```
@@ -34,7 +34,7 @@ Many 붙은 쪽 → 배열 [] / One 만 있는 쪽 → 단일 객체
 | `@OneToOne`   | 1:1 | 단일 객체    | 유저 ↔ 프로필  |
 | `@ManyToMany` | N:M | 배열 [] 양쪽 | 질문 ↔ 카테고리 |
 
-```
+```txt
 타입 결정 규칙:
   데코레이터에 "Many" 가 붙어 있으면 → 배열 []
   "One" 만 있으면                    → 단일 객체
@@ -58,7 +58,7 @@ Many 붙은 쪽 → 배열 [] / One 만 있는 쪽 → 단일 객체
 director: Director;
 ```
 
-```
+```txt
 두 번째 파라미터 = "상대방이 나를 가리키는 프로퍼티 이름"
 
 Movie 의 @ManyToOne 에서:
@@ -101,7 +101,7 @@ export class Director {
 }
 ```
 
-```
+```txt
 DB 결과:
   movie 테이블 → director_id FK 자동 생성   ← @ManyToOne 쪽
   director 테이블 → 별도 컬럼 없음
@@ -131,7 +131,7 @@ export class User {
 }
 ```
 
-```
+```txt
 @JoinColumn:
   OneToOne 에서 FK 를 어느 쪽에 둘지 명시
   붙인 쪽에 FK 컬럼 생성
@@ -164,7 +164,7 @@ export class Category {
 }
 ```
 
-```
+```txt
 DB 결과:
   question 테이블 / category 테이블 각각 생성
   중간 테이블 자동 생성: question_categories_category
@@ -182,7 +182,7 @@ DB 결과:
 
 # cascade vs onDelete ⭐️️
 
-```
+```txt
 cascade: true   TypeORM 레벨 / 저장·수정·삭제 전파
 onDelete:       DB 레벨 / 부모 삭제 시 자식을 어떻게 할지 DB 에게 지시
 ```
@@ -196,7 +196,7 @@ typescript
 director: Director;
 ```
 
-```
+```txt
 TypeORM 이 처리
 부모 save() 시 자식도 자동 save
 JS/TypeScript 코드 레벨에서 동작
@@ -214,7 +214,7 @@ typescript
 director: Director;
 ```
 
-```
+```txt
 DB 레벨에서 처리 (TypeORM 코드 없이 DB 가 직접)
 부모 Entity 삭제 시 자식을 어떻게 할지 결정
 
@@ -231,7 +231,7 @@ onDelete 옵션:
 
 ## cascade vs onDelete 비교
 
-```
+```txt
                 cascade: true        onDelete: 'CASCADE'
 처리 주체        TypeORM (코드)        DB (SQL)
 언제 동작        save() / remove()    DB 에서 DELETE 쿼리
@@ -254,7 +254,7 @@ onDelete 옵션:
 director: Director;
 ```
 
-```
+```txt
 cascade: true 설정 시
 부모 save() 할 때 자식도 자동 저장됨
 ```
@@ -276,7 +276,7 @@ await movieRepository.save({
 });
 ```
 
-```
+```txt
 cascade 없으면:
   MovieDetail 먼저 따로 save → Movie save
   두 번의 저장 필요
@@ -302,7 +302,7 @@ cascade: true 있으면:
 director: Director;
 ```
 
-```
+```txt
 nullable: false 효과:
   DB 레벨: FK 컬럼에 NOT NULL 적용
   실수로 연관 데이터 삭제 방지
@@ -318,7 +318,7 @@ nullable: false + cascade: true 세트 패턴:
 ---
 # 관계 데이터 조회 — relations 옵션 ⭐️
 
-```
+```txt
 관계 데이터는 기본적으로 자동으로 가져오지 않음
 relations 옵션을 명시해야 JOIN 처럼 함께 가져옴
 ```
@@ -349,7 +349,7 @@ const movie = await movieRepository
   .getOne();
 ```
 
-```
+```txt
 relations 없으면:
   movie.director → undefined
   movie.genres   → undefined
@@ -366,7 +366,7 @@ relations 있으면:
 ---
 # @JoinColumn / @JoinTable 정리
 
-```
+```txt
 @JoinColumn  OneToOne 에서 FK 위치 지정 (한쪽만)
 @JoinTable   ManyToMany 에서 중간 테이블 생성 기준 (한쪽만)
 

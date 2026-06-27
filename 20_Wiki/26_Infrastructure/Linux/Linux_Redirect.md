@@ -23,7 +23,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 >   = 덮어쓰기 (기존 내용 삭제)
 >>  = 이어쓰기 (기존 내용 뒤에 추가)
 <   = 파일을 입력으로
@@ -37,7 +37,7 @@ related:
 
 #  표준 입출력 개념
 
-```
+```txt
 리눅스의 3가지 스트림:
   stdin  (0) = 표준 입력  (키보드 → 프로그램)
   stdout (1) = 표준 출력  (프로그램 → 화면)
@@ -63,7 +63,7 @@ date > timestamp.txt
 cat output.txt   # hello
 ```
 
-```
+```txt
 ⚠️ > 는 파일을 먼저 비우고 씀
   이미 내용 있는 파일에 > 사용 → 기존 내용 전부 삭제
   주의해서 사용
@@ -102,7 +102,7 @@ df -h    >> system_report.txt      # 디스크 사용량 추가
 cat system_report.txt              # 전체 확인
 ```
 
-```
+```txt
 > vs >> 핵심 차이:
   >  한 번만 사용 → 파일 생성 / 덮어쓰기
   >> 계속 추가    → 로그 누적 / 보고서 작성
@@ -117,7 +117,7 @@ cat system_report.txt              # 전체 확인
 
 # < — 파일을 입력으로 (Input Redirection) ⭐️⭐️
 
-```
+```txt
 > 는 "명령어의 출력을 어디로 보낼지" 였다면
 < 는 그 반대 — "명령어의 입력을 어디서 받을지" 를 바꾸는 것
 
@@ -142,7 +142,7 @@ wc -l < access.log   # 파일을 "입력(stdin)" 으로 넘김
 # → 150               ← 숫자만 출력됨 (wc 는 파일명 자체를 모름)
 ```
 
-```
+```txt
 왜 결과가 다른가:
   wc -l access.log
     → wc 가 "access.log" 라는 인자를 직접 받음
@@ -166,7 +166,7 @@ wc -l < access.log   # 파일을 "입력(stdin)" 으로 넘김
 wc -l < access.log > task1_output.txt
 ```
 
-```
+```txt
 한 줄에 방향이 다른 리다이렉션 두 개가 같이 있음 — 각자 역할이 다름:
 
   < access.log         access.log 의 내용을 wc 의 입력(stdin)으로 흘려보냄
@@ -218,7 +218,7 @@ noisy_command > /dev/null 2>&1   # 모든 출력 버림
 noisy_command 2> /dev/null       # 에러만 버림
 ```
 
-```
+```txt
 2>&1 읽는 법:
   2  = stderr
   >  = 리다이렉션
@@ -250,7 +250,7 @@ ls . nonexistent &> combined.log       # 단축형 (동일)
 
 # /dev/null — 블랙홀 ⭐️
 
-```
+```txt
 /dev/null = 특수 파일
 쓴 데이터는 모두 사라짐 / 읽으면 항상 빈 내용
 "비트 버킷(bit bucket)" / "블랙홀"
@@ -314,7 +314,7 @@ mysql -u root < dump.sql  # SQL 파일 실행
 
 #  | — 파이프 (Pipe) ⭐️
 
-```
+```txt
 앞 명령어의 출력 → 뒤 명령어의 입력
 명령어를 조합해서 강력한 처리
 ```
@@ -397,7 +397,7 @@ grep ERROR /var/log/app.log | wc -l
 
 # << EOF — 히어독 (여러 줄 입력) ⭐️
 
-```
+```txt
 Heredoc = Here Document
 여러 줄의 내용을 한 번에 파일에 입력할 때 사용
 cat << EOF > 파일명 형태로 많이 씀
@@ -417,7 +417,7 @@ cat multiline.txt
 # Line 3: Created using a here-document.
 ```
 
-```
+```txt
 구조 설명:
   cat << EOF  → EOF 가 나올 때까지 입력 받아서 cat 으로 출력
   > 파일명    → cat 출력을 파일로 저장

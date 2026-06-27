@@ -14,7 +14,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 로컬 변수   → 현재 셸 안에서만
 환경 변수   → export 하면 자식 셸까지 전달
 .bashrc     → 셸 시작할 때 자동으로 실행되는 설정 파일
@@ -34,7 +34,7 @@ related:
 |**환경 변수**|현재 세션|✅|종료 시 소멸|`export VAR='value'`|
 |**영구 변수**|모든 새 세션|✅|종료 후에도 유지|`~/.bashrc` 또는 `~/.zshrc` 에 작성|
 
-```
+```txt
 부모 셸 (bash)
   ├── 로컬 변수   → 현재 셸 안에서만 존재
   └── 환경 변수   → 자식 프로세스에 전달됨
@@ -60,7 +60,7 @@ bash -c 'echo $MY_VAR'    # hello (전달됨)
 zsh -c 'echo $MY_VAR'     # hello (전달됨)
 ```
 
-```
+```txt
 로컬 변수:
   MY_VAR=hello
   → 선언한 셸 안에서만 유효
@@ -103,7 +103,7 @@ exit
 echo $$           # 123  ← 다시 부모 PID
 ```
 
-```
+```txt
 PPID = Parent PID (부모 프로세스 ID)
 ps -f 에서 자식의 PPID = 부모의 PID 와 일치
 → 부모-자식 관계 눈으로 확인 가능
@@ -137,7 +137,7 @@ env                    # 환경 변수만
 printenv               # env 와 동일
 ```
 
-```
+```txt
 ⚠️ 자주 하는 실수:
   MY_VAR = hello   ← 에러! (공백 있으면 명령어로 인식)
   MY_VAR=hello     ← 정상
@@ -163,7 +163,7 @@ export -p              # 현재 export 된 변수 전체
 
 ## set -o allexport — 자동 export ⭐️
 
-```
+```txt
 set -o  →  옵션 켜기  (on)
 set +o  →  옵션 끄기  (off)
 
@@ -181,7 +181,7 @@ DB_HOST=localhost
 set +o allexport      # 이후부터는 다시 수동 export 필요
 ```
 
-```
+```txt
 set -o allexport 켜면:
   export MY_VAR=hello  와
   MY_VAR=hello         가 완전히 동일
@@ -203,7 +203,7 @@ set -o allexport 켜면:
 
 # ④ 별칭 (alias) ⭐️
 
-```
+```txt
 자주 쓰는 긴 명령어를 짧게 줄이기
 alias 이름='실제 명령어'
 ```
@@ -263,7 +263,7 @@ zsh -c 'alias'      # 빈 출력
 # 터미널 닫으면 사라짐 / 자식 셸에 안 넘어감
 ```
 
-```
+```txt
 영구 적용하려면:
   ~/.bashrc  (bash 사용 시)
   ~/.zshrc   (zsh 사용 시)
@@ -276,14 +276,14 @@ zsh -c 'alias'      # 빈 출력
 
 # ⑤ .bashrc / .bash_profile — 영구 적용 ⭐️
 
-```
+```txt
 셸 시작할 때 자동 실행되는 설정 파일
 여기에 export / alias 넣으면 매번 자동 적용
 ```
 
 ## 파일별 역할
 
-```
+```txt
 ~/.bashrc
   인터랙티브 셸 (터미널 열 때마다) 실행
   alias / 함수 / 프롬프트 설정
@@ -328,7 +328,7 @@ source ~/.zshrc    # ✅ 현재 세션에 즉시 적용
 bash ~/.zshrc      # ❌ 자식 셸에서만 실행 → 현재 셸 영향 없음
 ```
 
-```
+```txt
 source:
   현재 셸 프로세스 안에서 파일 실행
   → export 한 변수가 현재 셸에 바로 적용
@@ -352,7 +352,7 @@ export PATH="$PATH:$HOME/my_scripts"
 export PATH="/새로운/경로:$PATH"
 ```
 
-```
+```txt
 PATH 의 역할:
   명령어를 입력했을 때 어느 디렉토리에서 찾을지 목록
   : 으로 구분된 경로들을 순서대로 탐색
@@ -400,7 +400,7 @@ echo $TERM    # 터미널 유형 (xterm-256color 등)
 echo $PATH    # 실행 파일 검색 경로
 ```
 
-```
+```txt
 자주 쓰는 내장 변수:
   $HOME   → 홈 경로 대신 ~ 로도 쓸 수 있음
   $USER   → 현재 사용자 확인

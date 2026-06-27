@@ -14,7 +14,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Repository  = 단순 CRUD / 기본 조회
 QueryBuilder = 복잡한 쿼리 / 동적 쿼리 / 조건 분기
 ```
@@ -25,7 +25,7 @@ QueryBuilder = 복잡한 쿼리 / 동적 쿼리 / 조건 분기
 
 # Repository vs QueryBuilder ⭐️
 
-```
+```txt
 Repository 쓰는 경우:
   find / findOne / save / delete
   단순한 조건 / 관계 조회 (relations)
@@ -57,7 +57,7 @@ const qb = this.dataSource
   .from(Movie, 'movie');
 ```
 
-```
+```txt
 alias (별칭):
   쿼리 안에서 테이블을 부르는 이름
   SQL 의 AS 와 동일
@@ -70,7 +70,7 @@ alias (별칭):
 
 #  :파라미터명 — 바인딩 문법 ⭐️
 
-```
+```txt
 TypeORM QueryBuilder 에서 값을 전달하는 방법
 :이름  →  { 이름: 값 } 객체로 전달
 SQL 인젝션 방지 + 가독성 향상
@@ -120,7 +120,7 @@ SQL 인젝션 방지 + 가독성 향상
 .where('movie.rating BETWEEN :min AND :max', { min: 7, max: 9 })
 ```
 
-```
+```txt
 :이름     단일 값
 :...이름  배열 (IN 절에서 사용)
 
@@ -158,7 +158,7 @@ const movie = await this.movieRepository
   .getOne();                              // 단건 반환 (없으면 null)
 ```
 
-```
+```txt
 getMany()   → Movie[]
 getOne()    → Movie | null
 getRawMany() → 원시 데이터 (JOIN 결과 등)
@@ -181,7 +181,7 @@ await this.dataSource
 
 ## 각 체이닝 메서드 설명 ⭐️
 
-```
+```txt
 createQueryBuilder():
   QueryBuilder 인스턴스 생성
   두 가지 방법:
@@ -233,7 +233,7 @@ const movieDetail = await qr.manager
 const detailId = movieDetail.identifiers[0].id;
 ```
 
-```
+```txt
 qr.manager vs this.dataSource:
   this.dataSource.createQueryBuilder()  → 트랜잭션 외부
   qr.manager.createQueryBuilder()       → 트랜잭션 내부 (롤백 가능)
@@ -306,7 +306,7 @@ async getMovies(title?: string, genre?: string) {
 }
 ```
 
-```
+```txt
 Repository 의 find 에서는:
   where: { title: Like('%마이클%'), genre: 'drama' }
   조건이 없으면 undefined 처리 복잡
@@ -329,7 +329,7 @@ const qb: SelectQueryBuilder<Movie> = this.movieRepository
   .createQueryBuilder('movie');
 ```
 
-```
+```txt
 SelectQueryBuilder:
   TypeORM 에서 제공하는 타입
   createQueryBuilder() 의 반환 타입
@@ -382,7 +382,7 @@ applyCursorPaginationParamsToQb<T extends ObjectLiteral>(
 }
 ```
 
-```
+```txt
 qb.alias 쓰는 이유:
   CommonService 는 Movie / Genre / Director 등 여러 Entity 에서 사용
   테이블 별칭을 하드코딩하면 각 Entity 마다 함수 따로 필요
@@ -451,7 +451,7 @@ const [data, count] = await qb.getManyAndCount();
 //   Movie[]  number (take/skip 무시한 전체 개수)
 ```
 
-```
+```txt
 getManyAndCount 가 반환하는 것:
   [0] data   → take(5) 로 가져온 실제 데이터 (Movie[])
   [1] count  → take/skip 무시한 전체 일치 개수 (number)
@@ -509,7 +509,7 @@ applyCursorPaginationParamsToQb<T extends ObjectLiteral>(
 
 #  execute() vs getMany() ⭐️
 
-```
+```txt
 반환값에 따라 선택:
 
 getMany()      → Entity[] 반환 (SELECT)
@@ -551,7 +551,7 @@ const result = await this.movieRepository
 const movieId = result.identifiers[0].id;
 ```
 
-```
+```txt
 result 구조:
   {
     identifiers: [{ id: 5 }],       ← 삽입된 id 목록
@@ -617,7 +617,7 @@ const movieId = movieResult.identifiers[0].id;  // ← 생성된 movie id
 })
 ```
 
-```
+```txt
 values 에 넣을 수 있는 것:
   일반 컬럼 값    title / rating / isActive
   FK 관계        { id: xxx } 형태 (OneToOne / ManyToOne)
@@ -633,7 +633,7 @@ values 에 못 넣는 것:
 
 # ManyToMany — relation() ⭐️
 
-```
+```txt
 ManyToMany 는 중간 테이블 때문에
 INSERT values() 에 바로 넣을 수 없음
 → .relation() 으로 중간 테이블 별도 관리
@@ -673,7 +673,7 @@ await this.movieRepository
   .remove(genreId);
 ```
 
-```
+```txt
 relation() 구조:
   .relation(Entity클래스, '프로퍼티명')  어떤 관계인지
   .of(id)                              대상 Entity id
@@ -711,7 +711,7 @@ const count = await this.movieRepository
   .getCount();
 ```
 
-```
+```txt
 .select('컬럼', '별칭')     SELECT 컬럼 AS 별칭
 .addSelect('집계식', '별칭') 집계 함수 추가
 .groupBy('컬럼')            GROUP BY
@@ -762,7 +762,7 @@ const result = await this.dataSource
   .getRawMany();
 ```
 
-```
+```txt
 서브쿼리 패턴:
   WHERE IN 서브쿼리:
     qb => { const sub = qb.subQuery()...getQuery(); return 'id IN ' + sub; }
@@ -808,7 +808,7 @@ const result = await this.movieRepository.query(
 );
 ```
 
-```
+```txt
 Raw Query 언제 쓰나:
   QueryBuilder 로 표현하기 너무 복잡한 쿼리
   PostgreSQL 전용 문법 (DISTINCT ON, 배열 함수 등)

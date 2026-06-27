@@ -26,7 +26,7 @@ related:
 | **Postman/** | HTTP/WebSocket API 테스트 | [[00_Postman_HomePage]] |
 | **Mac/** | macOS 작업 환경 · 시스템 단축키 | [[00_Mac_HomePage]] |
 
-```
+```txt
 세 폴더는 서로 독립 — JS Ecosystem처럼 클러스터로 얽히지 않음
 다만 Mac 단축키(⌘·⌥ 기호)는 VS Code·터미널 노트를 읽을 때 같이 보면 편함
 ```

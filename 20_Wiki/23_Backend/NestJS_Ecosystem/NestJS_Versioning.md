@@ -14,7 +14,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 버전 관리 = 기존 API 를 깨지 않으면서 새 버전을 추가하는 방법
 클라이언트가 어떤 버전을 원하는지 서버에 알려주는 방식
 ```
@@ -25,7 +25,7 @@ related:
 
 #  왜 필요한가 ⭐️
 
-```
+```txt
 API 업데이트 상황:
   v1 /movie → title, genre 반환
   v2 /movie → title, genre, rating 추가 반환
@@ -44,7 +44,7 @@ API 업데이트 상황:
 
 #  버전 관리 방식 3가지 ⭐️
 
-```
+```txt
 URI Versioning:
   URL 에 버전 포함
   GET /v1/movie
@@ -88,7 +88,7 @@ async function bootstrap() {
 }
 ```
 
-```
+```txt
 defaultVersion:
   @Version() 을 붙이지 않은 엔드포인트에 적용될 기본 버전
   단일: defaultVersion: '1'
@@ -110,7 +110,7 @@ export class MovieControllerV2 {
 }
 ```
 
-```
+```txt
 GET /v1/movie → MovieControllerV1
 GET /v2/movie → MovieControllerV2
 ```
@@ -129,7 +129,7 @@ app.enableVersioning({
 });
 ```
 
-```
+```txt
 요청:
   GET /movie
   version: 1   ← 헤더에 버전 전달
@@ -151,7 +151,7 @@ app.enableVersioning({
 });
 ```
 
-```
+```txt
 요청:
   GET /movie
   Accept: application/json;v=2
@@ -209,7 +209,7 @@ health() {
 |`VersioningType.HEADER`|헤더 `version: 1`|
 |`VersioningType.MEDIA_TYPE`|`Accept: application/json;v=1`|
 
-```
+```txt
 가장 많이 쓰는 방식:
   URI Versioning → URL 만 봐도 버전 알 수 있어서 직관적
 ```

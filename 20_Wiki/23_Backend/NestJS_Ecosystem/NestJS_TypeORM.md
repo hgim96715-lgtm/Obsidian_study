@@ -19,7 +19,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 TypeORM = TypeScript 기반 ORM
 Entity 클래스로 DB 테이블을 관리
 NestJS + TypeORM + PostgreSQL 연결 패턴
@@ -29,7 +29,7 @@ NestJS + TypeORM + PostgreSQL 연결 패턴
 ---
 #  TypeORM 특성
 
-```
+```txt
 OOP 를 사용해서 DB 테이블을 클래스로 관리하는 ORM
 
 지원 DB:
@@ -68,7 +68,7 @@ DB_PASSWORD=postgres
 DB_DATABASE=postgres
 ```
 
-```
+```txt
 DataGrip / pgAdmin 연결 시:
   host:     localhost
   port:     .env 의 DB_PORT (5555)
@@ -96,7 +96,7 @@ TypeOrmModule.forRoot({
 })
 ```
 
-```
+```txt
 문제:
   process.env 직접 사용 → 타입 안전성 없음
   Joi 검증 전에 실행될 수 있음
@@ -111,7 +111,7 @@ TypeOrmModule.forRoot({
 ---
 # forRootAsync + useFactory ⭐️
 
-```
+```txt
 forRootAsync = "나중에 비동기로 설정을 만들어서 줄게"
 useFactory   = "설정을 만들어주는 함수"
 inject       = "그 함수에 필요한 재료(서비스)"
@@ -140,7 +140,7 @@ TypeOrmModule.forRootAsync({
 ---
 # useFactory 와 inject 의 관계 ⭐️
 
-```
+```txt
 inject 없으면:
   useFactory: (configService) => ...
   configService = undefined → .get() 에러
@@ -157,7 +157,7 @@ useFactory: (configService, jwtService) => ...
 //            ↑ 첫번째       ↑ 두번째
 ```
 
-```
+```txt
 왜 명시적으로 써야 하나:
   forRootAsync 는 모듈 초기화 시점에 실행
   NestJS 가 어떤 서비스가 필요한지 자동으로 모름
@@ -256,7 +256,7 @@ url 하나로 연결하는 방식:
   → DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_DATABASE 전부 필요
 ```
 
-```
+```txt
 순서 중요:
   ConfigModule → TypeOrmModule
   ConfigModule 이 먼저 환경변수를 로드해야
@@ -320,7 +320,7 @@ entities: [__dirname + '/**/*.entity{.ts,.js}']
 export class MovieModule {}
 ```
 
-```
+```txt
 forRoot    앱 전체 DB 연결 설정 (app.module.ts 에 한 번)
 forFeature 특정 모듈에서 사용할 Entity 등록
            → @InjectRepository(Movie) 사용 가능해짐
@@ -332,7 +332,7 @@ forFeature 특정 모듈에서 사용할 Entity 등록
 
 ## Entity metadata not found
 
-```
+```txt
 오류: TypeORMError: Entity metadata for Movie#detail was not found
 원인: 관계(Relation) 에서 참조하는 Entity 가 등록 안 됨
 ```
@@ -349,7 +349,7 @@ entities: [Movie, MovieDetail]
 
 ## No repository for Entity was found
 
-```
+```txt
 오류: No repository for Movie was found
 원인: 해당 모듈에 forFeature 없음
 해결: TypeOrmModule.forFeature([Movie]) 추가
@@ -357,7 +357,7 @@ entities: [Movie, MovieDetail]
 
 ## DB 연결 실패
 
-```
+```txt
 오류: Unable to connect to the database
 원인: DB 서버 꺼짐 / .env 포트 불일치 / 비밀번호 틀림
 확인: docker ps / .env DB_PORT 확인
@@ -369,7 +369,7 @@ entities: [Movie, MovieDetail]
 
 # 연결 흐름 정리
 
-```
+```txt
 .env
   ↓
 ConfigModule (Joi 검증)

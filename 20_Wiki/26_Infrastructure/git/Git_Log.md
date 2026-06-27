@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 git log = 커밋 이력을 확인하는 명령어
 언제 / 누가 / 무엇을 바꿨는지 추적
 ```
@@ -105,7 +105,7 @@ git log --after="2024-01-01" --before="2024-01-31"
 git log --since="2024-01-01" --until="2024-01-31"  # 동일
 ```
 
-```
+```txt
 날짜 표현 방식:
   --since / --after  같은 의미 (시작일)
   --before / --until 같은 의미 (종료일)
@@ -152,7 +152,7 @@ git log -S "console.log"
 git log -S "function login"
 ```
 
-```
+```txt
 -S "문자열" = pickaxe 검색
   해당 문자열의 등장 횟수가 변한 커밋 찾기
   추가된 커밋 또는 삭제된 커밋
@@ -198,7 +198,7 @@ git show a1b2c3d4e5f6...   # 전체 해시도 가능
 # --- 변경된 코드 (diff) ---
 ```
 
-```
+```txt
 git show 언제 쓰나:
   git log -S 로 커밋 찾은 후 → git show 로 상세 확인
   "이 커밋에서 정확히 뭘 바꿨지?" 확인
@@ -223,7 +223,7 @@ echo "f4e5d6c" > ~/user_answer.txt
 echo "gong" > ~/user_author.txt
 ```
 
-```
+```txt
 목록에서 가장 최근 커밋:
   가장 위에 표시된 커밋이 최신
   함수가 삭제됐다면 → 최근 커밋에서 삭제됐을 가능성 높음

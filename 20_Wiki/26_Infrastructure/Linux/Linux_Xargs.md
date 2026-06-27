@@ -16,7 +16,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 파이프(|)로 넘어온 결과를 다른 명령어의 "인자"로 바꿔서 실행
 find . -name "*.log" | xargs rm
 ```
@@ -27,7 +27,7 @@ find . -name "*.log" | xargs rm
 
 # 왜 필요한가 ⭐️
 
-```
+```txt
 많은 명령어가 표준입력(stdin)을 직접 못 읽음:
 
   find . -name "*.log" | rm
@@ -62,7 +62,7 @@ find . -name "*.tmp" | xargs rm
 # .tmp 파일 전부 찾아서 한 번에 삭제
 ```
 
-```
+```txt
 xargs 없이 직접 쓰면:
   for file in $(find . -name "*.tmp"); do rm "$file"; done
   → 한 줄로 가능한 걸 반복문으로 풀어 쓰는 격
@@ -97,7 +97,7 @@ echo "report" | xargs -I {} cp {}.txt {}_backup.txt
 # cp report.txt report_backup.txt
 ```
 
-```
+```txt
 -I {} 의 {} 는 단순 표시 기호 (다른 문자도 가능: -I % 등)
   명령어 안에서 입력값이 들어갈 위치를 직접 지정
   기본 xargs(뒤에만 붙임) 로는 안 되는 패턴을 가능하게 함
@@ -117,7 +117,7 @@ echo "1 2 3 4 5 6" | xargs -n 2 echo
 #  ↑ 2개씩 끊어서 명령어 여러 번 실행
 ```
 
-```
+```txt
 언제 쓰나:
   명령어 인자 개수 제한이 있는 경우
   대량의 파일을 한 번에 처리하면 "Argument list too long" 에러 날 때
@@ -140,7 +140,7 @@ find . -name "*.txt" -print0 | xargs -0 rm
 # 공백/특수문자 포함된 파일명도 안전하게 처리
 ```
 
-```
+```txt
 왜 이렇게 해야 하나:
   기본적으로 xargs 는 공백/줄바꿈 기준으로 항목을 나눔
   파일명에 공백이 있으면 → 하나의 파일명이 여러 개로 잘못 쪼개짐
@@ -166,7 +166,7 @@ find . -name "*.jpg" | xargs -I {} convert {} {}.png
 find . -name "*.jpg" | xargs -P 4 -I {} convert {} {}.png
 ```
 
-```
+```txt
 -P 숫자:
   동시에 실행할 프로세스 개수
   대량 파일 처리(이미지 변환, 압축 등) 속도를 크게 높일 수 있음
@@ -185,7 +185,7 @@ find . -name "*.log" | xargs -p rm
 # y 입력해야 실제 실행됨
 ```
 
-```
+```txt
 언제 쓰나:
   rm 같은 위험한 명령어를 xargs 와 같이 쓸 때
   실제로 어떤 명령이 실행될지 미리 확인하고 싶을 때
@@ -228,7 +228,7 @@ cat books.txt | xargs -L 2 echo "묶음:"
 # 묶음: book3 book4
 ```
 
-```
+```txt
 -L 숫자 vs -n 숫자 차이:
   -n 2   "인자 개수" 기준으로 2개씩 (한 줄에 여러 단어가 있어도 단어 단위로 셈)
   -L 2   "줄(line)" 기준으로 2줄씩 (한 줄에 단어가 몇 개든 그 줄 전체를 하나로 취급)
@@ -254,7 +254,7 @@ cat long_list.txt | xargs -s 100 echo
 # 합쳐서 100자가 넘지 않는 만큼씩 끊어서 echo 실행
 ```
 
-```
+```txt
 언제 쓰나:
   파일 개수가 아니라 "명령줄 전체 글자 수"가 시스템 한도를 넘을 때
   대량의 긴 파일 경로를 한 번에 넘기다가
@@ -276,7 +276,7 @@ xargs -a books.txt echo
 # cat books.txt | xargs echo 와 결과 동일
 ```
 
-```
+```txt
 -a 파일명 의 의미:
   표준입력(stdin) 대신 지정한 파일을 직접 읽어서 처리
   cat 으로 파일을 먼저 출력하고 파이프로 넘기는 과정을 한 단계 줄임
@@ -296,7 +296,7 @@ echo -e "book1\nbook2\nSTOP\nbook3" | xargs -E STOP echo
 # (STOP 이후의 book3 은 무시됨)
 ```
 
-```
+```txt
 -E 문자열:
   입력 스트림에서 그 문자열을 만나면 이후 내용을 전부 무시
   옛 POSIX xargs 의 동작 방식 (지금은 거의 안 씀)
@@ -331,7 +331,7 @@ find . -name "*.png" | xargs -P 4 -I {} convert {} {}.webp
 grep -l "TODO" *.js | xargs -I {} cp {} {}.bak
 ```
 
-```
+```txt
 find + xargs 가 가장 흔한 조합인 이유:
   find 는 "조건에 맞는 파일을 찾는" 역할만 함 (찾은 파일에 직접 명령 실행 못함)
   xargs 가 그 결과를 받아서 다른 명령어의 인자로 넘겨줌
@@ -354,7 +354,7 @@ find 자체의 -exec 옵션과 비교:
 cat ~/project/fruits.txt | xargs echo
 ```
 
-```
+```txt
 fruits.txt 내용이 이렇다면:
   apple
   banana
@@ -374,7 +374,7 @@ xargs 가 그 내용(여러 줄)을 echo 의 "인자들"로 바꿔서 한 번에
 cat ~/project/books.txt | xargs -I {} touch ~/project/{}.txt
 ```
 
-```
+```txt
 books.txt 내용:
   harry_potter
   lord_of_rings
@@ -394,7 +394,7 @@ touch 명령어가 줄 수만큼 반복 실행됨
 cat ~/project/more_books.txt | xargs -n 2 echo "Processing books:"
 ```
 
-```
+```txt
 more_books.txt 내용:
   book1
   book2
@@ -418,7 +418,7 @@ more_books.txt 내용:
 cat ~/project/more_books.txt | xargs -P 3 -I {} ~/project/process_book.sh {}
 ```
 
-```
+```txt
 more_books.txt 내용:
   book1
   book2
@@ -442,7 +442,7 @@ cp ~/project/"$1".txt ~/project/processed_"$1".txt
 #  ↑ 원본을 읽어서 "processed_" 를 붙인 새 이름으로 복사/가공
 ```
 
-```
+```txt
 processed_* 파일이 생기는 원리 ⭐️:
 
   xargs 자신은 파일을 만들지 않음
@@ -464,7 +464,7 @@ processed_* 파일이 생기는 원리 ⭐️:
 cat ~/project/processed_*
 ```
 
-```
+```txt
 이건 xargs 명령이 아니라 그냥 쉘의 와일드카드(글로빙) 기능 ⭐️
 
 * 는 "아무 문자열이나 매칭" 이라는 쉘의 패턴 확장 기호
@@ -487,7 +487,7 @@ processed_book1.txt, processed_book2.txt, processed_book3.txt 파일들을
 cat ~/project/classic_books.txt | xargs -n 2 -P 3 sh -c 'echo "Processing batch: $@"' _
 ```
 
-```
+```txt
 classic_books.txt 내용:
   book1 book2 book3 book4 book5 book6
 
@@ -513,7 +513,7 @@ sh -c '...' _ 의 의미:
   Processing batch: book5 book6
 ```
 
-```
+```txt
 이 예제가 중요한 이유:
   xargs 의 -I {} 는 "한 개씩"만 처리 가능 (자리표시자라서)
   -n 2 처럼 "여러 개씩 묶음"으로 받아서 처리하려면
@@ -540,7 +540,7 @@ sh -c '...' _ 의 의미:
 | `-a 파일`  | stdin 대신 파일에서 읽기               |
 | `-E 문자열` | 지정 문자열에서 입력 종료 (거의 안 씀)        |
 
-```
+```txt
 기본 패턴:
   find . -name "패턴" | xargs 명령어
 

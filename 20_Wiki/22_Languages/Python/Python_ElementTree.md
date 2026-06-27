@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 XML 데이터를 파이썬에서 읽고 탐색하는 내장 모듈
 공공데이터 API 는 JSON 이 아닌 XML 응답이 많음
 pip 설치 불필요 — 파이썬 내장
@@ -59,7 +59,7 @@ import xml.etree.ElementTree as ET
 </response>
 ```
 
-```
+```txt
 용어 정리:
   태그(tag)     <hpid> 에서 hpid 부분
   텍스트(text)  태그 사이의 값  A1100001
@@ -88,7 +88,7 @@ tree = ET.parse("data.xml")
 root = tree.getroot()
 ```
 
-```
+```txt
 response.content   bytes 타입 → fromstring 에 바로 사용
 response.text      str 타입   → fromstring(response.text.encode()) 필요
 → 공공데이터 API 에는 response.content 사용 권장
@@ -139,7 +139,7 @@ missing = item.findtext("없는태그", "")   # None 대신 "" 반환
 hvec = item.findtext("hvec", "0")         # 없으면 "0"
 ```
 
-```
+```txt
 결론:
   find().text   → 태그 확실히 있을 때만
   findtext()    → 항상 안전 (권장) ← 실무에서 이걸 써야 함
@@ -237,7 +237,7 @@ def fetch_er_data(api_key: str, stage: str = "서울") -> list:
 
 # ⑦ JSON vs XML 비교
 
-```
+```txt
 JSON                     XML
 ─────────────────────────────────────────
 { "hpid": "A1100001" }  <hpid>A1100001</hpid>
@@ -259,7 +259,7 @@ hpid = root.findtext(".//hpid")
 ---
 # ⑧ XML 내부 확인 — 디버깅
 
-```
+```txt
 print(root) → <Element 'response' at 0x106757f90>
 → Element 객체 주소만 나옴, 내용 안 보임
 → 아래 방법으로 내용 확인
@@ -294,7 +294,7 @@ for child in root:
         print(f"  {grandchild.tag}")  # resultCode / items 등
 ```
 
-```
+```txt
 상황별 추천:
   API 응답 구조 처음 확인할 때  → r.content.decode("utf-8")
   특정 item 컬럼 확인할 때      → item 루프로 tag: text 출력
@@ -305,7 +305,7 @@ for child in root:
 ---
 # ⑨ 타입 힌트 — ET.Element | None
 
-```
+```txt
 함수 반환값이 "ET.Element 또는 None" 임을 명시
 API 호출 성공 → ET.Element 반환
 API 호출 실패 → None 반환
@@ -342,7 +342,7 @@ if root is None:          # API 실패
 items = root.findall(".//item")   # None 아닐 때만 탐색
 ```
 
-```
+```txt
 ET.Element 가 뭔가:
   ET.fromstring() 이 반환하는 타입
   XML 트리의 태그 하나를 나타내는 객체

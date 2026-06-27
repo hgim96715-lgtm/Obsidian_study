@@ -19,7 +19,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 tar    = 여러 파일을 하나로 묶기 (크기 그대로)
 gzip   = 파일 크기 줄이기 (압축)
 tar.gz = 묶기 + 압축 동시에 (가장 많이 씀)
@@ -31,7 +31,7 @@ tar.gz = 묶기 + 압축 동시에 (가장 많이 씀)
 
 # ① 아카이빙 vs 압축 — 개념부터 ⭐️
 
-```
+```txt
 헷갈리는 이유:
   tar 와 gzip 이 하는 일이 다름
   하지만 보통 같이 씀 → tar.gz 형식
@@ -47,7 +47,7 @@ tar.gz = 묶기 + 압축 동시에 (가장 많이 씀)
   묶지 않음 (파일 하나만 처리)
 ```
 
-```
+```txt
 예시로 이해하기:
   logs/ 폴더 (100MB)
     access.log  70MB
@@ -62,7 +62,7 @@ tar.gz = 묶기 + 압축 동시에 (가장 많이 씀)
 
 ## tar 를 언제 쓰나 ⭐️
 
-```
+```txt
 1. 로그 파일 보관
    Airflow / Kafka / 애플리케이션 로그 → 날짜별 압축 보관
    logs/2024-01/ → 2024-01-logs.tar.gz
@@ -127,7 +127,7 @@ ls -lh *.tar.gz          # 모든 tar.gz 크기 한눈에
 ls -lhS *.tar.gz         # 크기 순 정렬 (-S)
 ```
 
-```
+```txt
 ls -lh 읽는 법:
   -rw-rw-r-- 1 labex labex 281 May 15 07:50 test_archive.tar.gz
   ↑권한       ↑링크수 ↑소유자  ↑크기 ↑날짜            ↑파일명
@@ -186,7 +186,7 @@ tar [옵션] 아카이브명 파일들
 
 ## 구조 먼저 이해하기
 
-```
+```txt
 tar -czf  [저장할 파일명]  [압축할 대상]
            ↑               ↑
            결과물 이름      무엇을 압축할지
@@ -206,7 +206,7 @@ tar -czf  /home/labex/project/backup.tar.gz  /var/log/
 #         ↑ 저장 위치 포함한 결과 경로              ↑ 압축 대상
 ```
 
-```
+```txt
 핵심:
   f 다음에 오는 첫 번째 = 만들 파일 이름 (결과물)
   그 다음 = 압축할 파일/폴더 (재료)
@@ -234,7 +234,7 @@ sudo tar -czf /home/labex/project/$(date +%Y-%m-%d).tar.gz /var/log/
 #             /home/.../2026-05-15.tar.gz 로 저장
 ```
 
-```
+```txt
 sudo tar -czf /home/labex/project/$(date +%Y-%m-%d).tar.gz /var/log/ 분석:
 
   sudo                                    → root 권한 (로그 폴더 접근)
@@ -248,7 +248,7 @@ sudo tar -czf /home/labex/project/$(date +%Y-%m-%d).tar.gz /var/log/ 분석:
 
 ## -czvf 각 옵션 상세 ⭐️
 
-```
+```txt
 c  (Create)  = 새 아카이브 파일 생성
 z  (Zip)     = gzip 으로 압축 (.tar.gz 형식)
 v  (Verbose) = 처리 중인 파일명을 화면에 출력
@@ -259,7 +259,7 @@ tar -czvf archive.tar.gz data/
      옵션  아카이브이름   압축대상
 ```
 
-```
+```txt
 v 옵션:
   있으면 → 압축 중인 파일들이 화면에 쭉 출력됨
   없으면 → 조용히 압축만 진행
@@ -268,7 +268,7 @@ v 옵션:
   tail -f backup.log   ← 실시간 진행 확인
 ```
 
-```
+```txt
 f 옵션 위치가 왜 마지막인가:
   f 는 "다음 인자가 파일명" 이라는 의미
   f 뒤에 아카이브 이름이 바로 와야 함
@@ -285,7 +285,7 @@ f 옵션 위치가 왜 마지막인가:
 
 ## -czf vs -czvf 선택 기준
 
-```
+```txt
 -czf  (v 없음)  조용히 압축 / cron 자동화 / 빠른 실행
 -czvf (v 있음)  진행 상황 확인 / 수동 실행 / 디버깅
 ```
@@ -308,7 +308,7 @@ tar -tzf old_logs.tar.gz
 tar -tzvf archive.tar.gz
 ```
 
-```
+```txt
 압축 풀기 전에 반드시 확인하는 습관:
   1. tar -tzf 로 목록 확인
   2. 예상한 파일이 맞는지 검증
@@ -344,7 +344,7 @@ ls -l config/app.conf
 cat config/app.conf
 ```
 
-```
+```txt
 장애 상황에서 수십 GB 전체 백업을 풀면 시간 낭비
 → 파일명 명시 → 해당 파일만 즉시 복원
 → 서비스 다운타임 최소화
@@ -367,7 +367,7 @@ tar -tzvf backups/system-backup.tar.gz > backup-contents.txt
 cat backup-contents.txt
 ```
 
-```
+```txt
 왜 목록 파일을 쓰나:
   명령줄에 경로 20개 나열 → 오타 유발
   backup-list.txt 한 번 만들어두면 반복 사용
@@ -403,7 +403,7 @@ tar -czf backup.tar.gz -C /home/labex/project data
 tar -czf backup_$(date +%Y-%m-%d_%H-%M-%S).tar.gz -C /home/labex/project data config logs
 ```
 
-```
+```txt
 cron % 이스케이프:
   터미널:  date +%Y-%m-%d    (% 그대로)
   cron:    date +\%Y-\%m-\%d (\% 이스케이프)
@@ -443,7 +443,7 @@ rm *_2023-*.log
 ls
 ```
 
-```
+```txt
 와일드카드 패턴:
   *        = 모든 문자 (아무거나)
   ?        = 한 문자
@@ -467,7 +467,7 @@ ls
 
 # ⑥ 로그 로테이션 패턴 ⭐️
 
-```
+```txt
 문제:
   서버 장기 운영 → 로그 파일이 GB 단위로 쌓임
   디스크 100% → 시스템 장애
@@ -550,7 +550,7 @@ unzip -d unzipped_files test_archive.zip
 # unzipped_files 폴더가 없으면 자동 생성
 ```
 
-```
+```txt
 tar.gz vs zip:
   tar.gz  Linux 서버간 전송 / 배포 / 백업
   zip     Windows 사용자와 공유 / 범용 호환성
@@ -565,7 +565,7 @@ tar.gz vs zip:
 
 # ⑨ 디렉토리 생성 — 중괄호 확장 ⭐️
 
-```
+```txt
 중괄호 확장 = 쉘이 패턴을 자동으로 펼쳐주는 기능
 mkdir / touch / tar 등 모든 명령어에 적용 가능
 ```
@@ -586,7 +586,7 @@ mkdir -p monthly/{01..12}
 # → mkdir -p monthly/01 monthly/02 ... monthly/12
 ```
 
-```
+```txt
 -p 옵션 = 중간 경로까지 자동 생성
   test_dir 없어도 → test_dir 자동 생성 후 subdir1/subdir2 생성
   -p 없으면 test_dir 없을 때 에러
@@ -609,7 +609,7 @@ echo mkdir -p pipeline/{src,config,logs}
 # mkdir -p pipeline/src pipeline/config pipeline/logs
 ```
 
-```
+```txt
 ⚠️ 주의:
   {a, b}  ❌ 공백 있으면 안 됨
   {a,b}   ✅ 쉼표 뒤 공백 없어야 함

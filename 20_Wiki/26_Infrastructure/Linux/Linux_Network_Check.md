@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 ip addr   = 내 IP / 인터페이스 상태 확인
 ping      = 외부 통신 가능한지 테스트
 ss -tlnp  = 어떤 포트가 열려있는지 확인
@@ -40,7 +40,7 @@ ip addr show eth0
 
 ## 출력 해석
 
-```
+```txt
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536
     inet 127.0.0.1/8              ← 루프백 (자기 자신)
 
@@ -50,7 +50,7 @@ ip addr show eth0
          ↑ UP = 인터페이스 활성화
 ```
 
-```
+```txt
 확인 포인트:
   <UP>     = 네트워크 카드 정상 작동
   <DOWN>   = 비활성화 → 드라이버/물리 연결 문제
@@ -85,7 +85,7 @@ ifconfig
 ifconfig eth0   # 특정 인터페이스만
 ```
 
-```
+```txt
 ip addr vs ifconfig:
   ip addr   현대 표준 (권장)
   ifconfig  레거시 환경에서 여전히 사용
@@ -110,7 +110,7 @@ ping -c 3 8.8.8.8     # 3번만 보내고 종료
 ping -c 4 google.com
 ```
 
-```
+```txt
 -c 옵션이 필요한 이유:
   Linux ping 은 Ctrl+C 전까지 무한 반복
   스크립트/헬스체크에서 -c 없이 쓰면
@@ -123,7 +123,7 @@ Health Check 패턴:
 
 ## ping 출력 해석
 
-```
+```txt
 PING 8.8.8.8 (8.8.8.8) 56 bytes of data.
 64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=1.23 ms
                                               ↑ 응답 시간
@@ -134,7 +134,7 @@ PING 8.8.8.8 (8.8.8.8) 56 bytes of data.
 rtt min/avg/max = 1.1/1.2/1.4 ms
 ```
 
-```
+```txt
 실패 유형:
   Request timeout       → 응답 없음 (방화벽 차단 or 서버 다운)
   Destination unreachable → 경로 없음 (라우팅 문제)
@@ -161,7 +161,7 @@ ss -tlnp | grep :9092   # Kafka
 
 ## 출력 해석
 
-```
+```txt
 State   Recv-Q  Send-Q  Local Address:Port   Peer Address:Port  Process
 LISTEN  0       128     0.0.0.0:22           0.0.0.0:*          users:(("sshd",pid=1234))
 LISTEN  0       5       127.0.0.1:5432       0.0.0.0:*          users:(("postgres",pid=5678))
@@ -172,7 +172,7 @@ LISTEN  0       5       127.0.0.1:5432       0.0.0.0:*          users:(("postgre
 
 ## 트러블슈팅 흐름 ⭐️
 
-```
+```txt
 앱 실행했는데 접속 안 될 때:
 
 1. ss -tlnp | grep :8000
@@ -205,7 +205,7 @@ sudo lsof -nP -iTCP -sTCP:LISTEN
 
 ## 옵션 설명
 
-```
+```txt
 lsof -i :5555:
   -i = 네트워크 소켓 파일 보기
   :5555 = 5555 포트
@@ -234,7 +234,7 @@ lsof -nP -iTCP -sTCP:LISTEN
 
 ## ss vs lsof 차이
 
-```
+```txt
 ss -tlnp:
   Linux 에서 표준
   빠름 / 간결한 출력
@@ -285,7 +285,7 @@ curl -O https://example.com/file.tar.gz
 
 # 네트워크 점검 흐름
 
-```
+```txt
 접속 안 될 때 순서:
 
 1. ip addr          내 IP / 인터페이스 UP 확인

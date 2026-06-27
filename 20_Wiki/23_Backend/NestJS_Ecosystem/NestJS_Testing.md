@@ -15,7 +15,7 @@ related:
 
 # NestJS_Testing — 테스팅
 
-```
+```txt
 테스팅 = 코드가 예상대로 동작하는지 자동으로 검증하는 과정
 흐름: 가짜 의존성 준비 → 테스트 실행 → 결과·예외·호출 검증
 ```
@@ -28,7 +28,7 @@ related:
 
 # 왜 테스팅인가 ⭐️
 
-```
+```txt
 테스트 없으면:
   API 직접 호출해서 눈으로 확인 → 오래 걸리고 일관성 없음
   코드 변경 시 기존 기능 망가졌는지 알기 어려움
@@ -51,14 +51,14 @@ related:
 |`Integration Test`|여러 기능 + 실제 DB 연결|Repository·relation·transaction 확인|
 |`E2E Test`|HTTP 요청 → 응답 전체 흐름|Controller·Pipe·Guard·Service 연결 확인 / supertest 사용|
 
-```
+```txt
 순서: Unit → Integration → E2E
 먼저 작성해야 하는 것: Unit Test
 ```
 
 ## 파일 네이밍 & 실행 스크립트
 
-```
+```txt
 Unit Test        {파일명}.spec.ts              pnpm test
 Integration Test {파일명}.integration.spec.ts  pnpm test:integration
 E2E Test         {파일명}.e2e-spec.ts          pnpm test:e2e
@@ -75,7 +75,7 @@ E2E Test         {파일명}.e2e-spec.ts          pnpm test:e2e
 }
 ```
 
-```
+```txt
 ⚠️ test:integration 은 *.integration.spec.ts 파일이 없으면
    No tests found → exit code 1 에러 발생
 
@@ -98,7 +98,7 @@ E2E Test         {파일명}.e2e-spec.ts          pnpm test:e2e
 
 ## 테스트 파일 위치 & 네이밍 ⭐️
 
-```
+```txt
 파일명 규칙:
   {대상파일명}.spec.ts
 
@@ -152,7 +152,7 @@ expect(result).toHaveLength(3)         // 배열 / 문자열 길이
 expect(result).toContain('hello')      // 포함 여부
 ```
 
-```
+```txt
 toBe vs toEqual:
   toBe      숫자 / 문자열 / boolean 원시값 비교
   toEqual   객체 / 배열 내부 값까지 재귀적으로 비교
@@ -184,7 +184,7 @@ await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
 expect(() => fn()).toThrow();  // 동기 즉시 throw
 ```
 
-```
+```txt
 toHaveBeenCalledWith()         호출된 적 있는지 (순서 무관)
 toHaveBeenNthCalledWith(N, ..) N번째 호출의 인자 정확히 검증
                                N 은 1부터 시작
@@ -198,7 +198,7 @@ expect.any(String)             // 특정 타입으로 검증
 expect.stringContaining('abc') // 특정 문자열 포함 여부
 ```
 
-```
+```txt
 언제 쓰나:
   내부 상수값이라 정확한 값보다 "호출은 됐냐" 가 중요할 때
   expect(mockFn).toHaveBeenCalledWith(expect.anything())
@@ -216,7 +216,7 @@ expect.stringContaining('abc') // 특정 문자열 포함 여부
 |`Mock`|반환값 + 호출 여부·인자 검증|`save()` 가 1번 호출됐는지 확인|
 |`Fake`|단순화한 실제 구현|메모리 배열 Repository|
 
-```
+```txt
 NestJS Unit Test 에서는 보통 jest.fn() 으로
 Repository / Logger / JwtService 등의 동작을 대체한다
 ```
@@ -250,7 +250,7 @@ mockFn.mockRejectedValue(new Error('DB 오류'))   // async 실패 결과
 
 ## mockImplementation() — 인자에 따라 다른 값 반환 ⭐️
 
-```
+```txt
 mockReturnValue / mockResolvedValue 는 항상 같은 값을 반환
 mockImplementation 은 실제 함수처럼 인자에 따라 다르게 동작
 
@@ -284,7 +284,7 @@ it('should issue a refresh token', async () => {
 });
 ```
 
-```
+```txt
 mockReturnValue vs mockImplementation:
   mockReturnValue('x')         호출할 때마다 항상 'x' 반환
   mockImplementation((k) => …) 인자 k 에 따라 분기해서 반환
@@ -306,7 +306,7 @@ mockFn
 
 ## jest.spyOn() — 이미 존재하는 메서드 감시 ⭐️
 
-```
+```txt
 ⚠️ spyOn 은 이미 객체에 존재하는 프로퍼티만 감쌀 수 있다
 
 즉, Mock 객체를 만들 때 감시할 메서드를 반드시 먼저 정의해야 한다
@@ -337,7 +337,7 @@ jest.spyOn(jwtService, 'decode').mockReturnValue(payload);
 (mockJwtService.decode as jest.Mock).mockReturnValue(payload);
 ```
 
-```
+```txt
 왜 캐스팅이 필요한가:
   jest.mock() / jest.fn() 으로 교체했지만
   TypeScript 는 여전히 원래 타입으로 인식
@@ -369,7 +369,7 @@ import * as bcrypt from 'bcrypt';
 (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
 ```
 
-```
+```txt
 jest.fn()    특정 함수 하나를 가짜로
 jest.mock()  외부 라이브러리 모듈 전체를 가짜로
 → bcrypt / fs / axios 같은 외부 모듈에 사용
@@ -382,7 +382,7 @@ jest.mock()  외부 라이브러리 모듈 전체를 가짜로
 
 # Service 테스트 ⭐️
 
-```
+```txt
 Service 테스트 구조:
   Mock 대상  → Repository (실제 DB 대신)
   주입 방식  → providers 에 getRepositoryToken 으로 등록
@@ -472,7 +472,7 @@ describe('AuthService', () => {
 });
 ```
 
-```
+```txt
 특수 토큰:
   @InjectRepository(Entity) → getRepositoryToken(Entity)
   @Inject(CACHE_MANAGER)    → CACHE_MANAGER 토큰 그대로 사용
@@ -501,7 +501,7 @@ it('전체 감독 목록을 반환한다', async () => {
 
 ## QueryBuilder 체이닝 Mock — mockReturnThis() ⭐️
 
-```
+```txt
 TypeORM QueryBuilder 는 메서드 체이닝 방식으로 동작
   createQueryBuilder().distinct(true).leftJoinAndSelect(...).where(...).getManyAndCount()
 
@@ -546,7 +546,7 @@ it('should return all movies', async () => {
 });
 ```
 
-```
+```txt
 mockReturnThis()    체이닝 중간 메서드 → qb 자신 반환 → 다음 메서드 이어짐
 mockResolvedValue() 체이닝 끝 메서드  → Promise 반환
 mockReturnValue()   createQueryBuilder → qbMock 객체 반환
@@ -567,7 +567,7 @@ as unknown as SelectQueryBuilder<Movie>:
 
 # Controller 테스트 ⭐️
 
-```
+```txt
 Controller 테스트 구조:
   Mock 대상  → Service (Repository 까지 내려가지 않음)
   주입 방식  → providers 에 Service Mock 등록 + controllers 에 Controller 등록
@@ -665,7 +665,7 @@ it('create 는 새 감독을 생성한다', async () => {
 
 ## Service vs Controller 테스트 한눈에 비교
 
-```
+```txt
                      Service 테스트          Controller 테스트
 ─────────────────────────────────────────────────────────────────
 Mock 대상           Repository              Service
@@ -691,7 +691,7 @@ Mock 대상           Repository              Service
 ─────────────────────────────────────────────────────────────────
 ```
 
-```
+```txt
 왜 Controller 테스트에서 spyOn 을 쓰나:
   useValue 로 Service 전체를 jest.fn() 으로 교체했지만
   module.get(Service) 로 가져온 인스턴스는 그 Mock 객체
@@ -704,7 +704,7 @@ Mock 대상           Repository              Service
 
 ## TransactionInterceptor 가 있는 Controller 테스트 ⭐️
 
-```
+```txt
 Controller 에 TransactionInterceptor 가 적용돼 있으면
 테스트 모듈에도 Interceptor 가 실행되어 실제 QueryRunner 를 만들려다 에러 발생
 
@@ -775,7 +775,7 @@ it('create 는 영화를 생성한다', async () => {
 });
 ```
 
-```
+```txt
 .overrideInterceptor(TransactionInterceptor).useValue({...}):
   실제 TransactionInterceptor 대신 bypass 구현으로 교체
   intercept 가 next.handle() 만 호출 → Interceptor 로직 건너뜀
@@ -788,7 +788,7 @@ it('create 는 영화를 생성한다', async () => {
 
 ## QueryRunner Mock — 트랜잭션 Service 테스트 ⭐️
 
-```
+```txt
 Service 에서 직접 QueryRunner 를 만들어 트랜잭션을 제어하는 경우
 DataSource.createQueryRunner() 가 반환하는 QueryRunner 를 Mock 으로 대체
 
@@ -851,7 +851,7 @@ it('트랜잭션 실패 시 rollback 을 호출한다', async () => {
 });
 ```
 
-```
+```txt
 qrMock 구조:
   connect / startTransaction / commitTransaction / rollbackTransaction / release
   → 전부 mockResolvedValue(undefined) — 반환값 없이 호출만 확인
@@ -874,7 +874,7 @@ release 검증:
 
 # 실전 패턴 — Arrange / Act / Assert ⭐️
 
-```
+```txt
 Arrange  Mock 반환값 준비
 Act      Service 메서드 실행
 Assert   결과 / 예외 / 호출 인자 검증
@@ -949,7 +949,7 @@ expect(service.create(dto)).rejects.toThrow(ConflictException);
 await expect(service.create(dto)).rejects.toThrow(ConflictException);
 ```
 
-```
+```txt
 rejects.toThrow() 는 Promise 를 반환
 await 없으면 Promise 가 실행은 되지만 결과를 기다리지 않음
 → 예외가 안 던져져도 테스트 통과 → 의미 없는 테스트
@@ -1008,7 +1008,7 @@ it('중복 감독이면 ConflictException 을 던진다', async () => {
 });
 ```
 
-```
+```txt
 mockResolvedValueOnce vs mockResolvedValue:
   Once  딱 한 번 반환 후 소진 → 그 이후 undefined 반환
         여러 번 호출 시나리오에서 순서 지정할 때 사용
@@ -1044,7 +1044,7 @@ await expect(service.create(dto)).rejects.toThrow('동일한 이름과 생년월
 await expect(service.create(dto)).rejects.toThrow(`id:${existingDirector.id}번`);
 ```
 
-```
+```txt
 왜 발생하나:
   템플릿 리터럴 안에서 줄바꿈하면 들여쓰기 공백이 문자열에 포함됨
   서비스 코드와 테스트 코드의 들여쓰기 칸이 다르면 불일치
@@ -1082,7 +1082,7 @@ it('에러 메시지 검증', async () => { ... });
 
 # E2E 테스트 ⭐️
 
-```
+```txt
 E2E 테스트 = 실제 HTTP 요청 → 응답 전체 흐름 검증
 supertest 로 HTTP 요청 → 실제 DB 에 연결 → 응답 검증
 
@@ -1094,7 +1094,7 @@ supertest 로 HTTP 요청 → 실제 DB 에 연결 → 응답 검증
 
 ## 파일 구조
 
-```
+```txt
 test/
 ├── jest-e2e.json              E2E 전용 Jest 설정
 ├── load-integration-env.ts    .env.test 로드
@@ -1118,7 +1118,7 @@ test/
 }
 ```
 
-```
+```txt
 rootDir: "."
   test/ 폴더 기준으로 경로 해석
 
@@ -1137,7 +1137,7 @@ uuid 패키지 대신 crypto.randomUUID() 사용:
 
 ## crypto.randomUUID() — uuid 대체 ⭐️
 
-```
+```txt
 uuid 패키지 → crypto.randomUUID() 로 교체 권장
 Node 18+ 내장 모듈 → 별도 설치 불필요 / ESM 문제 없음
 v4 UUID 와 동일한 형식 반환
@@ -1174,7 +1174,7 @@ it('파일명에 uuid 가 포함된다', () => {
 });
 ```
 
-```
+```txt
 jest.requireActual:
   mock 으로 교체할 때 나머지 메서드는 실제 구현을 그대로 사용
   randomUUID 만 고정값으로 바꾸고 crypto 의 다른 기능은 정상 동작
@@ -1195,7 +1195,7 @@ uuid.mock.ts 방식과 차이:
 }
 ```
 
-```
+```txt
 test:e2e        전체 E2E 테스트 실행
 test:e2e:movie  movie.e2e-spec.ts 만 실행
 ```
@@ -1351,7 +1351,7 @@ describe('Movie (e2e)', () => {
 });
 ```
 
-```
+```txt
 request(app.getHttpServer()):
   supertest 가 NestJS 앱 서버로 HTTP 요청 전송
 
@@ -1378,7 +1378,7 @@ createTestApp() 에서 main.ts 설정 복사 ⚠️:
 
 ## 단위 테스트와 뭐가 다른가
 
-```
+```txt
 단위 테스트   Mock 으로 DB 대신       → 빠름 / 실제 쿼리 검증 안 됨
 통합 테스트   실제 DB 에 연결         → 느림 / 실제 쿼리·트랜잭션 검증 가능
 
@@ -1393,7 +1393,7 @@ createTestApp() 에서 main.ts 설정 복사 ⚠️:
 
 ## 흐름 한눈에
 
-```
+```txt
 ① DB 준비          pnpm db:test:create → movie_test DB 생성
 ② 모듈 세팅        beforeAll — 실제 DB 연결 + 모듈 1번 생성 (느리므로 1번만)
 ③ 데이터 초기화    beforeEach — 매 테스트 전 TRUNCATE + 시드 데이터 삽입
@@ -1406,7 +1406,7 @@ createTestApp() 에서 main.ts 설정 복사 ⚠️:
 
 ## 환경 준비 (처음 한 번)
 
-```
+```txt
 필요한 파일:
   .env.test                          실제 값 (gitignore)
   .env.test.example                  템플릿 (커밋 가능)
@@ -1439,7 +1439,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
 }
 ```
 
-```
+```txt
 실행 순서:
   pnpm db:test:create    → movie_test DB 없으면 생성
   pnpm test:integration  → 통합 테스트 실행
@@ -1624,7 +1624,7 @@ describe('MovieService - Integration Test', () => {
 
 ## 핵심 포인트 정리
 
-```
+```txt
 beforeAll   모듈 + DB 연결을 1번만 생성 (30초 타임아웃 설정)
 beforeEach  TRUNCATE + 시드 데이터 삽입 → 테스트 간 격리
 
@@ -1666,7 +1666,7 @@ pnpm test:cov
 |`% Lines`|코드 라인 중 실행된 비율|
 |`Uncovered Line #s`|테스트가 실행하지 않은 줄 번호|
 
-```
+```txt
 수치가 낮다 → 성공·실패·조건 분기 테스트가 부족할 수 있음
 수치가 높다 → 좋은 테스트를 자동으로 의미하지 않음
 → 빠진 분기를 찾는 참고 지표로 사용
@@ -1696,7 +1696,7 @@ pnpm test:cov
 |NestJS `@Get()`, `@UseGuards()` 자체|프레임워크 기능|
 |TypeORM / Winston 내부 동작|외부 라이브러리 기능|
 
-```
+```txt
 단, 내 로직이 있으면 제외하면 안 됨:
   @Transform() 으로 query 값 변환하는 DTO
   계산 메서드가 있는 Entity
@@ -1719,7 +1719,7 @@ pnpm test:cov
 }
 ```
 
-```
+```txt
 --testPathPatterns=src/user
   경로에 src/user 가 포함된 테스트 파일만 실행
 
@@ -1766,7 +1766,7 @@ movieRepository = unitRef.get(getRepositoryToken(Movie) as string);
 movieRepository.find.mockResolvedValue(movies);  // 캐스팅 없이 바로 사용
 ```
 
-```
+```txt
 @automock/jest 는 2026년 6월 30일 deprecated 예정
 새 프로젝트에는 @suites/unit 권장
 ```

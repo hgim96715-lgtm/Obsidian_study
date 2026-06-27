@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 여러 행을 하나의 값으로 요약하는 함수
 COUNT / SUM / AVG / MAX / MIN
 GROUP BY 와 함께 쓰는 것이 핵심
@@ -61,7 +61,7 @@ FROM Transactions;
 
 #  COUNT(`*`) vs COUNT(컬럼) ⭐️
 
-```
+```txt
 COUNT(*)       전체 행 수  (NULL 포함)
 COUNT(컬럼)    NULL 이 아닌 행 수  ← NULL 이면 세지 않음
 
@@ -77,7 +77,7 @@ COUNT(country) → 2   (NULL 행 제외)
 
 ## COUNT(컬럼) — NULL 이면 자동 0 ⭐️
 
-```
+```txt
 LEFT JOIN 결과에서 매칭 안 된 행은 컬럼이 NULL
 COUNT(컬럼) → NULL 이면 세지 않음 → 자동으로 0
 
@@ -105,7 +105,7 @@ GROUP BY s.student_id, sub.subject_name;
 -- COUNT(*) 는 NULL 행도 1 로 셈 → 0 이 아닌 1 나옴!
 ```
 
-```
+```txt
 핵심 차이:
   COUNT(*)          NULL 포함 → 시험 안 봐도 1 나옴 ❌
   COUNT(e.컬럼)     NULL 제외 → 시험 안 보면 0    ✅
@@ -139,7 +139,7 @@ SELECT
 FROM Transactions;
 ```
 
-```
+```txt
 FILTER vs CASE WHEN:
   FILTER      PostgreSQL 전용 / 직관적
   CASE WHEN   모든 DB 호환 / 표준
@@ -150,7 +150,7 @@ FILTER vs CASE WHEN:
 ---
 # 문자열 집계 — STRING_AGG / GROUP_CONCAT ⭐️
 
-```
+```txt
 여러 행의 값을 하나의 문자열로 합치는 집계 함수
 GROUP BY 와 함께 사용
 ```
@@ -171,7 +171,7 @@ ORDER BY sell_date;
 -- 2020-05-30  | 3        | Headphone,Keyboard,Mouse
 ```
 
-```
+```txt
 STRING_AGG(컬럼, 구분자 ORDER BY 정렬기준):
   첫 번째 인자  합칠 컬럼
   두 번째 인자  구분자 (',' / ' / ' / ' ')
@@ -195,7 +195,7 @@ GROUP BY sell_date
 ORDER BY sell_date;
 ```
 
-```
+```txt
 GROUP_CONCAT(DISTINCT 컬럼 ORDER BY 정렬기준 SEPARATOR '구분자'):
   DISTINCT     중복 제거
   ORDER BY     합칠 순서
@@ -220,7 +220,7 @@ GROUP_CONCAT(DISTINCT 컬럼 ORDER BY 정렬기준 SEPARATOR '구분자'):
 
 ## SUM / AVG / MIN / MAX 의 NULL 처리
 
-```
+```txt
 SUM · AVG · MIN · MAX 는 NULL 을 투명인간 취급
 → NULL 은 계산에서 아예 빠짐 (0 이 아님!)
 
@@ -276,7 +276,7 @@ SELECT COALESCE(SUM(bonus), 0) + 1000 FROM employees;
 -- SUM = NULL 이면 → 0 + 1000 = 1000 ✅
 ```
 
-```
+```txt
 NULL 전파 규칙:
   NULL 이 포함된 연산 결과는 모두 NULL
   NULL + 1000 = NULL
@@ -310,7 +310,7 @@ HAVING MAX(salary) > 5000;  -- 최댓값 조건으로 그룹 필터
 
 #  중첩 집계 불가 — SQL 집계 한 번의 법칙 ⭐️
 
-```
+```txt
 SQL 은 한 번의 단계에서 오직 한 번의 집계만 가능
 
 ❌ 중첩 집계 시도 (에러):
@@ -341,7 +341,7 @@ SELECT AVG(total) FROM (
 ) t;
 ```
 
-```
+```txt
 중첩 집계 만나면:
   1. 안쪽 집계 → CTE 또는 서브쿼리
   2. 바깥 집계 → 그 결과에 적용
@@ -355,7 +355,7 @@ SELECT AVG(total) FROM (
 
 #  비율 계산 — 정수 나눗셈 주의 ⭐️
 
-```
+```txt
 정수 / 정수 = 정수 (소수점 버림)
 → 비율 계산 시 반드시 실수로 변환 필요
 
@@ -377,7 +377,7 @@ FROM Queries
 GROUP BY query_name;
 ```
 
-```
+```txt
 주의:
   100 * SUM(...) / COUNT(*)
   MySQL 은 자동 실수 변환 → 보통 동작
@@ -399,7 +399,7 @@ FROM Queries
 GROUP BY query_name;
 ```
 
-```
+```txt
 rating::numeric:
   rating 이 integer 타입 → integer / integer = integer
   ::numeric 으로 캐스팅 → 실수 나눗셈
@@ -464,7 +464,7 @@ ROUND(
 )
 ```
 
-```
+```txt
 핵심:
   정수 / 정수 = 정수  ← 소수점 버림!
   해결: 100 대신 100.0 사용 → 실수 나눗셈
@@ -499,7 +499,7 @@ FROM Queries
 GROUP BY query_name;
 ```
 
-```
+```txt
 rating::numeric 왜 쓰나:
   rating, position 이 정수(integer) 타입이면
   rating / position = 정수 나눗셈 → 소수점 버림
@@ -512,7 +512,7 @@ rating::numeric 왜 쓰나:
 ---
 # SUM vs COUNT — 언제 뭘 쓰나 ⭐️
 
-```
+```txt
 SUM   숫자를 더하는 것  (금액, 수량 등)
 COUNT 행 수를 세는 것  (몇 번, 몇 개)
 
@@ -551,7 +551,7 @@ COUNT(e.subject_name)
 -- NULL 행도 1 로 셈 → 0 이 아닌 1 나옴
 ```
 
-```
+```txt
 선택 기준:
   시험 몇 번?  응시 횟수?    → COUNT(컬럼) ✅
   금액 얼마?  매출 합계?    → SUM(컬럼)   ✅

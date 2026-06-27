@@ -20,7 +20,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 GROUP BY 만 하면 데이터 없는 카테고리가 결과에서 사라짐
 → 빈 카테고리도 0 으로 출력해야 할 때 두 가지 방법
   방법 1: UNION ALL — 카테고리 수 적고 고정일 때 (더 간단)
@@ -52,7 +52,7 @@ FROM account_cate
 GROUP BY category;
 ```
 
-```
+```txt
 문제:
   High Salary 에 해당하는 직원이 없으면
   → High Salary 행 자체가 결과에 없음
@@ -86,7 +86,7 @@ FROM Accounts
 WHERE income > 50000;
 ```
 
-```
+```txt
 핵심:
   COUNT(*) 는 조건에 맞는 행이 0개여도 0 을 반환
   → WHERE 에 해당하는 데이터가 없어도 해당 SELECT 가 실행됨
@@ -145,7 +145,7 @@ LEFT JOIN account_count ac
   ON c.category = ac.category;
 ```
 
-```
+```txt
 핵심:
   categories  → 있어야 할 카테고리 전부 (기준 테이블)
   LEFT JOIN   → 기준 테이블 기준 / 없으면 NULL
@@ -193,7 +193,7 @@ LEFT JOIN account_count ac ON c.category = ac.category;
 
 ## 조건 경계 주의 ⭐️
 
-```
+```txt
 문제: "less than 20000" → income < 20000
       "20000 이하"       → income <= 20000
 
@@ -211,7 +211,7 @@ BETWEEN 20000 AND 50000 = 20000 이상 50000 이하 (양 끝 포함)
 
 # 한눈에
 
-```
+```txt
 빈 카테고리도 출력해야 할 때:
 
 방법 1 (UNION ALL):

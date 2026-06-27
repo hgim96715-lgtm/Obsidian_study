@@ -16,7 +16,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 여러 컨테이너를 하나의 파일로 정의하고 한번에 실행
 docker-compose.yml = 컨테이너 설계도
 ```
@@ -27,7 +27,7 @@ docker-compose.yml = 컨테이너 설계도
 
 # Docker Compose 란 ⭐️
 
-```
+```txt
 여러 컨테이너를 매번 docker run 으로 하나씩 실행하면:
   docker run -d --name db -e POSTGRES_PASSWORD=... postgres
   docker run -d --name app --network ... -p 8080:8080 my-app
@@ -86,7 +86,7 @@ networks:             # 네트워크 선언
 
 # 포트 매핑 — "호스트포트:컨테이너포트" 의 의미 ⭐️⭐️
 
-```
+```txt
 "5433:5432" 처럼 콜론으로 나뉜 두 숫자는 서로 완전히 다른 것을 가리킴
 
   호스트포트(왼쪽)    내 컴퓨터(Mac)에서 이 컨테이너에 접속할 때 쓰는 포트
@@ -100,7 +100,7 @@ networks:             # 네트워크 선언
   → 컨테이너 내부 설정은 안 바꾸고, 바깥에서 접속하는 입구 번호만 바꾼 것
 ```
 
-```
+```txt
 이게 왜 유용한가:
   내 컴퓨터에 이미 같은 포트(5432)를 쓰는 다른 프로그램이 있어도
   Postgres 자체 설정은 그대로 두고, 호스트 쪽 입구만 다른 번호로 열어서 충돌을 피할 수 있음
@@ -114,13 +114,13 @@ networks:             # 네트워크 선언
 
 ## 증상
 
-```
+```txt
 Prisma 에러: P1010 — User 'music_user' was denied access on the database
 ```
 
 ## 원인 파악
 
-```
+```txt
 Mac 에 로컬 Postgres(Postgres.app 등) 가 이미 떠 있어서 localhost:5432 를 점유 중이었음
 Docker 의 Postgres 컨테이너도 5432 로 접속하게 설정돼 있었음
 → Prisma 가 localhost:5432 로 연결했는데, 그게 Docker 컨테이너가 아니라
@@ -131,7 +131,7 @@ Docker 의 Postgres 컨테이너도 5432 로 접속하게 설정돼 있었음
       "계정이 없다" 는 에러가 뜬 것) — 그냥 "다른" Postgres 에 연결된 것뿐
 ```
 
-```
+```txt
 localhost:5432  → Mac 의 로컬 Postgres (music_user 없음)  ← Prisma 가 실수로 여기로 감
 Docker DB        → 5433 으로 옮겨야 호스트에서 명확하게 접근 가능
 ```
@@ -152,7 +152,7 @@ services:
 DATABASE_URL=postgresql://music_user:music_password@localhost:5433/music_community_db?schema=public&sslmode=disable
 ```
 
-```
+```txt
 이 사고에서 배울 점:
   포트 충돌은 항상 "에러" 로 친절하게 알려주는 게 아니라
   "전혀 다른 서버에 조용히 연결되는" 형태로 나타날 수도 있음
@@ -180,7 +180,7 @@ services:
       - apps/api/.env   # ← NestJS 앱이 쓰는 .env 를 그대로 Postgres 컨테이너에도 전달
 ```
 
-```
+```txt
 Postgres 공식 이미지는 처음 뜰 때 다음 환경변수를 보고 초기 계정/DB 를 만듦:
   POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
 
@@ -210,7 +210,7 @@ services:
       start_period: 40s
 ```
 
-```
+```txt
 depends_on 만으로는 부족한 이유 (이미 알고 있던 내용):
   depends_on 은 "컨테이너가 시작은 됐다" 만 보장함
   Postgres 는 컨테이너가 뜬 직후에도 내부 초기화(데이터 디렉토리 생성 등) 가
@@ -231,11 +231,11 @@ healthcheck 가 채워주는 부분:
 
 ## ⚠️ `$$` 두 번 쓰는 이유 — 변수 이스케이프
 
-```
+```txt
 test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
 ```
 
-```
+```txt
 docker-compose.yml 자체도 $VAR / ${VAR} 문법으로 변수를 치환하는 기능이 있음
 → $POSTGRES_USER 라고만 쓰면 compose 가 "이 파일을 읽는 시점에" 자기가 먼저 치환하려고 시도함
   (이 경우 .env 변수가 yaml 파싱 시점엔 의도와 다르게 비거나 엉뚱하게 해석될 수 있음)
@@ -263,7 +263,7 @@ $$POSTGRES_USER 처럼 두 번 쓰면:
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-```
+```txt
 no configuration file provided: not found 에러:
   docker compose up -d 는 현재 폴더에서 파일을 찾음
   docker-compose.yml 이 다른 폴더에 있으면 못 찾음
@@ -284,7 +284,7 @@ no configuration file provided: not found 에러:
 docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
-```
+```txt
 기본 동작:
   docker compose up 은 "현재 폴더" 의 .env 를 자동으로 읽음
   → 현재 폴더가 docker-compose.yml 과 다르면 .env 를 못 찾음
@@ -317,7 +317,7 @@ services:
       - "3000:3000"
 ```
 
-```
+```txt
 ⚠️ 주의: 컨테이너가 "시작된 것" 만 보장 — DB 가 "완전히 준비됐는지" 는 보장 안 함
 → 진짜로 준비될 때까지 기다리려면 위 "healthcheck" 섹션의
   depends_on: { condition: service_healthy } 조합 사용
@@ -361,7 +361,7 @@ volumes:
   db_data:   # 이름만 적으면 Docker 가 자동 관리
 ```
 
-```
+```txt
 volumes 없이 그냥 컨테이너만 삭제(docker compose down)하면 안의 데이터도 같이 사라짐
 named volume 으로 분리해두면 컨테이너를 지우고 다시 만들어도 데이터는 살아있음
 docker compose down -v 를 해야 volume 까지 진짜로 삭제됨
@@ -440,7 +440,7 @@ pnpm docker:up     # 실행
 pnpm docker:down   # 종료
 ```
 
-```
+```txt
 장점: 명령어 외울 필요 없음 / 팀원 모두 동일한 방식으로 실행 / --env-file 빠뜨리는 실수 방지
 ```
 
@@ -450,7 +450,7 @@ pnpm docker:down   # 종료
 
 # 한눈에
 
-```
+```txt
 포트 충돌 의심 신호:
   "연결이 안 된다" 가 아니라 "계정/DB 가 없다" 는 에러(P1010 등)가 뜨면
   → 엉뚱한(다른) 서버에 연결됐을 가능성 — 호스트 포트를 바꿔서 분리

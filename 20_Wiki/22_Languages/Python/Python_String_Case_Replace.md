@@ -21,14 +21,14 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 단순 글자 바꾸기 → replace()
 패턴(숫자만, 영어만 등) 바꾸기 → re.sub()
 ```
 
 ## 핵심 원칙 — 불변(Immutable)
 
-```
+```txt
 Python 문자열은 불변(Immutable)
 변환 메서드를 써도 원본은 절대 바뀌지 않음
 → 반드시 변수에 재할당해야 함
@@ -68,7 +68,7 @@ print(text.capitalize())  # Hello python programming
 print(text.title())       # Hello Python Programming
 ```
 
-```
+```txt
 capitalize vs title:
   capitalize → 문장 전체에서 맨 앞 글자 하나만
   title      → 공백 기준 각 단어 첫 글자 전부
@@ -80,7 +80,7 @@ capitalize vs title:
 
 # ② 상태 확인 — isupper / islower / isalpha 등
 
-```
+```txt
 True / False 로 반환 — 조건문에서 사용
 ```
 
@@ -102,7 +102,7 @@ print("abc123".isalnum())  # True
 print("hello world".isalpha())  # False  (공백 포함이라 False)
 ```
 
-```
+```txt
 코딩테스트 패턴:
   for c in s:
       if c.isupper(): ...   한 글자씩 판별
@@ -115,7 +115,7 @@ print("hello world".isalpha())  # False  (공백 포함이라 False)
 
 # ③ replace() — 단순 문자열 치환
 
-```
+```txt
 replace(찾을값, 바꿀값)
 replace(찾을값, 바꿀값, 횟수)  ← 몇 번만 바꿀지 제한 가능
 
@@ -144,7 +144,7 @@ numbers = numbers.replace(" ", ",")  # ✅ 재할당 필수
 print(numbers)                       # 1,2,3,4,5
 ```
 
-```
+```txt
 replace() 는 새 문자열을 반환할 뿐
 원본을 수정하지 않음 → 반드시 = 로 받아야 함
 ```
@@ -188,7 +188,7 @@ re.sub(r"[a-z]", "X", text)  # XXX123
 
 # ④ re.sub() — 패턴 기반 치환
 
-```
+```txt
 re.sub(패턴, 바꿀값, 원본텍스트)
 
 언제 씀:
@@ -248,7 +248,7 @@ result = re.sub(
 
 # 실전 선택 기준
 
-```
+```txt
 replace()       정확한 문자열을 찾아 바꿀 때
 re.sub()        범위·종류 단위 패턴으로 바꿀 때
 
@@ -283,7 +283,7 @@ res = re.sub(r"[a-zA-Z]",
 # pYtHON123
 ```
 
-```
+```txt
 swapcase 와 re.sub 람다의 차이:
   swapcase  → 모든 문자(숫자 포함) 에 적용, 숫자·공백은 변화 없음
   re.sub    → [a-zA-Z] 만 잡아서 적용

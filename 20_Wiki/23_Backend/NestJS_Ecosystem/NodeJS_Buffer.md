@@ -22,7 +22,7 @@ related:
 
 # Buffer란 무엇인가 ⭐️⭐️⭐️
 
-```
+```txt
 파일, 네트워크 전송, 암호화 같은 건 전부 "바이트 단위"로 동작함
 문자열('hello')은 사람이 읽기 좋게 추상화된 형태일 뿐, 실제로는 바이트로 변환돼서 저장/전송됨
 
@@ -42,7 +42,7 @@ buf.toString();     // 'hello' (다시 문자열로)
 
 # 인코딩 — 바이트 ↔ 문자열 변환 규칙 ⭐️⭐️⭐️⭐️
 
-```
+```txt
 인코딩 = "이 바이트들을 어떤 규칙으로 문자/기호로 해석할지"에 대한 약속
 같은 바이트라도 인코딩이 다르면 완전히 다른 문자열로 해석될 수 있음
 ```
@@ -60,7 +60,7 @@ Buffer.from('hello').toString('hex');     // '68656c6c6f'
 Buffer.from('hello').toString('base64');  // 'aGVsbG8='
 ```
 
-```
+```txt
 ⚠️ 인코딩/디코딩은 항상 짝이 맞아야 함:
   Buffer.from(str, 'A인코딩').toString('B인코딩')  ← A와 B가 다르면 원래 문자열로 안 돌아옴
   (암호화/복호화와는 다른 개념 — 인코딩은 "비밀"이 아니라 그냥 "표현 방식 변환"일 뿐,
@@ -83,7 +83,7 @@ const decoded = Buffer.from(credentials, 'base64').toString('utf-8');
 const [id, password] = decoded.split(':');
 ```
 
-```
+```txt
 [[NodeJS_HTTP_Request]]에서 "Basic <base64(id:pw)>"라고만 적어뒀던 그 base64가
 정확히 이 Buffer.from(...).toString('base64') 한 줄로 만들어지는 것
 
@@ -95,7 +95,7 @@ const [id, password] = decoded.split(':');
 
 # 실전 — JWT가 base64로 만들어지는 원리 ⭐️⭐️⭐️⭐️
 
-```
+```txt
 JWT는 header.payload.signature 세 부분을 점(.)으로 이어붙인 문자열인데,
 header와 payload 각각은 "JSON을 base64url로 인코딩한 것"일 뿐임
 ```
@@ -110,7 +110,7 @@ JSON.parse(Buffer.from(encoded, 'base64url').toString('utf-8'));
 // { sub: 'user-1', role: 'admin' }
 ```
 
-```
+```txt
 ⚠️ JWT의 payload는 암호화돼있지 않음 — 그냥 base64url로 인코딩만 돼있어서
    누구나 디코딩해서 내용을 읽을 수 있음 (jwt.io 같은 사이트가 그냥 디코딩만 해서 보여주는 것)
    signature 부분만 비밀키로 서명돼있어서, "내용을 못 읽게" 하는 게 아니라

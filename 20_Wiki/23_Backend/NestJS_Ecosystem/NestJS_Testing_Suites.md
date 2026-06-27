@@ -11,7 +11,7 @@ related:
 
 # NestJS_Testing_Suites — 자동 Mock 테스팅
 
-```
+```txt
 Suites = NestJS DI 메타데이터를 읽어서 Mock 을 자동 생성해주는 Unit Test 프레임워크
 수동으로 jest.fn() / getRepositoryToken / providers 등록 없이 테스트 세팅 가능
 ```
@@ -22,7 +22,7 @@ Suites = NestJS DI 메타데이터를 읽어서 Mock 을 자동 생성해주는 
 
 # @automock/jest 참고 (deprecated)
 
-```
+```txt
 @automock/jest 를 아직 쓰는 프로젝트가 있어서 참고용으로 남겨둠
 2026년 6월 30일 완전 deprecated 예정
 critical fix 만 받으며 새 기능 없음
@@ -40,7 +40,7 @@ pnpm uninstall @automock/jest @automock/adapters.nestjs
 
 # @suites/unit 이란 ⭐️
 
-```
+```txt
 @automock/jest 의 후속 프로젝트
 NestJS constructor 의 의존성 메타데이터를 자동으로 읽어서
 모든 의존성을 자동으로 Mocked<T> 타입으로 만들어줌
@@ -67,7 +67,7 @@ Suites 방식:
 pnpm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.jest
 ```
 
-```
+```txt
 패키지 역할:
   @suites/unit          TestBed 핵심 API
   @suites/di.nestjs     NestJS DI 메타데이터 읽기
@@ -89,7 +89,7 @@ pnpm install --save-dev @suites/unit @suites/di.nestjs @suites/doubles.jest
 }
 ```
 
-```
+```txt
 Suites 는 constructor 의존성 메타데이터를 읽어서 Mock 을 자동 생성
 → emitDecoratorMetadata 가 꺼져 있으면 메타데이터를 읽지 못함
 
@@ -110,7 +110,7 @@ NestJS 프로젝트면 보통 이미 켜져 있음
 /// <reference types="@suites/di.nestjs/types" />
 ```
 
-```
+```txt
 Mocked<T> 같은 Suites 타입을 전역으로 사용하려면 필요
 이 설정 없으면 Mocked<Repository<Movie>> 타입 인식 안 됨
 ```
@@ -130,7 +130,7 @@ let movieRepository: Mocked<Repository<Movie>>;
 //                   ↑ Repository<Movie> 의 모든 메서드를 자동으로 jest.fn() 으로 변환
 ```
 
-```
+```txt
 Mocked<T> 란:
   T 의 모든 메서드를 jest.Mock 타입으로 변환
   → mockResolvedValue / mockReturnValue 등 Mock 메서드 바로 사용 가능
@@ -192,7 +192,7 @@ describe('MovieService', () => {
 });
 ```
 
-```
+```txt
 TestBed.solitary(Service).compile():
   Service 의 constructor 를 읽어서 모든 의존성 자동 Mock 생성
   await 필요
@@ -213,7 +213,7 @@ unitRef.get(토큰):
 
 # 수동 방식 vs Suites 비교 ⭐️
 
-```
+```txt
                 수동 Mock 방식                   Suites 방식
 ──────────────────────────────────────────────────────────────────
 Mock 선언    const mockRepo = {                let movieRepository:
@@ -244,7 +244,7 @@ Mock 호출    (mockRepo.find as jest.Mock)        movieRepository.find
 
 # TestBed.solitary vs TestBed.create
 
-```
+```txt
 TestBed.solitary(Service):
   테스트 대상 Service 의 모든 의존성을 전부 Mock 으로 대체
   외부 의존성 없이 Service 로직만 격리해서 테스트

@@ -25,7 +25,7 @@ related:
 
 # 코드 분류 — 첫 번째 숫자가 전부다
 
-```
+```txt
 1xx  정보         (거의 안 봄)
 2xx  성공 ✅      요청 처리됨
 3xx  리다이렉트   다른 URL 로 이동
@@ -97,7 +97,7 @@ for i in range(100):
 |**502**|Bad Gateway|프록시/게이트웨이 문제|잠시 후 재시도|
 |**503**|Service Unavailable|서버 점검 중 / 과부하|공지 확인 후 재시도|
 
-```
+```txt
 5xx 는 내 코드 문제가 아님
 요청을 그대로 재시도하면 됨
 파이프라인에서는 retry 로직이 있어야 함
@@ -131,7 +131,7 @@ except requests.exceptions.HTTPError as e:
 
 # 공공데이터 API resultCode (별도 주의)
 
-```
+```txt
 공공데이터 API 는 HTTP 상태코드가 200 OK 여도
 body 안에 자체 에러 코드를 담아 보내는 경우가 있음
 

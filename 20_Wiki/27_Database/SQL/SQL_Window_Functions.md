@@ -21,7 +21,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 GROUP BY 처럼 행을 압축하지 않고
 원본 행을 유지한 채 계산 결과를 옆에 붙여주는 함수
 ```
@@ -39,7 +39,7 @@ GROUP BY 처럼 행을 압축하지 않고
 SELECT 부서, AVG(급여) FROM 사원 GROUP BY 부서;
 ```
 
-```
+```txt
 GROUP BY 는 "압축" 임:
   같은 부서 행들을 하나로 합치는 순간, 그 행들 각각이 갖고 있던
   사원명 / 입사일 같은 다른 컬럼 정보는 같이 사라짐
@@ -55,14 +55,14 @@ SELECT 사원명, 부서, 급여,
 FROM 사원;
 ```
 
-```
+```txt
 GROUP BY     → 행을 합쳐서 요약 (행 수 줄어듦, 다른 컬럼 소실)
 PARTITION BY → 원본 유지 + 계산값만 추가 (행 수 그대로, 다른 컬럼 살아있음)
 ```
 
 ## 실전 — 막혔던 지점 (Employee Primary Department) ⭐️⭐️
 
-```
+```txt
 문제: 직원별 "대표 부서" 한 줄만 뽑기
   부서가 1개뿐이면 그 부서가 정답
   부서가 여러 개면 primary_flag = 'Y' 인 부서가 정답
@@ -77,7 +77,7 @@ Employee 테이블:
   3            3              Y
 ```
 
-```
+```txt
 처음 막혔던 고민: "GROUP BY 로 employee_id, department_id, primary_flag
                   3개를 다 묶어야 하나?"
 
@@ -113,7 +113,7 @@ FROM cnt
 WHERE primary_flag = 'Y' OR department_id_cnt = 1;
 ```
 
-```
+```txt
 COUNT(department_id) OVER (PARTITION BY employee_id) 한 줄이 하는 일:
 
   PARTITION BY employee_id  → employee_id 가 같은 행끼리 하나의 "창(window)" 으로 묶음
@@ -167,7 +167,7 @@ DENSE_RANK() OVER (ORDER BY 급여 DESC)
 |`RANK()`|같은 등수, 번호 건너뜀|1, 2, 2, **4**|
 |`DENSE_RANK()`|같은 등수, 번호 연속|1, 2, 2, **3**|
 
-```
+```txt
 ORDER BY 필수 — 없으면 에러
   ROW_NUMBER() OVER ()                   ← ❌ 에러
   ROW_NUMBER() OVER (ORDER BY 급여 DESC) ← ✅
@@ -221,7 +221,7 @@ LAG(컬럼, 7, 0)     -- 7줄 위 / 없으면 0 (3번째 인자 = 기본값)
 LEAD(컬럼)          -- 바로 아랫줄
 ```
 
-```
+```txt
 ORDER BY 가 핵심:
   LAG 는 "정렬 기준으로 N행 앞" 을 가져옴
   ORDER BY 없으면 "앞" 이 어딘지 정의 안 됨 → 에러
@@ -241,7 +241,7 @@ FROM 매출;
 
 ## LAG 로 연속성 판단 패턴 ⭐️
 
-```
+```txt
 고민: "7일이 연속인지 어떻게 확인하지?"
 
 ❌ COUNT 로는 안 됨 — "2번 이상 등장" ≠ "연속해서 등장"
@@ -267,7 +267,7 @@ SELECT
     -- 값 있으면 6행 앞이 존재 → 7일치(현재 포함) 완성
 ```
 
-```
+```txt
 LAG(컬럼, N) 에서 N 의 의미:
   N=1 (기본) → 바로 이전 1행
   N=6        → 6행 앞 (ROWS BETWEEN 6 PRECEDING 의 첫 행과 같은 지점)
@@ -291,7 +291,7 @@ LAG(컬럼, N) 에서 N 의 의미:
 
 ## 키워드 의미
 
-```
+```txt
 PRECEDING   = 현재 행보다 앞 (위쪽)
 FOLLOWING   = 현재 행보다 뒤 (아래쪽)
 CURRENT ROW = 현재 행
@@ -319,7 +319,7 @@ ROWS BETWEEN 2 PRECEDING AND CURRENT ROW   -- 3일
 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING   -- 전일 + 오늘 + 다음날
 ```
 
-```
+```txt
 그림으로 이해:
   데이터: [1, 2, 3, 4, 5]  현재 행 = 3
 
@@ -345,7 +345,7 @@ ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING   -- 전일 + 오늘 + 다음날
 
 # 집계 윈도우 함수 — SUM / AVG OVER ⭐️
 
-```
+```txt
 ORDER BY 없음 → 파티션 전체 합산 (모든 행에 같은 값)
 ORDER BY 있음 → 현재 행까지 누적
 ```
@@ -399,7 +399,7 @@ ORDER BY weight_sum DESC       -- 가장 큰 누적합 = 마지막 탑승자
 LIMIT 1;
 ```
 
-```
+```txt
 이 패턴의 핵심:
   SUM() OVER (ORDER BY turn) → turn 순서대로 weight 를 1명씩 누적
 
@@ -447,7 +447,7 @@ ORDER BY product_id, change_date DESC;
 
 ## Gaps and Islands — 연속 구간 찾기 ⭐️
 
-```
+```txt
 연속된 값의 구간을 그룹으로 묶는 패턴
 "값 - ROW_NUMBER()" 가 같은 행끼리 = 같은 연속 구간
 ```
@@ -487,7 +487,7 @@ SELECT id, visit_date, people
 FROM counted WHERE cnt >= 3 ORDER BY visit_date;
 ```
 
-```
+```txt
 패턴 선택:
   값이 1씩 증가 (연도/날짜) → 패턴 1: year - rn
   같은 값 반복 등장          → 패턴 2: 전체rn - 값별rn
@@ -518,7 +518,7 @@ HAVING MIN(sale_date) >= '2019-01-01'
 
 ## 문제 상황
 
-```
+```txt
 식당 고객 방문 기록에서
 최근 7일 동안의 총 결제 금액과 7일 평균 결제 금액 구하기
 
@@ -564,7 +564,7 @@ WHERE start_date IS NOT NULL;
 
 ## 핵심 포인트 ⭐️
 
-```
+```txt
 1. 날짜별 GROUP BY 먼저:
    하루에 여러 방문자 → SUM(amount) GROUP BY visited_on → 날짜 하나에 값 하나
 
@@ -602,7 +602,7 @@ WHERE start_date IS NOT NULL;
 
 # 한눈에
 
-```
+```txt
 가장 먼저 떠올려야 할 질문:
   "집계값이 필요한데, 원본 행의 다른 컬럼도 그대로 봐야 하나?"
   → Yes → PARTITION BY (윈도우 함수)

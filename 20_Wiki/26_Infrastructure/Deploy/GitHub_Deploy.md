@@ -17,7 +17,7 @@ related:
 
 # GitHub_Actions — GitHub Actions & EB 자동 배포
 
-```
+```txt
 GitHub Actions = GitHub 에 내장된 CI/CD 도구
 코드 push 시 자동으로 빌드 → S3 업로드 → EB 배포 실행
 ```
@@ -30,7 +30,7 @@ GitHub Actions = GitHub 에 내장된 CI/CD 도구
 
 ## IAM 사용자 생성 (CI/CD 전용)
 
-```
+```txt
 IAM → 사용자 → 사용자 생성
   이름:  nestjs-github-cicd
   권한:  직접 정책 연결
@@ -44,7 +44,7 @@ IAM → 사용자 → 사용자 생성
 
 ## 인라인 정책으로 S3 + EB 권한 추가 ⭐️
 
-```
+```txt
 사용자 생성 후 권한이 부족하면 직접 인라인 정책을 추가해야 함
 
 IAM → 사용자 → nestjs-github-cicd 클릭
@@ -94,7 +94,7 @@ IAM → 사용자 → nestjs-github-cicd 클릭
 }
 ```
 
-```
+```txt
 정책 설명:
   S3DeploymentArtifact  버킷 안 파일 업로드 / 다운로드 / 멀티파트 업로드
   S3ListBucket          버킷 목록 조회 (aws s3 cp 내부적으로 필요)
@@ -110,13 +110,13 @@ AdministratorAccess 대신 이 인라인 정책을 쓰는 이유:
 
 ## GitHub Secrets 등록 ⭐️️
 
-```
+```txt
 GitHub 레포지토리 → Settings
 → Secrets and variables → Actions
 → New repository secret
 ```
 
-```
+```txt
 등록할 값 전체:
 
 AWS 관련:
@@ -156,7 +156,7 @@ Redis 관련 ⭐️:
 
 ## DATABASE_URL 형식 ⭐️
 
-```
+```txt
 postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}?sslmode=no-verify
 
 sslmode=no-verify 가 중요:
@@ -171,7 +171,7 @@ DB_PASSWORD 에 특수문자(:, @, / 등) 있을 때 주의:
 
 ## REDIS_HOST 주의 ⭐️
 
-```
+```txt
 ❌ localhost / 127.0.0.1
    EB 인스턴스 안에 Redis 없음 → ECONNREFUSED
 
@@ -188,7 +188,7 @@ DB_PASSWORD 에 특수문자(:, @, / 등) 있을 때 주의:
 
 # 워크플로우 파일 구조
 
-```
+```txt
 프로젝트 루트/
 └── .github/
     └── workflows/
@@ -365,7 +365,7 @@ jobs:
 
 # 워크플로우 각 단계 설명 ⭐️
 
-```
+```txt
 env (job 레벨):
   steps 전체에서 공유하는 환경변수
   Secrets 값을 여기서 한 번에 받아서 각 step 에서 재사용
@@ -410,7 +410,7 @@ $GITHUB_SHA:
 --environment-name NestJS-Project-EB-env  ← EB 환경 이름과 정확히 일치
 ```
 
-```
+```txt
 EB 콘솔에서 이름 확인:
   애플리케이션 이름: EB 콘솔 왼쪽 목록
   환경 이름:         애플리케이션 클릭 후 환경 목록
@@ -425,7 +425,7 @@ EB 콘솔에서 이름 확인:
 
 # 실행 확인
 
-```
+```txt
 GitHub → 레포지토리 → Actions 탭
 → 워크플로우 실행 목록
 → 각 step 클릭 → 로그 확인
@@ -440,7 +440,7 @@ GitHub → 레포지토리 → Actions 탭
 
 # 핵심 흐름 정리
 
-```
+```txt
 IAM → nestjs-github-cicd 사용자 생성 → 액세스 키 발급
     ↓
 GitHub Secrets 에 4개 등록

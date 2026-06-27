@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 이미지 = 컨테이너를 만드는 설계도 (읽기 전용)
 태그   = 이미지의 버전 (latest / 3.7 / v1 등)
 레이어 = 이미지를 쌓아 올리는 방식 (변경된 부분만 저장)
@@ -45,7 +45,7 @@ docker images python
 # python       3.7      1f1a7b570fbd   907MB
 ```
 
-```
+```txt
 같은 이미지라도 TAG 가 다르면 다른 버전
 latest = 태그 생략 시 기본값 / 가장 최신 버전
 버전 고정 필요할 때는 반드시 TAG 명시 (python:3.7)
@@ -59,7 +59,7 @@ latest = 태그 생략 시 기본값 / 가장 최신 버전
 
 ## 레이어가 뭔가
 
-```
+```txt
 이미지는 여러 레이어(층)를 쌓아서 만들어짐
 각 레이어 = 파일 변경 사항 묶음 (스냅샷)
 
@@ -76,7 +76,7 @@ latest = 태그 생략 시 기본값 / 가장 최신 버전
 
 ## 레이어가 왜 좋은가
 
-```
+```txt
 상황:
   nginx 이미지 (3개 레이어)   150MB
   custom-nginx 이미지 (4개 레이어)  153MB  ← 내가 만든 것
@@ -91,7 +91,7 @@ latest = 태그 생략 시 기본값 / 가장 최신 버전
   실제 추가 용량 = 레이어D 3MB 만
 ```
 
-```
+```txt
 이점 3가지:
   1. 저장 공간 절약
      같은 레이어 여러 이미지에서 공유
@@ -131,7 +131,7 @@ RUN echo "Hello" > /usr/share/nginx/html/hello.html
                               ← 파일 추가 (2번 레이어)
 ```
 
-```
+```txt
 FROM = 어떤 이미지 위에 쌓을지 (베이스)
 RUN  = 명령어 실행 → 새 레이어 생성
 COPY = 파일 복사 → 새 레이어 생성
@@ -152,7 +152,7 @@ docker build -t my-app:v1 .
 docker build -t my-app:latest .
 ```
 
-```
+```txt
 docker build 출력 읽기:
   Step 1/2 : FROM nginx        ← 레이어 1 (nginx 이미지 사용)
   Step 2/2 : RUN echo "Hello"  ← 레이어 2 (명령어 실행)
@@ -177,7 +177,7 @@ docker images
 # my-nginx     v1       605c77e6   ← 동일한 IMAGE ID
 ```
 
-```
+```txt
 태그 = 이미지에 별칭 붙이기
   같은 IMAGE ID → 실제로는 같은 이미지
   이름/버전을 다르게 부를 수 있을 뿐
@@ -212,7 +212,7 @@ docker rm 컨테이너ID
 docker rmi python:3.7
 ```
 
-```
+```txt
 삭제 순서 규칙:
   컨테이너 삭제 → 이미지 삭제
   (이미지를 쓰는 컨테이너가 있으면 이미지 삭제 불가)

@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 리눅스는 다중 사용자 시스템
 사용자와 그룹으로 "누가 무엇에 접근할 수 있는지" 제어
 ```
@@ -36,7 +36,7 @@ cat /etc/passwd
 # gong:x:1001:1001::/home/gong:/bin/bash
 ```
 
-```
+```txt
 필드 설명:
   username   사용자명
   x          패스워드 (실제 값은 /etc/shadow 에 저장)
@@ -54,7 +54,7 @@ sudo cat /etc/shadow
 # username:암호화된비밀번호:마지막변경일:최소사용일:최대사용일:...
 ```
 
-```
+```txt
 root 만 읽을 수 있음
 비밀번호는 해시로 저장 (SHA-512 등)
 ! 또는 * 로 시작하면 로그인 비활성화
@@ -103,7 +103,7 @@ sudo useradd -m -d /home/jack -g dev -G labex jack
 sudo useradd -m -s /bin/bash -c "데이터 엔지니어" -G docker,sudo gong
 ```
 
-```
+```txt
 useradd vs adduser:
   useradd = 스크립트/자동화 (묵묵히 옵션대로 실행 / 비밀번호 프롬프트 없음)
   adduser = 대화형 (비밀번호/이름 등 입력 요구)
@@ -117,7 +117,7 @@ useradd vs adduser:
 
 ## 사용자 생성 2가지 방법 ⭐️
 
-```
+```txt
 방법 1 — useradd (스크립트/자동화 적합)
   모든 속성을 한 번에 옵션으로 지정
   비밀번호 입력 프롬프트 없음
@@ -145,7 +145,7 @@ sudo usermod -g dev jack       # 기본 그룹 jack → dev 로 변경
 sudo usermod -aG labex jack    # 보조 그룹 labex 추가
 ```
 
-```
+```txt
 usermod -g vs usermod -aG ⭐️:
   usermod -g  그룹명  → 기본 그룹(Primary) 변경 (1개만 존재하므로 -a 불필요)
   usermod -aG 그룹명  → 보조 그룹(Secondary) 추가 (-a 없으면 기존 그룹 전부 날아감!)
@@ -168,7 +168,7 @@ sudo ls -la /home/jack/
 # .bash_logout  .bashrc  .profile  (동일한 파일들)
 ```
 
-```
+```txt
 /etc/skel = Skeleton (뼈대)
   모든 신규 사용자의 홈 디렉토리 초기 세팅 거푸집
   여기 파일 추가/수정 → 이후 생성 계정에 자동 반영
@@ -206,7 +206,7 @@ sudo usermod -L gong                    # 계정 잠금 (Lock)
 sudo usermod -U gong                    # 계정 잠금 해제 (Unlock)
 ```
 
-```
+```txt
 계정 잠금 작동 원리:
   usermod -L → /etc/shadow 비밀번호 앞에 ! 추가
   sudo grep "^gong:" /etc/shadow
@@ -223,7 +223,7 @@ sudo usermod -U gong                    # 계정 잠금 해제 (Unlock)
   → 나중에 복구 가능
 ```
 
-```
+```txt
 ⚠️ -aG vs -G 차이:
   -aG docker  → 기존 그룹 유지 + docker 추가  ✅
   -G docker   → 기존 그룹 전부 제거 + docker 만 남김  ❌ 위험!
@@ -249,13 +249,13 @@ grep research /etc/group
 #   ↑이름   ↑비밀번호 ↑GID ↑멤버(비어있음)
 ```
 
-```
+```txt
 /etc/group 형식:
   그룹명 : 비밀번호 : GID : 멤버목록
   research:x:5003:labex,gong
 ```
 
-```
+```txt
 ⚠️ sudo 없으면 permission denied
    그룹 관리는 반드시 관리자 권한 필요
 ```
@@ -278,7 +278,7 @@ grep jack /etc/group
 # developers:x:1001:jack
 ```
 
-```
+```txt
 -a = Append (기존 그룹 유지하며 추가)
 -G = 보조 그룹 지정
 
@@ -304,7 +304,7 @@ su - jack   # jack 으로 로그인 전환
 sudo whoami # root
 ```
 
-```
+```txt
 sudo 그룹에 추가하면:
   해당 사용자가 sudo 명령어 사용 가능
   root 로 직접 로그인 없이 관리 작업 수행
@@ -317,7 +317,7 @@ sudo 그룹에 추가하면:
 
 ## UPG — 사용자 개인 그룹 ⭐️
 
-```
+```txt
 adduser 로 사용자 생성 시 자동으로:
   사용자 이름과 같은 이름의 그룹 생성
   그 그룹을 기본 그룹(Primary Group)으로 설정
@@ -352,7 +352,7 @@ grep labex /etc/group
 # research:x:5003:labex
 ```
 
-```
+```txt
 grep vs groups:
   grep 그룹명 /etc/group  → 그룹에 어떤 멤버가 있는지
   groups 사용자명         → 사용자가 어떤 그룹에 속하는지
@@ -368,7 +368,7 @@ grep research /etc/group
 # (아무 출력 없음)
 ```
 
-```
+```txt
 주의:
   사용자의 기본 그룹(Primary Group)은 삭제 불가
   → 해당 사용자가 있으면 먼저 사용자 삭제 또는 기본 그룹 변경
@@ -416,7 +416,7 @@ id gong
 
 ## UID — 사용자 식별 번호
 
-```
+```txt
 UID = User ID
 리눅스가 사용자를 구분하는 숫자
 이름이 아닌 UID 로 실제 권한 처리
@@ -440,7 +440,7 @@ cat /etc/passwd | grep gong
 
 ## GID — 그룹 식별 번호
 
-```
+```txt
 GID = Group ID
 그룹을 구분하는 숫자
 사용자는 기본 그룹(Primary) 1개 + 보조 그룹(Secondary) 여러 개 가질 수 있음
@@ -459,7 +459,7 @@ cat /etc/group | grep docker
 
 ## Primary Group vs Secondary Group
 
-```
+```txt
 Primary Group (기본 그룹):
   사용자가 파일 생성 시 자동으로 부여되는 그룹
   /etc/passwd 의 GID 필드
@@ -508,7 +508,7 @@ cat /etc/passwd | awk -F: '{print $3}' | sort -n
 
 ## /sbin/nologin 셸
 
-```
+```txt
 시스템 사용자는 로그인 불가하도록 셸을 nologin 으로 설정
 mysql / nginx / kafka 등 서비스 계정에 사용
 

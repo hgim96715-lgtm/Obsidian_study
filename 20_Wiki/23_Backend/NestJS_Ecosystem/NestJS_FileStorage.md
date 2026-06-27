@@ -30,7 +30,7 @@ Multer 가 파일을 "받는" 역할  #→ [[NestJS_FileUpload]] 참고
 
 # 왜 필요한가
 
-```
+```txt
 서버 디스크에 그대로 저장하면:
   재배포(Railway 등)할 때마다 파일 사라짐 ⚠️
   서버 여러 대로 늘리면 파일 위치 꼬임
@@ -47,7 +47,7 @@ Multer 가 파일을 "받는" 역할  #→ [[NestJS_FileUpload]] 참고
 
 # 저장소 선택 — S3 vs Cloudflare R2
 
-```
+```txt
 S3 호환(S3-compatible) API:
   여러 회사가 AWS S3 인터페이스를 동일하게 구현
   → 같은 SDK(@aws-sdk/client-s3)로 사용 가능, endpoint 만 바꾸면 전환
@@ -98,7 +98,7 @@ S3_PUBLIC_URL=https://photos.artinerary.com
 |4. API 토큰 발급|R2 Overview → Account Details → `{}` Manage → Create User API Token|`S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`|
 |5. 공개 URL 활성화|버킷 → Settings → 공개 개발 URL(Public Development URL)|`S3_PUBLIC_URL`|
 
-```
+```txt
 ⚠️ 주의 3가지:
 
 1. API 토큰은 버킷 안이 아니라 R2 Overview(계정 레벨) 에서 발급
@@ -111,7 +111,7 @@ S3_PUBLIC_URL=https://photos.artinerary.com
    못 봤다면 계정/버킷 재생성 불필요 → 같은 위치에서 새 토큰만 다시 발급
 ```
 
-```
+```txt
 어디에 쓰이는지:
   S3_ACCOUNT_ID + S3_ENDPOINT  → S3Client 접속 주소
   S3_ACCESS_KEY_ID / SECRET    → S3Client 인증
@@ -185,7 +185,7 @@ export class S3StorageService {
 }
 ```
 
-```
+```txt
 getConfig() 를 따로 분리한 이유:
   uploadVisitPhoto() 안에서도 bucket/publicUrl 이 필요해서
   설정 읽기 로직을 한곳에 모아두고 재사용
@@ -197,7 +197,7 @@ getClient() 가 매번 검사하는 이유:
 
 ## S3Client 가 뭔지 ⭐️
 
-```
+```txt
 S3Client = @aws-sdk/client-s3 가 제공하는 클래스
   R2(또는 S3) 서버와 통신하는 "연결 통로" 역할
   이 객체를 통해서만 업로드/삭제/조회 명령(Command)을 보낼 수 있음
@@ -210,7 +210,7 @@ S3Client = @aws-sdk/client-s3 가 제공하는 클래스
 private client: S3Client | null = null;
 ```
 
-```
+```txt
 S3Client | null 로 선언하는 이유:
   처음엔 아직 연결 객체가 없는 상태 (null)
   → getClient() 호출 시점에 실제로 생성해서 채워넣음
@@ -227,7 +227,7 @@ this.client = new S3Client({
 });
 ```
 
-```
+```txt
 new S3Client({ ... }) 에 넣는 설정 객체 — 옵션 3가지:
 
   region:
@@ -302,7 +302,7 @@ async uploadVisitPhoto(userId: number, file: Express.Multer.File) {
 }
 ```
 
-```
+```txt
 검증 순서가 위→아래인 이유:
   가벼운 검사(파일 존재) 부터 먼저 끝내고
   무거운 작업(실제 업로드) 은 가장 마지막에
@@ -385,7 +385,7 @@ async deleteFile(key: string): Promise<void> {
 }
 ```
 
-```
+```txt
 key 보관 방법:
   업로드 시 반환한 key 자체를 DB 에 별도 컬럼으로 저장해두면
   나중에 삭제할 때 publicUrl 에서 역산할 필요 없이 바로 사용 가능
@@ -397,7 +397,7 @@ key 보관 방법:
 
 # 한눈에
 
-```
+```txt
 설치:
   pnpm add @aws-sdk/client-s3
 

@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 파이썬에서 외부 프로그램(dbt / git / bash / pip 등) 을 실행하는 표준 라이브러리
 returncode 로 성공/실패 판단
 Airflow BashOperator 대신 Python 안에서 직접 쉘 명령어 실행할 때 사용
@@ -37,7 +37,7 @@ result = subprocess.run(["ls", "-l"])
 result = subprocess.run("ls -l", shell=True)
 ```
 
-```
+```txt
 리스트 vs 문자열:
   ["ls", "-l"]     ✅ 권장 (쉘 인젝션 방지)
   "ls -l"          ⚠️ shell=True 필요 / 보안 취약
@@ -101,7 +101,7 @@ result.stderr       # 에러 메시지
 
 ## returncode 의미
 
-```
+```txt
 0   성공 (Success)
 1   일반 에러
 2   잘못된 사용법
@@ -169,7 +169,7 @@ def dbt_run():
 
 ## 명령어 구조 상세 ⭐️
 
-```
+```txt
 터미널에서 직접 치는 것:
   dbt run --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt --target dev
 
@@ -184,7 +184,7 @@ def dbt_run():
 
 ## 각 옵션 의미
 
-```
+```txt
 "dbt"
   실행할 프로그램
 
@@ -257,14 +257,14 @@ cmd = ["dbt", "run", "--project-dir", str(dbt_project_dir)]
 # str(Path("/opt/airflow/dbt")) = "/opt/airflow/dbt"
 ```
 
-```
+```txt
 subprocess.run() 은 리스트의 모든 요소가 str 이어야 함
 Path 객체는 str 이 아님 → str() 필수
 ```
 
 ## 패턴 설명
 
-```
+```txt
 ① Path.exists() 로 경로 먼저 확인
   → 경로 없으면 FileNotFoundError (명확한 에러)
 

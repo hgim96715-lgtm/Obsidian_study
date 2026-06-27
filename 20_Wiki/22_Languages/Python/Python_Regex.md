@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 특정 패턴을 가진 문자열을 찾거나 / 바꾸거나 / 쪼개는 도구
 import re 로 사용
 ```
@@ -31,7 +31,7 @@ import re 로 사용
 
 # ① r"" — Raw String (무조건 붙이기)
 
-```
+```txt
 정규식에는 \d \w \s 처럼 백슬래시가 많음
 파이썬에서 \ 는 탈출문자 → 충돌 발생
 
@@ -46,7 +46,7 @@ pattern = "\\d{3}-\\d{4}-\\d{4}"   # 가독성 꽝
 pattern = r"\d{3}-\d{4}-\d{4}"     # 깔끔 ✅
 ```
 
-```
+```txt
 정규식 쓸 때는 무조건 r"..." 붙이는 습관
 ```
 
@@ -66,7 +66,7 @@ pattern = r"\d{3}-\d{4}-\d{4}"     # 깔끔 ✅
 
 ## search vs match vs fullmatch 비교 ⭐️
 
-```
+```txt
 search     어디서든 패턴 찾기
 match      맨 앞부터 패턴이 시작해야 함 (뒤에 다른 거 있어도 됨)
 fullmatch  처음부터 끝까지 전체가 패턴과 완전히 일치해야 함
@@ -92,7 +92,7 @@ re.fullmatch(r"\d+", text3) # ✅ "123"  → 전체가 숫자만
 
 ## fullmatch — 유효성 검사에 최적
 
-```
+```txt
 search 로 유효성 검사하면:
   re.search(r"\d+", "123abc") → Match 반환  ← 앞에 숫자 있으니까
   → "유효하다" 고 판단 → 잘못된 결과!
@@ -251,7 +251,7 @@ re.findall(r"이름: (\S+)", text)
 # ['홍길동', '김철수']
 ```
 
-```
+```txt
 findall 반환 정리:
   그룹 없음       → ['매칭1', '매칭2']
   그룹 1개        → ['그룹1값', '그룹1값']
@@ -323,7 +323,7 @@ text[start:end]   # 'Python'
 ---
 # 플래그 (Flags) ⭐️
 
-```
+```txt
 함수의 마지막 인자로 전달
 검색 방식을 수정하는 옵션
 여러 개 동시에 쓸 때 | 로 연결
@@ -361,7 +361,7 @@ re.sub(r"python", "java", text, flags=re.I)
 # 'Hello java java java'  ← 전부 치환
 ```
 
-```
+```txt
 re.sub 에서 플래그 전달할 때:
   re.sub(패턴, 바꿀값, 문자열, flags=re.I)  ← flags= 키워드 필수
   re.sub(패턴, 바꿀값, 문자열, re.I)        ← 네 번째 인자는 count 라서 ❌
@@ -464,7 +464,7 @@ re.match(r"\d+", "abc123")  # None → search 써야 함
 
 # 함수 반환값 한눈에
 
-```
+```txt
 re.search()   Match Object   → .group() 으로 꺼냄 / None 체크 필수
 re.match()    Match Object   → .group() 으로 꺼냄 / 맨 앞만 찾음
 re.findall()  list           → 바로 for 문 / .group() 없음

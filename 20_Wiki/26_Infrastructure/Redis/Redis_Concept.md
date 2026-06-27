@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Redis = Remote Dictionary Server
 메모리에 데이터를 저장하는 Key-Value 저장소
 빠른 읽기/쓰기가 필요한 곳에 사용
@@ -27,7 +27,7 @@ Redis = Remote Dictionary Server
 
 #  Redis 란 ⭐️
 
-```
+```txt
 Redis = Remote Dictionary Server
   데이터를 메모리(RAM)에 저장 → 매우 빠름
   Key-Value 구조 → 키로 값을 저장하고 꺼냄
@@ -46,7 +46,7 @@ Redis = Remote Dictionary Server
 
 #  DB vs Redis ⭐️
 
-```
+```txt
                   PostgreSQL / MySQL    Redis
 저장 위치          디스크(SSD/HDD)       메모리(RAM)
 속도               상대적으로 느림        매우 빠름 (마이크로초)
@@ -66,7 +66,7 @@ Redis = Remote Dictionary Server
 
 #  언제 쓰나 ⭐️
 
-```
+```txt
 캐싱:
   DB 조회 결과를 Redis 에 저장 → 다음 요청 시 DB 안 거침
   영화 정보 / 랭킹 / 검색 결과
@@ -94,7 +94,7 @@ Rate Limiting:
 
 #  Key-Value 구조
 
-```
+```txt
 Key   = 데이터를 찾는 식별자 (문자열)
 Value = 저장할 데이터 (다양한 타입)
 

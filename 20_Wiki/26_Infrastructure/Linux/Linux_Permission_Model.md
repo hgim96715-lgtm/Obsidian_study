@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 리눅스 모든 파일/폴더에는 "누가 무엇을 할 수 있는가" 가 정해져 있음
 rwx = 읽기(r) / 쓰기(w) / 실행(x)
 chmod = 권한 변경 / chown = 소유자 변경
@@ -38,7 +38,7 @@ ls -l 파일명
 
 ## 파일 타입 (첫 글자)
 
-```
+```txt
 -  일반 파일
 d  디렉토리
 l  심볼릭 링크
@@ -46,7 +46,7 @@ l  심볼릭 링크
 
 ## rwx 의미
 
-```
+```txt
 r (read)     = 4  읽기
 w (write)    = 2  쓰기
 x (execute)  = 1  실행
@@ -64,7 +64,7 @@ x (execute)  = 1  실행
 
 ## 3그룹 구조
 
-```
+```txt
 -  rwx  r-x  r--
 ↑   ↑    ↑    ↑
 타입 소유자 그룹  기타(others)
@@ -90,7 +90,7 @@ ls -l
 
 ## 숫자 표기법
 
-```
+```txt
 r = 4 / w = 2 / x = 1
 
 rwx = 4+2+1 = 7
@@ -125,7 +125,7 @@ chmod 600 .env          # -rw------- (소유자만 읽기/쓰기)
 chmod 600 ~/.ssh/id_rsa # SSH 개인키
 ```
 
-```
+```txt
 chmod 600 이 필요한 이유:
   .env 파일 = DB 비밀번호 / API 키 등 민감 정보
   id_rsa    = SSH 개인키
@@ -162,7 +162,7 @@ chmod -R 755 /opt/myapp/
 
 ## 기호 방식 기호 정리
 
-```
+```txt
 대상:
   u = user (소유자)
   g = group (그룹)
@@ -181,7 +181,7 @@ chmod -R 755 /opt/myapp/
 
 # ④ chown — 소유자 변경 ⭐️
 
-```
+```txt
 기본: chown [소유자]:[그룹] 파일
 
 패턴 1 — 소유자만 변경:      chown 사용자명 파일
@@ -214,7 +214,7 @@ ls -l /etc/apt/sources.list
 #           소유자  소유그룹
 ```
 
-```
+```txt
 ls -l 출력 읽는 법:
   -rw------- 1 labex root 2557 ...
               ↑소유자 ↑소유그룹
@@ -248,7 +248,7 @@ sudo chown labex:labex file.txt
 #   그룹을 바꾸면 다른 멤버의 접근 권한도 바뀜
 ```
 
-```
+```txt
 sudo 로 만든 파일 → root 소유
 → 일반 사용자가 수정 못 함
 → chown $USER:$USER 로 소유권 가져오기
@@ -287,7 +287,7 @@ cat /etc/shadow     # Permission denied
 sudo cat /etc/shadow # ✅ root 로 읽기
 ```
 
-```
+```txt
 sudo 를 쓸 수 있는 조건:
   /etc/sudoers 에 등록된 사용자
   또는 sudo 그룹 (id 에서 27(sudo) 확인)
@@ -322,7 +322,7 @@ chmod g+s 디렉토리
 
 ## setgid 실전 — 협업 디렉토리 설정 ⭐️
 
-```
+```txt
 문제:
   개발자 A 가 파일 만들면 → A 소유
   개발자 B 가 수정하려면 → 권한 없어서 "Permission denied"
@@ -347,7 +347,7 @@ ls -ld ~/project/phoenix_project/src
 
 ## chmod 2770 의미
 
-```
+```txt
 2   setgid 활성화
 7   소유자: rwx (읽기 + 쓰기 + 진입)
 7   그룹:   rwx (읽기 + 쓰기 + 진입)
@@ -361,7 +361,7 @@ drwxrws---
 
 ## 특수 권한 숫자 전체
 
-```
+```txt
 setuid  = 앞에 4  →  4xxx  (예: 4755)
 setgid  = 앞에 2  →  2xxx  (예: 2770)
 sticky  = 앞에 1  →  1xxx  (예: 1777 = /tmp)
@@ -396,7 +396,7 @@ ls -ld ~/project/phoenix_project/src
 # drwxrws---  dev_lead developers ...
 ```
 
-```
+```txt
 chmod 750 vs chmod 2770:
 
   chmod 750 (최상위 디렉토리):
@@ -436,7 +436,7 @@ chmod 600 ~/.ssh/authorized_keys   # authorized_keys
 chmod 600 ~/.ssh/config            # config
 ```
 
-```
+```txt
 권한이 느슨하면 SSH 접속 거부:
   WARNING: UNPROTECTED PRIVATE KEY FILE!
   → chmod 600 ~/.ssh/id_rsa 로 해결

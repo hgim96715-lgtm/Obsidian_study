@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 print() 대신 logging 을 써야 하는 이유:
   레벨 분류 (DEBUG / INFO / WARNING / ERROR / CRITICAL)
   출력 위치 지정 (파일 / 터미널 / 둘 다)
@@ -29,7 +29,7 @@ print() 대신 logging 을 써야 하는 이유:
 
 # ① logging 레벨 ⭐️
 
-```
+```txt
 레벨 높을수록 심각
 기본값은 WARNING → WARNING 이상만 출력됨
 
@@ -99,7 +99,7 @@ logging.basicConfig(
 )
 ```
 
-```
+```txt
 stream=sys.stdout 이 필요한 이유:
   기본값은 stderr 로 출력
   Docker 는 stdout 을 캡처해서 docker logs 로 보여줌
@@ -115,7 +115,7 @@ stream=sys.stdout 이 필요한 이유:
 
 # ③ getLogger — 로거 객체 생성 ⭐️
 
-```
+```txt
 basicConfig = 전역 설정 (모듈 전체에 적용)
 getLogger   = 특정 이름의 로거 객체 (모듈별 분리 관리)
 
@@ -148,7 +148,7 @@ logger = logging.getLogger(__name__)
 # → __name__ = 'airflow.dags.my_dag'
 ```
 
-```
+```txt
 getLogger(__name__) 패턴의 장점:
   어느 모듈에서 로그가 찍혔는지 이름으로 구분
   모듈별 레벨 다르게 설정 가능

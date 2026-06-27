@@ -35,7 +35,7 @@ WHERE order_date >= '2020-02-01'
 -- 2020-03-01 00:00:00 미만 = 2월 전체 완벽 포함
 ```
 
-```
+```txt
 규칙:
   시작 >= 해당 월 1일
   종료 <  다음 달 1일
@@ -88,7 +88,7 @@ GROUP BY p.product_name
 HAVING SUM(o.unit) >= 100;
 ```
 
-```
+```txt
 ON vs WHERE 날짜 조건:
   LEFT JOIN 시 ON 에 넣으면 → 조건 맞는 것만 연결 / 없으면 NULL
   LEFT JOIN 시 WHERE 에 넣으면 → NULL 행도 제거 → INNER JOIN 효과

@@ -14,7 +14,7 @@ related:
 
 # NestJS_FFmpeg — fluent-ffmpeg 연동
 
-```
+```txt
 fluent-ffmpeg = Node.js 에서 FFmpeg 명령어를 코드로 실행하는 라이브러리
 영상 변환 / 압축 / 썸네일 추출을 NestJS 서비스에서 처리
 ```
@@ -30,7 +30,7 @@ pnpm add @ffmpeg-installer/ffmpeg fluent-ffmpeg ffprobe-static
 pnpm add -D @types/fluent-ffmpeg
 ```
 
-```
+```txt
 @ffmpeg-installer/ffmpeg   ffmpeg 바이너리를 npm 패키지로 제공
                            서버에 ffmpeg 별도 설치 없이 사용 가능
 fluent-ffmpeg              FFmpeg 명령어를 JS/TS 코드로 실행
@@ -64,7 +64,7 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
 ```
 
-```
+```txt
 @ffmpeg-installer/ffmpeg 을 쓰는 이유:
   서버 OS 에 ffmpeg 설치 여부와 무관하게 동작
   npm 패키지 안에 바이너리 포함
@@ -154,7 +154,7 @@ export class ThumbnailGenerationProcessor extends WorkerHost {
 
 ## 왜 이렇게 작성했나 ⭐️
 
-```
+```txt
 await mkdir 먼저:
   ffmpeg 가 폴더보다 먼저 실행되면 간헐적 실패
   mkdir → ffmpeg 순서 보장

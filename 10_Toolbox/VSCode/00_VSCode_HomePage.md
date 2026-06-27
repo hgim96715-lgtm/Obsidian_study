@@ -9,7 +9,7 @@ related:
 ---
 # 00_VSCode_HomePage — VS Code
 
-```
+```txt
 에디터 환경 설정 + 확장 + 코드 품질 도구(ESLint/Prettier) + 단축키
 Mac 단축키 기호(⌘·⌥)가 헷갈리면 [[Mac_단축키]] 먼저 보기
 ```
@@ -33,7 +33,7 @@ Mac 단축키 기호(⌘·⌥)가 헷갈리면 [[Mac_단축키]] 먼저 보기
 | [[eslint]] | ESLint 설치 · 설정 · VS Code 연동 · 저장 시 자동 수정 |
 | [[prettier]] | Prettier 설치 · 포맷 규칙 · ESLint와 역할 분담 · 프로젝트별 실행 |
 
-```
+```txt
 eslint = 코드 품질·규칙 검사 / prettier = 들여쓰기·따옴표 등 스타일 통일
 둘 다 [[Settings_json_정리]]의 editor.codeActionsOnSave · formatOnSave와 연결됨
 ```

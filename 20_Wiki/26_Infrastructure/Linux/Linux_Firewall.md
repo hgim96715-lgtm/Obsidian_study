@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 ufw      = Ubuntu 기본 방화벽 (간단)
 iptables = 저수준 방화벽 (복잡하지만 강력)
 firewalld = RHEL/CentOS 방화벽
@@ -29,7 +29,7 @@ firewalld = RHEL/CentOS 방화벽
 
 # ① ufw — Ubuntu 방화벽 ⭐️
 
-```
+```txt
 ufw = Uncomplicated Firewall
   복잡한 iptables 를 쉽게 다루는 래퍼
   Ubuntu 기본 내장
@@ -81,7 +81,7 @@ sudo ufw status
 
 # ③ ufw 설정 순서 ⚠️ 중요
 
-```
+```txt
 ⚠️ 가장 많이 하는 실수:
   방화벽 enable 전에 SSH 포트를 안 열면
   → enable 하는 순간 SSH 차단
@@ -103,7 +103,7 @@ sudo ufw status           # 4. 확인
 
 ## ufw status 출력 해석
 
-```
+```txt
 Status: active
 
 To          Action    From
@@ -161,7 +161,7 @@ sudo ufw status verbose
 
 ## Docker 사용 시 주의
 
-```
+```txt
 Docker 는 ufw 를 우회해서 포트를 열 수 있음
 docker run -p 8080:8080 이미지
 → ufw 에서 8080 차단해도 외부 접근 가능한 경우 있음

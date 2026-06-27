@@ -8,7 +8,7 @@
 
 # ⭐️ settings.json 여는 방법
 
-```
+```txt
 Command Palette 열기
 Mac: Cmd + Shift + P
 
@@ -18,7 +18,7 @@ Preferences: Open User Settings (JSON)
 
 또는:
 
-```
+```txt
 VS Code Settings UI
 → 오른쪽 위 문서 아이콘 클릭
 → settings.json 열기
@@ -44,7 +44,7 @@ VS Code Settings UI
 
 ## 의미
 
-```
+```txt
 window.autoDetectColorScheme
 → Mac 시스템 다크/라이트 모드에 맞춰 VS Code 테마 자동 변경
 
@@ -93,7 +93,7 @@ editor.formatOnSave
 
 ## 의미
 
-```
+```txt
 JavaScript, TypeScript 파일은 Prettier로 포맷팅한다.
 저장할 때 들여쓰기 기준은 공백 4칸으로 맞춘다.
 ```
@@ -118,7 +118,7 @@ JavaScript, TypeScript 파일은 Prettier로 포맷팅한다.
 
 ## 의미
 
-```
+```txt
 JSON
 → Prettier로 정리
 
@@ -173,7 +173,7 @@ Markdown
 
 # ⭐️ 주의할 점
 
-```
+```txt
 1. settings.json은 JSON 파일이라 주석을 못 쓴다.
 2. 마지막 속성 뒤에는 쉼표를 붙이지 않는다.
 3. formatter 설정을 했는데 동작하지 않으면 해당 확장 프로그램이 설치되어 있는지 확인한다.

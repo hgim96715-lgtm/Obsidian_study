@@ -13,7 +13,7 @@ related:
 ---
 # NestJS_Migration — 마이그레이션
 
-```
+```txt
 Migration = DB 스키마 변경사항을 버전 관리하는 방법
 synchronize: true 대신 운영 환경에서 사용
 up() 으로 적용 / down() 으로 롤백
@@ -25,7 +25,7 @@ up() 으로 적용 / down() 으로 롤백
 
 # synchronize vs Migration ⭐️
 
-```
+```txt
 synchronize: true
   Entity 변경 → DB 자동 반영
   개발 환경에서 편리
@@ -52,7 +52,7 @@ synchronize: configService.get<string>(envVariableKeys.env) === 'prod' ? false :
 
 # 폴더 구조
 
-```
+```txt
 src/
 └── database/
     ├── data-source.ts       ← TypeORM CLI 용 DataSource 설정
@@ -81,7 +81,7 @@ pnpm i -g typeorm
 
 # data-source.ts 설정 ⭐️
 
-```
+```txt
 app.module.ts 의 TypeORM 설정과 별도로
 TypeORM CLI 전용 DataSource 파일을 따로 만들어야 함
 → migration:generate / migration:run 이 이 파일을 참조
@@ -108,7 +108,7 @@ export default new DataSource({
 });
 ```
 
-```
+```txt
 ⚠️ CLI 명령어는 dist/ 의 js 파일을 참조
    → 명령어 실행 전 반드시 pnpm build 필요
    → -d dist/database/data-source.js 경로 사용
@@ -138,7 +138,7 @@ export class Test1780383028247 implements MigrationInterface {
 }
 ```
 
-```
+```txt
 파일명 규칙:
   타임스탬프-이름.ts
   1780383028247-test.ts
@@ -172,7 +172,7 @@ typeorm migration:generate src/database/migrations/init -d dist/database/data-so
 # → 1780382470929-init.ts 생성
 ```
 
-```
+```txt
 ⚠️ DataGrip 에서 테이블이 이미 있으면 생성 안 됨
    No changes in database schema were found 에러 발생
    → DB 에서 테이블 DROP 후 다시 실행
@@ -189,7 +189,7 @@ pnpm build
 typeorm migration:run -d ./dist/database/data-source.js
 ```
 
-```
+```txt
 실행 후 DB 에 migrations 테이블 자동 생성
   timestamp  실행한 마이그레이션 타임스탬프
   name       마이그레이션 클래스 이름
@@ -217,7 +217,7 @@ typeorm migration:show -d ./dist/database/data-source.js
 
 # 전체 흐름 ⭐️
 
-```
+```txt
 1. Migration 파일 생성
      빈 파일:   typeorm migration:create ./src/database/migrations/이름
      자동 생성: pnpm build
@@ -243,7 +243,7 @@ typeorm migration:show -d ./dist/database/data-source.js
 
 ### No changes in database schema were found
 
-```
+```txt
 원인:
   DB 에 이미 테이블이 존재
   → Entity 와 DB 스키마가 동일하다고 판단 → 생성 안 함
@@ -255,7 +255,7 @@ typeorm migration:show -d ./dist/database/data-source.js
 
 ### 중복 마이그레이션 충돌
 
-```
+```txt
 원인:
   migrations 폴더에 같은 내용의 파일이 2개 이상 있음
   두 번째 마이그레이션이 첫 번째가 만든 테이블을 또 만들려고 해서 충돌
@@ -278,7 +278,7 @@ typeorm migration:show -d ./dist/database/data-source.js
 
 ### -d 경로 오류
 
-```
+```txt
 원인:
   src/ 의 .ts 파일 경로를 넣음
   TypeORM CLI 는 컴파일된 .js 파일을 읽어야 함

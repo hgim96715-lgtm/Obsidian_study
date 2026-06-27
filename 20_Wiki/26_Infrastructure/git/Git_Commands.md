@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 버전 관리 + 협업 도구
 커밋 수정 / 되돌리기 / 강제 푸시가 자주 필요함
 ```
@@ -47,7 +47,7 @@ git add .
 git commit -m "변경 내용 커밋"
 ```
 
-```
+```txt
 -a (--all):  수정/삭제된 파일을 자동으로 스테이징
 -m:          커밋 메시지 지정
 
@@ -97,7 +97,7 @@ git status
 # → 모든 변경사항이 저장됨
 ```
 
-```
+```txt
 상태 3단계:
   Untracked     → git add → Staged → git commit → Committed
   (Git 모름)              (준비 완료)             (저장 완료)
@@ -112,7 +112,7 @@ git log --oneline -5           # 최근 5개만
 git log --oneline --graph      # 브랜치 그래프 포함
 ```
 
-```
+```txt
 git log 출력:
   commit a1b2c3d4e5... (HEAD -> master)
   Author: Your Name <email>
@@ -156,7 +156,7 @@ git diff
 # +}
 ```
 
-```
+```txt
 기호 의미:
   ---    원본 파일 (a/)
   +++    수정된 파일 (b/)
@@ -184,7 +184,7 @@ git diff master feature-branch -- numbers.js
 #                              ↑ -- 로 파일명 구분 (브랜치명과 혼동 방지)
 ```
 
-```
+```txt
 브랜치 비교 읽는 법:
   git diff A B
   - (삭제) = A 에는 있지만 B 에는 없는 것
@@ -197,7 +197,7 @@ git diff master feature-branch -- numbers.js
 
 ## git diff 언제 쓰나
 
-```
+```txt
 git add 전   → git diff            워킹 디렉토리 변경 확인
 git add 후   → git diff --staged   커밋 전 최종 확인
 커밋 후      → git diff HEAD~1     직전 커밋과 비교
@@ -210,7 +210,7 @@ git add 후   → git diff --staged   커밋 전 최종 확인
 
 # ① -1 로컬 폴더 → GitHub 처음 올리기 ⭐️
 
-```
+```txt
 새 프로젝트 폴더를 GitHub 에 처음 연결할 때
 GitHub 에서 새 저장소 만든 뒤 아래 명령어 실행
 ```
@@ -229,7 +229,7 @@ git remote add origin https://github.com/사용자명/저장소명.git
 git push -u origin main
 ```
 
-```
+```txt
 -u (--set-upstream) 의미:
   처음 한 번만 붙이면
   이후부터는 git push 만 해도 됨 (origin main 생략 가능)
@@ -262,7 +262,7 @@ git remote remove origin                          # 원격 연결 제거
 
 # ② commit --amend — 마지막 커밋 수정 ⭐️
 
-```
+```txt
 방금 한 커밋을 수정하고 싶을 때
 메시지 수정 / 파일 추가 / 코드 수정
 → 새 커밋을 만들지 않고 마지막 커밋을 덮어씀
@@ -283,7 +283,7 @@ git add 빠트린_파일.py
 git commit --amend --no-edit
 ```
 
-```
+```txt
 -m "메시지"     새 메시지로 교체
 --no-edit       기존 메시지 유지
 
@@ -308,7 +308,7 @@ git push --force              # 위험 — 무조건 덮어씀
 
 # ③ reset — 커밋 되돌리기
 
-```
+```txt
 reset 종류:
   --soft   커밋만 취소, 변경사항 staged 상태 유지  ← 자주 씀
   --mixed  커밋 취소 + unstaged 상태 (기본값)
@@ -331,7 +331,7 @@ git reset --soft 해시값         # git log 에서 해시 확인
 git push origin main --force
 ```
 
-```
+```txt
 HEAD~1 vs 해시:
   HEAD~1    현재에서 1개 전 커밋
   HEAD~3    현재에서 3개 전 커밋
@@ -354,7 +354,7 @@ git log --oneline              # 한 줄로 간결하게 ← 자주 씀
 git log --oneline -5           # 최근 5개만
 ```
 
-```
+```txt
 예시 출력:
   abc1234 (HEAD -> main) 세 번째 커밋
   def5678 두 번째 커밋

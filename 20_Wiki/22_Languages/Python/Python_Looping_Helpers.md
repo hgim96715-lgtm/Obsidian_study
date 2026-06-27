@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 반복문(for) 을 더 똑똑하고 편하게 만드는 3가지 도구
 
 range()      숫자 범위 생성
@@ -48,7 +48,7 @@ list(range(10, 0, -1))   # [10, 9, 8, ... 1]  역순
 
 ## range 는 게으른 녀석 (Lazy)
 
-```
+```txt
 range(999999999999)  → 메모리 거의 안 먹음 (숫자를 미리 안 만듦)
 list(range(999999999999)) → 💥 메모리 폭발
 
@@ -152,7 +152,7 @@ def solution(n, control):
     return n + sum(key[c] for c in control)
 ```
 
-```
+```txt
 장점:
   기능 추가 시 리스트에 데이터만 추가
   if-elif 를 뜯어고칠 필요 없음 (Data-Driven)
@@ -161,7 +161,7 @@ def solution(n, control):
 
 ## zip 중첩 — 행렬 연산 ⭐️
 
-```
+```txt
 zip 을 이중으로 써서 행렬의 같은 위치 값 처리
 [[a,b],[c,d]] + [[e,f],[g,h]] → 같은 위치끼리 더하기
 ```
@@ -183,7 +183,7 @@ def solution(arr1, arr2):
     return [[c + d for c, d in zip(a, b)] for a, b in zip(arr1, arr2)]
 ```
 
-```
+```txt
 동작 원리:
   zip(arr1, arr2)      → 같은 행끼리 묶음
     [(행1A, 행1B), (행2A, 행2B), ...]
@@ -203,7 +203,7 @@ def solution(arr1, arr2):
   결과:  [[6, 8], [10, 12]]
 ```
 
-```
+```txt
 행렬 문제 패턴:
   "같은 위치" 처리 → 인덱스 또는 zip
   이중 반복문 → zip 중첩으로 압축 가능
@@ -218,7 +218,7 @@ def solution(arr1, arr2):
 
 # ④ continue 의 함정 — 루프 끝 처리
 
-```
+```txt
 continue 는 결론을 내리지 않고 다음 바퀴로 넘김
 모든 바퀴가 continue 로만 끝나면 → 함수가 None 반환
 
@@ -246,7 +246,7 @@ def solution(date1, date2):
 
 # ⑤ 초기화 위치 — 밖 vs 안
 
-```
+```txt
 변수를 for 루프 밖에서 초기화 → 누적 (이전 바퀴 결과 유지)
 변수를 for 루프 안에서 초기화 → 리셋 (바퀴마다 새로 시작)
 ```

@@ -19,7 +19,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 JOIN   테이블을 가로로 합침 (컬럼 추가)
 UNION  쿼리 결과를 세로로 합침 (행 추가)
 ```
@@ -30,7 +30,7 @@ UNION  쿼리 결과를 세로로 합침 (행 추가)
 
 # JOIN vs UNION ⭐️
 
-```
+```txt
 JOIN  — 가로로 합침 (컬럼 늘어남)
 
   users          orders
@@ -71,7 +71,7 @@ UNION ALL
 SELECT name FROM employees_japan;
 ```
 
-```
+```txt
 UNION:
   내부적으로 DISTINCT 실행 → 느림
   완전히 같은 행 제거
@@ -108,7 +108,7 @@ UNION ALL
 SELECT id, company, NULL AS email, phone FROM companies;
 ```
 
-```
+```txt
 규칙:
   SELECT 컬럼 수가 같아야 함
   각 컬럼 타입이 호환되어야 함
@@ -142,7 +142,7 @@ UNION ALL
 
 ## 와이드 → 롱 변환 (Unpivot) — 같은 테이블을 여러 번 ⭐️⭐️⭐️
 
-```
+```txt
 지금까지 본 UNION ALL 은 전부 "서로 다른 테이블" 을 세로로 합치는 용도였음
 근데 "테이블 하나" 를 컬럼만 다르게 골라서 여러 번 조회한 뒤 합치는 것도 가능함
 → 가로로 퍼진(wide) 여러 컬럼을 세로로 긴(long) 형태로 펴는 패턴 — 흔히 "Unpivot" 이라 부름
@@ -186,7 +186,7 @@ WHERE store3 IS NOT NULL;
 
 ## 'store1' AS store — 왜 따옴표가 있는 리터럴을 쓰는가 ⭐️
 
-```
+```txt
 보통 AS 는 "컬럼 이름" 뒤에 붙여서 그 컬럼을 다른 이름으로 부르는 용도로 씀
   (예: store1 AS price → store1 "컬럼" 의 값을 price 라는 이름으로 내보냄)
 
@@ -196,7 +196,7 @@ WHERE store3 IS NOT NULL;
   (해당 SELECT 가 몇 행을 반환하든, store 컬럼 값은 전부 똑같이 'store1')
 ```
 
-```
+```txt
 왜 이게 필요한가:
   store1 AS price 만 하면 9.99 라는 "값" 만 넘어가고
   그 값이 원래 "store1 컬럼" 이었다는 정보(컬럼 이름 자체)는 사라짐
@@ -206,7 +206,7 @@ WHERE store3 IS NOT NULL;
 
 ## 같은 테이블을 3번 조회하는 이유 — 컬럼을 "내리는" 원리 ⭐️
 
-```
+```txt
 한 행(product_id=1) 안에 store1/store2/store3 가격이 나란히 있는 게 "와이드(wide)" 형태
 이걸 "한 컬럼(store)당 한 행" 으로 바꾸고 싶으면(롱/long 형태)
 
@@ -219,14 +219,14 @@ WHERE store3 IS NOT NULL;
   → 셋을 UNION ALL 로 이어붙이면 "컬럼이 행으로 내려간" 최종 결과가 됨
 ```
 
-```
+```txt
 WHERE store1 IS NOT NULL 이 필요한 이유:
   특정 상품이 store1 에서 안 팔리면(store1 컬럼 값이 NULL)
   그 행까지 그대로 변환하면 (product_id, 'store1', NULL) 같은 의미 없는 행이 생김
   → 실제로 가격이 있는 store 데이터만 결과에 남도록 필터링하는 것
 ```
 
-```
+```txt
 이 패턴의 이름 — Unpivot:
   와이드(컬럼이 여러 개로 퍼짐) → 롱(한 컬럼당 한 행)으로 바꾸는 것 = Unpivot
   반대로 롱 → 와이드로 모으는 건 Pivot (보통 CASE WHEN + GROUP BY 로 구현)
@@ -294,7 +294,7 @@ UNION ALL
 );
 ```
 
-```
+```txt
 핵심:
   괄호로 각 SELECT 감싸기
     → 괄호 없으면 ORDER BY / LIMIT 이 전체에 적용됨
@@ -327,7 +327,7 @@ ORDER BY name;
 
 ## 두 테이블 중 "정확히 한쪽에만" 있는 행 — UNION 활용 ⭐️⭐️
 
-```
+```txt
 이번엔 UNION ALL 이 아니라 UNION (중복 제거 버전) 을 일부러 쓰는 경우
 "Anti-Join 두 번 + UNION" 으로 두 테이블의 대칭차집합(symmetric difference) 을 구하는 패턴
 ```
@@ -409,7 +409,7 @@ JOIN Movies m       ON mr.movie_id = m.movie_id;
 |와이드 컬럼 → 롱 행 변환 (Unpivot) ⭐️|`'라벨' AS col` 을 컬럼마다 만들어 `UNION ALL`|
 |두 테이블 중 한쪽에만 있는 것|양방향 Anti-Join + `UNION` ([[SQL_JOIN]] 참고)|
 
-```
+```txt
 JOIN vs UNION:
   JOIN  → 가로 합침 (컬럼 추가)
   UNION → 세로 합침 (행 추가)

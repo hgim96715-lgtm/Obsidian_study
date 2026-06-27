@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 INSERT    → 행 추가
 UPDATE    → 행 수정
 DELETE    → 행 삭제
@@ -32,7 +32,7 @@ RETURNING → 변경된 행 바로 반환 (PostgreSQL)
 ---
 # 따옴표 규칙 — 가장 자주 하는 실수 ⭐️
 
-```
+```txt
 작은따옴표 '  → 문자열 값 (string literal)
 큰따옴표   "  → 식별자 (테이블명, 컬럼명)
 
@@ -52,7 +52,7 @@ SET nickname = '공이'
 WHERE email = 'admin@example.com';
 ```
 
-```
+```txt
 언제 큰따옴표 " 를 쓰나:
   테이블명에 대문자 / 예약어 / 공백이 있을 때만
   → "User" / "Order" / "my table"
@@ -74,7 +74,7 @@ WHERE email = 'admin@example.com';
 #  INSERT — 행 추가 ⭐
 
 
-```
+```txt
 INSERT INTO 테이블명 (컬럼1, 컬럼2, ...)
 VALUES (값1, 값2, ...);
 ```
@@ -95,7 +95,7 @@ VALUES
 INSERT INTO movies VALUES (1, '기생충', 'drama', 8.5);
 ```
 
-```
+```txt
 컬럼 지정 방식 권장:
   테이블 컬럼 순서 바뀌어도 안전
   지정 안 한 컬럼 → NULL 또는 DEFAULT
@@ -119,7 +119,7 @@ WHERE genre = 'drama';
 
 ## 기본 문법
 
-```
+```txt
 UPDATE 테이블명
 SET 컬럼1 = 값1, 컬럼2 = 값2
 WHERE 조건;
@@ -143,7 +143,7 @@ SET price = price * 1.1   -- 10% 인상
 WHERE category = 'premium';
 ```
 
-```
+```txt
 ⚠️ WHERE 없으면 전체 수정
   UPDATE movies SET rating = 0;   -- 모든 행 rating = 0 ← 위험!
   항상 WHERE 조건 확인 후 실행
@@ -167,7 +167,7 @@ WHERE m.director_id = d.id;
 
 ## 기본 문법
 
-```
+```txt
 DELETE FROM 테이블명
 WHERE 조건;
 ```
@@ -180,7 +180,7 @@ DELETE FROM movies
 WHERE genre = 'drama' AND rating < 5.0;
 ```
 
-```
+```txt
 ⚠️ WHERE 없으면 전체 삭제
   DELETE FROM movies;   -- 모든 행 삭제 ← 매우 위험!
   TRUNCATE 와 달리 롤백 가능
@@ -204,7 +204,7 @@ DELETE FROM movies WHERE genre = 'drama' AND rating < 5.0;
 ---
 # RETURNING — 변경된 행 바로 반환 ⭐️ (PostgreSQL)
 
-```
+```txt
 INSERT / UPDATE / DELETE 뒤에 붙여서
 변경된 행 데이터를 바로 반환
 별도 SELECT 없이 한 번에 처리
@@ -239,7 +239,7 @@ RETURNING *;
 -- 삭제된 행 모든 컬럼 반환
 ```
 
-```
+```txt
 RETURNING 사용 이유:
   변경 후 결과 확인 → 별도 SELECT 불필요
   DataGrip 에서 쿼리 결과 바로 확인
@@ -255,7 +255,7 @@ RETURNING 사용 이유:
 
 #  UPSERT — ON CONFLICT ⭐️
 
-```
+```txt
 UPSERT = INSERT + UPDATE 합성어
 이미 존재하면 UPDATE / 없으면 INSERT
 ```
@@ -277,7 +277,7 @@ ON CONFLICT (id) DO UPDATE
       title  = EXCLUDED.title;
 ```
 
-```
+```txt
 EXCLUDED:
   INSERT 하려다 충돌된 새 값을 담은 가상 테이블
   EXCLUDED.rating = 방금 넣으려던 9.0
@@ -321,7 +321,7 @@ await this.movieRepository.upsert(
 |`RETURNING`|변경 행 바로 반환|PostgreSQL 전용|
 |`ON CONFLICT DO UPDATE`|UPSERT (PostgreSQL)||
 |`ON DUPLICATE KEY UPDATE`|UPSERT (MySQL)||
-```
+```txt
 따옴표 규칙 요약:
   '값'   → 문자열 값 (항상)
   "컬럼" → 식별자 (대문자 테이블/컬럼명, Prisma 테이블)

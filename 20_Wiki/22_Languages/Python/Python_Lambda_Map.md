@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Lambda  이름 짓기 귀찮은 일회용 함수
 Map     데이터 하나하나를 변환
 Filter  조건 True 인 것만 통과
@@ -31,14 +31,14 @@ Reduce  전체를 하나로 압축
 
 # ① Lambda — 일회용 함수
 
-```
+```txt
 def 로 정의해서 이름을 붙이기엔 너무 간단하고
 딱 한 번만 쓰고 버릴 함수가 필요할 때 사용
 ```
 
 ## def vs lambda 문법 비교
 
-```
+```txt
 def  함수이름 (입력변수) :
          return  반환값
 
@@ -54,7 +54,7 @@ def multiply(x, y):
 multiply = lambda x, y: x * y
 ```
 
-```
+```txt
 핵심 암기:
   lambda 에서는 콜론(:) 뒤에 오는 것이 곧 return 값
   return 키워드를 쓰는 순간 SyntaxError
@@ -127,7 +127,7 @@ list(map(lambda x: x + 10, [1, 2, 3]))  # [11, 12, 13]
 
 ## A. Map — 변환 (개수 그대로)
 
-```
+```txt
 데이터 하나하나를 변환
 흰 자동차들이 공장에 들어가서 빨간색으로 도색되어 나오는 것
 ```
@@ -143,7 +143,7 @@ list(map(lambda x: x * 1.1, prices))
 
 ## B. Filter — 조건 통과 (개수 줄어듦)
 
-```
+```txt
 조건이 True 인 것만 통과
 공항 보안 검색대처럼 기준 미달이면 걸러냄
 ```
@@ -159,7 +159,7 @@ list(filter(lambda x: x >= 20, ages))
 
 ## C. Reduce — 압축 (결과 1개)
 
-```
+```txt
 두 개씩 씹어먹으며 하나로 합침
 파이썬 내장이 아니라 import 필요
 ```
@@ -180,7 +180,7 @@ reduce(lambda x, y: x + y, nums)
 
 # ③ list() 는 왜 씌우나 — Lazy Evaluation
 
-```
+```txt
 파이썬 3 부터 map / filter 는 결과를 즉시 만들지 않고
 "준비만 된 상태(Iterator)" 를 반환함 → 메모리 절약
 
@@ -193,7 +193,7 @@ print(result)        # <map object at 0x...>  안 보임
 print(list(result))  # [2, 4, 6]  list() 로 감싸야 보임
 ```
 
-```
+```txt
 Spark 연결고리:
   파이썬 list()  → 결과 강제 실행
   Spark collect() → 결과 강제 실행
@@ -210,7 +210,7 @@ Spark 연결고리:
 
 ## 2차원 배열 순회 — x[인덱스] 접근
 
-```
+```txt
 map 의 lambda 인자 x 가 리스트(또는 튜플) 일 때
 x[0], x[1], x[2] 로 각 원소에 접근
 
@@ -257,7 +257,7 @@ lambda x: sorted(array[x[0]-1:x[1]])[x[2]-1]
 #   [2, 3, 5, 6][2] = 5   ✅
 ```
 
-```
+```txt
 for 문 vs map+lambda:
   for 문     → 단계별 명확 / 디버깅 쉬움
   map+lambda → 한 줄 / 간결 / 익숙해지면 빠르게 읽힘

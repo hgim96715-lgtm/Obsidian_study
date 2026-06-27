@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Iterable  = for 문에 넣을 수 있는 객체 (데이터 보따리)
 Iterator  = 데이터를 하나씩 꺼내주는 포인터 (손가락)
 ```
@@ -28,7 +28,7 @@ Iterator  = 데이터를 하나씩 꺼내주는 포인터 (손가락)
 
 # ① 핵심 개념
 
-```
+```txt
 Iterable (이터러블):
   for 문에 넣을 수 있는 모든 객체
   리스트 / 튜플 / 문자열 / 딕셔너리 / range() 등
@@ -46,7 +46,7 @@ Iterator (이터레이터):
 
 ## 도시락 비유
 
-```
+```txt
 Iterable = 도시락통 (내용물 전체 보관)
 Iterator = 젓가락  (하나씩 꺼내는 동작)
 
@@ -90,7 +90,7 @@ print(next(waiter))   # Juice
 print(next(waiter))   # StopIteration 예외 발생!
 ```
 
-```
+```txt
 for 문 내부 동작:
   for item in my_list: 는 사실 아래와 동일
 
@@ -238,7 +238,7 @@ def process(elements):
 
 # ⑦ 왜 필요한가 — 메모리 효율 ⭐️
 
-```
+```txt
 리스트 방식:
   [1, 2, 3, ... 1억] 전체를 메모리에 올림
   → 1억 개 × 8바이트 = 800MB 필요 → 서버 폭발

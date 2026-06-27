@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 GROUP BY  = 특정 컬럼 기준으로 묶어서 집계
 HAVING    = 집계 결과를 필터링 (WHERE 의 집계 버전)
 ```
@@ -46,7 +46,7 @@ GROUP BY country, state;
 --       ↑ (country, state) 쌍 기준으로 묶임
 ```
 
-```
+```txt
 GROUP BY A, B 의 의미:
   (A, B) 조합이 같은 행끼리 묶임
   country='KR', state='approved'  → 1그룹
@@ -79,7 +79,7 @@ FROM Transactions
 GROUP BY DATE_FORMAT(trans_date, '%Y-%m'), country;
 ```
 
-```
+```txt
 GROUP BY 에 별칭(AS) 사용:
   PostgreSQL: GROUP BY month  ← 별칭 사용 가능
   MySQL:      GROUP BY month  ← 별칭 사용 가능
@@ -102,7 +102,7 @@ GROUP BY country
 HAVING COUNT(*) >= 10;   -- 10건 이상인 국가만
 ```
 
-```
+```txt
 WHERE vs HAVING:
   WHERE   집계 전 필터 (개별 행)
   HAVING  집계 후 필터 (그룹 결과)
@@ -117,7 +117,7 @@ WHERE vs HAVING:
 
 # ④ 실행 순서
 
-```
+```txt
 FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
 
 1. FROM      테이블 읽기
@@ -162,7 +162,7 @@ GROUP BY DATE_FORMAT(trans_date, '%Y-%m'), country;
 ---
 # GROUP BY vs Window 함수 — 언제 뭘 쓰나 ⭐️
 
-```
+```txt
 같은 결과를 두 가지 방식으로 낼 수 있을 때
 더 자연스러운 방법을 선택하는 기준
 ```
@@ -196,7 +196,7 @@ GROUP BY p.product_name
 HAVING SUM(o.unit) >= 100;
 ```
 
-```
+```txt
 비교:
   Window 방식:
     SUM() OVER(PARTITION BY) → 각 행에 그룹 합계 붙이기
@@ -249,7 +249,7 @@ GROUP BY u.id, u.name    -- ← id 로 사람을 구분, name 은 출력용
 ORDER BY travelled_distance DESC, u.name ASC;
 ```
 
-```
+```txt
 왜 GROUP BY u.id, u.name 인가:
   u.id    = 사용자를 유일하게 식별 (그룹 기준)
   u.name  = 화면에 보여줄 값 → SELECT 에 있으면 GROUP BY 에도 포함

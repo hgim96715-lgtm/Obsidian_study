@@ -18,7 +18,7 @@ related:
 
 # 이 노트의 역할 ⭐️⭐️⭐️
 
-```
+```txt
 다른 노트들(Next_Auth, Next_Server_Actions 등)은 "범용 개념/패턴" 을 다룸
   → 어떤 프로젝트에 가져다 써도 그대로 맞는 내용만 둠 (프로젝트 이름·구체적 디자인 X)
 
@@ -38,7 +38,7 @@ related:
 
 # 로그인 — 이메일/비밀번호 폼 ⭐️
 
-```
+```txt
 일반 패턴(useActionState/useFormStatus/CredentialsSignin 처리)은
 [[Next_Server_Actions]] 와 [[Next_Auth]] 에 범용으로 정리해둠
 → 여기는 "이 프로젝트에서 그 패턴을 실제로 어떻게 조립했는지" 만
@@ -187,7 +187,7 @@ export default function LoginEmailForm({ redirectTo }: Props) {
 <LoginEmailForm redirectTo={redirectTo} />
 ```
 
-```
+```txt
 이 컴포넌트가 왜 이렇게 쪼개져 있는지(SubmitButton 분리, useActionState 자리 등)는
 일반 원리이므로 [[Next_Server_Actions]] 참고 — 여기는 "그 결과물" 만 기록
 ```
@@ -198,7 +198,7 @@ export default function LoginEmailForm({ redirectTo }: Props) {
 
 # 회원가입 — 이메일/비밀번호 폼 ⭐️
 
-```
+```txt
 로그인(위)과 짝을 이루는 회원가입 흐름
 회원가입은 가입 직후 그 자리에서 곧바로 signIn 까지 이어서 호출하는 점이 로그인과 다름
 ```
@@ -288,7 +288,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
 ## 로그인과의 차이 — 왜 redirect:false 가 없는가
 
-```
+```txt
 로그인(signInWithEmailAction)은 redirect:false + 직접 redirect() 를 씀
 회원가입(registerWithEmail)은 그냥 redirectTo 만 넘기고 끝 — 패턴이 다름
 
@@ -308,13 +308,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
 # Auth.js 설정 — 이 프로젝트 실제 구현 ⭐️
 
-```
+```txt
 범용 개념·코드 패턴은 [[Next_Auth]] 참고 — 여기는 "이 프로젝트에서 실제로 어떤 값/경로를 썼는지" 만
 ```
 
 ## 실제 폴더 구조 & import 경로
 
-```
+```txt
 모노레포: apps/api (NestJS) + apps/web (Next.js)
 schema.prisma 는 apps/api 에만 존재, apps/web 은 그 generated client 를 상대경로로 직접 import:
 
@@ -327,7 +327,7 @@ schema.prisma 는 apps/api 에만 존재, apps/web 은 그 generated client 를 
 
 ## 실제 포트 / Redirect URI
 
-```
+```txt
 dev 포트: web 3031 / api 3000
 OAuth redirect URI 실제 값: http://localhost:3031/api/auth/callback/{provider}
 ```
@@ -402,7 +402,7 @@ graph TD
 
 ## 트러블슈팅 — 로그인 페이지 Prisma 번들 오류 (실제 발생 사례)
 
-```
+```txt
 apps/api 의 generator output: apps/api/src/generated/prisma/ (node_modules 밖, 커스텀 경로)
 생성 코드가 "./internal/prismaNamespace.js" 처럼 .js 로 import 하는데 실제 파일은 .ts
 → Turbopack 이 모노레포 커스텀 경로에서 .js → .ts 매칭을 못 해서 resolve 실패
@@ -424,7 +424,7 @@ const nextConfig: NextConfig = {
 { "scripts": { "dev": "next dev --port 3031 --webpack" } }
 ```
 
-```
+```txt
 교훈: extensionAlias 는 next.config.ts 의 webpack() 함수 안에서만 적용됨
      Next.js 15+ 기본 Turbopack 은 그 함수를 안 읽으므로 --webpack 플래그로 강제 전환 필요
      (Prisma 의 커스텀 generator output 과 Turbopack 호환성이 아직 완전하지 않아서 생기는 문제)
@@ -436,13 +436,13 @@ const nextConfig: NextConfig = {
 
 # API 연동 — 이 프로젝트 실제 구현 ⭐️
 
-```
+```txt
 범용 패턴은 [[Next_API_Integration]] 참고 — 여기는 실제 주소·도메인·코드만
 ```
 
 ## 폴더 구조
 
-```
+```txt
 web/lib/
   api.ts          fetchAPI 래퍼 + 도메인별 API 함수
   api-base.ts     getApiBaseUrl (서버/브라우저 주소 분기)
@@ -452,7 +452,7 @@ web/lib/
 
 ## getApiBaseUrl — 실제 분기 이유와 구현
 
-```
+```txt
 배포 환경에서 모바일 Safari 가 cross-origin 쿠키를 막는 문제 때문에
 브라우저는 반드시 같은 도메인(/api/nest 상대경로) 으로만 요청해야 함
 서버(Server Component) 는 Railway 로 직접 가는 게 더 빠르고 단순함
@@ -538,7 +538,7 @@ export function mapRecommendations(apiItems: ApiRecommendation[]): Recommendatio
 }
 ```
 
-```
+```txt
 좋아요: API 는 reactions[] 통째로 줌 → likeCount: number 로 축약 (매퍼 패턴 ②)
 작성자: API 가 아직 안 줌(v0) → PLACEHOLDER_AUTHOR 로 임시 채움 (매퍼 패턴 ③)
 ```
@@ -578,13 +578,13 @@ await adminFetchVoid('/admin/notices/1', { method: 'DELETE' });
 
 # Base URL 패턴 — music-community 적용 현황 ⭐️
 
-```
+```txt
 단계 구분은 [[Next_API_Integration]] 의 "Base URL 패턴 — 단계별로 진화시키기" 참고
 ```
 
 ## 현재 (0단계, 미적용)
 
-```
+```txt
 지금은 아래 파일들이 각각 process.env.NEXT_PUBLIC_API_URL 을 직접 씀:
   lib/api.ts          서버 (피드 GET)
   lib/adminFetch.ts   서버 (관리자 API)
@@ -638,7 +638,7 @@ export async function createRecommendation(
 
 ## app/new/action.ts — 실제 코드 (0단계 + 인증 토큰) ⭐️
 
-```
+```txt
 위의 createRecommendation 은 lib/api.ts 쪽(비로그인 GET) 버전이고
 app/new/action.ts 는 같은 0단계(직접 env)에 "인증 토큰" 까지 같이 쓰는 실제 버전
 → Next_API_Integration 의 "인증이 필요한 호출 — 토큰 내장 래퍼 패턴"(authFetch) 으로
@@ -686,7 +686,7 @@ export async function createRecommendation(
 }
 ```
 
-```
+```txt
 나중에 authFetch 로 옮기면 줄어드는 부분:
   API_URL 체크, token 체크+Authorization 헤더, res.ok 체크 — 이 3줄이 authFetchJson 안으로 흡수됨
   → 지금은 한 파일에서 다 처리해도 동작에는 문제없음, 비슷한 액션이 여러 개 생기면 추상화 시점
@@ -734,14 +734,14 @@ export function apiUrl(path: string): string {
 
 ## 적용하게 되면 바꿀 파일 (참고)
 
-```
+```txt
 □ lib/apiBase.ts 신규 추가 (getApiBaseUrl, apiUrl)
 □ lib/api.ts, lib/adminFetch.ts, app/new/action.ts → apiUrl("/...") 로 교체
 □ (선택) app/api/proxy/[...path]/route.ts 추가 — 브라우저 fallback
 □ apps/web/.env.example 에 API_INTERNAL_URL 주석 예시 추가
 ```
 
-```
+```txt
 인증(Bearer) 흐름은 api_auth_flow.md(별도 메모) 와 동일 — 여기서는 URL 만 공통화하는 패턴
 ```
 
@@ -751,7 +751,7 @@ export function apiUrl(path: string): string {
 
 # (앞으로 여기에 계속 추가)
 
-```
+```txt
 다음에 또 "이 프로젝트만의 구체적인 구현" 이 나오면 이 노트에 섹션을 추가해서 쌓을 것
 예: 실제 폴더 구조, 실제 컴포넌트 트리, 실제 색상/디자인 토큰, 실제 라우트 목록 등
 ```

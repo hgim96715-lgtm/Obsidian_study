@@ -18,7 +18,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 JOIN = 두 테이블을 연결해서 하나로 조회
 INNER  = 양쪽 모두 있는 것만
 LEFT   = 왼쪽 전부 + 오른쪽 있으면 붙이기
@@ -32,7 +32,7 @@ FULL   = 양쪽 전부
 
 # 왜 JOIN 이 필요한가 ⭐️
 
-```
+```txt
 관계형 DB 는 데이터를 여러 테이블로 "쪼개서" 저장함
   예: 직원 정보는 employees, 부서 정보는 departments — 따로 보관
 
@@ -76,7 +76,7 @@ FULL JOIN departments d ON e.dept_id = d.id;
 |RIGHT|오른쪽 전부 + 왼쪽 매칭 (없으면 NULL)|
 |FULL|양쪽 전부 (없으면 NULL)|
 
-```
+```txt
 헷갈리면 이렇게 판단: "어느 쪽을 무조건 다 보고 싶은가?"
   양쪽 다 있는 것만 보고 싶다           → INNER
   왼쪽은 무조건 다 보고, 오른쪽은 있으면만 → LEFT
@@ -105,7 +105,7 @@ LEFT JOIN departments d
 WHERE d.location = 'Seoul';    -- 결과 필터
 ```
 
-```
+```txt
 LEFT JOIN 에서 WHERE 와 ON+AND 차이 ⭐️:
 
 문제:
@@ -143,7 +143,7 @@ LEFT JOIN UnitsSold u
 --  ↑ JOIN 할 때 날짜 범위도 같이 체크
 ```
 
-```
+```txt
 ON + AND 언제 쓰나:
   LEFT JOIN 에서 조건을 걸되
   조건 불만족 시 오른쪽 테이블을 NULL 로 남기고 싶을 때
@@ -160,7 +160,7 @@ ON + AND 언제 쓰나:
 
 # Anti-Join — LEFT JOIN + WHERE IS NULL ⭐️⭐️⭐️
 
-```
+```txt
 "한쪽 테이블에는 있는데, 다른 쪽엔 없는 행" 을 찾는 패턴 — Anti-Join 이라고 부름
 예: "부서가 배정 안 된 직원" / "한 번도 주문 안 한 고객" 처럼
     "매칭이 안 되는 쪽" 자체를 찾는 게 목적일 때
@@ -174,7 +174,7 @@ LEFT JOIN departments d ON e.dept_id = d.id
 WHERE d.id IS NULL;
 ```
 
-```
+```txt
 동작 원리:
   ① LEFT JOIN 으로 employees 는 전부, departments 는 매칭되면만 붙임
      → 매칭 안 된 직원의 d.id 자리는 NULL 로 채워짐
@@ -184,7 +184,7 @@ WHERE d.id IS NULL;
 
 ## ⚠️ 바로 위 "ON vs WHERE" 경고와 모순처럼 보이지만 아님 ⭐️
 
-```
+```txt
 위에서 "LEFT JOIN 후 WHERE 에 오른쪽 테이블 조건 넣으면 NULL 행이 사라진다" 고 경고했는데
 여기서는 정확히 그 "사라지는 NULL 행" 을 찾는 게 목적임
 → 둘은 반대 상황일 뿐, 같은 원리(WHERE 의 오른쪽 조건 = NULL 행 제거) 위에서 설명됨
@@ -197,7 +197,7 @@ WHERE d.id IS NULL;
 
 ## ⚠️ 기준 컬럼 선택 — IS NULL 은 "아무 컬럼" 이나 검사하면 안 됨 ⭐️⭐️⭐️
 
-```
+```txt
 Anti-Join 에서 가장 많이 하는 실수: WHERE 오른쪽.아무컬럼 IS NULL 처럼
 "오른쪽 테이블의 임의의 컬럼" 을 검사하는 것 — 이러면 틀린 결과가 나올 수 있음
 
@@ -225,7 +225,7 @@ WHERE e1.salary < 30000
   AND e2.employee_id IS NULL;    -- ← e2 의 PK 를 검사
 ```
 
-```
+```txt
 일반화한 규칙:
   Anti-Join 에서 WHERE 오른쪽.컬럼 IS NULL 을 쓸 때
   그 "컬럼" 은 항상 오른쪽 테이블의 PK(또는 NOT NULL 제약이 있는 컬럼) 여야 함
@@ -236,7 +236,7 @@ WHERE e1.salary < 30000
   "오른쪽 테이블의 PK" 를 쓰고 있던 것도 우연이 아니라 바로 이 이유 때문임
 ```
 
-```
+```txt
 참고 — Self Join 이라는 것도 같이 기억해두면 좋음:
   위 예시는 Employees 테이블을 "자기 자신과" JOIN 한 것 (Self Join)
   같은 테이블이라서 e1 / e2 처럼 별칭(alias)을 다르게 줘야만 구분이 가능함
@@ -300,7 +300,7 @@ COALESCE(SUM(p.price * u.units) / SUM(u.units), 0)
 
 # 가중평균 패턴 ⭐️
 
-```
+```txt
 가중평균 = SUM(가격 × 수량) / SUM(수량)
 
 단순 AVG 와 차이:
@@ -344,7 +344,7 @@ LEFT JOIN UnitsSold u
 GROUP BY p.product_id;
 ```
 
-```
+```txt
 두 방식 차이:
   MySQL:      COALESCE(ROUND(SUM/SUM, 2), 0)
   PostgreSQL: ::numeric 추가 → integer 나눗셈 방지
@@ -357,7 +357,7 @@ GROUP BY p.product_id;
 
 # CROSS JOIN — 모든 조합 만들기 ⭐️
 
-```
+```txt
 CROSS JOIN = 두 테이블의 모든 행 조합
 카테시안 곱 (Cartesian Product)
 
@@ -378,7 +378,7 @@ ORDER BY s.student_id, sub.subject_name;
 
 ## CROSS JOIN + LEFT JOIN 패턴 ⭐️
 
-```
+```txt
 문제:
   학생별 과목별 시험 응시 횟수 구하기
   시험 안 본 과목도 0 으로 표시해야 함
@@ -404,7 +404,7 @@ GROUP BY s.student_id, s.student_name, sub.subject_name
 ORDER BY s.student_id, sub.subject_name;
 ```
 
-```
+```txt
 왜 CROSS JOIN 이 필요한가:
   Students + Examinations 만 JOIN 하면
   Bob 이 Physics 를 안 봤으면 행 자체가 없음
@@ -447,7 +447,7 @@ ON 에 AND 조건 (WHERE 아님) ⭐️:
 | JOIN 결과 NULL → 기본값         | `COALESCE(컬럼, 0)`                                     |
 | 가중평균                       | `SUM(price*units) / SUM(units)`                       |
 
-```
+```txt
 WHERE 에 오른쪽 테이블 조건을 넣었을 때 일어나는 일은 항상 같음 — "NULL 행이 사라짐"
   그 사라짐이 "의도치 않은 버그" 면      → ON + AND 로 옮길 것
   그 사라짐(정확히는 "NULL 인 것만 남김") 이 "의도한 목적" 이면 → Anti-Join (IS NULL)

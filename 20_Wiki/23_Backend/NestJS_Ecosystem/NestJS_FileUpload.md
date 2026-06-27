@@ -76,7 +76,7 @@ flowchart TD
 
 # multipart/form-data 가 뭔가 ⭐️
 
-```
+```txt
 일반 JSON 요청:
   Content-Type: application/json
   { "title": "전시" }
@@ -109,7 +109,7 @@ uploadFile(@UploadedFile() file: Express.Multer.File) {
 }
 ```
 
-```
+```txt
 FileInterceptor('file') 의 'file' 의미:
   클라이언트가 보낸 form-data 에서 어떤 필드명을 파일로 읽을지 지정
 
@@ -244,7 +244,7 @@ if (!ALLOWED_MIME.includes(file.mimetype)) {
 }
 ```
 
-```
+```txt
 방법 1 (fileFilter):
   Multer 단계에서 차단 → 컨트롤러까지 안 옴
   콜백 기반이라 NestJS 스타일과 살짝 다름 (callback(error, accept))

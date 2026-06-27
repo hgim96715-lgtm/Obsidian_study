@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 좋은 커밋 메시지 = 왜 이 변경을 했는지 설명
 타입(type): 제목 / 본문 / 꼬리말 구조
 ```
@@ -26,7 +26,7 @@ related:
 
 # ① 기본 구조
 
-```
+```txt
 타입(스코프): 제목
 
 본문 (선택)
@@ -70,7 +70,7 @@ Closes #123
 
 # ③ 좋은 커밋 메시지 규칙
 
-```
+```txt
 제목 규칙:
   50자 이내
   첫 글자 대문자 (영어) 또는 한글
@@ -159,7 +159,7 @@ npm install --save-dev @commitlint/cli @commitlint/config-conventional husky
 }
 ```
 
-```
+```txt
 commitlint:
   커밋 시 메시지 형식 자동 검사
   규칙 어기면 커밋 거부

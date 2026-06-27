@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 ps aux  = 현재 프로세스 스냅샷 (정적)
 top     = 실시간 모니터링 (동적)
 htop    = top 의 예쁜 버전
@@ -31,7 +31,7 @@ kill    = 프로세스 종료
 
 # ① PID 개념
 
-```
+```txt
 PID = Process ID
   각 프로세스에 부여되는 고유 번호
   부팅 시 1번 (systemd) 부터 시작
@@ -71,7 +71,7 @@ ps aux --sort=-%mem | head -10
 
 ## ps aux 출력 해석
 
-```
+```txt
 USER    PID   %CPU  %MEM   VSZ    RSS   TTY  STAT  TIME  COMMAND
 root      1    0.0   0.1  168M   13M    ?    Ss   0:01  /sbin/init
 labex   482    0.0   0.0    0     0    pts/0  S   0:00  sleep 300
@@ -97,7 +97,7 @@ htop          # 더 예쁜 버전 (sudo apt install htop)
 
 ## top 단축키
 
-```
+```txt
 P   CPU 사용량 순 정렬 (기본값)
 M   메모리 사용량 순 정렬
 k   프로세스 종료 (PID 입력)
@@ -109,7 +109,7 @@ q   종료
 
 ## top 상단 영역 해석 ⭐️
 
-```
+```txt
 top - 10:30:00 up 5 days, 2:30,  1 user,  load average: 0.52, 0.41, 0.35
       ↑ 현재시각  ↑ 가동시간      ↑ 접속자   ↑ 1분    ↑ 5분   ↑ 15분 부하
 
@@ -124,7 +124,7 @@ MiB Mem:  7800 total,  3200 free,  3500 used,  1100 buff/cache
 
 ## Load Average 해석 ⭐️
 
-```
+```txt
 load average: 1분, 5분, 15분 평균 부하
 
 CPU 코어 수 확인:
@@ -182,7 +182,7 @@ pgrep -l nginx
 # 1234 nginx
 ```
 
-```
+```txt
 pgrep vs ps aux | grep:
   ps aux | grep nginx  → 출력이 길고 grep 자신도 포함됨
   pgrep nginx          → PID 숫자만 깔끔하게 출력
@@ -208,7 +208,7 @@ ps -p 200 -o pid,ppid,cmd
 # %mem  = 메모리 사용률
 ```
 
-```
+```txt
 종료 전 신원 확인 루틴:
   1. pgrep -f 스크립트명     → PID 확인
   2. ps -p PID -o pid,ppid,cmd → 정확한 대상인지 검증
@@ -230,7 +230,7 @@ ps aux | grep resource_hog.sh
 # grep 자신만 남아있으면 종료 성공
 ```
 
-```
+```txt
 ⚠️ pkill 주의사항:
   pkill python  → 실행 중인 모든 python 프로세스 종료!
   너무 광범위한 이름 사용 금지
@@ -242,7 +242,7 @@ ps aux | grep resource_hog.sh
 
 ## SIGTERM vs SIGKILL
 
-```
+```txt
 kill (SIGTERM):
   "정중하게 종료해달라" 요청
   프로세스가 정리 후 종료
@@ -265,7 +265,7 @@ kill -9 (SIGKILL):
 
 # ⑤ 좀비 프로세스 (Zombie)
 
-```
+```txt
 좀비 프로세스:
   자식 프로세스가 종료됐는데
   부모 프로세스가 종료 상태를 아직 읽지 않은 것

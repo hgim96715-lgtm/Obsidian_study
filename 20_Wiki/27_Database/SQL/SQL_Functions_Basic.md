@@ -15,7 +15,7 @@ related:
 ---
 # SQL_Functions_Basic — 기본 함수
 
-```
+```txt
 자주 쓰는 내장 함수 모음
 문자열 / 숫자 / 날짜 / NULL 처리
 ```
@@ -52,7 +52,7 @@ SUBSTRING('abcdef', 2, 3)  -- 'bcd'   2번째부터 3글자
 --                시작  길이
 ```
 
-```
+```txt
 SUBSTRING(문자열, 시작위치, 길이):
   시작위치는 1부터 (0 아님)
   길이 생략하면 끝까지
@@ -68,7 +68,7 @@ SUBSTR('abcdef', 2)        -- 'bcdef'   2번째부터 끝까지
 SUBSTR('abcdef', 2, 3)     -- 'bcd'    2번째부터 3글자
 ```
 
-```
+```txt
 SUBSTRING vs SUBSTR:
   동일한 기능 / 이름만 다름
   SUBSTRING → SQL 표준
@@ -90,7 +90,7 @@ UPPER(LEFT(name,1)) || LOWER(SUBSTRING(name,2))
 CONCAT('Hello', ' ', 'World')       -- 'Hello World'
 ```
 
-```
+```txt
 ||  PostgreSQL 문자열 연결 연산자
     NULL 이 하나라도 있으면 결과 NULL
 
@@ -127,7 +127,7 @@ FROM Users
 ORDER BY user_id;
 ```
 
-```
+```txt
 패턴 분석:
   LEFT(name, 1)         첫 글자 추출
   UPPER(...)            대문자로
@@ -163,7 +163,7 @@ LPAD('hi', 5, '*')      -- '***hi'   왼쪽을 * 로 채우기
 RPAD('hi', 5, '-')      -- 'hi---'   오른쪽을 - 로 채우기
 ```
 
-```
+```txt
 LPAD(문자열, 목표길이, 채울문자):
   문자열이 목표길이보다 짧으면 왼쪽에 채울문자 추가
   이미 목표길이 이상이면 그대로 반환
@@ -199,7 +199,7 @@ SUBSTRING_INDEX('a,b,c', ',', 2)        -- 'a,b'   앞에서 N개
 SUBSTRING_INDEX('a,b,c', ',', -1)       -- 'c'     뒤에서 1개
 ```
 
-```
+```txt
 SPLIT_PART(문자열, 구분자, N):
   PostgreSQL 전용
   N번째 조각 반환 (1부터 시작)
@@ -230,7 +230,7 @@ SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR ', ')
 FROM users;
 ```
 
-```
+```txt
 STRING_AGG(컬럼, 구분자):     PostgreSQL
 GROUP_CONCAT(컬럼 SEPARATOR): MySQL
 
@@ -252,7 +252,7 @@ ASCII('A')       -- 65    (PostgreSQL / MySQL 공통)
 ASCII('a')       -- 97
 ```
 
-```
+```txt
 주로 쓰는 곳:
   특수문자를 안전하게 삽입할 때
     CHR(10)  → 줄바꿈 (\n)
@@ -284,7 +284,7 @@ TRUNC(123.4567, 2)     -- 123.45  소수점 2자리 이하 버림
 TRUNC(123.4567, -1)    -- 120     1의 자리 이하 버림
 ```
 
-```
+```txt
 ROUND vs TRUNC:
   ROUND  반올림 포함
   TRUNC  그냥 잘라냄 (버림)
@@ -316,7 +316,7 @@ LEAST(10, 5, 8)         -- 5     여러 값 중 최솟값
 GREATEST(10, 5, 8)      -- 10    여러 값 중 최댓값
 ```
 
-```
+```txt
 LEAST / GREATEST:
   인자 여러 개 비교 (컬럼도 가능)
   LEAST(price, discount_price)  → 더 낮은 가격 선택
@@ -348,7 +348,7 @@ CAST(7 AS FLOAT) / 2     -- 3.5
 
 ## COALESCE
 
-```
+```txt
 COALESCE(값1, 값2, 값3, ...)
   왼쪽부터 순서대로 보고 처음으로 NULL 이 아닌 값 반환
   전부 NULL 이면 → NULL 반환
@@ -365,7 +365,7 @@ SELECT COALESCE(NULL, NULL);             -- NULL (전부 NULL 이면 NULL
 
 ## IFNULL — MySQL 전용
 
-```
+```txt
 IFNULL(값, NULL일때대체값)
 ```
 
@@ -376,7 +376,7 @@ IFNULL(NULL, 'default')         -- 'default'
 
 ## NULLIF — 같으면 NULL 로 (0 나눗셈 방지)
 
-```
+```txt
 NULLIF(값1, 값2)
   값1 = 값2  →  NULL 반환
   값1 ≠ 값2  →  값1 그대로 반환
@@ -415,7 +415,7 @@ NOW() / CURRENT_DATE / EXTRACT / TO_CHAR / DATE_TRUNC / INTERVAL / DATEDIFF
 |날짜 포맷|`DATE_FORMAT(col, '%Y-%m')`|`TO_CHAR(col, 'YYYY-MM')`|
 |문자열 집계|`GROUP_CONCAT(col)`|`STRING_AGG(col, ',')`|
 
-```
+```txt
 ⚠️ MySQL 에서 || 는 OR 연산자
    'hello' || 'world' = 0 (FALSE 로 처리)
    → MySQL 에서 문자열 연결은 반드시 CONCAT() 사용

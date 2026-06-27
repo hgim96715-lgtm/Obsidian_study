@@ -14,7 +14,7 @@ related:
 
 # AWS_Lightsail_Deploy — PM2 & nginx 배포
 
-```
+```txt
 PM2   → NestJS 앱을 백그라운드에서 안정적으로 실행
 nginx → 80 포트로 들어온 요청을 3001 로 프록시
 ```
@@ -25,7 +25,7 @@ nginx → 80 포트로 들어온 요청을 3001 로 프록시
 
 # PM2 — 백그라운드 프로세스 실행 ⭐️
 
-```
+```txt
 PM2 없이 실행하면:
   node dist/main.js  → 터미널 닫으면 앱 종료
   → 사용자가 접속 불가
@@ -67,7 +67,7 @@ pm2 monit                      # 실시간 CPU / 메모리 / 로그 모니터링
 
 ## pm2 monit — 실시간 모니터링 ⭐️
 
-```
+```txt
 pm2 monit 실행 시 보이는 것:
   CPU 사용률       앱이 CPU 를 얼마나 쓰는지
   Memory 사용량    앱이 메모리를 얼마나 쓰는지
@@ -92,7 +92,7 @@ pm2 save
 pm2 list
 ```
 
-```
+```txt
 pm2 list 에서 id 확인:
   id  name     status  cpu  mem
   0   netflix  online  0%   50mb
@@ -104,7 +104,7 @@ pm2 restart netflix --name new-name 처럼 이름으로도 가능
   안 하면 재부팅 시 이전 이름으로 돌아옴
 ```
 
-```
+```txt
 코드 업데이트 후 재배포 순서:
   git pull origin main
   pnpm build
@@ -123,7 +123,7 @@ pm2 startup
 # → 출력된 명령어를 복사해서 실행 (sudo ... 형태)
 ```
 
-```
+```txt
 pm2 startup 실행 후 출력되는 명령어를 그대로 복사·실행
 그래야 서버 재부팅 후에도 앱이 자동으로 올라옴
 ```
@@ -134,7 +134,7 @@ pm2 startup 실행 후 출력되는 명령어를 그대로 복사·실행
 
 # nginx — 리버스 프록시 설정 ⭐️
 
-```
+```txt
 왜 nginx 를 쓰나:
   NestJS 는 3001 포트에서 실행
   사용자는 http://IP (80 포트) 로 접속
@@ -191,7 +191,7 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-```
+```txt
 proxy_pass http://localhost:3001:
   80 으로 들어온 요청을 3001 로 전달
 
@@ -206,7 +206,7 @@ Firewall 에서 80 포트 열려있는지 확인
 
 ## nginx 설정 후 Postman 환경 변수 업데이트
 
-```
+```txt
 host: http://43.202.2.225
      ↑ :3001 없이 80 포트로 접속
 ```
@@ -217,7 +217,7 @@ host: http://43.202.2.225
 
 # 리소스 삭제 ⭐️
 
-```
+```txt
 Lightsail 은 월 고정 요금
 사용하지 않는 리소스는 삭제해야 비용 발생 안 함
 
@@ -230,7 +230,7 @@ Lightsail 은 월 고정 요금
 
 ### 인스턴스 삭제
 
-```
+```txt
 Lightsail 콘솔 → Instances
 → 인스턴스 오른쪽 점 3개 메뉴 → Delete
 → "Delete" 입력 후 확인
@@ -241,7 +241,7 @@ Lightsail 콘솔 → Instances
 
 ### Database 삭제
 
-```
+```txt
 Lightsail 콘솔 → Databases
 → DB 클릭 → Delete database
 → 스냅샷 생성 여부 선택 후 삭제
@@ -251,7 +251,7 @@ Lightsail 콘솔 → Databases
 
 ### Static IP 삭제
 
-```
+```txt
 Lightsail 콘솔 → Networking → Static IPs
 → Static IP 가 인스턴스에 연결돼 있으면 먼저 Detach
 → Delete
@@ -266,7 +266,7 @@ Lightsail 콘솔 → Networking → Static IPs
 
 # 전체 배포 흐름 정리
 
-```
+```txt
 git clone  →  pnpm i  →  nano .env
     ↓
 pnpm build

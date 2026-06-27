@@ -14,7 +14,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 모노레포 = 여러 독립적인 패키지(앱/라이브러리)를 하나의 Git 저장소에서 관리하는 방식
 pnpm workspace = pnpm 이 그 여러 패키지를 하나의 의존성 트리(lockfile 1개)로 묶어 관리해주는 기능
 
@@ -35,7 +35,7 @@ pnpm workspace = pnpm 이 그 여러 패키지를 하나의 의존성 트리(loc
 |설정 관리(eslint, tsconfig)|각 저장소마다 따로|루트에서 한 번 관리|
 |저장소 크기/빌드 시간|작음|커질수록 빌드/CI 시간 관리 필요|
 
-```
+```txt
 이 프로젝트(apps/web=Next.js, apps/api=NestJS)처럼 프론트와 백엔드가 같은 Prisma 스키마/타입을
 공유해야 하는 구조라면, 모노레포가 "타입을 항상 최신으로 동기화" 하는 데 특히 유리함
 ```
@@ -46,7 +46,7 @@ pnpm workspace = pnpm 이 그 여러 패키지를 하나의 의존성 트리(loc
 
 # 기본 디렉토리 구조
 
-```
+```txt
 my-project/
 ├── apps/
 │   ├── web/              Next.js
@@ -68,7 +68,7 @@ packages:
   - 'packages/*'
 ```
 
-```
+```txt
 packages: 에 적힌 glob 패턴에 해당하는 폴더들을 "워크스페이스 멤버" 로 인식
 각 멤버는 자기만의 package.json 을 가지지만, 루트의 pnpm-lock.yaml 하나로 의존성을 통합 관리
 → 이게 "진짜" 모노레포 설정 — 워크스페이스가 어디로 구성되는지를 정의하는 부분
@@ -81,14 +81,14 @@ pnpm add @prisma/client --filter api    # api 패키지에만 설치
 pnpm --filter api exec prisma generate  # api 패키지 안에서만 명령 실행
 ```
 
-```
+```txt
 cd 로 그 폴더에 들어가서 직접 실행해도 결과는 동일 — --filter 는 루트에서 안 옮기고 실행하고 싶을 때 편의
 (자세한 비교는 [[NestJS_Prisma_Monorepo]] 참고)
 ```
 
 ## ⚠️ 중첩 Git 저장소 — `nest new`/`create-next-app` 을 모노레포 안에서 실행할 때 ⭐️⭐️
 
-```
+```txt
 nest new / create-next-app 은 기본적으로 그 폴더에서 git init 까지 자동으로 함
 모노레포는 이미 루트에 .git 이 하나 있는 구조인데, 그 하위 폴더(apps/api 등) 안에 또 .git 이 생기면
 "저장소 안에 또 다른 저장소"(nested repo) 가 되어버림
@@ -102,7 +102,7 @@ rm -rf apps/api/.git
 rm -rf apps/web/.git
 ```
 
-```
+```txt
 이미 루트에 .git 이 있는 모노레포라면, 하위 폴더에는 별도 .git 이 있으면 안 됨 — 항상 확인할 것
 ```
 
@@ -131,7 +131,7 @@ rm -rf apps/web/.git
 
 ## 스크립트 이름 짓는 법 — `<동작>:<패키지>` 관례 ⭐️⭐️
 
-```
+```txt
 콜론(:) 으로 "무엇을" 과 "어디서" 를 구분해서 이름 붙이는 게 흔한 관례
 
   dev:api    dev:web      개발 서버 실행
@@ -150,7 +150,7 @@ rm -rf apps/web/.git
 }
 ```
 
-```
+```txt
 이렇게 나누는 이유:
   api/web 각각의 실제 명령(start:dev, dev 등)은 패키지마다 이름이 다를 수 있음
   (NestJS 는 보통 start:dev, Next.js 는 보통 dev)
@@ -164,7 +164,7 @@ rm -rf apps/web/.git
 |`concurrently` 패키지 (가장 흔함)|`"dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\""`|
 |`pnpm -r --parallel`|각 패키지의 스크립트 이름이 전부 같을 때만 가능 (예: 전부 `dev` 로 통일)|
 
-```
+```txt
 스크립트 이름이 패키지마다 다르면(start:dev vs dev) -r --parallel 로 한 번에 못 묶음
 → 이럴 때는 concurrently 로 직접 두 명령을 나열하는 게 일반적
 ```
@@ -182,7 +182,7 @@ allowBuilds:
   prisma: true
 ```
 
-```
+```txt
 pnpm-workspace.yaml 은 "워크스페이스 구성"(packages) 뿐 아니라, pnpm 자체의 일반 설정도 같이 들어가는 파일
 (pnpm 11부터 .npmrc 의 비인증 설정들이 전부 이 파일로 옮겨졌기 때문)
 → allowBuilds 는 모노레포 여부와 무관 — 단일 패키지 프로젝트에서도 똑같이 필요한 설정
@@ -191,7 +191,7 @@ pnpm-workspace.yaml 은 "워크스페이스 구성"(packages) 뿐 아니라, pnp
 
 ## 왜 필요한가 — 공급망 공격(supply chain attack) 방어
 
-```
+```txt
 pnpm 10부터 의존성의 postinstall/preinstall 같은 빌드 스크립트를 기본적으로 전부 차단함
 이전엔 패키지를 설치하는 순간 그 패키지의 스크립트가 자동 실행됐음
   → 패키지가 해킹당하면(레지스트리 계정 탈취 등) 설치만으로 악성 코드가 그대로 실행되는 위험이 있었음
@@ -203,7 +203,7 @@ pnpm 10부터 의존성의 postinstall/preinstall 같은 빌드 스크립트를 
 |`true`|이 패키지의 빌드 스크립트 실행 허용|
 |`false`|차단 (목록에 없는 패키지의 기본 동작과 동일)|
 
-```
+```txt
 Prisma(@prisma/client, @prisma/engines, prisma)가 여기 들어가는 이유:
   설치 시 자신의 바이너리(엔진)를 내려받는 postinstall 스크립트를 실제로 사용함
   → 허용 안 해두면 그 스크립트가 막혀서 Prisma 자체가 정상 동작하지 않음
@@ -213,7 +213,7 @@ Prisma(@prisma/client, @prisma/engines, prisma)가 여기 들어가는 이유:
   → 설치 중 보류된 패키지를 하나씩 보여주고 승인/거부 선택 → 결과가 allowBuilds 에 자동 기록됨
 ```
 
-```
+```txt
 ⚠️ 목록에 없는 패키지는 기본적으로 차단되고, strictDepBuilds(기본값 true)로 설치 자체가 에러로 멈춤
    "설치했는데 뭔가 안 된다" 싶으면 pnpm install 출력에 "ignored builds" 경고가 있는지 먼저 확인
 ```
@@ -224,7 +224,7 @@ Prisma(@prisma/client, @prisma/engines, prisma)가 여기 들어가는 이유:
 
 # 한눈에
 
-```
+```txt
 모노레포 = 여러 패키지를 한 저장소에서 관리, pnpm workspace = 그걸 하나의 의존성 트리로 묶음
 
 packages: 필드     → 진짜 모노레포 설정 (워크스페이스 멤버가 어디 있는지)

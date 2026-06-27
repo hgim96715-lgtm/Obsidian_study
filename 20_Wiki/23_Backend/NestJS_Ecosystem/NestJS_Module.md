@@ -17,7 +17,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 모듈 = 관련된 Controller / Service 를 하나로 묶는 단위
 기능별로 모듈을 분리해서 코드를 구조화
 ```
@@ -58,7 +58,7 @@ related:
 export class AppModule {}
 ```
 
-```
+```txt
 AppModule 의 역할: 앱 전체의 중앙 모듈(루트) — 기능별 모듈을 imports 에 등록해서 조합
 main.ts 에서 AppModule 기반으로 앱 시작
 
@@ -71,7 +71,7 @@ main.ts 에서 AppModule 기반으로 앱 시작
 
 # 기능별 모듈 분리 ⭐️
 
-```
+```txt
 movie/
   movie.module.ts      모듈
   movie.controller.ts  컨트롤러
@@ -96,7 +96,7 @@ export class MovieModule {}
 
 # imports / exports 헷갈릴 때 ⭐️⭐️
 
-```
+```txt
 "UserService 에서 MovieService 를 쓰고 싶다" — 3단계
 ```
 
@@ -113,7 +113,7 @@ export class UserModule {}
 constructor(private movieService: MovieService) {}
 ```
 
-```
+```txt
 ⚠️ 자주 하는 실수: exports 빠뜨리면 → "Nest can't resolve dependencies of UserService"
    → MovieModule 에 exports: [MovieService] 반드시 추가
 ```
@@ -124,7 +124,7 @@ constructor(private movieService: MovieService) {}
 
 # @Global() — 모듈을 전역으로 ⭐️⭐️⭐️
 
-```
+```txt
 imports/exports 방식은 "쓰려는 모듈마다" 매번 명시적으로 import 해야 함
 같은 Provider 를 거의 모든 모듈이 공통으로 써야 한다면(DB 연결, 공통 설정 등) 이게 반복적인 보일러플레이트가 됨
 → @Global() 을 붙이면 한 번만 import 해도 그 이후 모든 모듈에서 바로 주입 가능
@@ -141,7 +141,7 @@ import { Global, Module } from '@nestjs/common';
 export class DatabaseModule {}
 ```
 
-```
+```txt
 ⚠️ @Global() 을 붙여도 그 모듈 자체는 어딘가에 한 번은 import 해야 함(보통 AppModule)
    "import 가 전혀 필요 없다" 가 아니라 "한 번만 하면, 이후엔 전역 적용" 이라는 뜻
 
@@ -154,7 +154,7 @@ ConfigModule.forRoot({ isGlobal: true }) 의 isGlobal 옵션도 내부적으로 
 |매번 명시적으로 import|"이 모듈이 무엇에 의존하는지" 가 import 문에 그대로 드러남|기능 모듈이 늘수록 반복되는 보일러플레이트|
 |`@Global()`|반복 제거, 거의 모든 모듈이 쓰는 것에 적합|어떤 모듈이 실제로 그 Provider 를 쓰는지 import 문만 봐서는 알 수 없음|
 
-```
+```txt
 판단 기준: 거의 모든 모듈이 필요로 하는가(DB 연결, 전역 설정 등) → @Global() 후보
 일부 모듈만 쓰는 거라면 → 명시적 import 로 의존 관계를 드러내는 게 더 명확함
 ```
@@ -165,7 +165,7 @@ ConfigModule.forRoot({ isGlobal: true }) 의 isGlobal 옵션도 내부적으로 
 
 # Dynamic Module — forRoot / forRootAsync 패턴 ⭐️⭐️⭐️
 
-```
+```txt
 ConfigModule.forRoot({...}), TypeOrmModule.forRootAsync({...}) 처럼
 "모듈 이름.forRoot(옵션)" 형태로 쓰는 것들을 본 적 있을 텐데, 이게 일반 모듈과 뭐가 다른가
 ```
@@ -212,7 +212,7 @@ TypeOrmModule.forRootAsync({
 })
 ```
 
-```
+```txt
 forRoot 에는 그냥 고정된 객체를 바로 넘길 수 있지만,
 forRootAsync 는 useFactory(다른 Provider 를 inject 받아 옵션을 "계산" 해서 반환)를 쓸 수 있다는 게 핵심 차이
 → ConfigService 처럼 "어떤 값이 들어올지 런타임에 결정되는" 설정이 필요할 때 forRootAsync 사용
@@ -239,7 +239,7 @@ forRootAsync 는 useFactory(다른 Provider 를 inject 받아 옵션을 "계산"
 nest g resource movie
 ```
 
-```
+```txt
 transport layer 선택 → REST API
 CRUD entry points 생성? → Y(findAll/findOne/create/update/remove 자동) / N(빈 컨트롤러·서비스만)
 
@@ -253,7 +253,7 @@ CRUD entry points 생성? → Y(findAll/findOne/create/update/remove 자동) / N
 
 # 커스텀 공통 모듈 ⭐️
 
-```
+```txt
 여러 모듈에서 공통으로 쓰는 로직을 CommonModule 로 분리 (예: 페이지네이션, 파일 처리, 유틸리티)
 ```
 
@@ -295,7 +295,7 @@ export class MovieService {
 
 # ConditionalModule — 조건부 모듈 등록 ⭐️
 
-```
+```txt
 환경변수에 따라 특정 모듈을 켜거나 끄는 기능
 사용 사례: Worker 서버 / API 서버를 같은 코드베이스에서 분리 실행
   TYPE=worker 면 WorkerModule 만 실행, 아니면 일반 서버로 실행
@@ -320,7 +320,7 @@ TYPE=worker node dist/main.js   # WorkerModule 등록됨
 node dist/main.js               # WorkerModule 스킵
 ```
 
-```
+```txt
 왜 쓰나: 같은 코드에서 역할을 환경변수로 분리 — API 서버와 Worker 서버를 별도로 띄울 때 유용
   (Queue Consumer 를 Worker 서버에서만 실행하는 식)
 ```
@@ -331,7 +331,7 @@ node dist/main.js               # WorkerModule 스킵
 
 # 전체 구조 예시
 
-```
+```txt
 src/
 ├── app.module.ts            루트 모듈 (중앙 조립)
 ├── common/
@@ -354,7 +354,7 @@ src/
 
 # 한눈에
 
-```
+```txt
 @Module 의 4 필드: imports(가져오기) / exports(공개) / controllers / providers
 exports 빠뜨림 = 가장 흔한 DI 에러 ("can't resolve dependencies")
 

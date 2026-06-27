@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 터미널 = 리눅스와 대화하는 창구
 명령어 입력 → 엔터 → 결과 출력
 가장 기본이 되는 명령어들부터 익히자
@@ -55,7 +55,7 @@ echo -e "줄1\n줄2\n줄3"
 # 줄3
 ```
 
-```
+```txt
 언제 쓰나:
   쉘 스크립트에서 진행 상황 출력
   echo "백업 시작..." → 사용자에게 안내
@@ -112,7 +112,7 @@ tar -czf log_$(date +%Y%m%d_%H%M%S).tar.gz /var/log/
 0 2 * * * tar -czf /backup/$(date +\%Y\%m\%d).tar.gz /data/
 ```
 
-```
+```txt
 서버 시간 확인이 중요한 이유:
   로그 기록 시간이 꼬임
   cron 예약 작업이 엉뚱한 시간에 실행
@@ -156,7 +156,7 @@ B=3
 expr $A + $B  # 13
 ```
 
-```
+```txt
 ⚠️ 공백 필수:
   expr 5+3   → 에러 (5+3 을 문자열로 인식)
   expr 5 + 3 → 8 ✅
@@ -189,7 +189,7 @@ RESULT=$((A + B))
 echo $RESULT       # 13
 ```
 
-```
+```txt
 expr vs $(( )):
   expr 5 + 3     → 8  (외부 명령어)
   $((5 + 3))     → 8  (쉘 내장 / 더 빠름)
@@ -212,7 +212,7 @@ clear
 Ctrl + L
 ```
 
-```
+```txt
 실제 데이터 삭제 아님
 화면을 위로 밀어서 시야 정리
 스크롤 올리면 이전 내용 그대로
@@ -238,7 +238,7 @@ figlet -f slant "Linux"
 ls /usr/share/figlet/
 ```
 
-```
+```txt
 실무 활용:
   서버 접속 시 경고문을 크게 표시
   "PRODUCTION SERVER" 같은 안내
@@ -264,7 +264,7 @@ ls /etc/n[Tab][Tab]
 # network  nginx  ...
 ```
 
-```
+```txt
 Tab 은 가장 중요한 단축키
 오타 방지 + 긴 경로 빠르게 입력
 습관처럼 쓸 것
@@ -307,7 +307,7 @@ type cp       # cp is /usr/bin/cp       ← 외부 명령어 (경로 출력)
 type grep     # grep is /usr/bin/grep
 ```
 
-```
+```txt
 명령어 3가지 종류:
   내장 명령어 (built-in): 쉘 프로그램 안에 내장
     cd / echo / exit / pwd 등
@@ -338,7 +338,7 @@ ls --help | less
 
 ## --help 출력 읽는 법
 
-```
+```txt
 ls [OPTION]... [FILE]...
     ↑             ↑
   선택 사항     선택 사항
@@ -368,7 +368,7 @@ man grep
 |`N`|이전 검색 결과|
 |`q`|종료 ← 반드시!|
 
-```
+```txt
 --help vs man:
   --help  간단한 옵션 목록 → 빠르게 확인
   man     상세 공식 설명서 → 깊게 이해
@@ -387,7 +387,7 @@ apropos file | grep create   # 파일 + create 관련만
 apropos copy | grep -i dir   # 복사 + 디렉토리 관련만
 ```
 
-```
+```txt
 apropos 동작 원리:
   man 페이지의 이름 + 설명에서 키워드 검색
   관련 명령어 목록 출력
@@ -398,7 +398,7 @@ apropos 동작 원리:
   결과가 너무 많으면 | grep 으로 좁히기
 ```
 
-```
+```txt
 정리:
   type 명령어     → 이 명령어가 뭔지 확인
   --help         → 이 명령어 어떻게 쓰나 (빠른 참고)

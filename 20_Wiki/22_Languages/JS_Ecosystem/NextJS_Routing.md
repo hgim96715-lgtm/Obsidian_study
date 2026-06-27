@@ -64,7 +64,7 @@ flowchart TB
 |프리페치|자동으로 됨 (뷰포트에 보이면 미리 받아둠)|없음 — push 호출 시점에 그제서야 이동|
 |예시|`<Link href="/posts/1">제목</Link>`|`router.push('/posts/1')`|
 
-```
+```txt
 헷갈리지 않는 기준 한 줄: "사용자가 직접 클릭하는 링크"면 Link, "내 코드가 판단해서 보내는 거"면 useRouter
 ```
 
@@ -88,7 +88,7 @@ const router = useRouter();
 |`router.forward()`|히스토리에서 한 단계 앞으로|
 |`router.refresh()`|클라이언트 상태는 유지한 채, 현재 경로의 서버 데이터만 다시 받아옴|
 
-```
+```txt
 push vs replace 고르는 기준:
   로그인 성공 후 메인으로 보낼 때 → replace (로그인 페이지로 다시 뒤로가기 되면 이상함)
   글 목록 → 글 상세처럼 자연스러운 탐색 흐름 → push (뒤로가기로 목록에 돌아가는 게 자연스러움)
@@ -105,7 +105,7 @@ import { usePathname } from 'next/navigation';
 const pathname = usePathname(); // 예: '/posts/1' — 쿼리스트링은 안 포함됨
 ```
 
-```
+```txt
 usePathname()이 반환하는 값이 바뀌면(=경로가 바뀌면) 그 컴포넌트는 다시 렌더링됨
 → "경로가 바뀔 때마다 뭔가 다시 해야 한다"는 로직을 만들 때 핵심이 되는 훅
 ```
@@ -122,7 +122,7 @@ const searchParams = useSearchParams();
 const callbackUrl = searchParams.get('callbackUrl'); // 없으면 null
 ```
 
-```
+```txt
 usePathname()은 경로(/login)만, useSearchParams()는 그 뒤의 ?key=value 부분만 다룸
   '/login?callbackUrl=/posts' 라면 pathname = '/login', searchParams.get('callbackUrl') = '/posts'
 ```
@@ -145,7 +145,7 @@ useEffect(() => {
 }, [pathname]);
 ```
 
-```
+```txt
 이 패턴이 필요한 이유:
   로그인 토큰은 localStorage에 있음 — React state가 아니라서, 토큰이 바뀌어도
   컴포넌트가 자동으로 다시 렌더링되지 않음 (자세한 토큰 저장 방식은 [[NextJS_TokenStorage]] 참고)
@@ -181,7 +181,7 @@ export default async function Page() {
 |동작 방식|렌더링을 멈추고 즉시 이동시킴|이미 렌더링된 화면에서 이동을 "요청"함|
 |"use client" 컴포넌트에서 직접 쓸 수 있나|아니요|예 (원래 그 자리)|
 
-```
+```txt
 헷갈리지 않는 기준: 지금 이 코드가 서버에서 도는가(컴포넌트 자체가 async 서버 컴포넌트, 또는
 "use server" 함수) → redirect() / 지금 이 코드가 브라우저에서 도는가('use client', 이벤트 핸들러) → router.push()
 ```
@@ -190,7 +190,7 @@ export default async function Page() {
 
 # ⚠️ useCallback은 라우팅과 무관 — 헷갈리기 쉬운 이름
 
-```
+```txt
 useCallback은 React의 일반 훅임 — "함수를 매 렌더마다 새로 만들지 않고 재사용"하는
 성능 최적화용 훅일 뿐, 경로 이동이나 페이지 전환과는 아무 관련이 없음
 
@@ -204,7 +204,7 @@ const handleClick = useCallback(() => { ... }, [의존성]);
 
 # callbackUrl / redirectTo / next — "돌아갈 경로"를 기억해두는 패턴 ⭐️⭐️⭐️
 
-```
+```txt
 redirect()나 router.push() 같은 "지금 당장 이동시키는 함수"와는 다른 층위의 개념임
 callbackUrl / redirectTo / next 는 Next.js가 제공하는 API가 아니라,
 "로그인 같은 중간 단계가 끝나면 어디로 돌려보낼지"를 기억해두기 위한 관습적인 파라미터 이름일 뿐임
@@ -224,7 +224,7 @@ const callbackUrl = searchParams.get('callbackUrl') ?? '/';
 router.replace(callbackUrl);
 ```
 
-```
+```txt
 encodeURIComponent(pathname)을 같이 쓰는 이유는 Next.js 라우팅 자체와는 무관한 순수 JS 주제라
 [[JS_URL_Encoding]] 참고 — 이 노트는 "왜 경로를 쿼리스트링에 실어 보내는가"에만 집중
 ```
@@ -237,7 +237,7 @@ encodeURIComponent(pathname)을 같이 쓰는 이유는 Next.js 라우팅 자체
 | `router.back()`               | 브라우저 히스토리에서 그냥 한 단계 뒤로          | "어디로" 가는지 모름 — 새로고침했거나 직접 링크로 들어온 경우 의도와 다른 곳으로 갈 수 있음 |
 | `callbackUrl`/`redirectTo` 패턴 | "정확히 이 경로로 돌아가라"를 문자열로 명시적으로 기억 | 쿼리스트링에 경로가 노출됨, 직접 코드로 구현해야 함                          |
 
-```
+```txt
 "로그인 끝나고 원래 보려던 페이지로" 처럼 목적지가 명확해야 하는 경우엔
 router.back()보다 callbackUrl 패턴이 훨씬 안정적임
 ```

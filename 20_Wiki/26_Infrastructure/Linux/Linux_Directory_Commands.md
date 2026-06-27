@@ -21,7 +21,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 mkdir  → 디렉토리 생성
 toudh  → 빈 파일 생성
 cd     → 디렉토리 이동
@@ -107,7 +107,7 @@ mkdir -pvm 750 ~/project/drafts ~/project/references
 
 ## 기타 옵션
 
-```
+```txt
 -Z                SELinux 보안 컨텍스트를 기본값으로 설정
 --context[=CTX]   SELinux / SMACK 보안 컨텍스트를 CTX 로 설정
 --help            도움말 메시지 출력
@@ -135,7 +135,7 @@ touch existing_file.txt
 ls -l hello.txt
 ```
 
-```
+```txt
 touch 두 가지 역할:
   파일 없음 → 빈 파일 새로 생성
   파일 있음 → 수정 시간 업데이트
@@ -145,7 +145,7 @@ touch 두 가지 역할:
 
 ## 중괄호 확장 — 한 번에 여러 파일/폴더 ⭐️
 
-```
+```txt
 중괄호 확장 = 쉘이 자동으로 패턴을 펼쳐주는 기능
 타이핑 줄이고 실수 방지
 ```
@@ -168,7 +168,7 @@ mkdir -p project/{src,config,docs,logs}
 # → mkdir -p project/src project/config project/docs project/logs
 ```
 
-```
+```txt
 ⚠️ 주의:
   {1..5}  숫자 사이에 공백 없어야 함
   {a, b}  ❌ 공백 있으면 안 됨
@@ -264,7 +264,7 @@ ls -lS          # 큰 파일이 위 (기본)
 ls -lSr         # 작은 파일이 위
 ```
 
-```
+```txt
 -r 은 단독으로 안 쓰고 정렬 옵션과 조합
 
 ls -ltr 실무 활용:
@@ -295,7 +295,7 @@ ls -l */                # 현재 위치의 모든 하위 디렉토리 내용
 ls -l src/ logs/ test/  # 특정 여러 디렉토리 동시 확인
 ```
 
-```
+```txt
 ⚠️ 읽기 권한이 없으면:
   ls: cannot open directory 'private/': Permission denied
   → Linux 보안 모델: 허용된 디렉토리만 접근 가능
@@ -314,7 +314,7 @@ ls --color=always  # 항상 색상 (파이프·파일 출력에도 색상 포함
 ls --color=never   # 색상 없음 (순수 텍스트만)
 ```
 
-```
+```txt
 auto (기본):
   터미널에 직접 출력 → 색상 표시
   파이프 / 파일로 보낼 때 → 색상 코드 제거
@@ -347,7 +347,7 @@ ls -ld .        # 현재 디렉토리 자체 정보
 ls -ld /etc     # /etc 디렉토리 자체 정보
 ```
 
-```
+```txt
 ls -l   디렉토리 안의 파일 목록
 ls -ld  디렉토리 자체의 권한/소유자 정보
         → mkdir -m 으로 설정한 권한 확인 시 사용
@@ -365,7 +365,7 @@ ls -R test_dir
 # subfile1.txt
 ```
 
-```
+```txt
 tree 없는 환경에서 하위 구조 확인 시 대체 사용
 tree 가 있으면 tree 쪽이 더 보기 좋음
 ```
@@ -399,7 +399,7 @@ pwd -L        # 논리적 경로 (심볼릭 링크 경로 그대로)
 pwd -P        # 물리적 경로 (실제 파일시스템 위치)
 ```
 
-```
+```txt
 -L vs -P:
   심볼릭 링크가 없으면 → 둘 다 동일한 결과
 
@@ -456,7 +456,7 @@ tree -p ~/project
 
 ## tree 출력 읽는 법
 
-```
+```txt
 phoenix_project/
 ├── config/           ← ├── 중간 항목
 │   ├── config.json
@@ -467,7 +467,7 @@ phoenix_project/
     └── main_app.py
 ```
 
-```
+```txt
 기호:
   ├──  다음 항목이 더 있음
   └──  마지막 항목
@@ -475,7 +475,7 @@ phoenix_project/
 ```
 
 
-```
+```txt
 tree vs ls -R:
   tree      그래픽 트리 형태 / 보기 좋음 / 설치 필요
   ls -R     기본 내장 / 항상 사용 가능 / 덜 직관적

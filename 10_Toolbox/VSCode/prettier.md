@@ -103,7 +103,7 @@ cd apps/api && pnpm format
 
 ## 제외 경로 (`.prettierignore`)
 
-```
+```txt
 node_modules
 .next
 dist

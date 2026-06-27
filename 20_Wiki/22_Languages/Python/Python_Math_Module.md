@@ -41,7 +41,7 @@ total_efficiency = math.prod(rates)
 # 결과: 0.684  (0.9 * 0.8 * 0.95)
 ```
 
-```
+```txt
 활용:
 - 장비 가동률 누적 계산
 - 확률 누적 계산
@@ -74,7 +74,7 @@ math.floor(x)  # → -4  (0 반대 방향으로 내림)
 math.trunc(x)  # → -3  (0 쪽으로 버림)
 ```
 
-```
+```txt
 ceil  vs  trunc:
 양수일 땐 동일하게 보임
 음수일 때 차이가 생김 → -3.7 기준
@@ -103,7 +103,7 @@ math.lcm(4, 6)   # → 12
 
 ## 버전 주의 ⭐️
 
-```
+```txt
 math.gcd  → Python 3.5+ (거의 어디서나 사용 가능)
 math.lcm  → Python 3.9+ (구버전 환경에서 없을 수 있음)
 
@@ -126,7 +126,7 @@ def solution(n, m):
     return [ma_gc, ma_lc]
 ```
 
-```
+```txt
 왜 (n * m) // gcd 인가:
   두 수의 최소공배수 공식:
   LCM(a, b) = (a × b) / GCD(a, b)
@@ -154,7 +154,7 @@ print(gcd(12, 8))   # 4
 print(lcm(4, 6))    # 12
 ```
 
-```
+```txt
 유클리드 호제법 원리:
   gcd(12, 8):
     a=12, b=8  → a=8,  b=12%8=4
@@ -225,7 +225,7 @@ math.factorial(0)  # → 1    (0! = 1 by definition)
 math.factorial(1)  # → 1
 ```
 
-```
+```txt
 활용:
 - 순열 계산: nPr = n! / (n-r)!
 - 조합 계산: nCr = n! / (r! * (n-r)!)
@@ -256,7 +256,7 @@ math.comb(5, 5)   # → 1
 math.comb(45, 6)  # → 8,145,060
 ```
 
-```
+```txt
 math.comb vs math.factorial 로 직접 계산:
 math.comb(10, 3)                              # 간단 ✅
 math.factorial(10) // (math.factorial(3) * math.factorial(7))  # 장황 ❌
@@ -280,7 +280,7 @@ math.perm(5, 5)   # → 120  (= 5!)
 math.perm(5)      # → 120  (r 생략 시 n! 과 동일)
 ```
 
-```
+```txt
 조합 vs 순열:
 math.comb(5, 2) = 10   → {A,B} 와 {B,A} 를 같은 것으로 봄
 math.perm(5, 2) = 20   → {A,B} 와 {B,A} 를 다른 것으로 봄
@@ -301,14 +301,14 @@ math.sqrt(16)   # → 4.0
 math.sqrt(2)    # → 1.4142135623730951
 ```
 
-```
+```txt
 주의: 결과가 float 로 반환됨
 정수로 필요하면 int(math.sqrt(x)) 또는 x ** 0.5 사용
 ```
 
 ## 완전 제곱수 판별 ⭐️
 
-```
+```txt
 완전 제곱수 = 어떤 정수의 제곱인 수
   1(1²), 4(2²), 9(3²), 16(4²), 25(5²) ...
   제곱근이 정수로 딱 떨어지면 완전 제곱수
@@ -331,7 +331,7 @@ int(i**0.5) == i**0.5       # True  (4 == 4.0)
 int(i**0.5) ** 2 == i       # True  (4**2 == 16)
 ```
 
-```
+```txt
 i = 15 일 때 (완전 제곱수 아님):
   math.sqrt(15) % 1         → 0.872... % 1 ≠ 0  → False
   int(15**0.5) == 15**0.5   → 3 == 3.872...     → False
@@ -373,7 +373,7 @@ def solution(left, right):
 
 ## 방법 3이 왜 가장 안전한가 ⭐️
 
-```
+```txt
 부동소수점 오차 문제:
   파이썬에서 큰 수의 제곱근을 float 로 계산하면
   미세한 오차가 생길 수 있음
@@ -414,7 +414,7 @@ def solution(left, right):
     return answer
 ```
 
-```
+```txt
 코테 선택 기준:
   빠르게 짜기   → int(i**0.5) == i**0.5  (방법 2)
   안전하게 짜기 → int(i**0.5) ** 2 == i  (방법 3)
@@ -482,7 +482,7 @@ def count_divisors(n):
 # n=9:   j=1(1,9) j=3(3*3==9)          → count=3
 ```
 
-```
+```txt
 j * j == n 이 왜 필요한가:
   n=9, j=3: 3*3=9 (완전제곱수)
   → 3의 쌍은 3 자신 (9//3=3)

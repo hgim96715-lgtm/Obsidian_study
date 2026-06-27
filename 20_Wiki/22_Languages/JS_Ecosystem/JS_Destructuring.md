@@ -15,7 +15,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 배열/객체에서 값을 꺼내 변수에 바로 담는 문법
 
 const { title, genre } = movie
@@ -38,7 +38,7 @@ const genre = movie.genre;
 const { id, title, genre } = movie;
 ```
 
-```
+```txt
 구조분해가 좋은 이유:
   변수 선언이 짧아짐 (movie. 반복 제거)
   필요한 값만 명시적으로 꺼냄 → 코드 읽기 쉬움
@@ -89,7 +89,7 @@ const { title, year = 2024 } = movie;
 const { year: releaseYear = 2024 } = movie;
 ```
 
-```
+```txt
 기본값이 적용되는 조건:
   속성이 undefined 일 때만 적용
   null 은 기본값 적용 안 됨 (null 그대로 들어옴)
@@ -116,7 +116,7 @@ async function updateMovie(id: number, body: UpdateMovieDto) {
 }
 ```
 
-```
+```txt
 ...rest 규칙:
   반드시 마지막에 위치해야 함
   const { a, ...rest, b } = obj;  ❌ 에러
@@ -177,7 +177,7 @@ let x = 1, y = 2;
 // x = 2, y = 1
 ```
 
-```
+```txt
 객체 구조분해 vs 배열 구조분해:
   객체  { id, title }      → 속성 이름으로 매칭 (순서 무관)
   배열  [first, second]    → 위치(인덱스)로 매칭 (순서 중요)
@@ -251,7 +251,7 @@ function MovieCard({ title, genre, onDelete }: MovieCardProps) {
 }
 ```
 
-```
+```txt
 함수 매개변수 구조분해를 쓰는 이유:
   함수 본문에서 obj.xxx 반복 제거
   함수 시그니처만 봐도 "이 함수가 무엇을 쓰는지" 드러남
@@ -297,7 +297,7 @@ const { address: { city: userCity = '서울' } = {} } = user;
 //                                            ↑ address 자체가 없을 때 대비
 ```
 
-```
+```txt
 중첩 구조분해 주의:
   너무 깊게 들어가면 가독성 오히려 떨어짐
   2~3단계 넘으면 단계별로 나눠서 구조분해하는 게 나음
@@ -355,7 +355,7 @@ const { a, b, ...rest } = obj; // ✅
 |매개변수 안전장치|`function f({ a } = {}) {}`|인자 없어도 안전|
 |중첩|`const { a: { b } } = obj`|내부 값 바로 꺼내기|
 
-```
+```txt
 객체 → 이름(키) 기준 / 순서 무관
 배열 → 위치(인덱스) 기준 / 순서 중요
 

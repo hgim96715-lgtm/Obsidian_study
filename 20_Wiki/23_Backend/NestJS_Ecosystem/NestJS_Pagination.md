@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Pagination = 많은 데이터를 부분적으로 나눠서 불러오는 기술
 Page Based   → 페이지 번호 기반
 Cursor Based → 마지막 id 기반 (무한 스크롤)
@@ -31,7 +31,7 @@ Cursor Based → 마지막 id 기반 (무한 스크롤)
 
 ## Page Based
 
-```
+```txt
 페이지 번호 + 개수로 데이터 분할
 GET /movies?page=1&take=20
 
@@ -39,7 +39,7 @@ GET /movies?page=1&take=20
 2페이지: 21~40번
 ```
 
-```
+```txt
 문제점 ⚠️:
   데이터 추가/삭제 시 페이지 경계 달라짐
   page=1000 → DB 가 1~20000번 다 읽고 버림 (비효율)
@@ -47,7 +47,7 @@ GET /movies?page=1&take=20
 
 ## Cursor Based ⭐️
 
-```
+```txt
 마지막으로 불러온 id 기준으로 다음 데이터 가져오기
 GET /movies?cursor=20&take=20  → id < 20 인 것 20개
 
@@ -61,7 +61,7 @@ GET /movies?cursor=20&take=20  → id < 20 인 것 20개
 
 #  DTO 로 받기 ⭐️
 
-```
+```txt
 @Query('page', ParseIntPipe) 방식 vs @Query() dto 방식
 
   개별 파라미터 방식:
@@ -90,7 +90,7 @@ export class PagePaginationDto {
 }
 ```
 
-```
+```txt
 page: 몇 번째 페이지인지
 take: 한 번에 가져올 개수 (limit 과 같은 의미)
 
@@ -134,7 +134,7 @@ getMovies(
 
 #  qb.take() / qb.skip() 란 ⭐️
 
-```
+```txt
 QueryBuilder 에서 페이지네이션 설정:
   qb.take(n)  → LIMIT n (n개 가져오기)
   qb.skip(n)  → OFFSET n (n개 건너뛰기)
@@ -159,7 +159,7 @@ qb.skip(skip)   // OFFSET skip
 
 # CommonService — 공통 페이지네이션 로직 ️
 
-```
+```txt
 페이지네이션은 movie / genre / director 등 여러 곳에서 반복됨
 → CommonModule / CommonService 로 분리해서 재사용
 ```
@@ -168,7 +168,7 @@ qb.skip(skip)   // OFFSET skip
 
 ## 폴더 구조
 
-```
+```txt
 src/
   common/
     common.module.ts
@@ -204,7 +204,7 @@ export class CommonService {
 }
 ```
 
-```
+```txt
 <T extends ObjectLiteral>:
   TypeScript 제네릭
   어떤 Entity 의 QueryBuilder 에도 사용 가능
@@ -286,7 +286,7 @@ LIMIT 5
 OFFSET 5;
 ```
 
-```
+```txt
 OFFSET 5 = 앞 5개 건너뛰고 → 6번째부터 10번째
 page=2, take=5 → OFFSET = (2-1) * 5 = 5
 ```
@@ -329,7 +329,7 @@ LIMIT 5;
 
 >[[PG_Specific#튜플 비교 — 다중 컬럼]] 참고  
 
-```
+```txt
 튜플 비교 (PostgreSQL 전용):
   (a, b) < (x, y)
   = a < x OR (a = x AND b < y)
@@ -362,7 +362,7 @@ cursor 값은 프론트에서 전달:
 |대용량 성능|❌|✅|
 |구현 복잡도|간단|중간|
 
-```
+```txt
 게시판 / 검색 결과 → Page Based  (페이지 점프 필요)
 피드 / 알림 / 채팅 → Cursor Based (무한 스크롤)
 ```

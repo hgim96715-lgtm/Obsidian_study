@@ -22,7 +22,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 자주 쓰는 코드를 부품처럼 포장해서 이름을 붙인 것
 입력 → 처리 → 출력
 ```
@@ -48,7 +48,7 @@ print(coffee)   # "에티오피아 커피 + 200ml"
 
 # ② return vs print — 가장 큰 착각 ⭐️
 
-```
+```txt
 print  화면에 보여주고 끝 (영수증 보여주기)
 return 값을 변수에 저장할 수 있게 줌 (실제 물건 건네주기)
 ```
@@ -82,7 +82,7 @@ calc_price(10000)        # 11000.0  (기본값)
 calc_price(10000, 0.2)   # 12000.0  (직접 지정)
 ```
 
-```
+```txt
 ⚠️ 기본값 파라미터는 반드시 맨 뒤에
   def func(a=1, b)    ❌ 에러
   def func(a, b=1)    ✅
@@ -94,7 +94,7 @@ calc_price(10000, 0.2)   # 12000.0  (직접 지정)
 
 # ④ **args — 개수 모를 때 (튜플)
 
-```
+```txt
 입력값이 몇 개인지 모를 때
 받은 값들을 튜플(Tuple) 로 묶어서 처리
 ```
@@ -114,7 +114,7 @@ add_all(1, 2, 3, 4, 5) # 15
 
 # ⑤ **kwargs — 키=값 형태로 받기 (딕셔너리)
 
-```
+```txt
 키=값 형태로 입력하면 딕셔너리로 받음
 Keyword Arguments 의 약자
 ```
@@ -130,7 +130,7 @@ introduce(name="Gong", age=20, city="Seoul")
 
 ## ** 딕셔너리 언패킹 — 실전 활용 ⭐️
 
-```
+```txt
 이미 만들어진 딕셔너리를 함수에 한번에 넣을 때
 ```
 
@@ -163,7 +163,7 @@ requests.get(url, params=params)   # **params 와 동일
 
 # ⑥ Airflow 에서 **kwargs 쓰는 이유
 
-```
+```txt
 Airflow 는 태스크 실행 시 수십 개의 정보를 함수에 던져줌
   실행 날짜 (ds)
   태스크 인스턴스 (ti)
@@ -189,7 +189,7 @@ def run_task(**kwargs):
 
 # ⑦ 타입 힌트 (Type Hint)
 
-```
+```txt
 파라미터와 반환값의 타입을 명시
 강제성 없음 → 코드 가독성 + IDE 자동완성 지원
 ```
@@ -220,7 +220,7 @@ def fetch(endpoint: str) -> dict | None:
 
 # 인자 순서 규칙
 
-```
+```txt
 def func(일반변수, 기본값변수, *args, **kwargs)
           ①       ②        ③       ④
 

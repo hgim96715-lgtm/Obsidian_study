@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 diff  = 두 파일을 줄 단위로 비교
 diff -r = 두 디렉토리를 재귀적으로 비교
 
@@ -42,7 +42,7 @@ diff staging.conf production.conf > config_diff.txt
 cat config_diff.txt
 ```
 
-```
+```txt
 ⚠️ 파일 순서가 중요:
   diff [기준] [비교대상]
   diff staging production  → "staging 기준으로 production 은 어떻게 다른가"
@@ -70,7 +70,7 @@ diff staging/app.conf production/app.conf
 
 ## 기호 의미
 
-```
+```txt
 <   = 첫 번째 파일(file1)에만 있는 내용
 >   = 두 번째 파일(file2)에만 있는 내용
 --- = 구분선
@@ -81,7 +81,7 @@ diff staging/app.conf production/app.conf
   3a5  → 3번 줄 이후에 추가됨 (add)
 ```
 
-```
+```txt
 읽는 법:
   < worker_processes 4;   ← staging 에서는 4
   > worker_processes 8;   ← production 에서는 8
@@ -121,7 +121,7 @@ diff -r server1_files/ server2_files/
 # → 내용이 다른 파일
 ```
 
-```
+```txt
 "Only in" 의미:
   한쪽에만 있는 파일 = 배포 누락 또는 추가
 
@@ -150,7 +150,7 @@ diff -u staging.conf production.conf
 # +worker_processes 8;
 ```
 
-```
+```txt
 -u 형식이 더 읽기 쉬움:
   - (마이너스) = 첫 번째 파일 내용
   + (플러스)  = 두 번째 파일 내용

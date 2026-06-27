@@ -16,7 +16,7 @@ related:
 ---
 # Docker_Network — 네트워크
 
-```
+```txt
 컨테이너끼리 통신하려면 같은 네트워크에 있어야 함
 같은 네트워크 안에서는 컨테이너 이름으로 통신 가능
 외부(호스트/브라우저)에서 접근하려면 -p 포트 매핑 필요
@@ -38,7 +38,7 @@ related:
 |포트 충돌|없음|없음|주의 ⚠️|-|
 |OS|전체|전체|Linux 전용|전체|
 
-```
+```txt
 bridge (기본):
   Docker 가 자동으로 만드는 가상 네트워크
   --network 생략 시 기본 bridge 에 연결됨
@@ -74,7 +74,7 @@ docker network create --driver bridge my-network2
 #                        생략하면 기본값 bridge
 ```
 
-```
+```txt
 --driver 옵션:
   bridge  컨테이너 전용 가상 네트워크 (기본값)
   host    호스트 네트워크 직접 사용
@@ -105,7 +105,7 @@ docker run -itd --name alpine-container --network my-network alpine
 #  -i = stdin 열기 / -t = 터미널 / -d = 백그라운드
 ```
 
-```
+```txt
 -d  (Detached) 백그라운드 실행
   있으면:  컨테이너 ID 출력 후 프롬프트 즉시 반환
   없으면:  컨테이너 로그가 터미널에 계속 출력됨
@@ -133,7 +133,7 @@ docker exec container1        curl -s   container2
 #                                   ↑ silent 모드 (진행 상태 출력 생략)
 ```
 
-```
+```txt
 사용자 정의 bridge 네트워크 내부 DNS:
   Docker 내장 DNS 서버가 컨테이너 이름 → IP 자동 해석
   container2 → 172.18.0.3 (Docker 가 자동으로 찾아줌)
@@ -157,7 +157,7 @@ PING container2 (172.18.0.3) 56(84) bytes of data.
 2 packets transmitted, 2 received, 0% packet loss
 ```
 
-```
+```txt
 PING container2 (172.18.0.3)
   → 이름을 IP 로 DNS 해석 성공
 
@@ -210,7 +210,7 @@ docker network connect container2 my-network
 # → Docker 가 my-network 를 컨테이너 이름으로 해석
 ```
 
-```
+```txt
 문법:
   docker network connect  <네트워크명>  <컨테이너명>
                               ↑ 첫번째      ↑ 두번째
@@ -222,7 +222,7 @@ docker network connect container2 my-network
 
 ## docker network inspect 주요 항목
 
-```
+```txt
 Subnet      컨테이너들의 IP 범위  (bridge 기본: 172.17.0.0/16)
 Gateway     외부 통신 게이트웨이  (bridge 기본: 172.17.0.1)
 Containers  현재 연결된 컨테이너 목록
@@ -246,7 +246,7 @@ docker inspect --format '{{.State.Status}}' 컨테이너명
 # running / exited / paused
 ```
 
-```
+```txt
 --format 없으면 JSON 전체 출력 → grep 과 조합
 --format '{{.필드}}'  → 원하는 필드만 깔끔하게 추출
 ```
@@ -293,7 +293,7 @@ docker-compose up -d          # 백그라운드 실행
 docker-compose down           # 컨테이너 + 네트워크 정리
 ```
 
-```
+```txt
 Docker Compose 사용 시:
   networks: 에 선언한 네트워크를 자동으로 생성
   서비스 이름이 컨테이너 이름 = 호스트명
@@ -318,7 +318,7 @@ docker inspect --format '{{.HostConfig.NetworkMode}}' host-container
 # host
 ```
 
-```
+```txt
 host 네트워크:
   컨테이너가 호스트 네트워크 스택을 직접 공유
   호스트 IP = 컨테이너 IP (격리 없음)
@@ -352,7 +352,7 @@ docker exec isolated ping -c 2 google.com
 # Network is unreachable
 ```
 
-```
+```txt
 none 네트워크:
   eth0 같은 네트워크 인터페이스 없음
   루프백(lo) 만 존재
@@ -373,7 +373,7 @@ docker network connect my-second-bridge container2
 # container2 는 이제 두 네트워크에 동시 소속
 ```
 
-```
+```txt
 통신 가능 범위:
 
   [network-A]               [network-B]
@@ -414,7 +414,7 @@ for i in {1..4}; do ping -c 1 myservice; done
 # 172.20.0.2 / 172.20.0.3 번갈아 응답
 ```
 
-```
+```txt
 --network-alias:
   여러 컨테이너에 동일한 DNS 이름 부여
   Docker 내장 DNS 가 자동 로드 밸런싱 (라운드 로빈)

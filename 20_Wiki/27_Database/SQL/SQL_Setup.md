@@ -39,7 +39,7 @@ docker run -d \
 docker ps | grep postgres
 ```
 
-```
+```txt
 포트: 5432 (PostgreSQL 기본 포트)
 -v postgres-data  컨테이너 삭제해도 데이터 유지
 -e POSTGRES_PASSWORD  반드시 설정 (없으면 에러)
@@ -107,7 +107,7 @@ SELECT current_database();
 
 # ③ DataGrip — GUI 클라이언트 
 
-```
+```txt
 DataGrip = JetBrains 의 DB GUI 툴
 PostgreSQL / MySQL / SQLite 등 다양한 DB 지원
 SQL 작성 / 자동완성 / 테이블 조회 / ER 다이어그램
@@ -124,7 +124,7 @@ DBeaver 도 무료 대안이지만 느린 편
 
 ## DataGrip 연결 설정
 
-```
+```txt
 + New Data Source → PostgreSQL 선택
 
 Host:     localhost
@@ -172,7 +172,7 @@ const result = await pool.query(
 console.log(result.rows);
 ```
 
-```
+```txt
 → 자세한 내용: [[NodeJS_PostgreSQL]]
 ```
 
@@ -210,7 +210,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 export class AppModule {}
 ```
 
-```
+```txt
 .env 파일:
   DB_HOST=localhost
   DB_PORT=5432
@@ -241,7 +241,7 @@ docker run -d \
 docker exec -it mysql-dev mysql -u root -p
 ```
 
-```
+```txt
 MySQL 기본 포트: 3306
 PostgreSQL 기본 포트: 5432
 

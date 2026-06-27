@@ -23,7 +23,7 @@ related:
 
 # HTTP 헤더란 무엇인가 ⭐️⭐️
 
-```
+```txt
 HTTP 요청/응답은 항상 "헤더 + 본문(body)" 두 부분으로 옴
   본문    실제로 전달하려는 데이터 (JSON body, 업로드 파일 등)
   헤더    그 데이터를 어떻게 다뤄야 하는지에 대한 메타정보 — key: value 형태가 줄줄이 옴
@@ -46,7 +46,7 @@ HTTP 요청/응답은 항상 "헤더 + 본문(body)" 두 부분으로 옴
 
 # Authorization 헤더 — 인증 정보를 싣는 자리 ⭐️⭐️⭐️
 
-```
+```txt
 형식은 항상 같음:  Authorization: <Scheme> <Credentials>
                               ↑ 방식      ↑ 실제 인증 값
 공백 하나로 "방식"과 "값"을 구분해서 적는 게 표준(RFC 7235/6750)임
@@ -58,7 +58,7 @@ HTTP 요청/응답은 항상 "헤더 + 본문(body)" 두 부분으로 옴
 |`Basic`|`username:password`를 base64로 인코딩한 값|`Basic dXNlcjpwYXNz`|
 |`Digest`|비밀번호를 직접 안 보내고 해시로 증명하는 방식 (요즘은 잘 안 씀)|`Digest username="...", response="..."`|
 
-```
+```txt
 "Bearer"라는 단어 자체의 의미: "이걸 들고 있는 사람(bearer)에게 권한을 준다"는 뜻
 → 누가 이 토큰을 들고 오든, 그 토큰이 유효하면 그 사람으로 인정한다는 OAuth 2.0 표준 방식
 ```
@@ -71,7 +71,7 @@ HTTP 요청/응답은 항상 "헤더 + 본문(body)" 두 부분으로 옴
 const [type, token] = request.headers.authorization?.split(' ') ?? [];
 ```
 
-```
+```txt
 한 줄씩 분해:
 
   1. request.headers.authorization
@@ -91,7 +91,7 @@ const [type, token] = request.headers.authorization?.split(' ') ?? [];
      → 헤더가 없었다면 [] 였으니 type/token 둘 다 undefined가 됨 (에러 아님)
 ```
 
-```
+```txt
 배열 디스트럭처링 자체의 일반적인 동작 원리(왜 순서대로 이름이 붙는지 등)는
 [[JS_Destructuring]] 참고 — 여기서는 "헤더 파싱에 어떻게 쓰이는지"에만 집중
 ```
@@ -100,7 +100,7 @@ const [type, token] = request.headers.authorization?.split(' ') ?? [];
 
 # Node/Express의 Request 객체 — 그 안에 뭐가 들어있나 ⭐️⭐️
 
-```
+```txt
 Express(혹은 NestJS가 기본으로 쓰는 Express)의 요청 객체 하나에는
 헤더 말고도 요청에 관한 거의 모든 정보가 같이 들어있음
 ```
@@ -118,7 +118,7 @@ Express(혹은 NestJS가 기본으로 쓰는 Express)의 요청 객체 하나에
 
 # NestJS에서는 — ExecutionContext.switchToHttp() ⭐️⭐️⭐️
 
-```
+```txt
 NestJS는 HTTP뿐 아니라 WebSocket, RPC(마이크로서비스), GraphQL 등
 여러 "전송 방식(transport)"을 같은 Guard/Interceptor로 처리할 수 있게 만들어졌음
 → 그래서 ExecutionContext는 "지금 어떤 전송 방식으로 들어온 요청인지"를 추상화해두고,
@@ -130,7 +130,7 @@ context.switchToHttp().getRequest()   // 위에서 설명한 Express Request 객
 context.switchToHttp().getResponse()  // Express Response 객체
 ```
 
-```
+```txt
 즉 switchToHttp().getRequest()는 새로운 무언가를 만들어주는 게 아니라,
 지금 들어온 요청이 HTTP라는 걸 전제로 "원래 Express가 주는 그 request 객체"를
 그대로 돌려주는 것뿐임 — request.headers.authorization 같은 접근이 그래서 그대로 통함

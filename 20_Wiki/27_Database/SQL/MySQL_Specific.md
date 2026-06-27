@@ -31,7 +31,7 @@ WHERE REGEXP_LIKE(
 );
 ```
 
-```
+```txt
 플래그:
   'c'  case-sensitive  대소문자 구분
   'i'  case-insensitive 대소문자 무시
@@ -54,7 +54,7 @@ WHERE REGEXP_LIKE(conditions, '(^| )DIAB1', 'c')
 -- 'ADIAB100'        → 앞에 문자 있음 → 매칭 안 됨 ❌
 ```
 
-```
+```txt
 (^| ) 의미:
   ^ 또는 공백( ) 중 하나
   → 단어의 시작 위치에 패턴이 오는지 확인
@@ -95,7 +95,7 @@ FROM Transactions
 GROUP BY DATE_FORMAT(trans_date, '%Y-%m');
 ```
 
-```
+```txt
 주요 형식:
   %Y  4자리 연도 (2024)
   %m  2자리 월 (01~12)
@@ -122,7 +122,7 @@ FROM Activities
 GROUP BY sell_date;
 ```
 
-```
+```txt
 GROUP_CONCAT(DISTINCT 컬럼 ORDER BY 정렬 SEPARATOR '구분자')
 PostgreSQL 의 STRING_AGG 와 동일
 ```

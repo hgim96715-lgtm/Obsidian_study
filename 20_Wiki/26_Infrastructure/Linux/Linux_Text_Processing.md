@@ -22,7 +22,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 cut   = 컬럼 추출
 sort  = 정렬
 uniq  = 중복 제거
@@ -36,7 +36,7 @@ wc    = 줄/단어/글자 수 세기
 
 # cut — 컬럼 추출 ⭐️
 
-```
+```txt
 cut [옵션] 파일
   -d 구분자   필드 구분 문자 지정
   -f 번호     추출할 필드 번호
@@ -56,7 +56,7 @@ cut -d: -f1,6 /etc/passwd | head -n 5
 cut -d, -f1,3 data.csv    # 쉼표 구분, 1번째 3번째 컬럼
 ```
 
-```
+```txt
 -d 뒤에 구분자:
   -d:   콜론(:) 구분
   -d,   쉼표(,) 구분
@@ -82,7 +82,7 @@ cut -c10- file.txt        # 10번째부터 끝까지
 cut -c1-5,10-12 file.txt  # 여러 범위
 ```
 
-```
+```txt
 -c vs -f:
   -f  구분자로 나뉜 필드 기준  (CSV, /etc/passwd 등)
   -c  문자 위치 기준           (고정 폭 리포트, 로그 파일 등)
@@ -129,7 +129,7 @@ sort -c file.txt                 # 이미 정렬됐는지 확인
 sort -o output.txt file.txt      # 결과를 파일로 저장
 ```
 
-```
+```txt
 -r   역순
 -n   숫자 순
 -h   human-readable 단위 인식 (1K, 10M)
@@ -163,7 +163,7 @@ sort -k2 colors.txt
 # 2 yellow    ← 2번째 필드 y
 ```
 
-```
+```txt
 -k2 = 2번째 필드(공백 기준) 알파벳 순 정렬
 1번째 필드(숫자)는 무시됨
 
@@ -208,7 +208,7 @@ sort purchases.txt | uniq -c | sort -rn
 cut -d: -f7 /etc/passwd | sort | uniq -c
 ```
 
-```
+```txt
 ⚠️ uniq 주의:
   인접한 중복만 제거
   → 반드시 sort 먼저 한 후 uniq
@@ -235,7 +235,7 @@ grep "ERROR" app.log | wc -l   # 에러 줄 수
 ls /etc | wc -l                # /etc 파일 수
 ```
 
-```
+```txt
 -c vs -m:
   echo "안녕" | wc -c  → 7  (한글 1글자 = 3바이트 × 2 + 줄바꿈)
   echo "안녕" | wc -m  → 3  (한글 2글자 + 줄바꿈)
@@ -252,7 +252,7 @@ ls /etc | wc -l                # /etc 파일 수
 
 # 파이프 조합 읽는 법 ⭐️
 
-```
+```txt
 ls -l /etc | grep '^d' | wc -l
 
 왼쪽 → 오른쪽 순서로 읽기:
@@ -287,7 +287,7 @@ cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn
 
 ## 기본 구조
 
-```
+```txt
 awk '조건 { 동작 }' 파일
 
   조건 없으면 모든 줄 처리
@@ -307,7 +307,7 @@ awk -F: '{print $1}' /etc/passwd   # : 기준
 awk -F, '{print $2}' data.csv      # , 기준 (CSV)
 ```
 
-```
+```txt
 $0  줄 전체
 $1  공백 기준 1번째 단어
 $2  2번째 단어
@@ -340,7 +340,7 @@ awk 'NR > 1 {sum += $2} END {print "평균:", sum/(NR-1)}' file.txt
 awk '{count[$6]++} END {for (code in count) print code, count[code]}' file.txt | sort -n
 ```
 
-```
+```txt
 블록 종류:
   BEGIN { ... }  파일 읽기 전 실행 (초기화)
   { ... }        각 줄마다 실행 (메인 로직)
@@ -349,7 +349,7 @@ awk '{count[$6]++} END {for (code in count) print code, count[code]}' file.txt |
 
 ## 연관 배열 — count[$6]++ 패턴 ⭐️
 
-```
+```txt
 awk 의 배열은 key → value 로 저장하는 구조 (JS 객체 / Python dict 와 같음)
 key 를 처음 쓰면 자동으로 0 초기화 → 미리 선언 불필요
 
@@ -374,7 +374,7 @@ awk '{count[$1]++} END {for (ip in count) print ip, count[ip]}' access.log | sor
 awk '{count[$1"→"$6]++} END {for (k in count) print k, count[k]}' access.log
 ```
 
-```
+```txt
 for (code in count)
   count 배열의 key 들을 순서 없이 하나씩 꺼냄
   → 순서 보장 없음 → | sort -n 으로 정렬 필수
@@ -394,7 +394,7 @@ awk 'NF == 3 {print $0}' file.txt       # 필드가 정확히 3개인 줄만
 awk 'NF > 0 {print $0}' file.txt        # 빈 줄 제거 (필드 1개 이상인 줄만)
 ```
 
-```
+```txt
 NF  현재 줄의 필드 수 (Number of Fields)
 NR  현재 줄 번호     (Number of Records)
 
@@ -418,7 +418,7 @@ awk -v OFS=',' '{print $1, $2, $3}' file.txt   # 출력 구분자 변경
 #      ↑ OFS = Output Field Separator
 ```
 
-```
+```txt
 -v 없이 쉘 변수를 따옴표 안에 넣으면:
   awk '$2 > $threshold'   ← ❌ $threshold 가 awk 변수로 해석됨 (값 없음 → 0)
   awk -v t=$threshold '$2 > t'   ← ✅
@@ -438,7 +438,7 @@ awk -f report.awk app.log
 # → 에러 수: 42
 ```
 
-```
+```txt
 -f 가 유용한 경우:
   한 줄에 다 쓰기 너무 긴 복잡한 처리
   여러 파일에 반복해서 쓰는 공통 분석 스크립트
@@ -468,7 +468,7 @@ awk '{n = split($3, parts, "-"); print parts[1], parts[2]}' file.txt
 #    ↑ $3 을 '-' 기준으로 쪼개서 parts 배열에 저장, 개수 반환
 ```
 
-```
+```txt
 자주 쓰는 것만:
   length(s)         문자열 길이
   substr(s, start, len)  부분 문자열
@@ -487,7 +487,7 @@ awk '{n = split($3, parts, "-"); print parts[1], parts[2]}' file.txt
 
 ## 기본 구조
 
-```
+```txt
 sed 's/패턴/교체/플래그' 파일
 
 s    = substitute (치환)
@@ -528,7 +528,7 @@ sed '$a\Last line' file.txt    # 마지막 줄 뒤에 추가
 
 # tr — 문자 치환 & 삭제 ⭐️
 
-```
+```txt
 tr = translate
 문자를 하나씩 대응시켜 치환 / 삭제 / 압축
 파일 직접 못 받음 → 파이프로 입력 받음
@@ -561,7 +561,7 @@ echo 'hello' | tr 'a-z' 'b-za'
 # ifmmp
 ```
 
-```
+```txt
 범위 조합 원리:
 
   tr 'b-za-a' 'a-z'
@@ -603,7 +603,7 @@ echo 'abc123def456' | tr -cd '0-9'
 # 123456  ← 0-9 외 나머지 삭제
 ```
 
-```
+```txt
 -d  지정한 문자 삭제
 -c  보수 (complement) — 지정한 문자 외 나머지 선택
 -cd 조합 → 지정한 문자만 남기고 나머지 삭제
@@ -621,7 +621,7 @@ echo 'hello   world' | tr -s ' '
 
 ## 문자 클래스
 
-```
+```txt
 [:lower:]   소문자 전체 (a-z)
 [:upper:]   대문자 전체 (A-Z)
 [:digit:]   숫자 전체   (0-9)
@@ -663,7 +663,7 @@ join employees.txt salaries.txt
 # 3 Carol HR 55000
 ```
 
-```
+```txt
 ⚠️ join 주의:
   결합 기준 필드로 정렬되어 있어야 함
   → sort 먼저 후 join
@@ -719,7 +719,7 @@ join -o 1.2,1.3,2.2,1.1 employees.txt salaries.txt
 #     2번째 3번째 2번째 1번째
 ```
 
-```
+```txt
 # employees.txt    salaries.txt
 # 1 Alice HR       1 50000
 # 2 Bob   IT       2 60000
@@ -759,7 +759,7 @@ join -o 1.2,2.2 employees.txt salaries.txt
 # → 이름 + 급여만 출력
 ```
 
-```
+```txt
 join 은 정렬된 텍스트 파일에서만 동작
 → DB 없이 CSV / 로그 파일 분석할 때 유용
 → 대용량 파일은 awk 가 더 유연

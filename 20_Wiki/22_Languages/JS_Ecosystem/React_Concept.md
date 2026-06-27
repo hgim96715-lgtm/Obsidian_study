@@ -16,7 +16,7 @@ related:
 ---
 # React_Concept — React 란
 
-```
+```txt
 React = UI 를 만들기 위한 JavaScript 라이브러리
 Facebook(Meta) 이 만들고 오픈소스로 공개
 컴포넌트 단위로 UI 를 쪼개서 조립하는 방식
@@ -28,7 +28,7 @@ Facebook(Meta) 이 만들고 오픈소스로 공개
 
 # React 가 나온 이유 ⭐️
 
-```
+```txt
 기존 방식 (Vanilla JS / jQuery):
   DOM 을 직접 조작
   document.getElementById('title').innerText = '변경'
@@ -60,7 +60,7 @@ pnpm create next-app my-app
 # → 신규 프로젝트에는 권장되지 않음
 ```
 
-```
+```txt
 어떤 걸로 시작할지:
   순수 React(SPA) 만 필요          → Vite
   SSR / 폴더 기반 라우팅까지 필요   → Next.js
@@ -73,7 +73,7 @@ pnpm create next-app my-app
 
 # 프로젝트 구조 & 진입점 ⭐️
 
-```
+```txt
 my-app/
 ├── index.html         ← 브라우저가 맨 처음 받는 HTML (진입점)
 ├── src/
@@ -105,7 +105,7 @@ createRoot(document.getElementById('root')).render(
 );
 ```
 
-```
+```txt
 실행 흐름 (위에서 아래로):
 
   1. 브라우저가 index.html 을 불러옴
@@ -128,7 +128,7 @@ createRoot(document.getElementById('root')).render(
 
 ## StrictMode 가 뭔지 ⭐️
 
-```
+```txt
 <StrictMode> 로 감싸는 이유:
   개발 중에만 동작하는 "검사 모드" (빌드 결과물엔 영향 없음)
   컴포넌트를 의도적으로 두 번 렌더링해서
@@ -152,7 +152,7 @@ App.jsx 는 또 무엇인가:
 
 # 컴포넌트 기반 ⭐️
 
-```
+```txt
 UI 를 독립적인 조각(컴포넌트) 으로 쪼개서 조립
 각 컴포넌트는 자신의 상태와 UI 를 관리
 
@@ -185,7 +185,7 @@ function App() {
 
 # Virtual DOM ⭐️
 
-```
+```txt
 DOM(Document Object Model):
   브라우저가 HTML 을 파싱해서 만드는 트리 구조
   직접 조작하면 느림 (렌더링 비용 높음)
@@ -198,7 +198,7 @@ Virtual DOM:
   → 불필요한 DOM 조작 최소화 → 성능 향상
 ```
 
-```
+```txt
 흐름:
   state 변경
     ↓
@@ -215,7 +215,7 @@ Virtual DOM:
 
 # JSX ⭐️
 
-```
+```txt
 JSX = JavaScript + XML
 JavaScript 안에서 HTML 처럼 UI 를 작성하는 문법
 브라우저가 직접 이해 못 함 → Babel/Vite 가 JavaScript 로 변환
@@ -229,7 +229,7 @@ const element = <h1 className="title">Hello</h1>;
 const element = React.createElement('h1', { className: 'title' }, 'Hello');
 ```
 
-```
+```txt
 JSX 규칙:
   class → className   (JS 예약어 충돌)
   for   → htmlFor
@@ -245,7 +245,7 @@ JSX 규칙:
 
 # CSR vs SSR ⭐️
 
-```
+```txt
 CSR (Client Side Rendering):
   브라우저가 빈 HTML 을 받고
   JavaScript 를 다운로드·실행해서 화면을 그림
@@ -276,7 +276,7 @@ SSG (Static Site Generation):
 
 # SPA vs MPA
 
-```
+```txt
 SPA (Single Page Application):
   HTML 파일 1개 / JavaScript 로 화면 전환
   페이지 이동 시 새로고침 없음
@@ -294,7 +294,7 @@ MPA (Multi Page Application):
 
 # React vs NestJS ⭐️
 
-```
+```txt
 React:
   브라우저에서 실행 (프론트엔드)
   UI 렌더링 담당
@@ -316,7 +316,7 @@ NestJS:
 
 # 한눈에
 
-```
+```txt
 설치:    pnpm create vite my-app --template react-ts (또는 Next.js)
 진입점:   index.html → main.jsx → App.jsx
          <div id="root"> 에 createRoot().render(<App />) 로 채워넣음

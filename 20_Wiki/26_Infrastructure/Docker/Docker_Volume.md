@@ -22,7 +22,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 컨테이너는 삭제하면 데이터도 사라짐
 볼륨 = 데이터를 컨테이너 밖에 저장해서 영구 보존
 ```
@@ -33,7 +33,7 @@ related:
 
 # 왜 볼륨이 필요한가 ⭐️
 
-```
+```txt
 컨테이너의 특성:
   컨테이너는 이미지를 기반으로 만들어진 임시 환경
   컨테이너 안에서 파일을 생성/수정해도
@@ -55,7 +55,7 @@ related:
 
 #  -v 마운트 구조 ⭐️
 
-```
+```txt
 docker run -v 호스트경로:컨테이너경로
                ↑           ↑
          내 PC 의 폴더   컨테이너 안의 경로
@@ -78,7 +78,7 @@ docker run -v $(pwd)/data:/data python-volume bash
 # $(pwd)/data = /home/labex/project/data → /data 에 연결
 ```
 
-```
+```txt
 호스트 경로 작성법:
   절대경로: /home/user/data:/app/data    ✅
   ~  사용:  ~/project/data:/app/data    ✅
@@ -103,7 +103,7 @@ docker run -d \
   my-app
 ```
 
-```
+```txt
 특징:
   호스트 경로를 직접 지정
   개발 환경에서 코드 / 설정 파일 공유에 적합
@@ -123,7 +123,7 @@ docker volume create my-data          # 볼륨 생성
 docker run -d -v my-data:/app/data my-app  # 볼륨 사용
 ```
 
-```
+```txt
 특징:
   Docker 가 /var/lib/docker/volumes/ 안에 자동 저장
   호스트 경로를 몰라도 됨
@@ -137,7 +137,7 @@ docker run -d -v my-data:/app/data my-app  # 볼륨 사용
 
 ## 비교
 
-```
+```txt
 bind mount:
   -v /home/user/data:/app/data   호스트 경로 직접 지정
   개발 / 설정 파일 / 코드 공유
@@ -174,7 +174,7 @@ docker volume prune                # 사용하지 않는 볼륨 전부 삭제
 }]
 ```
 
-```
+```txt
 Mountpoint:
   Docker 가 실제로 데이터를 저장하는 호스트 경로
   /var/lib/docker/volumes/볼륨이름/_data
@@ -229,7 +229,7 @@ docker exec my-container ls /app/data
 docker exec my-container tail -f /app/data/app.log
 ```
 
-```
+```txt
 볼륨에 쓴 데이터는 컨테이너 안에서 파일처럼 접근 가능
 docker exec + cat / ls / tail 로 바로 읽을 수 있음
 
@@ -258,7 +258,7 @@ docker exec container_b cat /app/data/test.txt
 # Hello from A
 ```
 
-```
+```txt
 같은 named volume → 여러 컨테이너 실시간 공유
 활용: 로그 수집 / 파일 처리 파이프라인
 ```
@@ -291,7 +291,7 @@ docker run --rm \
 docker run --rm -v mynewvolume:/app/data alpine cat /app/data/hello.txt
 ```
 
-```
+```txt
 흐름:
   1. 원본 볼륨(myvolume) + 백업 폴더 → 임시 컨테이너에 마운트
      tar czf 로 압축 → /backup/myvolume.tar.gz 생성
@@ -339,7 +339,7 @@ cvf vs czf ⭐️:
 --mount source=nginx-vol,target=/usr/share/nginx/html
 ```
 
-```
+```txt
 -v 와 --mount 는 같은 동작
 --mount 가 더 명시적이고 읽기 쉬움
   source=  볼륨 이름 또는 호스트 경로
@@ -360,7 +360,7 @@ Docker 공식 문서에서 --mount 권장하지만
 |named volume|`-v 볼륨이름:/컨테이너경로`|DB·영구 데이터 저장|
 |읽기 전용|`-v 경로:경로:ro`|설정 파일 보호|
 
-```
+```txt
 VOLUME /data (Dockerfile):
   컨테이너 안 마운트 포인트 선언만
   → 실제 호스트 경로는 docker run -v 로 지정

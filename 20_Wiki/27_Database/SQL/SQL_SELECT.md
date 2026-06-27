@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 데이터를 꺼내는 가장 기본 명령어
 SELECT → FROM → WHERE → ORDER BY → LIMIT 순서로 작성
 ```
@@ -48,7 +48,7 @@ SELECT title, genre FROM movies;
 SELECT title, price * 0.9 AS discounted_price FROM products;
 ```
 
-```
+```txt
 ⚠️ SELECT * 주의:
   BigQuery 같은 클라우드 환경에서 SELECT *
   → 테이블 전체 스캔 → 비용 폭발
@@ -61,7 +61,7 @@ SELECT title, price * 0.9 AS discounted_price FROM products;
 
 # 실행 순서 ⭐️
 
-```
+```txt
 작성 순서:       실제 실행 순서:
 SELECT           ① FROM
 FROM             ② WHERE
@@ -72,7 +72,7 @@ ORDER BY         ⑥ ORDER BY
 LIMIT            ⑦ LIMIT
 ```
 
-```
+```txt
 왜 중요한가:
   SELECT 에서 만든 별칭(AS)은 WHERE 에서 못 씀
   → WHERE 가 SELECT 보다 먼저 실행되기 때문
@@ -162,7 +162,7 @@ SELECT * FROM movies LIMIT 10 OFFSET 20;
 SELECT * FROM movies LIMIT 20, 10;   -- OFFSET 20, 10개
 ```
 
-```
+```txt
 LIMIT 없이 ORDER BY DESC + 조건:
   ORDER BY weight_sum DESC LIMIT 1
   → 가장 큰 값 1개 = 최대값 행

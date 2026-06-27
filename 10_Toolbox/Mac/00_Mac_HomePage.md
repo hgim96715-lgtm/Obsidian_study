@@ -9,7 +9,7 @@ related:
 ---
 # 00_Mac_HomePage — macOS 작업 환경
 
-```
+```txt
 Mac은 "도구"라기보다 개발할 때 깔려 있는 OS 환경
 VS Code·터미널·Finder 단축키 노트를 읽을 때 ⌘·⌥·⌃ 기호를 먼저 익혀 두면 편함
 ```

@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 파이썬 내장 모듈 collections
 딕셔너리 / 리스트의 한계를 극복한 특화 자료구조 모음
 import 없이 못 쓰는 것들
@@ -33,7 +33,7 @@ from collections import Counter, deque, defaultdict, namedtuple, OrderedDict
 
 # ① Counter — 빈도 계산 ⭐️
 
-```
+```txt
 리스트 / 문자열 요소의 빈도를 딕셔너리 형태로 순식간에 계산
 직접 for 문으로 세는 것보다 훨씬 빠르고 코드도 짧음
 ```
@@ -104,7 +104,7 @@ for x in data:
 sorted(freq.items(), key=lambda x: x[1], reverse=True)
 ```
 
-```
+```txt
 코딩테스트: Counter  ← 간결
 실무/가독성: Counter  ← 의미 명확
 ```
@@ -117,7 +117,7 @@ sorted(freq.items(), key=lambda x: x[1], reverse=True)
 
 # ② deque — 양방향 큐 ⭐️
 
-```
+```txt
 deque (Double-Ended Queue)
 리스트와 달리 앞/뒤 모두 O(1) 으로 삽입/삭제
 리스트 pop(0) → O(n) / deque popleft() → O(1)
@@ -160,7 +160,7 @@ dq.rotate(1)
 "".join(dq)     # 'ohell'
 ```
 
-```
+```txt
 rotate(n):
   n 양수 → 오른쪽으로 n칸 (뒤 → 앞)
   n 음수 → 왼쪽으로 n칸 (앞 → 뒤)
@@ -191,7 +191,7 @@ dq.append(4)   # deque([2, 3, 4], maxlen=3)  ← 1 자동 삭제
 |앞 추가 `appendleft`|O(n) ❌|O(1) ✅|
 |앞 삭제 `popleft`|O(n) ❌|O(1) ✅|
 
-```
+```txt
 앞/뒤 모두 빈번하게 삽입/삭제 → deque
 단순 순회 / 인덱스 접근 많음  → list
 ```
@@ -202,7 +202,7 @@ dq.append(4)   # deque([2, 3, 4], maxlen=3)  ← 1 자동 삭제
 
 # ③ defaultdict — 기본값 딕셔너리
 
-```
+```txt
 없는 키에 접근해도 KeyError 없이 기본값 자동 생성
 그룹화 / 빈도 계산에 자주 사용
 ```
@@ -232,7 +232,7 @@ for w in words:
 # {'a': ['apple', 'avocado'], 'b': ['banana', 'blueberry'], 'c': ['cherry']}
 ```
 
-```
+```txt
 일반 딕셔너리:
   d['없는키']          → KeyError
   d.get('없는키', [])  → 빈 리스트 반환 (매번 기본값 지정 필요)
@@ -247,7 +247,7 @@ defaultdict:
 
 # ④ namedtuple — 이름 있는 튜플
 
-```
+```txt
 튜플인데 인덱스 대신 이름으로 접근 가능
 딕셔너리보다 메모리 효율적
 클래스보다 가볍게 데이터 구조 정의
@@ -279,7 +279,7 @@ x, y = p
 hpid, hpname, hvec, region = h
 ```
 
-```
+```txt
 언제 쓰나:
   함수가 여러 값을 반환할 때
   DB 조회 결과 행을 표현할 때
@@ -292,7 +292,7 @@ hpid, hpname, hvec, region = h
 
 # ⑤ OrderedDict — 순서 보장 딕셔너리
 
-```
+```txt
 Python 3.7+ 부터 일반 dict 도 삽입 순서 보장
 → 현재는 OrderedDict 쓸 이유가 거의 없음
 레거시 코드에서 볼 수 있으므로 읽을 줄만 알면 됨

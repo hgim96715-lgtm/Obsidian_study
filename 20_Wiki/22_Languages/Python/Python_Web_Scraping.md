@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 requests  → 웹 페이지 HTML 가져오기 (데이터 요청)
 BeautifulSoup → 가져온 HTML 에서 원하는 데이터 추출 (파싱)
 ```
@@ -29,7 +29,7 @@ BeautifulSoup → 가져온 HTML 에서 원하는 데이터 추출 (파싱)
 
 # ① 크롤링이란
 
-```
+```txt
 웹 크롤링 = 웹 페이지의 HTML 을 가져와서
             원하는 데이터를 추출하는 것
 
@@ -50,7 +50,7 @@ BeautifulSoup → 가져온 HTML 에서 원하는 데이터 추출 (파싱)
 pip install requests beautifulsoup4 lxml
 ```
 
-```
+```txt
 requests      HTTP 요청 (HTML 가져오기)
 beautifulsoup4  HTML 파싱 라이브러리 (bs4 로 import)
 lxml          빠른 파서 (parser)
@@ -85,7 +85,7 @@ title = soup.find("h1")
 print(title.text)
 ```
 
-```
+```txt
 "lxml" = 파서(Parser) 종류
   lxml    빠름 / 외부 라이브러리 필요
   html.parser  느림 / 파이썬 내장 (설치 불필요)
@@ -239,7 +239,7 @@ headers = {
 response = requests.get(url, headers=headers, timeout=10)
 ```
 
-```
+```txt
 일부 사이트는 봇 접근 차단
 User-Agent 를 브라우저처럼 설정하면 우회 가능
 ```
@@ -250,7 +250,7 @@ User-Agent 를 브라우저처럼 설정하면 우회 가능
 
 # ⑥ HTML 구조 이해
 
-```
+```txt
 크롤링 전에 HTML 구조 파악 필수
 브라우저에서 F12 → Elements 탭
 
@@ -263,7 +263,7 @@ User-Agent 를 브라우저처럼 설정하면 우회 가능
 </div>
 ```
 
-```
+```txt
 찾는 순서:
   1. F12 → 원하는 요소 오른쪽 클릭 → 검사
   2. 태그명 / class / id 확인
@@ -276,7 +276,7 @@ User-Agent 를 브라우저처럼 설정하면 우회 가능
 
 # ⑦ requests vs BeautifulSoup 역할 분리
 
-```
+```txt
 requests:
   인터넷에서 HTML 가져오기
   GET / POST 요청

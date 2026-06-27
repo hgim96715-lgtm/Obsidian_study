@@ -20,7 +20,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 Set      중복 없는 "값" 모음 (배열 중복 제거에 자주 씀)
 Map      key-value 저장 (객체보다 자유로운 key, 순서 보장)
 WeakSet / WeakMap  Set/Map 과 거의 같지만, 참조가 사라지면 자동으로 메모리 정리됨
@@ -169,7 +169,7 @@ const map2 = new Map([
 
 ## Map vs 일반 Object — 언제 Map 을 쓰나
 
-```
+```txt
 Object                            Map
 key 가 string / Symbol 만 가능      key 로 객체 / 함수 / Date 등 아무 값이나 가능
 순서 보장이 명세상 핵심은 아님        삽입 순서 그대로 보장
@@ -216,7 +216,7 @@ function countByExhibition(visits: Visit[]) {
 
 # WeakMap / WeakSet — 약한 참조 ⭐️
 
-```
+```txt
 일반 Map/Set 의 문제:
   map.set(someObject, data) 로 객체를 key 로 저장하면
   → map 이 그 객체를 계속 참조하게 됨
@@ -244,7 +244,7 @@ function getMetadata(domNode) {
 
 ## 일반 Map/Set 과의 차이 ⭐️
 
-```
+```txt
 WeakMap / WeakSet 은:
   key(또는 값)로 객체만 가능 (원시값 X)
   순회 불가 — forEach, for...of, size 없음
@@ -270,7 +270,7 @@ WeakMap / WeakSet 은:
 |size|있음|있음|없음|없음|
 |GC|일반 참조 (메모리에 계속 남음)|일반 참조|약한 참조 (자동 정리)|약한 참조 (자동 정리)|
 
-```
+```txt
 배열 중복 제거           → [...new Set(arr)]
 객체/Date 중복 제거       → 원시값(문자열 등)으로 변환 후 Set 사용 ⭐️
 key-value 저장           → Map (key 가 객체/함수일 수도 있을 때 특히 유리)

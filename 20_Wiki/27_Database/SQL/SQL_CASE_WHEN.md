@@ -15,7 +15,7 @@ related:
 ---
 # SQL_CASE_WHEN — 조건 분기
 
-```
+```txt
 SQL 의 IF-ELSE
 조건에 따라 다른 값 반환 / 조건부 집계에 핵심
 ```
@@ -47,7 +47,7 @@ SELECT
 FROM Transactions;
 ```
 
-```
+```txt
 동작 순서:
   위에서 아래로 조건 순서대로 평가
   처음으로 True 인 WHEN 에서 멈추고 THEN 값 반환
@@ -65,7 +65,7 @@ ELSE 생략 시:
 
 # 어디서 쓰나 ⭐️
 
-```
+```txt
 CASE WHEN 은 값을 반환하는 표현식
 값이 들어갈 수 있는 곳이면 어디든 사용 가능
 ```
@@ -129,7 +129,7 @@ SUM(CASE WHEN state = 'approved' THEN amount ELSE 0 END) AS approved_total
 
 # 조건부 집계 ⭐️
 
-```
+```txt
 일반 집계: 전체에 대해 COUNT / SUM
 조건부 집계: 조건을 만족하는 행에 대해서만 COUNT / SUM
 
@@ -159,7 +159,7 @@ SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END)
 -- 조건 맞으면 1, 아니면 0 → SUM = 조건 충족 행 수
 ```
 
-```
+```txt
 둘 다 동일한 결과
 SUM(CASE WHEN ... THEN 1 ELSE 0 END) 가 더 명시적이라 많이 쓰임
 COUNT(CASE WHEN ... THEN 1 END) 도 표준 SQL 패턴
@@ -171,7 +171,7 @@ COUNT(CASE WHEN ... THEN 1 END) 도 표준 SQL 패턴
 
 # 부호 전환 패턴 ⭐️
 
-```
+```txt
 Buy(매수) 는 돈이 나가고 Sell(매도) 는 돈이 들어오는 계산
 → CASE WHEN 안에서 - 부호를 붙이면 SUM 이 자동으로 뺄셈
 ```
@@ -190,7 +190,7 @@ FROM Stocks
 GROUP BY stock_name;
 ```
 
-```
+```txt
 핵심 인사이트:
   CASE WHEN 안에서 값을 -(음수)로 반환하면
   SUM 이 자동으로 뺄셈 역할
@@ -213,7 +213,7 @@ GROUP BY stock_name;
 
 ## 언제 GROUP BY vs 윈도우 함수
 
-```
+```txt
 결과를 그룹별 1행으로 줄이고 싶다  → GROUP BY + 집계 함수
 행을 유지하면서 그룹 계산을 붙이고 싶다  → 윈도우 함수
 
@@ -235,7 +235,7 @@ AVG(CASE WHEN state = 'approved' THEN amount END)
 AVG(CASE WHEN state = 'approved' THEN amount ELSE NULL END)
 ```
 
-```
+```txt
 SUM 에서는  ELSE 0    (0 을 더해도 합계에 영향 없음)
 AVG 에서는  ELSE NULL (0 을 포함하면 평균이 낮아짐 ⚠️)
 
@@ -326,7 +326,7 @@ SELECT
 FROM Transactions;
 ```
 
-```
+```txt
 정수 / 정수 = 정수 (소수점 버림) ⚠️
 → * 100.0 또는 CAST(... AS FLOAT) 로 실수 변환 필요
 

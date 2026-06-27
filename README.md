@@ -42,7 +42,7 @@ related:
 
 ## 저장소 구조
 
-```
+```txt
 Obsidian_study/
 ├── 00_Inbox/                    # 임시 메모·아이디어
 ├── 10_Toolbox/                  # VS Code, Postman, Obsidian 등 개발 도구

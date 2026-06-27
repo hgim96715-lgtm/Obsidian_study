@@ -16,7 +16,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 작업 중인 변경사항을 임시로 보관하고
 나중에 꺼내 쓰는 서랍 같은 기능
 커밋하기 애매한 상태에서 브랜치 이동할 때 사용
@@ -41,7 +41,7 @@ git stash push -m "로그인 기능 작업 중"
 git stash push -u -m "미완성 기능 + 새 파일 포함"
 ```
 
-```
+```txt
 기본 git stash 가 저장하는 것:
   ✅ tracked 파일의 변경사항 (이미 git add 된 파일)
   ✅ staged 변경사항
@@ -70,7 +70,7 @@ git stash show stash@{1}         # 변경된 파일 목록
 git stash show -p stash@{1}      # 전체 diff 확인
 ```
 
-```
+```txt
 stash 번호 규칙:
   stash@{0} = 가장 최근 저장 (Last In)
   stash@{1} = 그 전
@@ -100,7 +100,7 @@ git stash pop stash@{1}   # 특정 stash 적용 + 삭제
 |`apply`|✅|유지|
 |`pop`|✅|삭제|
 
-```
+```txt
 언제 apply, 언제 pop:
   apply → 같은 stash 를 여러 브랜치에 적용할 때
   pop   → 일반적인 경우 (적용 후 불필요하므로 삭제)
@@ -158,7 +158,7 @@ git switch master
 git merge feature-branch
 ```
 
-```
+```txt
 왜 git merge master 가 필요한가:
   stash 는 작업 중에 임시로 저장한 것
   그 사이 master 에 다른 변경사항이 생겼을 수 있음
@@ -172,7 +172,7 @@ git merge feature-branch
                   stash 작업  커밋 후 master 반영
 ```
 
-```
+```txt
 언제 쓰나:
   stash 했는데 생각보다 작업이 커질 때
   → 새 브랜치로 분리해서 계속 작업

@@ -17,7 +17,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 @anthropic-ai/sdk 로 NestJS 에서 Claude API 호출
 AI 기능을 Service 로 분리 / API 키 없어도 앱 실행 가능
 ```
@@ -28,7 +28,7 @@ AI 기능을 Service 로 분리 / API 키 없어도 앱 실행 가능
 
 # 개념 ⭐️
 
-```
+```txt
 Anthropic = Claude 를 만든 회사
 Claude    = Anthropic 의 AI 모델 (GPT 의 대안)
 
@@ -52,7 +52,7 @@ Claude    = Anthropic 의 AI 모델 (GPT 의 대안)
 pnpm add @anthropic-ai/sdk
 ```
 
-```
+```txt
 API 키 발급:
   https://console.anthropic.com
   → API Keys → Create Key → 이름 입력 → 복사
@@ -97,7 +97,7 @@ import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic({ apiKey: 'sk-ant-...' });
 ```
 
-```
+```txt
 new Anthropic({ apiKey }):
   Anthropic 서버와 통신하는 클라이언트 객체 생성
   모든 API 호출은 이 client 를 통해 이루어짐
@@ -128,7 +128,7 @@ export class AiService {
 }
 ```
 
-```
+```txt
 왜 null 로 초기화하나:
   API 키가 없는 환경(로컬 테스트, 미설정 서버)에서도
   NestJS DI 컨테이너에 서비스가 등록되어야 함
@@ -161,7 +161,7 @@ const message = await this.client.messages.create({
 });
 ```
 
-```
+```txt
 messages.create():
   Claude 에게 메시지를 보내고 응답 받는 메서드
   HTTP POST 를 내부적으로 처리해줌
@@ -232,7 +232,7 @@ message = {
 }
 ```
 
-```
+```txt
 content 가 배열인 이유:
   응답이 여러 블록으로 올 수 있음
   텍스트 + 도구 호출 동시에 올 수도 있음
@@ -247,7 +247,7 @@ const block = message.content.find((b) => b.type === 'text');
 const text  = block?.type === 'text' ? block.text.trim() : '';
 ```
 
-```
+```txt
 왜 이렇게 쓰나:
 
   1. find((b) => b.type === 'text')
@@ -276,7 +276,7 @@ const text  = block?.type === 'text' ? block.text.trim() : '';
 
 # Anthropic 에러 핸들링 ⭐️
 
-```
+```txt
 Anthropic SDK 에서 발생하는 에러는 NestJS 가 자동으로 잡지 않음
 → 처리 안 하면 500 Internal Server Error 로 떨어짐
 
@@ -321,7 +321,7 @@ async generateSomething(input: string): Promise<string> {
 }
 ```
 
-```
+```txt
 Anthropic.APIError:
   Anthropic SDK 가 던지는 에러 클래스
   e.status   HTTP 상태코드 (400 / 401 / 429 등)
@@ -353,7 +353,7 @@ async generate() {
 }
 ```
 
-```
+```txt
 HTTP 503 Service Unavailable:
   "서버는 동작하지만 이 서비스는 일시적으로 사용 불가"
 
@@ -403,7 +403,7 @@ export class YourAiService {
 }
 ```
 
-```
+```txt
 바꾸는 부분:
   generateSomething  → 목적에 맞는 메서드 이름
   max_tokens         → 응답 길이에 맞게
@@ -421,7 +421,7 @@ export class YourAiService {
 
 # 프롬프트 잘 쓰는 법
 
-```
+```txt
 규칙을 명확하게:
   길이 제한 (2~4문장)
   언어 명시 (한국어)
@@ -445,7 +445,7 @@ export class YourAiService {
 
 # 한눈에
 
-```
+```txt
 설치:
   pnpm add @anthropic-ai/sdk
   ANTHROPIC_API_KEY=sk-ant-... (.env)

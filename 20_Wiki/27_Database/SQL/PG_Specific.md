@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 PostgreSQL 에서만 쓸 수 있는 문법
 MySQL 과 다른 점 정리
 ```
@@ -42,7 +42,7 @@ rating::float          -- integer → float
 '123'::integer         -- 문자열 → integer
 ```
 
-```
+```txt
 MySQL 은 CAST(값 AS 타입) 만 사용
 PostgreSQL 은 :: 단축형도 사용 가능
 
@@ -83,7 +83,7 @@ FROM Register r
 GROUP BY r.contest_id;
 ```
 
-```
+```txt
 PostgreSQL 나눗셈 주의:
   정수 / 정수 = 정수 (소수점 자동 버림)
   3 / 10 = 0  ← 비율이 0 이 됨!
@@ -156,7 +156,7 @@ ORDER BY user_id, order_date DESC;
 --        ↑ DISTINCT ON 기준과 ORDER BY 첫 컬럼 일치 필요
 ```
 
-```
+```txt
 MySQL 에서는 ROW_NUMBER() OVER () 로 대체
 
 -- PostgreSQL
@@ -175,7 +175,7 @@ SELECT * FROM (
 
 #  ILIKE — 대소문자 무시 검색
 
-```
+```txt
 LIKE  = 대소문자 구분 (case-sensitive)
 ILIKE = 대소문자 무시 (case-insensitive) — PostgreSQL 전용
 ```
@@ -200,7 +200,7 @@ WHERE name LIKE 'hello'    -- 'hello' 만 매칭
 WHERE name ILIKE 'hello'   -- 'Hello' / 'hello' / 'HELLO' 모두 매칭
 ```
 
-```
+```txt
 MySQL 과 차이:
   MySQL      LIKE = 기본으로 대소문자 무시 (collation 따라 다름)
   PostgreSQL LIKE = 구분 / ILIKE = 무시
@@ -234,7 +234,7 @@ WHERE email ILIKE '%gmail%' OR email ILIKE '%naver%'
 WHERE email ILIKE ANY (ARRAY['%gmail%', '%naver%'])
 ```
 
-```
+```txt
 ILIKE ANY:
   배열 안의 패턴 중 하나라도 일치하면 반환
   OR 여러 개와 같은 결과 / 더 간결
@@ -264,7 +264,7 @@ WHERE email !~ '@spam.com$'
 |`!~`|✅ 구분|매칭 안 됨|
 |`!~*`|❌ 무시|매칭 안 됨|
 
-```
+```txt
 주요 정규식 패턴:
   ^         줄 시작
   $         줄 끝
@@ -287,7 +287,7 @@ WHERE conditions ~ '(^| )DIAB1'
 -- 'ADIAB100'         → 앞에 문자 있음 → 매칭 안 됨 ❌
 ```
 
-```
+```txt
 (^| ) 의미:
   ^ 또는 공백( ) 중 하나로 시작
   → 단어의 시작 위치에 패턴이 오는지 확인
@@ -314,7 +314,7 @@ SELECT "likeCount" FROM movie;
 SELECT m."likeCount", m."dislikeCount" FROM movie m;
 ```
 
-```
+```txt
 왜 이런 문제가 생기나:
   PostgreSQL 은 따옴표 없는 식별자를 모두 소문자로 변환
   TypeORM 이 likeCount → "likeCount" 로 DB 에 생성

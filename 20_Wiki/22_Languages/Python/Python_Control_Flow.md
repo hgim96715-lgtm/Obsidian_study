@@ -23,7 +23,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 코드의 실행 순서를 지휘하는 도구
 위에서 아래로만 흐르는 코드를
 갈림길(if) 로 나누거나 반복(for/while) 시키기
@@ -59,7 +59,7 @@ else:
 
 ## Falsy 값 전체 목록
 
-```
+```txt
 False 로 판단되는 것:
   0          정수 0
   0.0        실수 0
@@ -101,7 +101,7 @@ if not s:
 
 ## or 연산 — 기본값 패턴 ⭐️
 
-```
+```txt
 A or B:
   A 가 Truthy  → A 반환
   A 가 Falsy   → B 반환
@@ -149,7 +149,7 @@ result = sorted([n for n in arr if n % divisor == 0]) or [-1]
 # result = [5, 10]
 ```
 
-```
+```txt
 왜 이게 되냐:
   sorted([...])  → 조건 만족하는 값 없으면 빈 리스트 []
   []             → Falsy
@@ -174,7 +174,7 @@ def get_data():
 
 ## and 연산
 
-```
+```txt
 A and B:
   A 가 Falsy   → A 반환 (B 확인 안 함)
   A 가 Truthy  → B 반환
@@ -195,7 +195,7 @@ data and process(data)   # data 있을 때만 process 실행
 
 ## True if ... else False — 불필요한 패턴 ⭐️
 
-```
+```txt
 비교 연산자 / % 연산의 결과는 이미 bool
 True if 조건 else False → 조건 자체가 bool 이라 그대로 반환하면 됨
 ```
@@ -213,7 +213,7 @@ def solution(x):
     # == 0 비교 결과가 이미 bool → 그대로 return
 ```
 
-```
+```txt
 연산자 결과가 이미 bool 인 것들:
   ==  !=  >  <  >=  <=    → True / False
   %  (나머지)              → 숫자 (0 이면 False / 아니면 True)
@@ -262,7 +262,7 @@ for file in files:
 
 ## for 에 들어올 수 있는 것 (Iterable)
 
-```
+```txt
 ✅ 가능:  리스트 [] / 튜플 () / 문자열 "" / 딕셔너리 {} / range()
 ❌ 불가능: 정수 10 / 실수 3.14  → TypeError
 
@@ -292,7 +292,7 @@ total = sum(int(i) for i in str(n))    # 동일, 변수명만 다름
 total = sum(int(c) for c in list(str(n)))
 ```
 
-```
+```txt
 list(str(n)) 이 필요한 경우:
   특정 인덱스의 문자를 수정할 때
   "12345"[2] = "9"  ← 문자열은 불변이라 에러
@@ -318,7 +318,7 @@ min(int(c) for c in str(n))      # 1
 sum(int(c) for c in str(n) if int(c) % 2 == 0)  # 짝수 자리만 합산
 ```
 
-```
+```txt
 sum([int(c) for c in str(n)])  vs  sum(int(c) for c in str(n))
   앞: 리스트 만들고 → sum     (메모리에 리스트 생성)
   뒤: 바로 sum 에 전달          (메모리 효율 좋음)
@@ -336,7 +336,7 @@ for i in range(10, 0, -1):  # 10 9 8 ... 1  (역순)
 
 ## 중복 없는 조합 — range(i+1, ...) 패턴 ⭐️
 
-```
+```txt
 같은 원소를 두 번 뽑지 않고
 순서가 다른 같은 조합도 한 번만 세고 싶을 때
 
@@ -365,7 +365,7 @@ def solution(number):
     return answer
 ```
 
-```
+```txt
 range(i+1, len(arr)) 패턴 원리:
   n1=0 → n2=1,2,3,4  → n3 은 n2 다음부터
   n1=1 → n2=2,3,4    → n3 은 n2 다음부터
@@ -398,7 +398,7 @@ def solution(number):
     return cnt
 ```
 
-```
+```txt
 combinations(iterable, r):
   iterable 에서 r개를 순서 없이 뽑는 모든 조합
   중복 없음 / 순서 다른 조합은 하나로 처리
@@ -447,7 +447,7 @@ while retry < 5:
 print("종료")
 ```
 
-```
+```txt
 ⚠️ while True 에 break 없으면 무한 루프
    서버 비용 폭탄의 주범
    → 항상 탈출 조건 확인
@@ -459,7 +459,7 @@ print("종료")
 
 # ④ break / continue
 
-```
+```txt
 break    → 반복문 즉시 종료 (탈출)
 continue → 이번 턴만 건너뛰고 다음으로
 ```
@@ -480,7 +480,7 @@ for i in range(10):
 
 # ⑤ for-else — 파이썬 전용 문법
 
-```
+```txt
 for 문이 break 없이 끝까지 돌면 else 실행
 break 를 만나면 else 실행 안 됨
 
@@ -576,7 +576,7 @@ return x % sum(int(a) for a in str(x)) == 0
 
 ## 한 줄 요약
 
-```
+```txt
 할당 + 조건 검사를 동시에 하는 연산자
 := 모양이 바다코끼리 눈과 엄니 같아서 "왈러스(walrus)"
 
@@ -663,7 +663,7 @@ if n > 10:
     print(n)
 ```
 
-```
+```txt
 언제 쓰면 좋은가:
   while 루프에서 반복 읽기 (파일 / 소켓 / 스트림)
   if 조건에서 결과를 바로 재사용할 때

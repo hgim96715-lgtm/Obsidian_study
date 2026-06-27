@@ -27,7 +27,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 시점(언제?)    datetime
 기간(얼마나?)  timedelta
 대기(잠깐!)    time.sleep
@@ -40,7 +40,7 @@ related:
 
 # 왜 문자열 말고 datetime 을 쓰나
 
-```
+```txt
 "2024-01-01" 은 파이썬 입장에서 그냥 글자(String)
 "2024-01-01" + 1  → TypeError (글자에 숫자 더하기 불가)
 
@@ -79,7 +79,7 @@ now_utc = datetime.now(timezone.utc)  # UTC 시간
 d = datetime(2026, 12, 25, 9, 0, 0)  # 2026-12-25 09:00:00
 ```
 
-```
+```txt
 datetime.now()   timezone 인자 가능 → 권장
 datetime.today() timezone 인자 없음 (항상 로컬)
 → now() 쓰는 습관 들이기
@@ -111,7 +111,7 @@ print(f"{year}년 {week}번째 주")
 
 # ③ timedelta — 시간 간격
 
-```
+```txt
 공식: 시점(datetime) + 기간(timedelta) = 새로운 시점
 ```
 
@@ -159,7 +159,7 @@ while True:
     time.sleep(60)   # 60초 대기 후 재확인
 ```
 
-```
+```txt
 ⚠️ time.sleep() 은 CPU 를 완전히 멈추는 Blocking 함수
    비동기(async) 환경에서는 asyncio.sleep() 사용
 ```
@@ -195,7 +195,7 @@ elapsed = time.time() - start
 print(f"[수집 완료] {len(data)}건 / {elapsed:.1f}초")
 ```
 
-```
+```txt
 time.time() 반환값:
   Unix timestamp (1970-01-01 00:00:00 UTC 기준 경과 초)
   float 타입 → 소수점 이하 = 밀리초
@@ -222,7 +222,7 @@ now.isoformat(sep=" ")
 # "2026-02-24 21:06:32.123456"  (T 대신 공백)
 ```
 
-```
+```txt
 언제: Kafka 타임스탬프 / 빅데이터 저장 / 시간순 정렬 보장
 ```
 
@@ -234,7 +234,7 @@ now.strftime("%Y%m%d")            # "20260224"     API 파라미터 run_ymd
 now.strftime("%Y-%m-%d %H:%M:%S") # "2026-02-24 21:06:32"
 ```
 
-```
+```txt
 결과는 항상 str → 계산 불가 (계산하려면 다시 strptime 으로 변환)
 ```
 
@@ -260,7 +260,7 @@ print(f"현재: {now:%Y-%m-%d %H:%M}")
 
 # ⑦ 문자열 → 날짜 (계산용으로 변환)
 
-```
+```txt
 strptime = String Parse Time
 글자를 분해해서 datetime 객체로 만들기
 ```
@@ -339,7 +339,7 @@ print(f"수집 완료: {time.time() - start:.1f}초")
 
 # 자주 하는 실수
 
-```
+```txt
 ① import 방식 차이
   import datetime           → datetime.datetime.now()  길게 써야 함
   from datetime import datetime → datetime.now()        바로 사용

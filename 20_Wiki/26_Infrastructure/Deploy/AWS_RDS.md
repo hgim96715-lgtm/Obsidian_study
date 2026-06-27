@@ -15,7 +15,7 @@ related:
 
 # AWS_RDS — RDS PostgreSQL 생성 & 연결
 
-```
+```txt
 RDS = Relational Database Service
 AWS 가 관리하는 PostgreSQL 서버
 백업 / 패치 / 복구 자동화 → DB 서버 직접 관리 불필요
@@ -27,7 +27,7 @@ AWS 가 관리하는 PostgreSQL 서버
 
 # Lightsail DB vs RDS ⭐️
 
-```
+```txt
 Lightsail Database
   간단 / 고정 요금 / 소규모 프로젝트
   Lightsail 인스턴스와 같은 환경에서 쓰기 좋음
@@ -46,7 +46,7 @@ RDS
 
 ## 1단계 — RDS 접속
 
-```
+```txt
 AWS 콘솔 → RDS 검색 → 접속
 → 왼쪽 메뉴 데이터베이스 클릭
 → 데이터베이스 생성 클릭
@@ -54,7 +54,7 @@ AWS 콘솔 → RDS 검색 → 접속
 
 ## 2단계 — 엔진 선택
 
-```
+```txt
 엔진 유형: PostgreSQL
            ↑ MySQL / MariaDB 등 선택 가능
 버전:      최신 LTS 버전 선택
@@ -62,7 +62,7 @@ AWS 콘솔 → RDS 검색 → 접속
 
 ## 3단계 — 템플릿 선택
 
-```
+```txt
 프로덕션    멀티 AZ / 고가용성 (비용 높음)
 개발/테스트  단일 인스턴스 (비용 낮음) ← 실습 시 선택
 프리 티어    무료 사용 한도 내
@@ -70,7 +70,7 @@ AWS 콘솔 → RDS 검색 → 접속
 
 ## 4단계 — DB 식별자 & 자격 증명
 
-```
+```txt
 DB 인스턴스 식별자: db-nestjs-postgres
                     ↑ RDS 목록에서 보이는 이름
 
@@ -81,7 +81,7 @@ DB 인스턴스 식별자: db-nestjs-postgres
 
 ## 5단계 — 인스턴스 구성
 
-```
+```txt
 인스턴스 클래스:
   db.t3.micro   프리 티어 / 개발용
   db.t3.small   소규모 서비스
@@ -90,7 +90,7 @@ DB 인스턴스 식별자: db-nestjs-postgres
 
 ## 6단계 — 연결 설정 ⭐️
 
-```
+```txt
 퍼블릭 액세스:
   예   → 외부(로컬 / DataGrip) 에서 접속 가능
   아니요 → VPC 내부에서만 접속 (운영 환경 권장)
@@ -104,14 +104,14 @@ DB 인스턴스 식별자: db-nestjs-postgres
 
 ## 7단계 — 추가 구성
 
-```
+```txt
 초기 데이터베이스 이름: postgres (비워두면 기본 DB 없음)
 백업 보존 기간: 7일 (기본값)
 ```
 
 ## 8단계 — 생성
 
-```
+```txt
 데이터베이스 생성 클릭
 → 생성 완료까지 약 5~10분 소요
 → 상태가 available 되면 사용 가능
@@ -123,7 +123,7 @@ DB 인스턴스 식별자: db-nestjs-postgres
 
 # 연결 정보 확인 ⭐️
 
-```
+```txt
 RDS → 데이터베이스 → nestjs-netflix-db 클릭
 → 연결 & 보안 탭
 
@@ -179,7 +179,7 @@ TypeOrmModule.forRootAsync({
 
 # DataGrip 연결
 
-```
+```txt
 New Connection → PostgreSQL
 
   Host:     RDS 엔드포인트 붙여넣기
@@ -198,7 +198,7 @@ Advanced → sslmode = require
 
 # 보안 그룹 — 외부 접속 허용 ⭐️
 
-```
+```txt
 RDS 생성 후 DataGrip / 로컬에서 접속이 안 되면
 보안 그룹 인바운드 규칙 확인
 
@@ -219,7 +219,7 @@ RDS → 인스턴스 → 연결 & 보안 → 보안 그룹 클릭
 
 # 리소스 삭제 ⭐️
 
-```
+```txt
 RDS → 데이터베이스 → 인스턴스 선택 → 작업 → 삭제
 
 ⚠️ 삭제 시 주의:
@@ -234,7 +234,7 @@ RDS → 데이터베이스 → 인스턴스 선택 → 작업 → 삭제
 
 # 핵심 흐름 정리
 
-```
+```txt
 RDS → 데이터베이스 생성 → PostgreSQL 선택
     ↓
 DB 식별자: nestjs-netflix-db

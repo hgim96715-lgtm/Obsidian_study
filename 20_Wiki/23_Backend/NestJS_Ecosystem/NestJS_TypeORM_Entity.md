@@ -13,7 +13,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 Entity = DB 테이블을 TypeScript 클래스로 표현
 @Entity → 테이블 / @Column → 컬럼 / @PrimaryGeneratedColumn → 자동 PK
 ```
@@ -40,7 +40,7 @@ export class User {
 }
 ```
 
-```
+```txt
 클래스 → DB 테이블 자동 변환 (synchronize: true 일 때)
 
 User 클래스:
@@ -54,7 +54,7 @@ User 클래스:
 
 ## 핵심 데코레이터
 
-```
+```txt
 @Entity()
   이 클래스를 DB 테이블로 관리
   기본 테이블명 = 클래스명 소문자 (User → user)
@@ -92,7 +92,7 @@ const AppDataSource = new DataSource({
 });
 ```
 
-```
+```txt
 NestJS 에서는 TypeOrmModule.forRootAsync 로 설정
 → [[NestJS_TypeORM]] 참고
 ```
@@ -111,7 +111,7 @@ userId: number;
 
 ## 주요 옵션
 
-```
+```txt
 name:
   DB 에 저장될 컬럼 이름
   없으면 프로퍼티명 그대로 사용 (userId → userId)
@@ -155,7 +155,7 @@ export class MovieUserLike {
 }
 ```
 
-```
+```txt
 생성되는 테이블:
   movie_user_like (movieId, userId)
   PRIMARY KEY (movieId, userId)  ← 복합 PK
@@ -211,7 +211,7 @@ export class Director {
 }
 ```
 
-```
+```txt
 @Column({ unique: true })    단일 컬럼 유니크 → 동명이인 불가
 @Unique(['name', 'dob'])     두 컬럼 조합 유니크 → 이름+생일이 같아야 중복
                              동명이인 허용 (이름 같아도 생일 다르면 OK) 관례: UQ_{테이블명}_{컬럼명들}
@@ -270,7 +270,7 @@ export class Movie extends BaseTable {
 }
 ```
 
-```
+```txt
 BaseTable 쓰면 좋은 경우:
   모든 Entity 가 같은 PK 방식 + 날짜 컬럼 필요할 때
 
@@ -283,7 +283,7 @@ BaseTable 쓰면 좋은 경우:
 ---
 # forRoot vs forFeature ⭐️
 
-```
+```txt
 forRoot    → app.module.ts 에서 1번 (DB 연결)
 forFeature → 각 모듈에서 (Entity 를 Repository 로 쓸 때)
 ```
@@ -301,7 +301,7 @@ TypeOrmModule.forFeature([Movie, MovieDetail])
 private movieRepository: Repository<Movie>
 ```
 
-```
+```txt
 forFeature 빠뜨리면:
   "No repository for Movie was found" 에러
   관계 Entity 도 같이 등록 필요 (MovieDetail 등)
@@ -311,7 +311,7 @@ forFeature 빠뜨리면:
 ---
 # Embedding vs Inheritance
 
-```
+```txt
 Embedding  @Column(() => Base)  → 응답에 중첩 객체로 나옴 { base: {...} }
 Inheritance extends Base         → 응답에 같은 레벨로 나옴 { createdAt: ... }
 → 보통 Inheritance 방식이 응답 구조가 더 깔끔
@@ -359,7 +359,7 @@ export class Content { ... }
 export class Photo extends Content { ... }
 ```
 
-```
+```txt
 모든 자식을 하나의 테이블에 저장
 type 컬럼으로 구분 → NULL 컬럼 많아짐 → 실무에서 잘 안 씀
 ```

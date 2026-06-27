@@ -38,7 +38,7 @@ print(translated)  # Business management
 
 ### 파라미터
 
-```
+```txt
 source : 원본 언어 코드  ('ko', 'en', 'ja', 'zh-CN' ...)
 target : 번역할 언어 코드
 'auto' : source를 'auto'로 하면 언어 자동 감지
@@ -97,7 +97,7 @@ result = translate_long_text(long_korean_text)
 
 ## 주의사항
 
-```
+```txt
 1. 인터넷 연결 필요 (Google 서버 호출)
 2. 무료지만 너무 많이 호출하면 일시 차단될 수 있음
 3. 번역 품질은 완벽하지 않음 (전문 용어 오역 가능)

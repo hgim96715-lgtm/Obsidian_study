@@ -18,7 +18,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 cron     = 지정한 시간에 명령을 자동 실행하는 스케줄러
 crontab  = 사용자별 cron 작업 목록
 "기억에 의존하는 백업은 이미 망한 백업이다"
@@ -37,7 +37,7 @@ crontab -l    # 목록 확인
 crontab -r    # 전체 삭제 ⚠️
 ```
 
-```
+```txt
 crontab -e 처음 실행 시 편집기 선택
   1 = nano (추천)
   2 = vim
@@ -49,7 +49,7 @@ crontab -e 처음 실행 시 편집기 선택
 
 # ② cron 표현식 — 5자리 ⭐️
 
-```
+```txt
 *  *  *  *  *  실행할 명령어
 │  │  │  │  │
 │  │  │  │  └── 요일 (0=일요일 ~ 6=토요일)
@@ -91,7 +91,7 @@ crontab -e 처음 실행 시 편집기 선택
 
 ## 크론 표현식 읽는 법
 
-```
+```txt
 0 2 * * *   → 매일 새벽 2시 0분
 0 0 * * 0   → 매주 일요일 00시 00분
 */30 * * * * → 30분마다 (0, 30분)
@@ -127,7 +127,7 @@ tar -czf backup_$(date +%Y-%m-%d_%H-%M-%S).tar.gz /data/
 0 2 * * * tar -czf /backup/backup-$(date +\%Y-\%m-\%d_\%H-\%M-\%S).tar.gz /data/
 ```
 
-```
+```txt
 cron 에서 % 주의사항 ⭐️:
   % = 줄바꿈 특수문자로 인식
   → \% 로 이스케이프 해야 문자로 인식
@@ -168,7 +168,7 @@ cron 에서 % 주의사항 ⭐️:
 0 2 * * * /opt/backup.sh > /dev/null 2>&1
 ```
 
-```
+```txt
 >> log 2>&1:
   >> log     stdout 을 로그 파일에 이어쓰기
   2>&1       stderr 도 같은 파일로
@@ -195,7 +195,7 @@ nano ~/project/backup-list.txt
 tar -czvf backups/system-backup.tar.gz -T backup-list.txt
 ```
 
-```
+```txt
 -T 옵션이 유용한 이유:
   백업 경로가 많을 때 명령줄에 일일이 쓰면 오타 위험
   backup-list.txt 에 한 줄씩 관리
@@ -218,7 +218,7 @@ cat backup-contents.txt
 # 3. 검증 완료 후 원본 정리 or 보관
 ```
 
-```
+```txt
 백업은 만드는 것보다 검증이 더 중요
 -t 옵션 = 압축 풀지 않고 내용 목록만 확인
 → 파일이 제대로 들어있는지 먼저 확인
@@ -236,7 +236,7 @@ ls -l ~/project/config/app.conf
 cat ~/project/config/app.conf
 ```
 
-```
+```txt
 부분 복원이 필요한 이유:
   수십 GB 전체 백업을 풀면 복구 시간(Downtime) 급증
   장애 원인 파일 하나만 콕 집어서 복원 → 빠른 복구
@@ -254,7 +254,7 @@ cat ~/project/config/app.conf
   -C /home/labex/project data config logs
 ```
 
-```
+```txt
 -C 옵션 = 기준 디렉토리 지정
   tar -czf backup.tar.gz -C /home/labex/project data config logs
                                 ↑ 이 경로 기준으로         ↑ 이 폴더들 압축

@@ -32,7 +32,7 @@ related:
 
 # 왜 필요한가
 
-```
+```txt
 파이썬 딕셔너리 {"name": "서울역"} 은 메모리 안의 객체
 파일 저장 / 네트워크 전송을 하려면 반드시 문자열(String) 로 바꿔야 함
 
@@ -50,7 +50,7 @@ related:
 
 # 핵심 공식 4가지 — s 유무가 전부다
 
-```
+```txt
 s 가 붙으면 → String (문자열) 을 다룸  (메모리 안에서 변환)
 s 가 없으면 → File (파일) 을 다룸      (하드디스크에 저장/읽기)
 ```
@@ -113,7 +113,7 @@ print(json.dumps(data, ensure_ascii=False, indent=2))
 # }
 ```
 
-```
+```txt
 Python → JSON 타입 변환:
   dict        →  {}      (object)
   list        →  []      (array)
@@ -143,7 +143,7 @@ print(data["is_active"])   # True   ← JSON true → Python True 자동 변환
 print(data["delay"])       # None   ← JSON null → Python None 자동 변환
 ```
 
-```
+```txt
 JSON → Python 타입 변환:
   {}          → dict
   []          → list
@@ -176,7 +176,7 @@ with open("train.json", "w", encoding="utf-8") as f:
 # }
 ```
 
-```
+```txt
 주의: dumps 아님 → dump (s 없음)
       파일 열 때 encoding="utf-8" 필수 (한글 깨짐 방지)
 ```
@@ -198,7 +198,7 @@ print(type(data))       # <class 'dict'>
 print(data["stn_nm"])   # 서울
 ```
 
-```
+```txt
 주의: loads 아님 → load (s 없음)
       파일 열 때 encoding="utf-8" 필수
 ```
@@ -209,7 +209,7 @@ print(data["stn_nm"])   # 서울
 
 # 언제 뭘 써야 하나
 
-```
+```txt
 json.dumps  메모리 → 문자열
   API 응답 데이터 가공 후 Kafka send 직전
   로그 출력할 때 딕셔너리를 문자열로 변환
@@ -294,7 +294,7 @@ print(config["db_host"])  # localhost
 
 # 초보자 착각 포인트
 
-```
+```txt
 ① JSON 이랑 딕셔너리는 같은 거 아닌가요?
 
   아님. 타입이 다름

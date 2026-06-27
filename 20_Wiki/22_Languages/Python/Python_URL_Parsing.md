@@ -37,13 +37,13 @@ from urllib.parse import urlencode, quote, urlparse, urljoin, parse_qs
 
 # ① URL 구조 이해
 
-```
+```txt
 https://apis.data.go.kr/1613000/TrainInfoService/getStrtpntAlocFndTrainInfo?serviceKey=ABC&run_ymd=20260308
 ```
 
 ## 컴퓨터가 인식하는 구조 (urlparse 기준)
 
-```
+```txt
 scheme  : https
 netloc : apis.data.go.kr (네트워크 위치, 통상적으로 host/도메인이라고 부름)
 path    : /1613000/TrainInfoService/getStrtpntAlocFndTrainInfo

@@ -16,7 +16,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 Prisma = 타입 안전한 쿼리 + 마이그레이션 ORM
 반복 루프: schema 수정 → migrate dev → Client 사용 ⭐️
 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일
@@ -59,7 +59,7 @@ graph TD
 
 # 워크플로우 — 반복 루프 ⭐️⭐️
 
-```
+```txt
 ① schema.prisma 수정
 ② npx prisma migrate dev --name 설명용_이름
 ③ (보통 자동) npx prisma generate
@@ -67,7 +67,7 @@ graph TD
 ⑤ this.prisma.모델명.메서드() — 타입 자동완성 즉시 적용
 ```
 
-```
+```txt
 ② 한 줄이 하는 일: 변경분만 SQL 마이그레이션 생성 → 개발 DB 에 적용 → Client 코드 재생성
 ```
 
@@ -90,13 +90,13 @@ graph TD
 |import 경로|`@prisma/client`|`output` 지정 경로 기준|
 |DB 연결|`new PrismaClient()`|adapter 필요 (`@prisma/adapter-pg` 등)|
 
-```
+```txt
 인터넷 튜토리얼 대부분 6 기준 — "따라했는데 안 됨" 의 흔한 원인이 이 표의 차이들
 ```
 
 ## 타입이 안 보일 때 체크리스트 ⭐️⭐️
 
-```
+```txt
 ① schema 에 모델/필드 정확히 들어갔는지
 ② migrate dev (또는 generate) 실행
 ③ 서버 재시작 ⭐️ — Node 는 require 한 모듈을 메모리에 캐싱해서, 파일이 새로 생겨도
@@ -221,7 +221,7 @@ import { Global, Module } from '@nestjs/common';
 export class PrismaModule {}
 ```
 
-```
+```txt
 @Global() 자체의 동작 원리(왜 한 번만 import 해도 되는지, isGlobal 옵션과의 관계)는 [[NestJS_Module]] 참고
 여기서는 PrismaService 에 적용한 예시만 — PrismaService 는 거의 모든 기능 모듈이 필요로 하는 성격이라
 @Global() 의 대표적인 적용 후보로 꼽힘 (반대로 일부 모듈만 쓰는 서비스는 명시적 import 가 더 명확함)
@@ -267,7 +267,7 @@ model Like {
 }
 ```
 
-```
+```txt
 @db.Uuid 없이 String @default(uuid()) 만 쓰면:
   Postgres 컬럼이 TEXT 로 생성됨 — UUID 값(36자 문자열)을 그냥 텍스트로 저장
   → 저장 공간을 더 쓰고, 인덱스/비교 연산도 텍스트 비교라 더 느림
@@ -278,7 +278,7 @@ model Like {
   → Prisma Client 쪼에서 보이는 TS 타입은 여전히 string — @db.Uuid 는 DB 컬럼 타입만 바꿈
 ```
 
-```
+```txt
 ⚠️ PK 가 @db.Uuid 면, 그 PK 를 참조하는 FK 컬럼도 반드시 같이 @db.Uuid 로 맞춰야 함
    (PK 는 네이티브 uuid, FK 는 그냥 String/TEXT 로 두면 타입이 안 맞아 관계 생성 시 에러)
 
@@ -294,7 +294,7 @@ id String @id @default(uuid())     // v4 — 완전 무작위
 id String @id @default(uuid(7))    // v7 — 생성 시각 순으로 정렬됨
 ```
 
-```
+```txt
 v7 은 값 앞부분에 타임스탬프가 들어가 있어서 생성 순서대로 정렬됨
 INSERT 가 많은 테이블의 PK 라면 v7 이 인덱스 단편화를 줄여 더 유리 — 추측하기 어려운 정도는 v4 와 동일
 ```
@@ -320,7 +320,7 @@ model MovieLike {
 }
 ```
 
-```
+```txt
 컬럼 하나로는 안 유일하지만 합치면 유일한 경우에 사용
 같은 조합으로 INSERT 시도 시 DB 가 직접 거부(Prisma 에러 P2002) — 코드의 사전 체크 없이도 안전망 역할
 조회: findUnique({ where: { movieId_userId: { movieId, userId } } })
@@ -333,7 +333,7 @@ model MovieLike {
 @@index([area, feeType])     // 복합 — 순서 중요(앞쪽 컬럼 단독 검색도 효과 있음)
 ```
 
-```
+```txt
 “이 컬럼으로 자주 찾는다”는 힌트
 WHERE/ORDER BY 에 자주 쓰는 컬럼에 추가 — 조회는 빨라지지만 쓰기는 약간 느려짐(트레이드오프)
 @id/@unique 는 자동으로 인덱스 생성됨, 그 외 컬럼은 수동 추가
@@ -348,7 +348,7 @@ WHERE/ORDER BY 에 자주 쓰는 컬럼에 추가 — 조회는 빨라지지만 
 |판단 기준|"이 컬럼으로 자주 검색/정렬하는가"|"이 조합이 두 번 있으면 안 되는가(비즈니스 규칙)"|
 |예시|`postId` 로 그 글의 댓글 목록 조회 — 한 글에 여러 행이 당연함|`(userId, postId)` — 한 사람이 같은 글에 좋아요 두 번 못 누름|
 
-```
+```txt
 판단 한 줄: 중복이 "버그" 면 @@unique, 중복이 "정상" 인데 그냥 빠르게 찾고 싶으면 @@index
 
 ⚠️ @@unique 는 자동으로 인덱스 역할도 겸함 — 같은 컬럼 조합에 @@index 를 따로 또 만들 필요 없음
@@ -400,7 +400,7 @@ model Post { tags Tag[] }
 model Tag  { posts Post[] }
 ```
 
-```
+```txt
 fields: 내가 들고 있는 FK 컬럼 / references: 상대 테이블 PK
 ```
 
@@ -445,7 +445,7 @@ model User {
 
 # findUnique vs findFirst vs findMany ⭐️
 
-```
+```txt
 조건이 @id/@unique 컬럼 딱 하나   → findUnique
 조건 자유롭고 결과 1건           → findFirst (NOT 포함 가능)
 여러 건                         → findMany
@@ -695,7 +695,7 @@ try {
 |`P2003`|FK 제약 위반|`BadRequestException`|
 |`P2025`|대상 없음|`NotFoundException`|
 
-```
+```txt
 error.meta → P2002 면 { target: ['email'] } 처럼 어떤 컬럼이 중복인지 알려줌
 ```
 
@@ -733,7 +733,7 @@ error.meta → P2002 면 { target: ['email'] } 처럼 어떤 컬럼이 중복인
 
 # 한눈에
 
-```
+```txt
 반복 루프: ① schema 수정 → ② migrate dev → ③ 사용
 타입 안 보이면: migrate dev/generate 했는지 → 서버 재시작했는지 순서로 확인 ⭐️
 

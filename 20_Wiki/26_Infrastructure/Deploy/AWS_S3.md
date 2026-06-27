@@ -14,7 +14,7 @@ related:
 
 # AWS_S3 — S3 파일 업로드 & Presigned URL
 
-```
+```txt
 S3 = Simple Storage Service
 파일 / 이미지 / 영상을 클라우드에 저장하는 객체 스토리지
 
@@ -28,7 +28,7 @@ Presigned URL = 서버가 서명한 임시 URL
 
 # Presigned URL 흐름 ⭐️
 
-```
+```txt
 일반 업로드:
   클라이언트 → 서버 → S3
   파일이 서버를 거침 → 서버 부하 / 대역폭 낭비
@@ -49,7 +49,7 @@ GET Presigned URL  → 다운로드 (클라이언트가 S3 에서 파일 받음)
 
 # IAM 사용자 생성 ⭐️
 
-```
+```txt
 S3 에 접근할 IAM 사용자를 만들어서 액세스 키 발급
 → NestJS 가 이 키로 S3 에 접근
 
@@ -70,7 +70,7 @@ IAM → 사용자 → 사용자 생성
 
 # S3 버킷 생성
 
-```
+```txt
 S3 → 버킷 만들기
 
   버킷 이름:  nestjs-bucket-gong (전 세계 고유해야 함)
@@ -108,7 +108,7 @@ AWS_SECRET_ACCESS_KEY=발급받은_시크릿_키
 
 # 폴더 구조
 
-```
+```txt
 src/
 └── aws/
     ├── aws.module.ts
@@ -240,7 +240,7 @@ export class AwsController {
 
 ### 업로드 테스트
 
-```
+```txt
 1. GET /presigned-url
    → url / key 반환
 
@@ -256,7 +256,7 @@ export class AwsController {
 
 ### 다운로드 테스트
 
-```
+```txt
 1. GET /presigned-url/download?key=temp/{uuid}
    → url 반환
 
@@ -277,7 +277,7 @@ export class AwsController {
 </Error>
 ```
 
-```
+```txt
 원인:
   S3 버킷이 비공개(Private) 설정
   URL 을 직접 브라우저에 입력하면 접근 거부
@@ -297,7 +297,7 @@ export class AwsController {
 
 # 핵심 흐름 정리
 
-```
+```txt
 IAM → 사용자 생성 → S3FullAccess 정책 → 액세스 키 발급
     ↓
 S3 → 버킷 생성 (nestjs-bucket-gong)

@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 반복문으로 직접 짜면 복잡한 것들을
 한 줄로 처리해주는 표준 라이브러리
 
@@ -40,7 +40,7 @@ from itertools import chain, groupby, accumulate
 
 # ① combinations — 조합 (순서 무관) ⭐️
 
-```
+```txt
 nCr: n개에서 r개를 순서 없이 뽑기
 같은 원소 중복 선택 없음
 ```
@@ -76,7 +76,7 @@ answer = sum(1 for combo in combinations(arr, 3) if sum(combo) == 0)
 # 결과 동일
 ```
 
-```
+```txt
 언제 어느 걸 쓰나:
   range(i+1) → 인덱스가 직접 필요할 때 / combinations 모르는 환경
   combinations → 조합 자체만 필요할 때 / 코드 간결하게
@@ -110,7 +110,7 @@ result = [c for c in combinations(nums, 2) if sum(c) == target]
 
 # ② permutations — 순열 (순서 있음) ⭐️
 
-```
+```txt
 nPr: n개에서 r개를 순서 있게 뽑기
 (A,B) 와 (B,A) 를 다른 것으로 봄
 ```
@@ -140,7 +140,7 @@ print(list(permutations(data, 2)))
 # [(1,2), (1,3), (2,1), (2,3), (3,1), (3,2)]  ← 6개 (순서 있음)
 ```
 
-```
+```txt
 조합 (combinations):
   {A,B} 와 {B,A} 를 같은 것으로 봄
   수학의 nCr = n! / (r! × (n-r)!)
@@ -160,7 +160,7 @@ print(list(permutations(data, 2)))
 
 # ③ product — 데카르트 곱 (중복 허용 전체 조합)
 
-```
+```txt
 여러 iterable 의 모든 경우의 수
 중첩 for 문을 한 줄로
 ```
@@ -199,7 +199,7 @@ for a, b in product([1, 2], ['A', 'B']):
 
 # ④ combinations_with_replacement — 중복 조합
 
-```
+```txt
 같은 원소를 여러 번 뽑을 수 있는 조합
 nHr: 중복 조합
 ```
@@ -273,7 +273,7 @@ for key, group in groupby(data):
 # 1 [1, 1]   ← 연속 기준이라 중간에 끊기면 별도 그룹
 ```
 
-```
+```txt
 ⚠️ 정렬 후 사용해야 전체 그룹화 가능
    정렬 없이 사용하면 연속된 것만 묶음
 ```

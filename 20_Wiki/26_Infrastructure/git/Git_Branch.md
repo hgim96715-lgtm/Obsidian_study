@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 브랜치 = 메인 코드 건드리지 않고 새 기능 개발하는 별도 시간선
 main 에서 브랜치 → 작업 → 다시 main 에 병합
 ```
@@ -68,7 +68,7 @@ git switch -c feature-dimension
 #          ↑ -c = create
 ```
 
-```
+```txt
 checkout vs switch:
   git checkout  브랜치 이동 + 파일 복구 등 여러 기능
   git switch    브랜치 이동 전용 (더 명확 / 권장)
@@ -115,7 +115,7 @@ git merge feature-dimension
 
 ## merge 출력 해석
 
-```
+```txt
 Fast-forward:
   main 에 새 커밋이 없어서 그냥 앞으로 이동
   가장 깔끔한 병합
@@ -151,7 +151,7 @@ git branch -D feature-dimension
 # ⚠️ 병합 안 된 커밋도 사라짐 / 신중하게 사용
 ```
 
-```
+```txt
 -d vs -D:
   -d  병합된 것만 삭제 (안전) ← 주로 이걸 쓸 것
   -D  무조건 삭제 (위험)
@@ -166,7 +166,7 @@ git branch -D feature-dimension
 
 # ⑤ 브랜치 네이밍 컨벤션
 
-```
+```txt
 feature/기능명    새 기능 개발
 fix/버그명        버그 수정
 hotfix/긴급수정   긴급 패치
@@ -184,7 +184,7 @@ release/버전      배포 준비
 ---
 # ⑥ cherry-pick — 특정 커밋만 가져오기 ⭐️
 
-```
+```txt
 다른 브랜치에서 특정 커밋 하나만 현재 브랜치에 적용
 전체 merge 없이 원하는 것만 쏙 뽑아옴
 ```
@@ -201,7 +201,7 @@ git cherry-pick abc1234             # 해당 커밋만 적용
 git log --oneline
 ```
 
-```
+```txt
 cherry-pick 의 특징:
   원본 커밋을 이동/복사가 아닌 새 커밋 생성
   커밋 내용은 같지만 해시값은 달라짐
@@ -220,7 +220,7 @@ cherry-pick 의 특징:
 ---
 # ⑦ rebase -i — 커밋 히스토리 정리 ⭐️
 
-```
+```txt
 커밋 히스토리를 재작성하는 강력한 도구
 push 전 로컬 커밋 정리에 사용
 ⚠️ 이미 push 한 커밋 / 공유 브랜치에서 절대 금지
@@ -255,7 +255,7 @@ squash def222 Second change   ← First 와 합치기
 reword ghi333 Third change    ← 메시지만 수정
 ```
 
-```
+```txt
 저장 후 닫으면 순서대로 처리됨
 에디터 종료:
   Vim:  Esc → :wq → Enter
@@ -267,7 +267,7 @@ reword ghi333 Third change    ← 메시지만 수정
 
 ## 언제 쓰나
 
-```
+```txt
 push 전 정리:
   "wip", "fix typo" 같은 작은 커밋 squash 로 합치기
   커밋 메시지 전체 정리 (reword)

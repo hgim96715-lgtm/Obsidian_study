@@ -9,7 +9,7 @@ related:
 ---
 # Postman_Basics — 기본 사용법
 
-```
+```txt
 Postman 으로 API 를 테스트하는 기본 흐름
 서버 실행 → 요청 전송 → 응답 확인
 ```
@@ -20,7 +20,7 @@ Postman 으로 API 를 테스트하는 기본 흐름
 
 # 기본 사용 흐름
 
-```
+```txt
 1. 서버 실행 (pnpm run start:dev)
 2. Postman 에서 Method + URL 입력
 3. 필요하면 Headers / Body 설정
@@ -33,7 +33,7 @@ Postman 으로 API 를 테스트하는 기본 흐름
 
 # 요청 구성 ⭐️
 
-```
+```txt
 Method  GET / POST / PATCH / DELETE 선택
 
 URL     요청 주소
@@ -91,7 +91,7 @@ GET http://localhost:3000/movie?title=기생충&take=10
 
 # JSON Body 입력 ⭐️
 
-```
+```txt
 Body 탭 → raw → JSON 선택
 
 {

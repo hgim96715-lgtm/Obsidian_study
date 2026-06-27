@@ -18,7 +18,7 @@ related:
 
 API를 루프로 빠르게 반복 호출하면 두 가지 문제가 생긴다.
 
-```
+```txt
 문제 1 — 서버 측 차단
   요청이 너무 빠르면 서버가 봇으로 인식
   → 429 Too Many Requests 반환
@@ -93,7 +93,7 @@ if response.status_code == 429:
 
 단순 고정 딜레이보다 정교한 재시도 전략. **실패할수록 대기 시간을 지수적으로 늘린다.**
 
-```
+```txt
 1회 실패 → 2^1 = 2초 대기
 2회 실패 → 2^2 = 4초 대기
 3회 실패 → 2^3 = 8초 대기
@@ -192,7 +192,7 @@ response = session.get(url, params=params, timeout=10)
 
 ### backoff_factor 계산
 
-```
+```txt
 backoff_factor = 1 이면:
   1회 재시도 → 1 * (2^1 - 1) = 1초
   2회 재시도 → 1 * (2^2 - 1) = 3초
@@ -292,7 +292,7 @@ def crawl_all(max_pages: int = 10) -> list:
 
 ## 요약
 
-```
+```txt
 API 반복 호출 시 지켜야 할 3가지
 
 1. time.sleep()으로 요청 간격 유지

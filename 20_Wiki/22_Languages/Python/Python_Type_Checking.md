@@ -21,14 +21,14 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 "이 변수, 내가 생각하는 그 데이터 타입 맞아?"
 데이터의 자료형을 확인하는 내장 함수
 ```
 
 ## 왜 필요한가?
 
-```
+```txt
 외부 API / 파일에서 읽어온 데이터는 타입을 확신할 수 없음
 → 에러 터지기 전에 안전장치(방어적 프로그래밍) 필요
 
@@ -98,7 +98,7 @@ type(3) == int   # True
 
 # ③ type vs isinstance — 핵심 차이
 
-```
+```txt
 type()       깐깐함 → "정확히 그 클래스" 여야만 True
 isinstance() 유연함 → "그 클래스의 자식(상속)" 도 True
 ```
@@ -121,7 +121,7 @@ isinstance(baduk, Dog)     # True
 isinstance(baduk, Animal)  # True  ← 개도 동물의 한 종류 ✅
 ```
 
-```
+```txt
 결론:
   파이썬 공식 문서에서도 isinstance() 권장
   상속 관계 고려 → 더 안전하고 유연함
@@ -145,7 +145,7 @@ isinstance(baduk, Animal)  # True  ← 개도 동물의 한 종류 ✅
 
 # ④ repr() — 값의 진짜 모습 보기
 
-```
+```txt
 type() / isinstance() 로 타입은 알았는데
 값 안에 공백 / 특수문자가 숨어있을 수 있음
 → repr() 로 실제 값 확인
@@ -179,7 +179,7 @@ for child in item:
 # MKioskTy1: <class 'str'> | '정보미제공' ← Y/N 아님
 ```
 
-```
+```txt
 type()       → "어떤 타입이야?"
 isinstance() → "이 타입 맞아?"
 repr()       → "실제 값이 뭐야? (숨겨진 문자 포함)"
@@ -195,7 +195,7 @@ repr()       → "실제 값이 뭐야? (숨겨진 문자 포함)"
 
 ## 런타임 확인 vs 정적 힌트
 
-```
+```txt
 지금까지 배운 type() / isinstance()
 → 런타임 (실행 중에) 타입을 확인하는 것
 
@@ -240,7 +240,7 @@ def process() -> None:   # 반환값 없을 때
 from typing import Any, Optional, Union
 ```
 
-```
+```txt
 3.9 이전 문법    3.9+ 문법       의미
 List[str]    →  list[str]      문자열 리스트
 Dict[str, Any] → dict[str, Any] 딕셔너리
@@ -299,7 +299,7 @@ def get_location(address: str) -> Optional[str]:
     return parse(address)    # str 반환 가능
 ```
 
-```
+```txt
 Optional[str] 은 str | None 의 줄임말
 3.10+ 에서는 Optional 없이 str | None 으로 직접 쓸 수 있음
 3.9 에서는 Optional 을 쓰는 게 더 명확
@@ -339,7 +339,7 @@ class PostgresLoader:
         return stats
 ```
 
-```
+```txt
 list[dict[str, Any]]
   list      → 리스트
   dict      → 딕셔너리
@@ -362,7 +362,7 @@ def load(data: List[Dict[str, Any]], config: Dict[str, str]) -> int:
     ...
 ```
 
-```
+```txt
 타입 힌트의 효과:
   IDE 자동완성 정확도 올라감
   잘못된 타입 전달 시 IDE 경고

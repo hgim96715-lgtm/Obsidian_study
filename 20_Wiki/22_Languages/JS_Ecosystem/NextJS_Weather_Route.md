@@ -39,7 +39,7 @@ Home (서버 컴포넌트)
 
 # Open-Meteo API ⭐️
 
-```
+```txt
 https://api.open-meteo.com
 
 무료 / API 키 불필요
@@ -49,7 +49,7 @@ WMO 표준 날씨 코드 사용
 
 ## URL 구조 ⭐️
 
-```
+```txt
 https://api.open-meteo.com/v1/forecast
   ?latitude=37.5665          ← 위도 (서울)
   &longitude=126.9780        ← 경도 (서울)
@@ -60,7 +60,7 @@ https://api.open-meteo.com/v1/forecast
 
 ## current 파라미터 항목 ⭐️
 
-```
+```txt
 temperature_2m:
   지면에서 2m 높이의 기온 (섭씨)
   "2m" = 기상 관측 표준 높이 (사람 키 높이 정도)
@@ -78,7 +78,7 @@ relative_humidity_2m:
 
 ## WMO 날씨 코드 ⭐️
 
-```
+```txt
 0        맑음
 1, 2, 3  주로 맑음 / 구름 조금 / 구름 많음
 45, 48   안개
@@ -107,7 +107,7 @@ const weatherLabel = (code: number) => {
 
 # 역지오코딩 — 좌표 → 지역명 ⭐️
 
-```
+```txt
 역지오코딩 (Reverse Geocoding):
   위도/경도 → 사람이 읽을 수 있는 주소로 변환
   lat: 37.5665 / lon: 126.9780 → "서울 강남구"
@@ -121,7 +121,7 @@ Nominatim (OpenStreetMap):
 
 ## Nominatim API URL 구조
 
-```
+```txt
 https://nominatim.openstreetmap.org/reverse
   ?lat=37.5665          ← 위도
   &lon=126.9780         ← 경도
@@ -186,7 +186,7 @@ const resolveLocationName = async (
 };
 ```
 
-```
+```txt
 address 필드 우선순위:
   region   city → town → county → state  (큰 단위부터)
   district borough → suburb              (작은 단위)
@@ -235,7 +235,7 @@ export async function GET(req: NextRequest) {
 }
 ```
 
-```
+```txt
 Promise.all 로 병렬 요청:
   날씨 API + 역지오코딩 동시에
   순차 요청보다 빠름
@@ -306,7 +306,7 @@ export async function GET(req: NextRequest) {
 }
 ```
 
-```
+```txt
 { next: { revalidate: 300 } }:
   Next.js 캐시 옵션
   300초(5분) 동안 같은 응답 캐시

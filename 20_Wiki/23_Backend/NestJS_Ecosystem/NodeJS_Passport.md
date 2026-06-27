@@ -22,7 +22,7 @@ related:
 
 # 핵심 아이디어 — Strategy 패턴 ⭐️⭐️
 
-```
+```txt
 인증 방식(아이디/비번 확인, JWT 검증, Google/Kakao OAuth ...)마다
 "이 사용자가 누구인지 확인하는 방법"만 책임지는 별도의 Strategy 객체로 분리
 
@@ -46,7 +46,7 @@ passport.use(new XxxStrategy(options, verify))
 
 # verify 콜백과 done() — 모든 Strategy 의 공통 패턴 ⭐️⭐️⭐️
 
-```
+```txt
 Strategy 종류가 달라도 "검증 로직을 어떻게 Passport 에 알려주는가" 는 항상 동일한 모양:
 
 verify(자격증명..., done) {
@@ -99,7 +99,7 @@ passport.use(new JwtStrategy(
 ));
 ```
 
-```
+```txt
 두 Strategy 의 verify 콜백 모양은 다르지만(첫 인자가 email/password 쌍 vs payload 하나)
 "검증 후 done() 으로 결과를 알려준다" 는 인터페이스는 완전히 동일
 → 라우트 쪼개서 인증 방식만 바꿔 끼울 수 있는 이유
@@ -109,7 +109,7 @@ passport.use(new JwtStrategy(
 
 # req.user 는 실제로 언제·어떻게 채워지는가 ⭐️⭐️⭐️
 
-```
+```txt
 "request.user 는 Passport 가 정해둔 약속" 이라는 설명에서 한 단계 더 들어가면:
 정확히 어느 코드가, 언제 req.user = ... 를 실행하는지가 핵심
 ```
@@ -132,7 +132,7 @@ graph TD
     C -->|"done(null, false, info) / done(err)"| G
 ```
 
-```
+```txt
 정리:
   1. passport.authenticate('전략이름') 미들웨어가 해당 Strategy 의 verify 콜백을 실행시킴
   2. verify 가 done(null, user) 를 호출하면
@@ -164,7 +164,7 @@ app.post('/login', (req, res, next) => {
 
 # NestJS에서는 어떻게 보이는가 — @nestjs/passport 매핑 ⭐️⭐️⭐️
 
-```
+```txt
 NestJS_JwtGuard의 "방법 1"에서 본 코드를 다시 보면, done()이나 req.login() 같은 건
 어디에도 안 보임 — PassportStrategy를 상속받고 validate()만 구현했을 뿐임
 
@@ -182,7 +182,7 @@ NestJS_JwtGuard의 "방법 1"에서 본 코드를 다시 보면, done()이나 re
 |`passport.authenticate('이름')` 미들웨어|`@UseGuards(AuthGuard('이름'))`|
 |`req.login()`이 자동으로 하던 `req.user = user`|`@nestjs/passport` 내부에서 똑같이 자동으로 처리 — 코드에 안 보일 뿐|
 
-```
+```txt
 즉, "validate()가 return한 값이 request.user가 된다"는 설명은 풀어보면:
 
   @nestjs/passport가 내부적으로 done(null, 그 반환값)을 호출하고
@@ -199,7 +199,7 @@ raw Passport와 똑같은 일이 일어나지만, NestJS는 그 중간 단계(do
 
 # session 기반이면 한 단계 더 — serializeUser / deserializeUser ⭐️⭐️
 
-```
+```txt
 session 을 쓰면(express-session 과 함께) req.login() 이 자동으로 한 가지 일을 더 함:
   serializeUser 를 호출해서 user 객체에서 "최소한의 식별자(보통 id)" 만 추려 세션에 저장
 
@@ -219,7 +219,7 @@ passport.deserializeUser(async (id, done) => {
 });
 ```
 
-```
+```txt
 ⚠️ JWT(stateless) Strategy 를 쓸 때는 serializeUser/deserializeUser 가 필요 없음
    { session: false } 옵션으로 끔 — 매 요청마다 토큰 자체를 다시 검증하므로
    "세션에 저장해뒀다가 복원" 할 필요 자체가 없음 (verify 콜백이 매번 새로 실행됨)
@@ -253,7 +253,7 @@ passport.deserializeUser(async (id, done) => {
 
 # 한눈에
 
-```
+```txt
 Strategy = "이 사용자가 누구인지 확인하는 법" 을 캡슐화한 객체
 verify(자격증명, done) → done(err, user, info) 가 모든 Strategy 의 공통 언어
 

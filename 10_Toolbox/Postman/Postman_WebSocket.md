@@ -11,7 +11,7 @@ related:
 
 # Postman_WebSocket — WebSocket 연결 테스트
 
-```
+```txt
 Postman 은 HTTP 요청뿐만 아니라 WebSocket 연결도 지원
 Socket.IO 서버와 직접 연결해서 이벤트 송수신 테스트 가능
 ```
@@ -22,7 +22,7 @@ Socket.IO 서버와 직접 연결해서 이벤트 송수신 테스트 가능
 
 # 연결 생성 ⭐️
 
-```
+```txt
 Postman 좌측 상단 New → Socket.IO 선택
 
 URL 입력:
@@ -35,7 +35,7 @@ Connect 클릭 → 연결 성공 시 초록 불
 
 ## 환경변수로 관리
 
-```
+```txt
 Environments 에 wsHost 변수 추가:
   wsHost = ws://localhost:3001
 
@@ -53,7 +53,7 @@ URL 입력창:
 
 # 이벤트 송신 (emit) ⭐️
 
-```
+```txt
 하단 입력창:
   Event name: message         ← @SubscribeMessage('message') 와 일치
   Message:    {"text": "안녕"} ← JSON 형태로 입력
@@ -67,7 +67,7 @@ Send 클릭 → 서버로 이벤트 전송
 
 # 이벤트 수신 (listen)
 
-```
+```txt
 Listen to events 탭 → + 버튼
   Event name: message  ← 서버가 emit 하는 이벤트명 등록
 
@@ -80,7 +80,7 @@ Listen to events 탭 → + 버튼
 
 # 연결 확인 흐름
 
-```
+```txt
 1. NestJS 서버 실행 (pnpm run start:dev)
 2. Postman Environments 에 wsHost = ws://localhost:3001 추가
 3. Postman → New → Socket.IO

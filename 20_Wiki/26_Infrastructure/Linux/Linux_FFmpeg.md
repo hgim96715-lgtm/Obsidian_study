@@ -11,7 +11,7 @@ related:
 
 # Linux_FFmpeg — FFmpeg 개념 & 명령어
 
-```
+```txt
 FFmpeg = 영상·음성·이미지를 변환·편집·분석하는 CLI 도구
 오픈소스 / 크로스플랫폼 / 거의 모든 미디어 포맷 지원
 ```
@@ -22,7 +22,7 @@ FFmpeg = 영상·음성·이미지를 변환·편집·분석하는 CLI 도구
 
 # FFmpeg 이란 ⭐️
 
-```
+```txt
 FFmpeg (Fast Forward MPEG):
   영상 / 음성 / 이미지 파일을 다루는 모든 것을 할 수 있는 도구
   변환 / 압축 / 자르기 / 합치기 / 스트리밍 / 썸네일 추출
@@ -162,7 +162,7 @@ ffmpeg -i input.mp4 -an output.mp4
 
 # NestJS 에서 사용
 
-```
+```txt
 → [[NestJS_FFmpeg]] 참고
 fluent-ffmpeg 패키지로 NestJS 에서 FFmpeg 명령어를 코드로 실행
 ```

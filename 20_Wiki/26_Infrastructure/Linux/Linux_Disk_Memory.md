@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 df  = 디스크 전체 사용량 확인
 du  = 특정 폴더/파일 크기 확인
 mount = 디스크를 특정 폴더에 연결
@@ -31,7 +31,7 @@ mount = 디스크를 특정 폴더에 연결
 
 ## 쉽게 이해하기
 
-```
+```txt
 비유: 건물 비유로 이해
 
 파티션 (Partition) = 건물을 층/호수로 나누는 것
@@ -55,7 +55,7 @@ mount = 디스크를 특정 폴더에 연결
 
 ## USB 드라이브 비유
 
-```
+```txt
 USB 꽂기        = mount (마운트)
 USB 빼기        = umount (언마운트)
 USB 포맷하기    = mkfs.ext4 (파일시스템 생성)
@@ -88,7 +88,7 @@ df -h /etc/hosts
 
 ## df 출력 읽는 법
 
-```
+```txt
 Filesystem   어떤 디스크/파티션
 Size         전체 크기
 Used         사용 중
@@ -128,7 +128,7 @@ du -sh ~/*
 du -h ~ | sort -rh | head -n 10
 ```
 
-```
+```txt
 df vs du:
   df   디스크 전체 상태 확인 (Use% 보기)
   du   어느 폴더가 큰지 찾기 (범인 찾기)
@@ -145,7 +145,7 @@ df vs du:
 
 # ④ 가상 디스크 실습 — 개념 확인용
 
-```
+```txt
 실제 하드디스크 없이 파일로 가상 디스크를 만들어서
 포맷 / 마운트 / 사용 / 언마운트 흐름을 실습
 ```
@@ -171,7 +171,7 @@ ls -lh virtual.img
 sudo mkfs.ext4 virtual.img
 ```
 
-```
+```txt
 ext4 란:
   리눅스에서 가장 많이 쓰는 파일시스템
   안정적 / 빠름 / 대부분 리눅스 배포판 기본값
@@ -216,7 +216,7 @@ sudo umount /mnt/virtualdisk
 
 ## 전체 흐름 정리
 
-```
+```txt
 dd → 빈 파일 생성 (디스크 역할할 파일)
 mkfs.ext4 → 포맷 (서류 정리 시스템 설치)
 mkdir /mnt/virtualdisk → 마운트 포인트 생성 (문 달 자리)
@@ -246,7 +246,7 @@ sudo fdisk /dev/sda
 # q = 저장 안 하고 종료
 ```
 
-```
+```txt
 ⚠️ fdisk 주의:
   파티션 수정하면 데이터 손실 가능
   수정 전 반드시 백업
@@ -269,7 +269,7 @@ free -h
 free -h -s 1
 ```
 
-```
+```txt
 Mem: 실제 RAM
 Swap: 디스크를 RAM처럼 쓰는 임시 공간 (느림)
 available: 실제로 쓸 수 있는 메모리

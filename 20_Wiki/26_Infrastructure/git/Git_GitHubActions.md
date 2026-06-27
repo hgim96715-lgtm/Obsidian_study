@@ -22,7 +22,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 GitHub Actions = 코드 변경 시 자동으로 빌드 / 테스트 / 배포
 CI (지속적 통합) + CD (지속적 배포) 플랫폼
 .github/workflows/*.yml 파일로 정의
@@ -34,7 +34,7 @@ CI (지속적 통합) + CD (지속적 배포) 플랫폼
 
 #  GitHub Actions 란 ⭐️
 
-```
+```txt
 CI (Continuous Integration):
   PR(Pull Request) 생성 시 자동으로 빌드 + 테스트 실행
   → 코드 품질 자동 검증
@@ -76,7 +76,7 @@ ls -R .github
 # main.yml
 ```
 
-```
+```txt
 ⚠️ 규칙:
   .github/workflows/ 아래 .yml 파일만 GitHub 이 워크플로로 인식
   다른 위치에 있으면 무시됨
@@ -110,7 +110,7 @@ jobs:
         run: echo "Hello, World!"   # 실행할 명령어
 ```
 
-```
+```txt
 주요 키워드:
   name      워크플로 / step 이름
   on        트리거 (언제 실행할지)
@@ -154,7 +154,7 @@ jobs:
         run: ls -la           # 현재 디렉토리 목록
 ```
 
-```
+```txt
 runs-on 선택:
   ubuntu-latest  Linux (가장 많이 씀 / 무료)
   windows-latest Windows
@@ -184,7 +184,7 @@ steps:
     run: echo "Hello"     ← name 과 같은 깊이
 ```
 
-```
+```txt
 에러 메시지:
   "run" is not a valid step property at this indentation level
 
@@ -224,7 +224,7 @@ on:
     types: [published]
 ```
 
-```
+```txt
 on: [push]        모든 브랜치 push
 on: [push, pull_request]  push + PR(Pull Request) 둘 다
 branches: [main]  특정 브랜치만
@@ -271,7 +271,7 @@ git push origin main
 
 ## GitHub Actions 탭에서 확인 ⭐️
 
-```
+```txt
 push 후 GitHub 저장소 → Actions 탭 이동
 "Hello World Workflow" 실행 중 또는 완료 확인
 
@@ -310,7 +310,7 @@ jobs:
         # 출력: Hello, World!
 ```
 
-```
+```txt
 env: 키워드:
   워크플로 최상위 레벨에 선언
   아래 모든 jobs / steps 에서 ${{ env.변수명 }} 으로 참조
@@ -344,7 +344,7 @@ jobs:
           echo "${{ env.STEP_VAR }}"
 ```
 
-```
+```txt
 우선순위 (좁을수록 높음):
   step env > job env > workflow env
 
@@ -359,7 +359,7 @@ secrets 와 차이:
 ---
 #  GitHub Actions Secrets ⭐️
 
-```
+```txt
 Secrets = 리포지토리에 저장하는 암호화된 환경변수
 API 키 / DB 비밀번호 / 토큰 등 코드에 노출 안 할 값
 
@@ -389,7 +389,7 @@ jobs:
           echo "env 로 출력: $MY_SECRET_VAL"
 ```
 
-```
+```txt
 실행 결과:
   Printing secret directly (masked): ***
   Printing secret from env (masked) : ***
@@ -411,7 +411,7 @@ secrets 주의사항:
 ---
 #  actions/checkout — 코드 체크아웃 ⭐️
 
-```
+```txt
 Runner(가상 환경)는 빈 서버로 시작
 → 리포지토리 코드가 없음
 → actions/checkout 으로 코드를 Runner 에 가져와야 함
@@ -432,7 +432,7 @@ steps:
     run: ls -la                  # 이제 index.js 등 파일 보임
 ```
 
-```
+```txt
 uses vs run:
   uses  미리 만들어진 Action 사용 (actions/checkout 같은)
   run   직접 shell 명령어 실행
@@ -477,7 +477,7 @@ jobs:
         run: npm test
 ```
 
-```
+```txt
 actions/setup-node:
   Runner(빈 서버) 에 Node.js 를 설치하는 공식 액션
   actions/checkout 이 코드를 가져온 후 Node.js 설정
@@ -504,7 +504,7 @@ npm test 실패 조건:
 }
 ```
 
-```
+```txt
 CI 워크플로 실행 순서:
   1. Checkout code   리포지토리 코드 가져옴
   2. Use Node.js     Node.js v22 설치
@@ -518,7 +518,7 @@ CI 워크플로 실행 순서:
 
 ## 빌드 / 아티팩트 개념
 
-```
+```txt
 빌드 (Build):
   소스코드를 실행 가능한 형태로 변환하는 과정
   TypeScript → JavaScript 컴파일 (tsc)
@@ -574,7 +574,7 @@ jobs:
           path: dist           # 업로드할 폴더 (또는 파일)
 ```
 
-```
+```txt
 with 옵션:
   name  GitHub UI 의 Artifacts 섹션에 표시될 이름
   path  업로드할 경로 (폴더 전체 / 특정 파일)
@@ -588,7 +588,7 @@ with 옵션:
 
 ## GitHub UI 에서 확인
 
-```
+```txt
 Actions 탭 → 워크플로 실행 클릭
 → 요약 페이지 하단 Artifacts 섹션
 → build-assets 클릭 → zip 파일 다운로드
@@ -599,7 +599,7 @@ Actions 탭 → 워크플로 실행 클릭
 ---
 # Matrix Build — 여러 환경 동시 테스트 
 
-```
+```txt
 Matrix Strategy = 변수 조합으로 Job 을 자동 생성
 Node.js v18 / v20 / v22 에서 동시에 테스트
 별도 Job 3개를 직접 쓰는 대신 matrix 로 자동화
@@ -642,7 +642,7 @@ jobs:
           path: dist
 ```
 
-```
+```txt
 strategy.matrix:
   변수 이름(node-version)과 값 배열 정의
   GitHub Actions 가 각 값마다 Job 자동 생성
@@ -670,7 +670,7 @@ GitHub Actions 탭에서 확인:
 ---
 # Job Dependencies — needs ⭐️
 
-```
+```txt
 Job 간 순서와 의존성을 정의하는 방법
 build 성공 후에만 deploy 실행
 Job 은 기본적으로 병렬 실행 → needs 로 순서 제어
@@ -719,7 +719,7 @@ jobs:
           ls -R dist
 ```
 
-```
+```txt
 needs: build:
   build Job 이 성공해야 deploy Job 실행
   build 실패 → deploy 는 실행 안 됨
@@ -736,7 +736,7 @@ needs: build:
 
 ## ⚠️ 버전 경고 — download-artifact ⭐️
 
-```
+```txt
 경고:
   Warning: Node.js 20 actions are deprecated.
   actions/download-artifact@v6 runs on Node.js 20
@@ -759,7 +759,7 @@ needs: build:
 ---
 #  여러 워크플로가 동시에 실행되는 이유 ⭐️
 
-```
+```txt
 스크린샷에서 push 하나에 3개가 실행됨:
   Simple Commands #3
   CI #1
@@ -795,7 +795,7 @@ on:
     branches: [main]
 ```
 
-```
+```txt
 workflow_dispatch:
   Actions 탭에서 "Run workflow" 버튼이 생김
   자동으로 트리거 안 됨 → 원할 때만 수동으로 실행

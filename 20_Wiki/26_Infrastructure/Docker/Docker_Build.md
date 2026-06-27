@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 docker build -t 이름:태그 .
 Dockerfile 변경 시 반드시 다시 빌드해야 적용됨
 . = 현재 디렉토리를 빌드 컨텍스트로 사용
@@ -41,7 +41,7 @@ docker build -t polyglot-whale .
 docker images
 ```
 
-```
+```txt
 ⚠️ 가장 많이 하는 실수:
   Dockerfile 수정 후 docker run 만 다시 실행
   → 변경 사항 적용 안 됨!
@@ -73,7 +73,7 @@ docker run -d --name my-container -p 8080:80 my-app
 docker run --rm -p 8080:80 my-app
 ```
 
-```
+```txt
 chmod +x 잊었을 때 에러:
   permission denied: /entrypoint.sh
   → Dockerfile 에 RUN chmod +x /entrypoint.sh 추가
@@ -86,7 +86,7 @@ chmod +x 잊었을 때 에러:
 
 # ③ 레이어 캐시 ⭐️
 
-```
+```txt
 Docker 는 각 명령어(레이어)를 캐시에 저장
 다음 빌드 시 변경 없는 레이어는 캐시 사용 → 빠름
 변경된 레이어부터 아래는 모두 재빌드
@@ -111,7 +111,7 @@ RUN npm install          # package.json 안 바뀌면 캐시 사용
 COPY . /app              # 소스 변경은 여기만 영향
 ```
 
-```
+```txt
 핵심 원칙:
   변경이 적은 것(의존성) → Dockerfile 위쪽
   변경이 잦은 것(소스코드) → 아래쪽
@@ -135,7 +135,7 @@ docker build --no-cache -t my-app .
 
 # ④ .dockerignore ⭐️
 
-```
+```txt
 빌드 컨텍스트(.) 에서 제외할 파일/폴더 지정
 빌드 속도 향상 + 이미지 크기 감소 + 보안
 ```
@@ -153,7 +153,7 @@ __pycache__/        # Python 캐시
 .DS_Store           # Mac 시스템 파일
 ```
 
-```
+```txt
 .gitignore 와 비슷한 문법
 COPY . /app 할 때 .dockerignore 에 있는 것은 제외됨
 
@@ -177,7 +177,7 @@ RUN chmod +x /entrypoint.sh     # ← 이거 없으면 permission denied
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-```
+```txt
 permission denied 에러 → Dockerfile 에 chmod +x 추가 후 다시 빌드
 
 chmod +x 란:
@@ -217,7 +217,7 @@ docker image prune -a                # 전부 (실행 중인 컨테이너 이미
 
 # 수정 → 재빌드 체크리스트
 
-```
+```txt
 Dockerfile 수정 후:
   □ docker build -t 이름 .
   □ 기존 컨테이너 stop + rm
@@ -236,7 +236,7 @@ Dockerfile 수정 후:
 
 # ⑦ 멀티 스테이지 빌드 ⭐️
 
-```
+```txt
 문제:
   빌드 도구(pip, npm 등)가 최종 이미지에 포함됨
   → 이미지 크기 불필요하게 커짐
@@ -266,7 +266,7 @@ ENV PATH=/root/.local/bin:$PATH
 CMD ["python", "app.py"]
 ```
 
-```
+```txt
 AS builder:
   FROM 단계에 이름 붙이기
   이후 --from=builder 로 참조
@@ -311,7 +311,7 @@ COPY --from=builder /app/app .
 CMD ["./app"]
 ```
 
-```
+```txt
 왜 멀티 스테이지가 효과적인가:
   builder 단계: golang:1.14-alpine (300MB+)
     Go 컴파일러 / 빌드 도구 전부 포함
@@ -334,7 +334,7 @@ CMD ["./app"]
 
 # ⑧ .dockerignore 고급 패턴 ⭐️
 
-```
+```txt
 ** = 모든 하위 디렉토리 포함
 * = 현재 디렉토리만
 ```
@@ -361,7 +361,7 @@ CMD ["./app"]
 README.md
 ```
 
-```
+```txt
 **/*.pyc 의미:
   /app/utils/helper.pyc
   /app/models/user.pyc

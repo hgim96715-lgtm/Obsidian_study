@@ -17,7 +17,7 @@ related:
 ---
 # Docker_Container — 컨테이너 관리
 
-```
+```txt
 컨테이너 = 이미지로 실행된 프로세스
 시작 / 중지 / 재시작 / 삭제 / 내부 접속 / 파일 복사
 ```
@@ -44,7 +44,7 @@ docker run -d --name nginx-port -p 8080:80 nginx
 # localhost:8080 → 컨테이너 80포트
 ```
 
-```
+```txt
 -d    백그라운드 실행 (서버 / DB 등 데몬 프로세스)
 -it   대화형 접속 (디버깅 / 탐색 / 쉘 직접 접근)
 --rm  종료 시 자동 삭제 (일회성 실행)
@@ -61,7 +61,7 @@ docker run -d --name nginx-port -p 8080:80 nginx
 
 # sleep infinity / sleep 3600 — 컨테이너 유지 ⭐️
 
-```
+```txt
 ubuntu 같은 이미지는 실행할 프로세스가 없으면 즉시 종료됨
 → 아무것도 안 하고 대기하는 명령으로 컨테이너 유지
 ```
@@ -79,7 +79,7 @@ docker run -d --name temp-ubuntu ubuntu sleep 3600
 docker exec -it test-ubuntu bash
 ```
 
-```
+```txt
 sleep infinity vs sleep 3600:
   infinity  무기한 대기 → 수동으로 stop 하기 전까지 유지
   3600      N초 후 자동 종료 → 임시 작업용
@@ -109,7 +109,7 @@ docker ps -qf "name=nginx"     # 이름 필터 + ID 만 출력
 docker ps -f "status=exited"   # 중지된 컨테이너만
 ```
 
-```
+```txt
 stop vs rm:
   stop  중지 (데이터/설정 유지 / 다시 start 가능)
   rm    완전 삭제
@@ -153,7 +153,7 @@ docker exec nginx-server ls /usr/share/nginx/html
 docker exec nginx-server nginx -s reload
 ```
 
-```
+```txt
 exec vs run:
   run   새 컨테이너 생성 + 실행
   exec  이미 실행 중인 컨테이너 안에서 명령 실행
@@ -166,7 +166,7 @@ exec vs run:
 
 # docker cp — 파일/디렉토리 복사 ⭐️
 
-```
+```txt
 문법:
   docker cp 출발지 도착지
 
@@ -201,7 +201,7 @@ docker cp /tmp/myfiles/ my_container:/tmp/
 docker cp my_container:/tmp/myfiles/ /home/user/backup/
 ```
 
-```
+```txt
 경로 문법 정리:
   컨테이너명:경로   → 컨테이너 안의 경로 (: 로 구분)
   /tmp/myfiles/   → 끝에 / 있으면 디렉토리 내용 복사
@@ -259,7 +259,7 @@ docker run -d --name app2 \
   ubuntu sleep infinity
 ```
 
-```
+```txt
 -e KEY=VALUE        단일 환경변수
 --env-file 파일명   파일에서 여러 개 한번에 로드
 ```
@@ -281,7 +281,7 @@ docker stats limited-app
 # CONTAINER   CPU %   MEM USAGE / LIMIT   MEM %   NET I/O
 ```
 
-```
+```txt
 왜 필요한가:
   여러 컨테이너가 같은 서버에서 실행될 때
   하나가 자원 독점 → 다른 컨테이너 영향
@@ -306,7 +306,7 @@ docker attach my-nginx
 # Ctrl+P 누른 채로 → Ctrl+Q
 ```
 
-```
+```txt
 attach vs exec:
   attach  PID 1 (메인 프로세스) 에 직접 연결
           분리: Ctrl+P, Ctrl+Q

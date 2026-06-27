@@ -17,7 +17,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 @nestjs/schedule = 정해진 시간에 자동으로 코드 실행
 @Cron      특정 시각/주기 반복 (매일 새벽 3시 등)
 @Interval  일정 간격 반복 (5초마다 등)
@@ -46,7 +46,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 export class AppModule {}
 ```
 
-```
+```txt
 ScheduleModule.forRoot():
   앱 전체에서 @Cron / @Interval / @Timeout 데코레이터 활성화
   등록 안 하면 데코레이터가 동작 안 함
@@ -80,7 +80,7 @@ export class ExhibitionSyncService {
 
 ## Cron 표현식 구조 ⭐️
 
-```
+```txt
    ┌──────────── 초 (0-59, 생략 가능)
    │ ┌────────── 분 (0-59)
    │ │ ┌──────── 시 (0-23)
@@ -114,7 +114,7 @@ CronExpression.EVERY_WEEKDAY      // 평일만
 CronExpression.EVERY_WEEKEND      // 주말만
 ```
 
-```
+```txt
 직접 문자열 vs CronExpression enum:
   '0 0 3 * * *'                      → 의미 파악에 시간 걸림
   CronExpression.EVERY_DAY_AT_3AM    → 이름만 봐도 명확
@@ -135,7 +135,7 @@ async syncDaily() {
 }
 ```
 
-```
+```txt
 timeZone 안 주면:
   서버가 실행되는 환경의 시간대 기준 (보통 UTC)
   Railway / Vercel 등 배포 환경은 UTC 가 기본
@@ -169,7 +169,7 @@ export class HealthCheckService {
 }
 ```
 
-```
+```txt
 @Cron vs @Interval:
   @Cron      특정 시각 기준 (매일 3시, 매주 월요일 등)
   @Interval  앱 시작 시점부터 일정 간격 (5초마다, 1분마다)
@@ -196,7 +196,7 @@ export class InitService {
 }
 ```
 
-```
+```txt
 @Timeout 용도:
   앱 시작 직후 바로 하면 안 되는 초기화 작업
   DB 연결 완료를 약간 기다린 후 실행하고 싶을 때
@@ -237,7 +237,7 @@ export class CronControlService {
 }
 ```
 
-```
+```txt
 SchedulerRegistry 가 필요한 경우:
   관리자 페이지에서 배치 작업 켜고 끄기
   특정 조건에서만 스케줄 작업 실행하도록 제어
@@ -309,7 +309,7 @@ Cron 작업에서 에러 처리 중요한 이유:
 
 # 한눈에
 
-```
+```txt
 설치:
   pnpm add @nestjs/schedule
   ScheduleModule.forRoot()  ← app.module.ts 에 등록 필수

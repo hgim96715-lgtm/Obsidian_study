@@ -10,7 +10,7 @@ related:
 ---
 # 00_Obsidian_HomePage — Obsidian
 
-```
+```txt
 이 vault(gong_study)를 어떻게 꾸미고 쓰는지 정리하는 폴더. 코드 학습 노트(`20_Wiki`)와 달리, Obsidian 앱 자체 설정·플러그인·스니펫이 여기 해당한다.
 ```
 

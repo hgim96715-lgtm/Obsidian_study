@@ -32,7 +32,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 requests.get()   → 데이터 조회 (Read)
 requests.post()  → 데이터 생성/전송 (Write)
 둘 다 Response 객체 반환
@@ -44,7 +44,7 @@ requests.post()  → 데이터 생성/전송 (Write)
 
 # ① GET vs POST
 
-```
+```txt
 GET   → "보여줘" — 데이터 조회
 POST  → "처리해줘" — 데이터 생성 / 로그인 / 결제
 
@@ -116,7 +116,7 @@ r = requests.post(
 
 # ③ headers — 인증 & 메타데이터 ⭐️
 
-```
+```txt
 headers = 요청에 붙이는 메타데이터
   누가 요청하는지 (인증)
   어떤 형식으로 보내는지 / 받고 싶은지
@@ -159,7 +159,7 @@ credentials = base64.b64encode(b"id:password").decode()
 "Authorization": f"Basic {credentials}"
 ```
 
-```
+```txt
 ⚠️ 인증 토큰은 반드시 headers 에 넣기
    params 에 넣으면 URL 에 그대로 노출됨
    서버 로그 / 브라우저 기록에 남아서 보안 위험
@@ -181,7 +181,7 @@ headers = {"Authorization": f"Bearer {API_TOKEN}"}
 
 # ④ timeout — 필수 안전장치 ⭐️
 
-```
+```txt
 timeout 없으면 → 서버 응답 때까지 영원히 대기
 → 파이프라인 전체가 멈추는 대참사
 
@@ -204,7 +204,7 @@ r = requests.get(url, timeout=(5, 30))
 
 # ⑤ Session — 반복 호출 최적화 ⭐️
 
-```
+```txt
 매번 requests.get() → 매번 새로운 TCP 연결 맺음 (느림)
 Session 사용 → 연결 재사용 + 공통 설정 한 번만 (빠름)
 
@@ -305,7 +305,7 @@ realtime = api.get_realtime("20260308", "00051")   # 연결 그대로 사용
 
 # ⑥ params 특수문자 함정 ⭐️
 
-```
+```txt
 params={} 는 key 도 URL 인코딩함
 [] :: 같은 특수문자가 key 에 있으면 서버가 못 알아봄
 ```
@@ -321,7 +321,7 @@ url = f"{base_url}?serviceKey={api_key}&{query}"
 # 실제 전송: ?serviceKey=...&cond[run_ymd::EQ]=20260308  ← 정상
 ```
 
-```
+```txt
 언제 params={} vs 직접 조립:
   key 가 평범한 영문/숫자  → params={} 사용
   key 에 [] :: 특수문자    → f-string 직접 조립
@@ -375,7 +375,7 @@ def fetch(url: str, params: dict) -> dict | None:
 
 ## 예외 계층
 
-```
+```txt
 RequestException       ← 이것 하나로 전부 잡을 수 있음
 ├── ConnectionError    ← 서버 연결 실패
 ├── Timeout            ← timeout 초과
@@ -389,7 +389,7 @@ RequestException       ← 이것 하나로 전부 잡을 수 있음
 
 # ⑧ API 함수 파라미터 설계 ⭐️
 
-```
+```txt
 함수 파라미터 = "호출할 때마다 바뀌는 값" 만
 고정값은 함수 안 params 에 하드코딩
 ```

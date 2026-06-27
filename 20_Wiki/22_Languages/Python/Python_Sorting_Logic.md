@@ -20,7 +20,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 순서가 뒤죽박죽인 데이터를
 내가 원하는 '기준(key)' 을 정해서 줄 세우는 기술
 ```
@@ -96,7 +96,7 @@ sorted(strings, key=lambda word: word[n])
 
 # ② key 옵션 — 정렬 기준 지정
 
-```
+```txt
 컴퓨터는 ('A', 30) 덩어리를 주면
 무조건 맨 앞 'A' 만 보고 정렬함
 
@@ -115,7 +115,7 @@ sorted(data.items(), key=lambda item: item[1], reverse=True)
 # [('A', 30), ('B', 15), ('C', 5)]  ← 숫자 큰 순
 ```
 
-```
+```txt
 key=lambda item: item[1]
   → "원소(item) 하나가 들어오면 [1]번째를 기준으로 삼아라"
   → lambda 는 [[Python_Lambda_Map]] 참고
@@ -123,7 +123,7 @@ key=lambda item: item[1]
 
 ## key 에 튜플 넣기 — 다중 기준 정렬 ⭐️
 
-```
+```txt
 key 에 튜플을 반환하면 다중 기준 정렬
 (1순위 기준, 2순위 기준)
 
@@ -143,7 +143,7 @@ sorted(strings, key=lambda s: (s[n], s))
 # → ["car", "bed", "sun"]
 ```
 
-```
+```txt
 lambda s: (s[n], s) 읽는 법:
   s          = 리스트에서 꺼낸 문자열 하나 (예: "sun")
   s[n]       = n번째 글자 (예: n=1 → "u")
@@ -183,7 +183,7 @@ n = 1
 
 # ③ reverse 옵션
 
-```
+```txt
 기본값(False) = 오름차순  1, 2, 3... / 가, 나, 다...
 reverse=True  = 내림차순  3, 2, 1...
 ```
@@ -201,7 +201,7 @@ sorted(scores, reverse=True) # [90, 70, 50]  내림차순 (랭킹, TOP N)
 
 # ④ 튜플 정렬 — 사전식(Lexicographic) 정렬
 
-```
+```txt
 파이썬은 튜플을 만나면
 맨 앞(0번째) 값부터 차례대로 비교하는 '본능' 이 있음
 
@@ -220,7 +220,7 @@ sorted(data)
 
 ### 튜플 본능 활용 — key=lambda 없이 정렬
 
-```
+```txt
 튜플 만들 때 정렬하고 싶은 기준을 맨 앞에 두면
 lambda 없이도 알아서 정렬됨
 
@@ -268,7 +268,7 @@ dict(sorted(data.items(), key=lambda x: x[1], reverse=True))
 
 # ⑥ 문자열 정렬로 비교 — 순서 무시 비교 ⭐️
 
-```
+```txt
 두 문자열이 같은 문자로 이루어졌는지 비교할 때
 sorted() 로 정렬하면 순서 무시하고 구성만 비교 가능
 
@@ -316,7 +316,7 @@ sorted(s1) == sorted(s2)         # True
 Counter(s1) == Counter(s2)       # True
 ```
 
-```
+```txt
 코딩테스트:  sorted()  ← 간단 + 충분히 빠름
 실무/가독성: Counter() ← "문자 빈도 비교" 의미 명확
 ```
@@ -329,7 +329,7 @@ Counter(s1) == Counter(s2)       # True
 
 # 핵심 정리
 
-```
+```txt
 sorted()   원본 유지, 새 리스트 반환  → 거의 항상 이걸 쓸 것
 .sort()    원본 변경, None 반환       → 변수에 담으면 None 함정
 

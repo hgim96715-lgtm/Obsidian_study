@@ -22,7 +22,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 WHERE = 조건에 맞는 행만 뽑아내기
 엑셀의 필터 기능과 동일
 ```
@@ -49,7 +49,7 @@ WHERE = 조건에 맞는 행만 뽑아내기
 
 ## 연산자 우선순위 ⭐️
 
-```
+```txt
 1순위: ( )
 2순위: 비교 연산자 (= > < >= <=)
 3순위: NOT
@@ -71,7 +71,7 @@ WHERE (city = 'Seoul' OR city = 'Busan') AND age > 20
 
 ## 드 모르간의 법칙
 
-```
+```txt
 NOT (A OR B)  →  NOT A AND NOT B
 NOT (A AND B) →  NOT A OR  NOT B
 ```
@@ -88,7 +88,7 @@ WHERE species IS NOT NULL AND body_mass_g IS NOT NULL
 
 # BETWEEN — 범위 조건 ⭐️
 
-```
+```txt
 양 끝값 모두 포함 (Inclusive)
 A BETWEEN B AND C  =  B <= A <= C
 ```
@@ -155,7 +155,7 @@ WHERE id NOT IN (SELECT id FROM t WHERE id IS NOT NULL)
 
 # LIKE / ILIKE — 패턴 매칭 ⭐️
 
-```
+```txt
 JS 의 startsWith / endsWith / includes 에 해당하는 SQL 문법
 
 name.startsWith('M')  →  name LIKE 'M%'
@@ -171,7 +171,7 @@ WHERE name LIKE '김_수'      -- 김X수 (중간 딱 1글자)
 WHERE name NOT LIKE '%테스트%'
 ```
 
-```
+```txt
 %  모든 문자 (0글자 이상)
 _  딱 한 글자
 
@@ -207,7 +207,7 @@ FROM Employees
 ORDER BY employee_id;
 ```
 
-```
+```txt
 두 방법 비교:
   첫 번째 (AND 조합):
     한 WHEN 에 조건 두 개 묶기
@@ -253,7 +253,7 @@ FROM payments
 
 # IS NULL ⭐️
 
-```
+```txt
 NULL = "알 수 없음"
 = / <> 로 비교 불가
 ```
@@ -290,7 +290,7 @@ WHERE REGEXP_LIKE(mail, '^[A-Za-z][A-Za-z0-9._-]*@leetcode[.]com$', 'c')
 
 # WHERE 절 제한사항
 
-```
+```txt
 실행 순서: FROM → WHERE → SELECT
 WHERE 가 SELECT 보다 먼저 실행됨
 

@@ -17,7 +17,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 특정 커밋에 이름표를 붙이는 기능
 버전 릴리스 표시 (v1.0 / v2.3.1) 에 주로 사용
 브랜치와 달리 고정됨 — 가리키는 커밋이 절대 바뀌지 않음
@@ -29,7 +29,7 @@ related:
 
 # ① 태그 2가지 종류
 
-```
+```txt
 경량 태그 (Lightweight)
   특정 커밋을 가리키는 포인터
   메시지 / 작성자 / 날짜 없음
@@ -108,7 +108,7 @@ git switch v1.0
 # ⚠️ detached HEAD 상태가 됨
 ```
 
-```
+```txt
 detached HEAD 란:
   브랜치가 아닌 특정 커밋에 HEAD 가 직접 연결된 상태
   코드 확인 / 실험은 가능
@@ -148,7 +148,7 @@ git push origin --delete v0.0.1
 git push origin :refs/tags/v0.0.1   # 구버전 방식
 ```
 
-```
+```txt
 ⚠️ 공유된 태그 삭제 주의:
   팀원이 해당 태그를 참조하고 있을 수 있음
   삭제 전 팀원과 소통 필요
@@ -166,7 +166,7 @@ git push origin v1.0          # 특정 태그만
 git push origin --tags        # 모든 태그 한번에
 ```
 
-```
+```txt
 ⚠️ 태그는 자동 push 안 됨:
   git push origin main 해도 태그는 올라가지 않음
   → 반드시 별도로 git push origin 태그명 필요

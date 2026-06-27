@@ -12,7 +12,7 @@ related:
 
 # Git_SSH — SSH 키 생성 & GitHub 연결
 
-```
+```txt
 SSH = 비밀번호 없이 GitHub 에 안전하게 접속하는 방법
 키 한 번 등록하면 git clone / push / pull 시 인증 불필요
 ```
@@ -23,7 +23,7 @@ SSH = 비밀번호 없이 GitHub 에 안전하게 접속하는 방법
 
 # SSH vs HTTPS ⭐️
 
-```
+```txt
 HTTPS 방식:
   git clone https://github.com/...
   → 매번 토큰(Personal Access Token) 입력 필요
@@ -46,7 +46,7 @@ SSH 방식:
 ls ~/.ssh/
 ```
 
-```
+```txt
 id_ed25519       → 개인키 (절대 공유 X)
 id_ed25519.pub   → 공개키 (GitHub 에 등록)
 
@@ -64,7 +64,7 @@ ssh-keygen -t ed25519 -C "your@email.com"
 ssh-keygen -t rsa -b 4096 -C "your@email.com"
 ```
 
-```
+```txt
 Enter file in which to save the key:
 → 엔터 (기본 경로 사용: ~/.ssh/id_ed25519)
    또는 커스텀 이름 입력: ~/.ssh/github_ed25519
@@ -97,7 +97,7 @@ ssh-add ~/.ssh/github_ed25519
 ssh-add -l
 ```
 
-```
+```txt
 SSH Agent 란:
   비밀키를 메모리에 올려두고 필요할 때 자동으로 사용
   passphrase 설정 시 Agent 에 등록하면 한 번만 입력해도 됨
@@ -117,12 +117,12 @@ cat ~/.ssh/id_ed25519.pub
 cat ~/.ssh/github_ed25519.pub
 ```
 
-```
+```txt
 ssh-ed25519 AAAAC3Nza... your@email.com
 ↑ 이 전체 내용 복사
 ```
 
-```
+```txt
 GitHub → Settings → SSH and GPG keys
 → New SSH key
 → Title: 알아보기 쉬운 이름 (예: MacBook, aws_lightsail)
@@ -140,7 +140,7 @@ GitHub → Settings → SSH and GPG keys
 ssh -T git@github.com
 ```
 
-```
+```txt
 성공:
   Hi {username}! You've successfully authenticated...
 
@@ -155,7 +155,7 @@ ssh -T git@github.com
 
 # 커스텀 키 이름 사용 시 — config 파일 설정 ⭐️
 
-```
+```txt
 키 파일명을 기본값(id_ed25519)이 아닌 다른 이름으로 만들었으면
 SSH 가 어떤 키를 써야 하는지 모름 → Permission denied 발생
 
@@ -166,7 +166,7 @@ SSH 가 어떤 키를 써야 하는지 모름 → Permission denied 발생
 nano ~/.ssh/config
 ```
 
-```
+```txt
 Host github.com
     HostName github.com
     User git
@@ -179,7 +179,7 @@ Host github.com
 chmod 600 ~/.ssh/config
 ```
 
-```
+```txt
 IdentityFile:
   어떤 키 파일을 사용할지 명시
   기본값 이름(id_ed25519) 쓰면 이 설정 불필요
@@ -207,7 +207,7 @@ chmod 644 ~/.ssh/id_ed25519.pub         # 공개키
 chmod 600 ~/.ssh/config                 # config 파일
 ```
 
-```
+```txt
 SSH 는 권한이 너무 열려있으면 보안 위협으로 보고 키 무시
 → 개인키는 반드시 600 (본인만 읽기)
 ```
@@ -222,7 +222,7 @@ cat ~/.ssh/id_ed25519.pub
 # GitHub → Settings → SSH keys → 등록된 키 확인
 ```
 
-```
+```txt
 로컬에서 새로 키를 만들었는데 GitHub 에 이전 키가 등록돼 있으면
 → GitHub 에서 기존 키 삭제 후 새 공개키 다시 등록
 ```
@@ -260,7 +260,7 @@ ssh-add ~/.ssh/github_ed25519
 ssh -vT git@github.com
 ```
 
-```
+```txt
 -v = verbose (상세 출력)
 어느 단계에서 실패하는지 확인 가능
 
@@ -299,7 +299,7 @@ git remote -v
 
 # 핵심 흐름 정리
 
-```
+```txt
 ssh-keygen -t ed25519 -C "email"
     ↓
 eval "$(ssh-agent -s)"

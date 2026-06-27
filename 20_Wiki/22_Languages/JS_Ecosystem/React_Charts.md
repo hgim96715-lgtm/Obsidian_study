@@ -19,7 +19,7 @@ related:
 
 # 한 줄 요약
 
-```
+```txt
 recharts = React 컴포넌트로 차트를 그리는 라이브러리 (D3 기반, JSX 스타일 API)
 <PieChart><Pie data={...} /></PieChart> 처럼 차트도 그냥 컴포넌트 조립하듯 작성
 ```
@@ -30,7 +30,7 @@ recharts = React 컴포넌트로 차트를 그리는 라이브러리 (D3 기반,
 
 # recharts 란 — 왜 쓰는가 ⭐️
 
-```
+```txt
 차트를 직접 그리려면(D3 등) 보통 "이 좌표에 이 모양을 그려라" 같은 명령형 코드가 필요함
 recharts 는 그 복잡한 부분을 감춰두고
 "이런 데이터를, 이런 모양(Pie/Bar/Line)으로 보여달라" 고 React 컴포넌트로 선언만 하면 끝나게 해줌
@@ -56,7 +56,7 @@ pnpm add recharts --filter web
 |ECharts (+ echarts-for-react)|기능이 매우 많은 종합 차트 라이브러리|기능 풍부, 인터랙션 다양|상대적으로 무거움|
 |D3.js (직접)|가장 low-level, 명령형|뭐든 가능, 완전한 자유도|React 의 가상 DOM 과 직접 안 맞아 통합이 까다로움|
 
-```
+```txt
 선택 기준:
   대시보드/통계 화면처럼 "흔한 차트 모양" 이면      → recharts (가장 쉽고 React 스러움) ⭐️
   아주 독특하고 복잡한 시각화가 필요하면            → visx 또는 D3 직접
@@ -73,7 +73,7 @@ pnpm add recharts --filter web
 'use client';
 ```
 
-```
+```txt
 차트(특히 ResponsiveContainer)는 "지금 이 컴포넌트가 화면에서 실제로 몇 픽셀 차지하는지" 를
 브라우저에게 직접 물어봐서(ResizeObserver 등) 차트 크기를 맞춤
 → 이건 브라우저에만 있는 기능이라 서버에서는 실행할 수 없음
@@ -158,7 +158,7 @@ const data = [
 ];
 ```
 
-```
+```txt
 recharts 는 "이런 모양의 객체 배열을 줘" 라고 기대하고, 그 배열을 그대로 그림으로 바꿔줌
   name   각 조각의 이름 (Tooltip/Legend 에 표시됨)
   value  각 조각의 크기 (이 값들의 비율대로 파이가 나뉨)
@@ -179,7 +179,7 @@ const COLORS = ["#666666", "#D97706"];
 { name: "숨김", value: hidden,  fill: COLORS[1] },   // 둘째 조각: 주황색
 ```
 
-```
+```txt
 recharts 는 색을 자동으로 정해주는 기본 동작도 있지만
 각 데이터 항목에 fill 속성을 직접 넣어주면 "이 조각은 이 색" 이라고 확실하게 고정할 수 있음
 → "공개=회색, 숨김=주황" 처럼 의미가 있는 색 배정을 하고 싶을 때는 이렇게 직접 지정하는 게 안전함
@@ -197,7 +197,7 @@ recharts 는 색을 자동으로 정해주는 기본 동작도 있지만
 |`innerRadius`|안쪽 반지름 — 0 이면 꽉 찬 파이, 0 보다 크면 도넛 모양|
 |`outerRadius`|바깥쪽 반지름 — 파이 전체 크기|
 
-```
+```txt
 innerRadius={50} + outerRadius={70} 의 의미:
   반지름 50~70 사이만 색칠됨 → 가운데가 뚫린 "도넛" 형태
   innerRadius 를 0 으로 하면 도넛이 아니라 꽉 찬 파이가 됨
@@ -205,7 +205,7 @@ innerRadius={50} + outerRadius={70} 의 의미:
 
 ## ResponsiveContainer / Tooltip / Legend — 거의 안 건드리고 쓰는 것들
 
-```
+```txt
 ResponsiveContainer   부모 div 의 실제 크기(width/height)를 측정해서 차트를 그 크기에 맞춤
                       width="100%" height="100%" → 부모 div(h-48 w-full)에 꽉 차게
 Tooltip               마우스를 조각에 올리면 자동으로 값을 보여주는 말풍선 (커스터마이즈도 가능)
@@ -222,7 +222,7 @@ if (total === 0) {
 }
 ```
 
-```
+```txt
 왜 필요한가:
   visible/hidden 이 둘 다 0(데이터 자체가 없음)이면
   파이 차트는 "그릴 게 없는" 상태가 되어 빈 원이나 이상한 모양으로 보일 수 있음
@@ -258,7 +258,7 @@ export default async function AdminPage() {
 }
 ```
 
-```
+```txt
 역할 분리:
   AdminPage(Server)        DB 조회 + 숫자 계산까지 끝낸 "결과" 만 만듦
   AdminStatsChart(Client)  그 결과를 받아서 "그림으로 그리는 것" 만 책임짐
@@ -286,7 +286,7 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 </ResponsiveContainer>
 ```
 
-```
+```txt
 공통 패턴:
   항상 ResponsiveContainer 로 감싸고
   안에 OOChart(Pie/Bar/Line) 를 두고
@@ -302,7 +302,7 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 # 한눈에
 
-```
+```txt
 recharts 핵심:
   <ResponsiveContainer> 로 감싸고 그 안에 <PieChart>/<BarChart> 등을 둠
   data 배열({name, value, ...})을 만들어서 넘기는 게 핵심 — recharts 가 나머지를 그림

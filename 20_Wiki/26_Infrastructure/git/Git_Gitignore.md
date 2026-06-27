@@ -15,7 +15,7 @@ related:
 
 ## 한 줄 요약
 
-```
+```txt
 .gitignore = Git 이 추적하지 않을 파일 목록
 로그 파일 / 환경변수 / 빌드 결과물 / 의존성 폴더 제외
 ```
@@ -46,7 +46,7 @@ git status    # debug.log 가 나타나지 않음 ✅
 
 # ② .gitignore 패턴 문법 ⭐️
 
-```
+```txt
 # 주석
 
 *.log          확장자가 .log 인 파일 전부
@@ -108,7 +108,7 @@ airflow.cfg
 
 # ③ 이미 올라간 파일 제거 ⭐️
 
-```
+```txt
 .gitignore 추가 전에 이미 커밋된 파일은
 .gitignore 에 넣어도 계속 추적됨
 
@@ -130,7 +130,7 @@ git add .gitignore
 git commit -m "Remove tracked files now in .gitignore"
 ```
 
-```
+```txt
 --cached 없으면:
   git rm 파일명  → 파일 자체도 삭제됨 ⚠️
   반드시 --cached 옵션으로 추적만 해제
@@ -196,7 +196,7 @@ Thumbs.db        # Windows
 *.log
 ```
 
-```
+```txt
 로컬 .gitignore vs 전역 .gitignore:
   로컬  → 해당 프로젝트에만 적용 / 팀원과 공유
   전역  → 내 컴퓨터 모든 저장소에 적용 / 개인 설정

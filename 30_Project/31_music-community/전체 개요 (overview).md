@@ -102,7 +102,7 @@ pnpm dev:web                  # Next dev     → http://localhost:3031
 
 #### 루트 — `music-community/`
 
-```
+```txt
 music-community/
 ├── pnpm-workspace.yaml     # ★ workspace: apps/* · packages/*
 ├── package.json            # ★ dev:api · dev:web (filter 위임)
@@ -131,7 +131,7 @@ music-community/
 
 #### `apps/api/`
 
-```
+```txt
 apps/api/
 ├── prisma.config.ts
 ├── prisma/
@@ -159,7 +159,7 @@ apps/api/
 
 #### `apps/web/lib/`
 
-```
+```txt
 apps/web/lib/
 ├── fetchApi.ts              # getApiBaseUrl() — api.ts · authFetch 공용
 ├── types.ts · apiTypes.ts · mapRecommendation.ts
@@ -173,7 +173,7 @@ apps/web/lib/
 
 #### `apps/web/app/` · `components/`
 
-```
+```txt
 apps/web/
 ├── app/
 │   ├── layout.tsx              # AppHeader (6~)

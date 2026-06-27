@@ -14,7 +14,7 @@ related:
 
 # Redis_Docker — Docker 로 Redis 실행
 
-```
+```txt
 Docker Compose 로 Redis + RedisInsight 를 한번에 실행
 Redis       = 실제 데이터 저장소
 RedisInsight = Redis GUI 관리 도구
@@ -60,7 +60,7 @@ volumes:
   redisinsight_data:
 ```
 
-```
+```txt
 각 옵션 설명:
 
 image: redis:7-alpine
@@ -96,7 +96,7 @@ REDIS_PORT=6379
 REDIS_INSIGHT_PORT=5540
 ```
 
-```
+```txt
 REDIS_PORT:-6379
   .env 에 REDIS_PORT 없으면 기본값 6379 사용
 
