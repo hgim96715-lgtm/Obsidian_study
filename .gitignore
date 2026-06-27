@@ -1,0 +1,78 @@
+/.DS_Store
+/.AppleDouble
+/.Spotlight-V100
+/._*
+/.Trashes
+/.DocumentRevisions-V100
+/Thumbs.db
+/desktop.ini
+
+/.obsidian
+/.obsidian/
+/99_Assets(이미지&첨부파일저장소)/
+/*.icloud
+
+# Images / binaries
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.svg
+*.webp
+
+# Temp / swap / backup
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.backup
+*.pdf
+*.docx
+*.xlsx
+
+# Logs and envs
+*.log
+.env
+.env.*.local
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.iml
+*.sublime-*
+.project
+.classpath
+.settings/
+
+# Node / build
+node_modules/
+dist/
+build/
+.out/
+.cache/
+.parcel-cache/
+.next/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+.env
+
+# Misc
+Thumbs.db
+.DS_Store
+
+
+# streamlit
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+.obsidian
+.obsidian/
