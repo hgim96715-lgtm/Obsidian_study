@@ -1,8 +1,5 @@
 ---
-aliases:
-  - Proxy
-  - Reflect
-  - 메타프로그래밍
+aliases: [메타프로그래밍, Proxy, Reflect]
 tags:
   - JavaScript
 related:

@@ -1,19 +1,13 @@
 ---
-aliases:
-  - Record
-  - Partial
-  - Pick
-  - Omit
-  - ReturnType
-  - utility types
+aliases: [Omit, Partial, Pick, Record, ReturnType, utility types]
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_DTO]]"
-  - "[[TS_Generics]]"
   - "[[NestJS_Controller]]"
+  - "[[NestJS_DTO]]"
   - "[[React_useRef]]"
+  - "[[TS_Generics]]"
 ---
 # TS_Utility_Types — Record, Partial, Pick, Omit 등
 

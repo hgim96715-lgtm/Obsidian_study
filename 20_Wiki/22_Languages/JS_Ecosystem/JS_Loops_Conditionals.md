@@ -1,11 +1,5 @@
 ---
-aliases:
-  - if else
-  - switch
-  - for loop
-  - for of
-  - for in
-  - while
+aliases: [for in, for loop, for of, if else, switch, while]
 tags:
   - JavaScript
 related:

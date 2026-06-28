@@ -1,16 +1,12 @@
 ---
-aliases:
-  - 파일 업로드
-  - Presigned URL
-  - 선업로드
-  - Optimistic Response
+aliases: [선업로드, 파일 업로드, Optimistic Response, Presigned URL]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_TypeORM]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_FileStorage]]"
+  - "[[NestJS_TypeORM]]"
 ---
 # NestJS_FileUpload — Multer & FileInterceptor
 

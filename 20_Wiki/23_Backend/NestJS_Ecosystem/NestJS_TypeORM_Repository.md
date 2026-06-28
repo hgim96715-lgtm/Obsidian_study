@@ -1,16 +1,5 @@
 ---
-aliases:
-  - TypeORM Repository
-  - Repository CRUD
-  - save
-  - find
-  - delete
-  - upsert
-  - relations
-  - In
-  - where
-  - FindOperators
-  - Not
+aliases: [delete, find, FindOperators, In, Not, relations, Repository CRUD, save, TypeORM Repository, upsert, where]
 tags:
   - NestJS
 related:

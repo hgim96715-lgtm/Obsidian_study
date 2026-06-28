@@ -1,15 +1,14 @@
 ---
 aliases:
   - Passport
+  - req.user
   - Strategy 패턴
   - verify 콜백
-  - req.user
 tags:
   - NodeJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_JwtGuard]]"
-  - "[[JS_Destructuring]]"
 ---
 # NodeJS_Passport — Passport.js 인증 미들웨어
 

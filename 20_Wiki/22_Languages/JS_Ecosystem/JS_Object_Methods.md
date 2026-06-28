@@ -1,9 +1,5 @@
 ---
-aliases:
-  - Object.keys
-  - Object.values
-  - Object.entries
-  - Object.assign
+aliases: [Object.assign, Object.entries, Object.keys, Object.values]
 tags:
   - JavaScript
 related:

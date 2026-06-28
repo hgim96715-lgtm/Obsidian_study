@@ -1,10 +1,5 @@
 ---
-aliases:
-  - QueryBuilder
-  - createQueryBuilder
-  - 복잡한 쿼리
-  - identifiers
-  - SelectQueryBuilder
+aliases: [복잡한 쿼리, createQueryBuilder, identifiers, QueryBuilder, SelectQueryBuilder]
 tags:
   - NestJS
 related:

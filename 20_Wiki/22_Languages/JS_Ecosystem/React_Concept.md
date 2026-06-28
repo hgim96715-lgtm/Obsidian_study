@@ -1,18 +1,12 @@
 ---
-aliases:
-  - React 개념
-  - 리액트란
-  - Virtual DOM
-  - JSX
-  - SPA
-  - createRoot
+aliases: [리액트란, createRoot, JSX, React 개념, SPA, Virtual DOM]
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_Concept]]"
-  - "[[React_Vite]]"
   - "[[React_Component]]"
+  - "[[React_Vite]]"
 ---
 # React_Concept — React 란
 

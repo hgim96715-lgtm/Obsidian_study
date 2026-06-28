@@ -1,14 +1,12 @@
 ---
-aliases:
-  - generics
-  - T
+aliases: [generics, T]
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_TypeAssertion]]"
   - "[[NextJS_API_Client]]"
   - "[[React_useRef]]"
+  - "[[TS_TypeAssertion]]"
 ---
 
 # TS_Generics — `<T>`는 호출할 때 정해지는 타입 변수

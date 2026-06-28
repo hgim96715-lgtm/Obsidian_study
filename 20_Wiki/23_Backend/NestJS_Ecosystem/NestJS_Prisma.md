@@ -1,16 +1,13 @@
 ---
-aliases:
-  - Prisma
-  - Prisma ORM
-  - NestJS Prisma
+aliases: [NestJS Prisma, Prisma, Prisma ORM]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Pagination]]"
-  - "[[SQL_Window_Functions]]"
-  - "[[NestJS_Prisma_Monorepo]]"
   - "[[NestJS_Module]]"
+  - "[[NestJS_Pagination]]"
+  - "[[NestJS_Prisma_Monorepo]]"
+  - "[[SQL_Window_Functions]]"
 ---
 # NestJS_Prisma — Prisma ORM
 

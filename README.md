@@ -5,6 +5,7 @@ tags:
   - README
 related:
   - "[[00_Toolbox_HomePage]]"
+  - "[[00_Project_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_Toolbox_HomePage]]"
@@ -13,6 +14,7 @@ related:
   - "[[00_SQL_HomePage]]"
   - "[[00_Git_HomePage]]"
   - "[[00_Linux_HomePage]]"
+  - "[[00_Certifications_HomePage]]"
 ---
 
 # Obsidian_study
@@ -62,6 +64,7 @@ Obsidian_study/
 각 주제 묶음은 홈페이지 노트에서 목차 형태로 연결됩니다.
 
 - `00_Toolbox_HomePage` — Obsidian · VS Code · Postman · Mac
+- `00_Project_HomePage` — 프로젝트 (music-community 등)
 - `00_JS_Ecosystem_HomePage` — JS · TS · React · Next.js
 - `00_NestJS_Ecosystem_HomePage` — NestJS · NodeJS
 

@@ -1,11 +1,5 @@
 ---
-aliases:
-  - Server Actions
-  - FormData
-  - use server
-  - form action
-  - NextRequest
-  - NextResponse
+aliases: [form action, FormData, NextRequest, NextResponse, Server Actions, use server]
 tags:
   - NextJS
 related:

@@ -1,10 +1,5 @@
 ---
-aliases:
-  - MouseEvent
-  - KeyboardEvent
-  - SyntheticEvent
-  - target vs currentTarget
-  - preventDefault vs stopPropagation
+aliases: [KeyboardEvent, MouseEvent, preventDefault vs stopPropagation, SyntheticEvent, target vs currentTarget]
 tags:
   - TypeScript
   - React

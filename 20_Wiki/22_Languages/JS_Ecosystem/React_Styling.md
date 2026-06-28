@@ -1,15 +1,11 @@
 ---
-aliases:
-  - Tailwind
-  - CSS Modules
-  - 스타일링
-  - lucide-react
+aliases: [스타일링, CSS Modules, lucide-react, Tailwind]
 tags:
   - Tailwind
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_Component]]"
   - "[[NextJS_Routing]]"
+  - "[[React_Component]]"
 ---
 
 # React_TailwindCSS — Tailwind CSS

@@ -1,15 +1,12 @@
 ---
-aliases:
-  - localStorage
-  - Access Token Storage
-  - authToken
+aliases: [Access Token Storage, authToken, localStorage]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
-  - "[[NestJS_JwtGuard]]"
   - "[[JS_BrowserAPI]]"
+  - "[[NestJS_JwtGuard]]"
 ---
 # NextJS_TokenStorage — Access Token을 클라이언트에 저장하기
 

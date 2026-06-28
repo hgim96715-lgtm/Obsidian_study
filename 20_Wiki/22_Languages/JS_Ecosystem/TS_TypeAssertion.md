@@ -1,14 +1,11 @@
 ---
-aliases:
-  - as
-  - type assertion
-  - as const
+aliases: [as, as const, type assertion]
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_Generics]]"
   - "[[NextJS_API_Client]]"
+  - "[[TS_Generics]]"
 ---
 
 # TS_TypeAssertion — as 키워드

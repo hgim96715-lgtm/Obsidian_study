@@ -1,10 +1,5 @@
 ---
-aliases:
-  - TypeORM 관계
-  - OneToMany
-  - ManyToOne
-  - ManyToMany
-  - OneToOne
+aliases: [ManyToMany, ManyToOne, OneToMany, OneToOne, TypeORM 관계]
 tags:
   - NestJS
 related:

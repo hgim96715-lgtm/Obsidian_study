@@ -1,18 +1,16 @@
 ---
 aliases:
   - 함수형 컴포넌트
-  - JSX
-  - props
   - children
   - ComponentProps
+  - JSX
+  - props
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_UI_Types]]"
-  - "[[NextJS_Data_Fetching]]"
   - "[[NextJS_API_Client]]"
-  - "[[React_State]]"
+  - "[[NextJS_UI_Types]]"
 ---
 # React_Component — 함수형 컴포넌트 & JSX
 

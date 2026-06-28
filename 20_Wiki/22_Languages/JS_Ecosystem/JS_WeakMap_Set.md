@@ -1,18 +1,12 @@
 ---
-aliases:
-  - Set
-  - Map
-  - WeakMap
-  - WeakSet
-  - 중복제거
-  - 자료구조
+aliases: [자료구조, 중복제거, Map, Set, WeakMap, WeakSet]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[JS_Array_Methods]]"
   - "[[JS_Date]]"
   - "[[React_DatePicker]]"
-  - "[[JS_Array_Methods]]"
 ---
 
 

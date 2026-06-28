@@ -6,12 +6,12 @@ aliases:
   - --format
   - --limit
   - docker search
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Image]]"
   - "[[Docker_Commands]]"
+tags:
+  - Docker
 ---
 # Docker_Registry — 레지스트리 & Docker Hub
 

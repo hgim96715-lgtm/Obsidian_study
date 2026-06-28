@@ -1,15 +1,11 @@
 ---
-aliases:
-  - apiTypes
-  - mapper
-  - Mapper 함수
-  - API 타입
+aliases: [API 타입, apiTypes, mapper, Mapper 함수]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_UI_Types]]"
   - "[[NestJS_Swagger]]"
+  - "[[NextJS_UI_Types]]"
 ---
 # NextJS_API_Mapper — API 타입 정의 + 매퍼 함수
 

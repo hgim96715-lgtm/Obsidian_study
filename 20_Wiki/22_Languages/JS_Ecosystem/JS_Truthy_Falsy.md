@@ -1,14 +1,11 @@
 ---
-aliases:
-  - truthy
-  - falsy
-  - Boolean coercion
+aliases: [Boolean coercion, falsy, truthy]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_OptionalChaining]]"
   - "[[JS_Operators]]"
+  - "[[JS_OptionalChaining]]"
 ---
 
 # JS_Truthy_Falsy — 어떤 값이 true/false로 취급되는가

@@ -1,8 +1,5 @@
 ---
-aliases:
-  - CSSProperties
-  - CSS custom property
-  - CSS variable
+aliases: [CSS custom property, CSS variable, CSSProperties]
 tags:
   - React
   - CSS

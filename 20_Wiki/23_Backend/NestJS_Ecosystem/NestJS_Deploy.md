@@ -1,16 +1,11 @@
 ---
-aliases:
-  - 배포
-  - Railway
-  - Neon
-  - Vercel
-  - 서버 배포
+aliases: [배포, 서버 배포, Neon, Railway, Vercel]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Env_Config]]"
   - "[[NestJS_Concept]]"
+  - "[[NestJS_Env_Config]]"
   - "[[Next_Troubleshooting]]"
 ---
 # NestJS_Deploy — 배포 (Vercel + Railway + Neon)

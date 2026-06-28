@@ -1,10 +1,5 @@
 ---
-aliases:
-  - Module
-  - "@Module"
-  - 모듈
-  - Dynamic Module
-  - forRootAsync
+aliases: ["@Module", 모듈, Dynamic Module, forRootAsync, Module]
 tags:
   - NestJS
 related:

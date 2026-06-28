@@ -1,19 +1,13 @@
 ---
-aliases:
-  - JwtAuthGuard
-  - RolesGuard
-  - request.user
-  - Auth
-  - Guard
-  - JWT
+aliases: [Auth, Guard, JWT, JwtAuthGuard, request.user, RolesGuard]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
-  - "[[NodeJS_Passport]]"
-  - "[[NodeJS_HTTP_Request]]"
   - "[[NestJS_Bcrypt]]"
+  - "[[NodeJS_HTTP_Request]]"
+  - "[[NodeJS_Passport]]"
 ---
 # NestJS_JwtGuard — JWT 검증부터 Role 체크까지
 

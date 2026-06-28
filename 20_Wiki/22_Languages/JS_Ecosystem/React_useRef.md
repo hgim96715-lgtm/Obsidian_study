@@ -1,14 +1,11 @@
 ---
-aliases:
-  - useRef
-  - ref
-  - current
+aliases: [current, ref, useRef]
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_DOM_Events]]"
   - "[[React_useMemo_useCallback_useEffect]]"
+  - "[[TS_DOM_Events]]"
 ---
 # React_useRef — 렌더링과 무관하게 값을 들고 있기
 

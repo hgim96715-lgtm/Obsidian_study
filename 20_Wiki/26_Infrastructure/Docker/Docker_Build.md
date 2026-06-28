@@ -4,12 +4,12 @@ aliases:
   - 이미지 빌드
   - dockerignore
   - 레이어 캐시
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Dockerfile]]"
   - "[[Docker_Image]]"
+tags:
+  - Docker
 ---
 # Docker_Build — 이미지 빌드
 

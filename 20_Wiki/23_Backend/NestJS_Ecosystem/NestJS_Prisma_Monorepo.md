@@ -1,7 +1,5 @@
 ---
-aliases:
-  - Prisma 모노레포
-  - pnpm Prisma
+aliases: [pnpm Prisma, Prisma 모노레포]
 tags:
   - NestJS
 related:

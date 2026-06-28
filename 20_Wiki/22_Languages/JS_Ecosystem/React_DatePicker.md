@@ -1,16 +1,14 @@
 ---
 aliases:
   - 날짜 선택
-  - react-day-picker
-  - date-fns
   - 달력
+  - date-fns
+  - react-day-picker
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_State]]"
-  - "[[React_useEffect]]"
   - "[[JS_Date]]"
 ---
 # React_DatePicker — react-day-picker & date-fns

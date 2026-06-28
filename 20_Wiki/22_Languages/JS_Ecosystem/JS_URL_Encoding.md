@@ -1,8 +1,5 @@
 ---
-aliases:
-  - encodeURIComponent
-  - encodeURI
-  - decodeURIComponent
+aliases: [decodeURIComponent, encodeURI, encodeURIComponent]
 tags:
   - JavaScript
 related:

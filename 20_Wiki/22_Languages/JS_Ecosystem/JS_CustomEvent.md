@@ -1,9 +1,5 @@
 ---
-aliases:
-  - CustomEvent
-  - dispatchEvent
-  - addEventListener
-  - pub/sub
+aliases: [addEventListener, CustomEvent, dispatchEvent, pub/sub]
 tags:
   - JavaScript
 related:

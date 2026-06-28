@@ -1,8 +1,5 @@
 ---
-aliases:
-  - Swagger
-  - OpenAPI
-  - API 문서화
+aliases: [API 문서화, OpenAPI, Swagger]
 tags:
   - NestJS
 related:

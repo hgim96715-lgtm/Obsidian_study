@@ -1,16 +1,12 @@
 ---
-aliases:
-  - SSR CSR 인증
-  - GET /me
-  - Cross-Origin Cookie
-  - BFF
+aliases: [BFF, Cross-Origin Cookie, GET /me, SSR CSR 인증]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_TokenStorage]]"
-  - "[[NestJS_JwtGuard]]"
   - "[[Auth_Concept]]"
+  - "[[NestJS_JwtGuard]]"
+  - "[[NextJS_TokenStorage]]"
   - "[[React_Context]]"
 ---
 # NextJS_AuthCache — 인증 상태를 캐싱하고 검증하는 법

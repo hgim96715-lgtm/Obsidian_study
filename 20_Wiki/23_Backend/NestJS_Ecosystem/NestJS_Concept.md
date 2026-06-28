@@ -1,14 +1,11 @@
 ---
-aliases:
-  - NestJS 개념
-  - NestJS 설치
-  - nest new
+aliases: [nest new, NestJS 개념, NestJS 설치]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Env_Config]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_Env_Config]]"
 ---
 # NestJS_Concept — 개념 & 설치
 

@@ -1,3 +1,15 @@
+---
+aliases:
+  - overview
+tags:
+  - Project
+related:
+  - "[[00_Project_HomePage]]"
+  - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[00_NestJS_Ecosystem_HomePage]]"
+---
+
+
 **이 파일 = 프로젝트 큰 틀·집합체.** mermaid·표로 **헷갈리는 것** 한눈에. 상세는 `[struct.md](./struct.md)`, `[auth.md](./auth.md)`, `[routes.md](./routes.md)`, `[ui.md](./ui.md)` 등.  
 **진행·완료 체크·날짜** — `[changelog.md](./changelog.md)` (여기엔 안 넣음).
 

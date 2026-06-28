@@ -1,11 +1,5 @@
 ---
-aliases:
-  - bcrypt
-  - bcryptjs
-  - 비밀번호 해싱
-  - salt
-  - hash
-  - compare
+aliases: [비밀번호 해싱, bcrypt, bcryptjs, compare, hash, salt]
 tags:
   - NestJS
 related:

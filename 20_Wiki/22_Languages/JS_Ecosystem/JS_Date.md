@@ -1,21 +1,14 @@
 ---
-aliases:
-  - JavaScript Date
-  - JS 날짜
-  - Date 객체
-  - toLocaleDateString
-  - parseYmd
-  - format
-  - ISO
+aliases: [Date 객체, format, ISO, JavaScript Date, JS 날짜, parseYmd, toLocaleDateString]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[SQL_Date_Functions]]"
-  - "[[React_DatePicker]]"
+  - "[[JS_Date]]"
   - "[[NestJS_DTO]]"
   - "[[NextJS_Concept]]"
-  - "[[JS_Date]]"
+  - "[[React_DatePicker]]"
+  - "[[SQL_Date_Functions]]"
 ---
 # JS_Date — Date 객체
 

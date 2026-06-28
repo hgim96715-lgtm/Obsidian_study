@@ -1,9 +1,5 @@
 ---
-aliases:
-  - Entity
-  - "@Column"
-  - "@PrimaryGeneratedColumn"
-  - "@PrimaryColumn"
+aliases: ["@Column", "@PrimaryColumn", "@PrimaryGeneratedColumn", Entity]
 tags:
   - NestJS
 related:

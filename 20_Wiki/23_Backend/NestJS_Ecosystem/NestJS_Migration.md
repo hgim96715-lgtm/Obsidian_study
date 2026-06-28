@@ -1,15 +1,12 @@
 ---
-aliases:
-  - 마이그레이션
-  - Migration
-  - typeorm migration
+aliases: [마이그레이션, Migration, typeorm migration]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_TypeORM]]"
   - "[[NestJS_Transaction]]"
   - "[[NestJS_TypeORM_Entity]]"
+  - "[[NestJS_TypeORM]]"
 ---
 # NestJS_Migration — 마이그레이션
 

@@ -1,18 +1,16 @@
 ---
 aliases:
-  - Provider
-  - Service
+  - Dependency Injection
   - DI
   - IoC
-  - Dependency Injection
+  - Provider
+  - Service
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Module]]"
-  - "[[TS_Class]]"
-  - "[[TS_Decorator]]"
   - "[[NestJS_Controller]]"
+  - "[[NestJS_Module]]"
 ---
 # NestJS_Service_Provider — 서비스 & 프로바이더
 

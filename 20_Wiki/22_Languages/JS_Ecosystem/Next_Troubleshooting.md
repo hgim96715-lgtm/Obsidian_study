@@ -1,19 +1,17 @@
 ---
 aliases:
-  - Next.js 트러블슈팅
-  - Next.js 오류 모음
-  - Safari 쿠키
   - Load failed
+  - Next.js 오류 모음
+  - Next.js 트러블슈팅
+  - Safari 쿠키
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NestJS_Deploy]]"
   - "[[NextJS_Concept]]"
   - "[[NextJS_Routing]]"
-  - "[[NestJS_Deploy]]"
-  - "[[NextJS_API_Integration]]"
-  - "[[NestJS_Cookie]]"
 ---
 # Next_Troubleshooting — 실제 겪은 버그 & 경고 모음
 

@@ -1,12 +1,5 @@
 ---
-aliases:
-  - Testing
-  - 테스트
-  - Jest
-  - Unit Test
-  - E2E Test
-  - Coverage
-  - PostgreSQL 통합 테스트 환경 세팅
+aliases: [테스트, Coverage, E2E Test, Jest, PostgreSQL 통합 테스트 환경 세팅, Testing, Unit Test]
 tags:
   - NestJS
 related:

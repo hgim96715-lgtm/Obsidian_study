@@ -3,14 +3,14 @@ aliases:
   - Docker Compose
   - docker-compose
   - compose
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Dockerfile]]"
   - "[[Docker_Network]]"
   - "[[Docker_Volume]]"
   - "[[NestJS_Prisma]]"
+tags:
+  - Docker
 ---
 # Docker_Compose — Docker Compose
 

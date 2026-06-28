@@ -1,9 +1,5 @@
 ---
-aliases:
-  - Buffer
-  - encoding
-  - base64
-  - decoding
+aliases: [base64, Buffer, decoding, encoding]
 tags:
   - NodeJS
 related:

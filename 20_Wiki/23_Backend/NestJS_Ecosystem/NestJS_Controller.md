@@ -1,18 +1,13 @@
 ---
-aliases:
-  - Controller
-  - Param
-  - Query
-  - Body
-  - createParamDecorator
+aliases: [Body, Controller, createParamDecorator, Param, Query]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[NestJS_JwtGuard]]"
   - "[[NestJS_Response]]"
   - "[[NestJS_Swagger]]"
   - "[[NextJS_API_Client]]"
-  - "[[NestJS_JwtGuard]]"
 ---
 # NestJS_Controller — 컨트롤러
 

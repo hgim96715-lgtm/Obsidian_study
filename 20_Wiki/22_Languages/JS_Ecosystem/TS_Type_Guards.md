@@ -1,20 +1,17 @@
 ---
 aliases:
   - 타입 가드
-  - typeof
-  - instanceof
   - 타입 좁히기
-  - type guard
+  - instanceof
   - narrowing
+  - type guard
   - type predicate
+  - typeof
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_Type_Alias]]"
-  - "[[TS_Interface]]"
   - "[[NestJS_DTO]]"
-  - "[[JS_Control_Flow]]"
 ---
 # TS_Type_Guards — 타입 가드 & 타입 좁히기
 

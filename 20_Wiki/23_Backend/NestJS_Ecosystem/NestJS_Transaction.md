@@ -1,11 +1,5 @@
 ---
-aliases:
-  - 트랜잭션
-  - Transaction
-  - BEGIN
-  - COMMIT
-  - ROLLBACK
-  - DataSource
+aliases: [트랜잭션, BEGIN, COMMIT, DataSource, ROLLBACK, Transaction]
 tags:
   - NestJS
 related:

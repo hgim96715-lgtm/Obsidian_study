@@ -1,17 +1,14 @@
 ---
-aliases:
-  - PostgreSQL Docker
-  - docker-compose postgres
-  - DataGrip
+aliases: [DataGrip, docker-compose postgres, PostgreSQL Docker]
 tags:
   - NestJS
   - SQL
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Prisma]]"
-  - "[[NestJS_TypeORM]]"
   - "[[Docker_Compose]]"
   - "[[NestJS_Env_Config]]"
+  - "[[NestJS_Prisma]]"
+  - "[[NestJS_TypeORM]]"
 ---
 # NestJS_PostgreSQL — PostgreSQL 실행과 연결 확인
 

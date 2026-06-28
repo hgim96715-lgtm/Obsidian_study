@@ -1,8 +1,5 @@
 ---
-aliases:
-  - CORS
-  - enableCors
-  - Cross-Origin
+aliases: [CORS, Cross-Origin, enableCors]
 tags:
   - NestJS
 related:

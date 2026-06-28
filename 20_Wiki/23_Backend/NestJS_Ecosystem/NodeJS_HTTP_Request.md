@@ -1,13 +1,12 @@
 ---
 aliases:
-  - HTTP Headers
   - Authorization Header
+  - HTTP Headers
   - request.headers
 tags:
   - NodeJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[JS_Destructuring]]"
   - "[[NestJS_Env_Config]]"
   - "[[NestJS_JwtGuard]]"
 ---

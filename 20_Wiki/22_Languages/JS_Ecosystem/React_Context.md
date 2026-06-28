@@ -1,9 +1,5 @@
 ---
-aliases:
-  - Context
-  - createContext
-  - useContext
-  - Provider
+aliases: [Context, createContext, Provider, useContext]
 tags:
   - React
   - NextJS

@@ -1,8 +1,5 @@
 ---
-aliases:
-  - Suites
-  - automock
-  - TestBed
+aliases: [automock, Suites, TestBed]
 tags:
   - NestJS
 related:

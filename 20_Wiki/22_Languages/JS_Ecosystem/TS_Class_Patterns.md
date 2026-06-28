@@ -1,9 +1,5 @@
 ---
-aliases:
-  - implements
-  - extends
-  - readonly
-  - parameter properties
+aliases: [extends, implements, parameter properties, readonly]
 tags:
   - TypeScript
 related:

@@ -1,11 +1,5 @@
 ---
-aliases:
-  - fetch
-  - RequestInit
-  - Response
-  - credentials
-  - fetch wrapper
-  - fetchAPI
+aliases: [credentials, fetch, fetch wrapper, fetchAPI, RequestInit, Response]
 tags:
   - JavaScript
 related:

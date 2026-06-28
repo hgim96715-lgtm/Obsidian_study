@@ -1,12 +1,5 @@
 ---
-aliases:
-  - useEffect
-  - useMemo
-  - useCallback
-  - dependendy array
-  - cancelled
-  - cleanup 함수
-  - 의존성배열
+aliases: [의존성배열, cancelled, cleanup 함수, dependendy array, useCallback, useEffect, useMemo]
 tags:
   - React
   - NextJS

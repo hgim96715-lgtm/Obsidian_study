@@ -1,16 +1,12 @@
 ---
-aliases:
-  - 브라우저 API
-  - window
-  - document
-  - navigator
+aliases: [브라우저 API, document, navigator, window]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_CustomEvent]]"
-  - "[[NextJS_TokenStorage]]"
   - "[[NextJS_Routing]]"
+  - "[[NextJS_TokenStorage]]"
 ---
 # JS_BrowserAPI — 브라우저 내장 API
 

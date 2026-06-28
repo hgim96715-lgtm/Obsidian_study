@@ -1,17 +1,12 @@
 ---
-aliases:
-  - map
-  - filter
-  - reduce
-  - forEach
-  - array methods
+aliases: [array methods, filter, forEach, map, reduce]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
-  - "[[NextJS_API_Mapper]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[NextJS_API_Mapper]]"
 ---
 # JS_Array_Methods — 배열 메서드, 언제 뭘 쓰나
 

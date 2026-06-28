@@ -1,14 +1,15 @@
 ---
 aliases:
+  - Client Component
+  - Server Component
   - use client
   - use server
-  - Server Component
-  - Client Component
 tags:
   - NextJS
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[React_useId]]"
 ---
 # NextJS_ServerClient — Server Component vs Client Component
 

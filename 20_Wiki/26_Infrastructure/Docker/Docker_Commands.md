@@ -5,13 +5,13 @@ aliases:
   - docker ps
   - docker create
   - --format
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Concept]]"
   - "[[Docker_Image]]"
   - "[[Docker_Container]]"
+tags:
+  - Docker
 ---
 # Docker_Commands — 기본 명령어
 

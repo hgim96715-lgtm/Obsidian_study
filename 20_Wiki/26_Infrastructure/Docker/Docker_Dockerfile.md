@@ -6,8 +6,6 @@ aliases:
   - COPY
   - ENTRYPOINT
   - ENV
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Image]]"
@@ -15,6 +13,8 @@ related:
   - "[[Docker_Build]]"
   - "[[Docker_Container]]"
   - "[[Docker_Volume]]"
+tags:
+  - Docker
 ---
 # Docker_Dockerfile — Dockerfile
 

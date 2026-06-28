@@ -1,10 +1,5 @@
 ---
-aliases:
-  - optional chaining
-  - nullish
-  - coalescing
-  - questionDot
-  - doubleQuestion
+aliases: [coalescing, doubleQuestion, nullish, optional chaining, questionDot]
 tags:
   - JavaScript
 related:

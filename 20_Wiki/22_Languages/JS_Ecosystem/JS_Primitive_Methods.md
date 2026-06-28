@@ -1,13 +1,5 @@
 ---
-aliases:
-  - String
-  - Number
-  - Math
-  - indexOf
-  - slice
-  - includes
-  - padStart
-  - toFixed
+aliases: [includes, indexOf, Math, Number, padStart, slice, String, toFixed]
 tags:
   - JavaScript
 related:

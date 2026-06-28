@@ -1,11 +1,5 @@
 ---
-aliases:
-  - Metadata
-  - generateMetadata
-  - title
-  - template
-  - viewport
-  - SEO
+aliases: [generateMetadata, Metadata, SEO, template, title, viewport]
 tags:
   - NextJS
 related:

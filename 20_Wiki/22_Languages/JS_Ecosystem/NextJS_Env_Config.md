@@ -1,14 +1,11 @@
 ---
-aliases:
-  - NEXT_PUBLIC
-  - Next.js 환경변수
-  - t3-env, zod env
+aliases: [NEXT_PUBLIC, Next.js 환경변수, "t3-env, zod env"]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_Env_Config]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_Env_Config]]"
   - "[[NextJS_API_Mapper]]"
 ---
 # NextJS_Env_Config — 환경변수

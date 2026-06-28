@@ -1,9 +1,5 @@
 ---
-aliases:
-  - 모노레포
-  - pnpm workspace
-  - monorepo
-  - allowBuilds
+aliases: [모노레포, allowBuilds, monorepo, pnpm workspace]
 tags:
   - 모노레포
   - pnpm

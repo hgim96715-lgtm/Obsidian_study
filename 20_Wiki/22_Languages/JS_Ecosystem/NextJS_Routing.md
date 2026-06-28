@@ -1,16 +1,12 @@
 ---
-aliases:
-  - useRouter
-  - usePathname
-  - redirect
-  - callbackUrl
+aliases: [callbackUrl, redirect, usePathname, useRouter]
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_TokenStorage]]"
   - "[[JS_URL_Encoding]]"
+  - "[[NextJS_TokenStorage]]"
 ---
 # NextJS_Routing — 페이지 이동과 경로 다루기
 

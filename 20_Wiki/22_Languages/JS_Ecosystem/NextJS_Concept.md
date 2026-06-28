@@ -1,15 +1,12 @@
 ---
-aliases:
-  - Next.js 개념
-  - Next.js 란
+aliases: [Next.js 개념, Next.js 란]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_Routing]]"
-  - "[[NextJS_Data_Fetching]]"
-  - "[[NextJS_Env_Config]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NextJS_Env_Config]]"
+  - "[[NextJS_Routing]]"
 ---
 # NextJS_Concept — Next.js 란
 

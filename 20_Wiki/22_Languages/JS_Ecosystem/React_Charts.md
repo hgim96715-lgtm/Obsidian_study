@@ -1,18 +1,17 @@
 ---
 aliases:
-  - recharts
-  - PieChart
-  - ResponsiveContainer
-  - Chart.js
-  - 차트
   - 그래프
+  - 차트
+  - Chart.js
+  - PieChart
+  - recharts
+  - ResponsiveContainer
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_Component]]"
-  - "[[NextJS_Data_Fetching]]"
 ---
 
 # React_Charts — React 에서 차트 그리기 (recharts)

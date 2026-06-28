@@ -3,13 +3,13 @@ aliases:
   - 포트
   - 포트바인딩
   - port binding
-tags:
-  - Docker
 related:
   - "[[00_Docker_HomePage]]"
   - "[[Docker_Container]]"
   - "[[Docker_Dockerfile]]"
   - "[[Docker_Network]]"
+tags:
+  - Docker
 ---
 
 

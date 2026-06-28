@@ -1,19 +1,14 @@
 ---
-aliases:
-  - operators
-  - spread
-  - rest
-  - instanceof
-  - 구조분해
+aliases: [구조분해, instanceof, operators, rest, spread]
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_OptionalChaining]]"
   - "[[JS_Loops_Conditionals]]"
+  - "[[JS_OptionalChaining]]"
+  - "[[JS_Truthy_Falsy]]"
   - "[[NestJS_Controller]]"
   - "[[NextJS_API_Client]]"
-  - "[[JS_Truthy_Falsy]]"
 ---
 # JS_Operators — 비교 · 논리 · 스프레드/Rest · 구조분해 · instanceof
 

@@ -1,17 +1,12 @@
 ---
-aliases:
-  - Pagination
-  - 페이지네이션
-  - 커서 기반
-  - 페이지 기반
-  - findAndCount
+aliases: [커서 기반, 페이지 기반, 페이지네이션, findAndCount, Pagination]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_TypeORM_Repository]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_TypeORM_QueryBuilder]]"
+  - "[[NestJS_TypeORM_Repository]]"
 ---
 # NestJS_Pagination — 페이지네이션
 

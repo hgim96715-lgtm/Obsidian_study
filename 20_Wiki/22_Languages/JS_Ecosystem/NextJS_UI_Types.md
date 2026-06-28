@@ -1,16 +1,13 @@
 ---
-aliases:
-  - UI 타입
-  - types.ts
-  - lib/types
+aliases: [lib/types, types.ts, UI 타입]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NestJS_DTO]]"
+  - "[[NextJS_API_Mapper]]"
   - "[[NextJS_Concept]]"
   - "[[NextJS_Env_Config]]"
-  - "[[NextJS_API_Mapper]]"
-  - "[[NestJS_DTO]]"
 ---
 # NextJS_UI_Types — UI 타입 먼저 설계하기
 

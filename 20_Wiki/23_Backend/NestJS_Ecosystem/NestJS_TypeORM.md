@@ -1,15 +1,5 @@
 ---
-aliases:
-  - TypeORM
-  - NestJS DB연결
-  - DataSource
-  - forRoot
-  - forRootAsync
-  - Joi
-  - ConfigModule
-  - ConfigService
-  - synchronize
-  - inject
+aliases: [ConfigModule, ConfigService, DataSource, forRoot, forRootAsync, inject, Joi, NestJS DB연결, synchronize, TypeORM]
 tags:
   - NestJS
 related:

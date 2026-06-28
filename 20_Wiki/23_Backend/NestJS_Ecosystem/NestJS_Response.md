@@ -1,17 +1,12 @@
 ---
-aliases:
-  - HttpCode
-  - HttpStatus
-  - Redirect
-  - ExceptionFilter
-  - HttpException
+aliases: [ExceptionFilter, HttpCode, HttpException, HttpStatus, Redirect]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Controller]]"
-  - "[[NestJS_Swagger]]"
   - "[[NestJS_Prisma]]"
+  - "[[NestJS_Swagger]]"
 ---
 
 # NestJS_Response — 상태코드, 응답, 예외 처리

@@ -1,8 +1,5 @@
 ---
-aliases:
-  - 테스트 오류
-  - Testing Troubleshooting
-  - Jest 에러
+aliases: [테스트 오류, Jest 에러, Testing Troubleshooting]
 tags:
   - NestJS
 related:

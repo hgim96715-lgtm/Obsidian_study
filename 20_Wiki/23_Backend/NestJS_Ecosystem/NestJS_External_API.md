@@ -1,16 +1,13 @@
 ---
-aliases:
-  - 외부 API 호출
-  - XML 파싱
-  - fast-xml-parser
+aliases: [외부 API 호출, fast-xml-parser, XML 파싱]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[JS_Date]]"
+  - "[[JS_Fetch_API]]"
   - "[[Linux_Curl_API]]"
   - "[[NestJS_Env_Config]]"
-  - "[[JS_Fetch_API]]"
-  - "[[JS_Date]]"
 ---
 # NestJS_External_API — 외부 API 호출 & XML 파싱
 

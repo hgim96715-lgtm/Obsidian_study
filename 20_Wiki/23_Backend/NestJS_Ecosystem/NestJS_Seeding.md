@@ -1,14 +1,11 @@
 ---
-aliases:
-  - Database Seeding
-  - 시딩
-  - 샘플 데이터
-  - Postman Runner
+aliases: [샘플 데이터, 시딩, Database Seeding, Postman Runner]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
 ---
+
 # NestJS_Seeding — DB 시딩
 
 ```txt

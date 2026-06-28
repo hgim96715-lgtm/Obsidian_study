@@ -1,15 +1,12 @@
 ---
-aliases:
-  - Auth.js
-  - NextAuth
-  - Auth.js Prisma Adapter
+aliases: [Auth.js, Auth.js Prisma Adapter, NextAuth]
 tags:
   - NestJS
 related:
-  - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_Prisma]]"
+  - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Bcrypt]]"
+  - "[[NestJS_Prisma]]"
 ---
 
 # Auth_Concept — Auth.js란 무엇인가 + Prisma Adapter 표준 스키마

@@ -1,8 +1,5 @@
 ---
-aliases:
-  - EventEmitter
-  - on/emit
-  - pub/sub Node
+aliases: [EventEmitter, on/emit, pub/sub Node]
 tags:
   - NodeJS
 related:

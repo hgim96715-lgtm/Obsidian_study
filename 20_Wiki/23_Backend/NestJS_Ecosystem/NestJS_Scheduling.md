@@ -1,17 +1,16 @@
 ---
 aliases:
-  - Task Scheduling
+  - "@Cron"
   - 스케줄링
   - Cron
-  - "@Cron"
+  - Task Scheduling
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Caching]]"
   - "[[Linux_Shell_Cron_Job]]"
-  - "[[NestJS_Service_Provider]]"
   - "[[NestJS_Prisma]]"
+  - "[[NestJS_Service_Provider]]"
 ---
 # NestJS_Scheduling — 스케줄링
 

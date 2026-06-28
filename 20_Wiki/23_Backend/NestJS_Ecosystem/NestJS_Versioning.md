@@ -1,8 +1,5 @@
 ---
-aliases:
-  - API Versioning
-  - URI Versioning
-  - Header Versioning
+aliases: [API Versioning, Header Versioning, URI Versioning]
 tags:
   - NestJS
 related:

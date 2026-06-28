@@ -1,18 +1,12 @@
 ---
-aliases:
-  - 날씨
-  - weather
-  - open-meteo
-  - WMO
-  - geolocation
-  - 역지오코딩
+aliases: [날씨, 역지오코딩, geolocation, open-meteo, weather, WMO]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_Server_Actions]]"
   - "[[JS_BrowserAPI]]"
   - "[[NextJS_Data_Fetching]]"
+  - "[[NextJS_Server_Actions]]"
 ---
 
 # Next_Weather_Route — 날씨 API 프록시

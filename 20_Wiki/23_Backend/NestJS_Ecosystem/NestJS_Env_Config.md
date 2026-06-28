@@ -1,15 +1,11 @@
 ---
-aliases:
-  - 환경변수
-  - .env
-  - ConfigModule
-  - Joi
+aliases: [.env, 환경변수, ConfigModule, Joi]
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Concept]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_Concept]]"
   - "[[NextJS_Env_Config]]"
 ---
 # NestJS_Env_Config — 환경변수

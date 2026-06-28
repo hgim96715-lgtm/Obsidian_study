@@ -1,19 +1,15 @@
 ---
-aliases:
-  - api.ts
-  - fetch 래퍼
-  - fetchPosts
-  - fetchAPIVoid
+aliases: [api.ts, fetch 래퍼, fetchAPIVoid, fetchPosts]
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_UI_Types]]"
-  - "[[NextJS_API_Mapper]]"
   - "[[JS_Fetch_API]]"
-  - "[[NestJS_Response]]"
   - "[[NestJS_Controller]]"
+  - "[[NestJS_Response]]"
+  - "[[NextJS_API_Mapper]]"
   - "[[NextJS_TokenStorage]]"
+  - "[[NextJS_UI_Types]]"
 ---
 # NextJS_API_Client — api.ts: fetch 호출 한 곳에 모으기
 

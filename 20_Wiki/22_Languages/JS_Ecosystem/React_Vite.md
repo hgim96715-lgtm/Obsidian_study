@@ -1,16 +1,12 @@
 ---
-aliases:
-  - Vite
-  - CRA
-  - create-react-app
-  - 빌드도구
+aliases: [빌드도구, CRA, create-react-app, Vite]
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[Docker_Build]]"
   - "[[NextJS_Concept]]"
   - "[[React_Concept]]"
-  - "[[Docker_Build]]"
 ---
 # React_Vite — Vite 빌드 도구
 
