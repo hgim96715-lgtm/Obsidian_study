@@ -1,5 +1,10 @@
 ---
-aliases: [구조분해, instanceof, operators, rest, spread]
+aliases:
+  - 구조분해
+  - instanceof
+  - operators
+  - rest
+  - spread
 tags:
   - JavaScript
 related:
@@ -9,6 +14,7 @@ related:
   - "[[JS_Truthy_Falsy]]"
   - "[[NestJS_Controller]]"
   - "[[NextJS_API_Client]]"
+  - "[[React_Context]]"
 ---
 # JS_Operators — 비교 · 논리 · 스프레드/Rest · 구조분해 · instanceof
 
@@ -91,6 +97,40 @@ falsy/truthy가 정확히 뭘 가리키는지(빈 배열/빈 객체도 truthy라
   a?.b 는 "a가 없으면 멈추고 undefined"라는 점에서 a && a.b 와 비슷한 발상이지만,
   ?.는 항상 undefined를 반환하는 반면 &&는 "왼쪽 값 그 자체"(0, '', false 등)를 그대로 반환함
   → 그래서 조건부 렌더링에서는 숫자 0이나 빈 문자열을 왼쪽에 두면 ?.보다 의도와 다르게 동작하기 쉬움
+```
+
+---
+# ! (논리 NOT) — 부정 표현을 정확히 읽기 ⭐️⭐️⭐️⭐️
+
+```
+!변수명 을 글자 그대로 직역하면 의미가 왜곡되기 쉬움 — 항상 "원래 의미를 먼저 떠올리고, 그걸 반대로" 읽을 것
+
+  isLoading = "로딩 중이다"          → !isLoading = "로딩 중이 아니다"(= 확인이 끝났다)
+  user      = "사용자 객체가 있다"     → !user      = "사용자 정보가 없다"
+
+⚠️ !isLoading을 "로딩이 없다"로 읽으면 헷갈림 — "로딩"이라는 사물이 있다/없다가 아니라,
+   "지금 로딩 중인 상태인가"라는 boolean을 뒤집는 것일 뿐. 변수 이름이 동사/형용사형(is~)이면
+   먼저 그 문장을 완성해서("로딩 중이다") 읽고, 그 다음에 부정(! → "아니다")을 붙이는 순서가 안전함
+```
+
+```typescript
+if (!isLoading && !user) {
+  router.replace('/login?next=/users/me');
+}
+```
+
+```
+해석 순서:
+  !isLoading  → "로딩 중이다"의 반대 → "로딩이 끝났다(확인이 끝났다)"
+  !user       → "사용자 정보가 있다"의 반대 → "사용자 정보가 없다"
+  둘 다 동시에(&&) → "확인은 끝났는데, 로그인된 사용자가 없다" → 그제서야 로그인 페이지로 이동
+
+isLoading이 끝나길 먼저 확인해야 하는 이유:
+  isLoading이 true인 동안(아직 응답을 기다리는 중)에는 user가 아직 null일 수 있는 게 당연함 —
+  이 시점에 무작정 "user가 없으니 비로그인"이라고 판단하면, 실제로는 로그인된 사용자인데도
+  응답이 오기 전이라는 이유만으로 잘못 로그아웃 처리될 위험이 있음
+  → !isLoading으로 "판단해도 되는 시점"이 됐는지부터 확인하고, 그 다음에야 user 유무를 봄
+  (이 패턴이 실제로 쓰이는 곳은 [[React_Context]]의 "보호된 페이지" 예시 참고)
 ```
 
 ---

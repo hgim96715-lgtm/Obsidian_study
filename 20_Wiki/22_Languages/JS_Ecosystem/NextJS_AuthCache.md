@@ -1,13 +1,18 @@
 ---
-aliases: [BFF, Cross-Origin Cookie, GET /me, SSR CSR 인증]
+aliases:
+  - BFF
+  - Cross-Origin Cookie
+  - GET /me
+  - SSR CSR 인증
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
+  - "[[JS_BrowserAPI]]"
   - "[[NestJS_JwtGuard]]"
-  - "[[NextJS_TokenStorage]]"
-  - "[[React_Context]]"
+  - "[[NextJS_AuthCache]]"
+  - "[[Web_XSS_CSRF]]"
 ---
 # NextJS_AuthCache — 인증 상태를 캐싱하고 검증하는 법
 
@@ -229,6 +234,8 @@ SSR 시점엔 로그인 여부를 모르니, "내가 좋아요를 눌렀는지(l
 ```txt
 이 설정들을 다 갖춰도, 일부 브라우저의 서드파티 쿠키 차단 정책 때문에
 여전히 막히는 경우가 있음 — cross-origin 쿠키는 "설정만 맞으면 100% 보장"이 아님
+
+SameSite가 막아주는 공격(CSRF) 자체가 뭔지, 왜 쿠키만 이 위험에 노출되는지는 [[Web_XSS_CSRF]] 참고
 ```
 
 ## 해결 방법 후보 ⭐️

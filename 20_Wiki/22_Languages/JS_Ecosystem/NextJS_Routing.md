@@ -19,7 +19,7 @@ related:
 
 ## 한눈에 — 어떤 걸 쓸까 (mermaid)
 
-```mermaid
+```mermaid-beautiful
 flowchart TB
   START["이동이 필요함"]
 

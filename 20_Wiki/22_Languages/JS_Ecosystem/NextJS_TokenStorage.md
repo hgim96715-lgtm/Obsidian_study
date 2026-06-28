@@ -1,5 +1,8 @@
 ---
-aliases: [Access Token Storage, authToken, localStorage]
+aliases:
+  - Access Token Storage
+  - authToken
+  - localStorage
 tags:
   - NextJS
 related:
@@ -7,6 +10,8 @@ related:
   - "[[Auth_Concept]]"
   - "[[JS_BrowserAPI]]"
   - "[[NestJS_JwtGuard]]"
+  - "[[NextJS_AuthCache]]"
+  - "[[Web_XSS_CSRF]]"
 ---
 # NextJS_TokenStorage — Access Token을 클라이언트에 저장하기
 
@@ -21,6 +26,7 @@ related:
 이 노트와 다른 노트의 역할 분담:
   Auth_Concept       왜 백엔드(NestJS)가 인증을 전부 소유하고, Web은 토큰을 들고만 있는지(아키텍처 결정)
   NestJS_JwtGuard     이 토큰을 서버가 어떻게 검증하는지
+  Web_XSS_CSRF        아래 표에 나오는 "XSS 노출"/"CSRF 노출"이 정확히 어떤 공격인지
   이 노트             그 토큰을 브라우저에서 어떻게 들고 있을지(저장 위치, SSR 이슈, 보안 트레이드오프)
 ```
 
@@ -41,12 +47,19 @@ related:
 
 # 저장 위치 선택 — localStorage vs sessionStorage vs 메모리 vs 쿠키 ⭐️⭐️⭐️
 
-|저장 위치|지속성|XSS 노출|CSRF 노출|비고|
-|---|---|---|---|---|
-|`localStorage`|새로고침/탭 닫아도 유지|JS로 읽을 수 있어 노출됨|해당 없음 (자동 전송 안 됨)|가장 흔하게 쓰는 선택|
-|`sessionStorage`|탭 닫으면 사라짐 (탭별 독립)|JS로 읽을 수 있어 노출됨|해당 없음|"이 탭에서만 로그인 유지"가 필요할 때|
-|메모리(React state/Context)|새로고침하면 사라짐|페이지에 있는 동안만 노출|해당 없음|가장 짧은 노출 시간, 단 매번 재로그인 필요|
-|httpOnly 쿠키|새로고침/탭 닫아도 유지|JS로 못 읽음(노출 안 됨)|요청마다 자동 전송돼서 노출됨|서버가 쿠키를 직접 발급해줘야 함|
+| 저장 위치                    | 지속성               | XSS 노출           | CSRF 노출           | 비고                        |
+| ------------------------ | ----------------- | ---------------- | ----------------- | ------------------------- |
+| `localStorage`           | 새로고침/탭 닫아도 유지     | JS로 읽을 수 있어 노출됨  | 해당 없음 (자동 전송 안 됨) | 가장 흔하게 쓰는 선택              |
+| `sessionStorage`         | 탭 닫으면 사라짐 (탭별 독립) | JS로 읽을 수 있어 노출됨  | 해당 없음             | "이 탭에서만 로그인 유지"가 필요할 때    |
+| 메모리(React state/Context) | 새로고침하면 사라짐        | 페이지에 있는 동안만 노출   | 해당 없음             | 가장 짧은 노출 시간, 단 매번 재로그인 필요 |
+| httpOnly 쿠키              | 새로고침/탭 닫아도 유지     | JS로 못 읽음(노출 안 됨) | 요청마다 자동 전송돼서 노출됨  | 서버가 쿠키를 직접 발급해줘야 함        |
+
+```txt
+XSS/CSRF가 정확히 어떤 공격이고 왜 위 표처럼 노출 여부가 갈리는지는 [[Web_XSS_CSRF]] 참고 —
+"악성 스크립트가 페이지 안에서 실행되는 것"(XSS)과 "다른 사이트가 내 대신 요청을 보내는 것"(CSRF)은
+서로 완전히 다른 공격이고, 막는 방법도 다름
+```
+
 
 ```txt
 정답은 없음 — 무엇에 더 취약해도 괜찮은지를 고르는 트레이드오프:

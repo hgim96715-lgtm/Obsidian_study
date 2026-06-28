@@ -61,15 +61,16 @@ flowchart TB
 
 ️
 
-| 클러스터              | JS                                     | TS                | React                                                                                                                      | Next.js                                                                                                                                            |
-| ----------------- | -------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 인증/토큰 흐름          | [[JS_URL_Encoding]]                    | —                 | [[React_Context]]                                                                                                          | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
-| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] | [[TS_DOM_Events]] | [[React_useRef]]                                                                                                           | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
-| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션)           | —                 | [[React_CSSProperties]]                                                                                                    | —                                                                                                                                                  |
-| React 훅 기초        | —                                      | —                 | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useFormStatus]] · [[React_useId]] | —                                                                                                                                                  |
-| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                       | —                 | —                                                                                                                          | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
-| 라우팅 · 메타데이터       | —                                      | —                 | —                                                                                                                          | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
-| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]      | —                 | —                                                                                                                          | —                                                                                                                                                  |
+| 클러스터              | JS                                     | TS                | React                                                                                                               | Next.js                                                                                                                                            |
+| ----------------- | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 인증/토큰 흐름          | [[JS_URL_Encoding]]                    | —                 | [[React_Context]]                                                                                                   | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
+| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] | [[TS_DOM_Events]] | [[React_useRef]]                                                                                                    | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
+| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션)           | —                 | [[React_CSSProperties]]                                                                                             | —                                                                                                                                                  |
+| React 훅 기초        | —                                      | —                 | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useId]] · [[React_Portal]] | —                                                                                                                                                  |
+| 폼 처리              | [[JS_FormData]]                        | —                 | [[React_useFormStatus]] · [[React_ControlledInput]]                                                                 | [[NextJS_Server_Actions]]                                                                                                                          |
+| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                       | —                 | —                                                                                                                   | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
+| 라우팅 · 메타데이터       | —                                      | —                 | —                                                                                                                   | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
+| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]      | —                 | —                                                                                                                   | —                                                                                                                                                  |
 
 
 ```txt
@@ -92,10 +93,20 @@ flowchart TB
 
 | 언어         | 노트                                                                                                                                                                                                                                                                                                         |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript | [[TS_TypeAssertion]] (`as`) · [[TS_Generics]] (`<T>`) · [[TS_Class_Patterns]] (`implements`/`extends`/`readonly`) · [[TS_Utility_Types]] (`Record`/`Partial`/`Omit`/`ReturnType`)                                                                                                                          |
+| TypeScript | [TS_TypeAssertion]] (`as`) · [[TS_Generics]] (`<T>`) · [[TS_Class_Patterns]] (`implements`/`extends`/`readonly`) · [[TS_Utility_Types]] (`Record`/`Partial`/`Omit`/`ReturnType`) · [[TS_PartialUpdate]] (PATCH 객체 만들기)                                                                                     |
 | JavaScript | [[JS_OptionalChaining]] (`?.` / `??`) · [[JS_Array_Methods]] (`map`/`filter`/`reduce` 등) · [[JS_Loops_Conditionals]] (`if`/`switch`/`for`/`while`) · [[JS_Operators]] (`===`/`&&`/`...`/구조분해/`instanceof`) · [[JS_Truthy_Falsy]] (truthy/falsy) · [[JS_Object_Methods]] (`Object.keys`/`entries`/`assign`) |
 
 ---
+# 보안 기초 — 프레임워크 무관 ⭐️⭐️
+
+```
+JS/TS/React/Next.js 중 어느 트랙에도 속하지 않는, 웹 자체의 보안 개념
+인증/토큰 클러스터(NextJS_TokenStorage 등)에서 "XSS 노출"/"CSRF 노출"이라고만 언급되던 것의 실제 내용
+```
+
+|개념|노트|
+|---|---|
+|XSS / CSRF / SameSite|[[Web_XSS_CSRF]]|
 
 ---
 

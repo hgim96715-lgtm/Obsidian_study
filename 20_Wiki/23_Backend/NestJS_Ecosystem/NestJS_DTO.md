@@ -1,5 +1,8 @@
 ---
-aliases: [class-validator, DTO, ValidationPipe]
+aliases:
+  - class-validator
+  - DTO
+  - ValidationPipe
 tags:
   - NestJS
 related:
@@ -7,6 +10,7 @@ related:
   - "[[NestJS_Swagger]]"
   - "[[NextJS_API_Client]]"
   - "[[NextJS_API_Mapper]]"
+  - "[[TS_PartialUpdate]]"
 ---
 # NestJS_DTO — DTO & 유효성 검사
 

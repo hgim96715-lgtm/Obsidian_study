@@ -129,7 +129,7 @@ export default defineConfig({
 });
 ```
 
-```text
+```txt
 이 파일만 process.env 직접 사용 — CLI(migrate/generate)는 NestJS 부팅 없이 실행되어 ConfigService 를 못 씀
 (NestJS 런타임/Prisma CLI/Docker Compose 가 .env 를 각자 다르게 읽는 전체 그림은 [[NestJS_Env_Config]] 참고)
 ```
@@ -150,7 +150,7 @@ postgresql://user:password@host:port/dbname?schema=public&sslmode=disable
 | `sslmode=`      | 로컬(Docker)→`disable` / 클라우드(Neon 등)→`require` |
 
 
-```text
+```txt
 ⚠️ prisma init 으로 자동 생성된 URL 은 Prisma 클라우드 주소 — 직접 쓰는 DB 주소로 반드시 교체
 ```
 
@@ -169,7 +169,7 @@ generator client {
 }
 ```
 
-```text
+```txt
 moduleFormat 누락 시 흔한 에러: "exports is not defined in ES module scope"
 → Prisma 7 기본 출력(ESM)과 NestJS 빌드(CJS) 형식 불일치가 원인
 ```
@@ -203,7 +203,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 export class PrismaModule {}
 ```
 
-```text
+```txt
 PrismaService 는 보통 src/prisma/ 에 둠 — schema.prisma(루트의 prisma/) 와는 다른 위치이니 혼동 주의
 ```
 
@@ -371,7 +371,7 @@ WHERE/ORDER BY 에 자주 쓰는 컬럼에 추가 — 조회는 빨라지지만 
 enum Role { USER  ADMIN  MODERATOR }
 ```
 
-```text
+```txt
 ⚠️ Enum 도 Prisma Client 생성 경로에서 import — 다른 곳(예: 예전 TypeORM entity 파일)에서 가져오면 타입 불일치
 ```
 
@@ -415,7 +415,7 @@ fields: 내가 들고 있는 FK 컬럼 / references: 상대 테이블 PK
 |`@relation("이름")`만|반대편(back-relation) 표시|
 |`"문자열"`|DB 와 무관, 양쪽을 짝짓는 Prisma 전용 키 — 양쪽 동일해야 함|
 
-```text
+```txt
 필요 조건: 같은 모델(자기 자신 포함)을 한 모델에서 2번 이상 참조할 때만
 ```
 
@@ -431,7 +431,7 @@ model User {
 }
 ```
 
-```text
+```txt
 안 붙이면 → Ambiguous relation detected 에러
 같은 패턴: self-relation(teacher/students 둘 다 User), 한 모델 안 관계 2개(author/pinnedBy 둘 다 User)
 ```
@@ -552,7 +552,7 @@ this.prisma.user.findUnique({
 });
 ```
 
-```text
+```txt
 include 안의 관계 필드도 findMany 와 같은 옵션(where/orderBy/take/skip/select)을 그대로 받음
 → "관계 = 또 하나의 작은 조회" 로 생각하면 됨
 ```
@@ -579,7 +579,7 @@ include: { posts: { include: { tags: true } } }
 |include 안 옵션|`where`/`orderBy`/`take`/`skip`/`select`/`include` 전부 가능|
 |관계 개수만|`_count: { select: { 관계명: true } }`|
 
-```text
+```txt
 ⚠️ include 를 깊게/넓게 쓸수록 한 번에 가져오는 데이터가 커짐 — 화면에 필요한 만큼만
 ```
 

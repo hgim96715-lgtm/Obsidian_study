@@ -1,10 +1,16 @@
 ---
-aliases: [coalescing, doubleQuestion, nullish, optional chaining, questionDot]
+aliases:
+  - coalescing
+  - doubleQuestion
+  - nullish
+  - optional chaining
+  - questionDot
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_API_Client]]"
+  - "[[TS_PartialUpdate]]"
 ---
 
 # JS_OptionalChaining — ?. 와 ??

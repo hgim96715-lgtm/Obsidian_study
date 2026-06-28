@@ -9,6 +9,7 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[HTML_FormData]]"
   - "[[NextJS_Server_Actions]]"
+  - "[[React_ControlledInput]]"
 ---
 # React_useFormStatus — useActionState & useFormStatus
 
@@ -334,7 +335,7 @@ flowchart TD
 - 폼 내부의 별도 버튼 컴포넌트에서 사용 → `useFormStatus`의 `pending`
 
 `redirect()`, `redirectTo`, `redirect: false`의 차이는  
-[[Next_Auth#redirect() vs redirectTo vs redirect: false]] 참고.
+[[NextJS_Routing]] 의 "callbackUrl / redirectTo / next" 섹션 참고
 
 이 프로젝트의 실제 로그인 폼 구현은 [[Project_Notes]] 참고.
 ```
@@ -415,6 +416,10 @@ useFormStatus() → { pending, ... }
 
 둘 다 "use client" 컴포넌트에서만 사용 가능 (Server Component에서는 직접 호출 불가)
 둘 다 Next.js 전용 기능 아님 — React 19 자체 기능, Server Action 없이도 동작함
+
+⚠️ action이 끝나면(throw만 안 하면) form이 자동으로 리셋됨 — 실패 응답이어도 동일
+   비제어 입력칸이면 화면만 비워지고 state는 안 비워지는 불일치가 생길 수 있음
+   → 제어 컴포넌트로 전환([[React_ControlledInput]]) + 성공 시에만 명시적으로 reset
 ```
 
 ```txt

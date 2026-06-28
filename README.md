@@ -9,8 +9,6 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_Toolbox_HomePage]]"
-  - "[[00_HTML_HomePage]]"
-  - "[[00_CSS_HomePage]]"
   - "[[00_SQL_HomePage]]"
   - "[[00_Git_HomePage]]"
   - "[[00_Linux_HomePage]]"

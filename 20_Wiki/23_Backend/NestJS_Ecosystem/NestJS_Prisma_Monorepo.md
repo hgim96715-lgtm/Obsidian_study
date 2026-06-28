@@ -91,7 +91,6 @@ TypeORM 과 같은 DB 쓰면 충돌 → Prisma 전용 DB 따로 생성
 ```txt
 Web(Next.js, Auth.js)과 API(NestJS) 가 같은 모노레포에 있고 같은 DB 를 쓴다면
 Web 쪽에 Prisma Client 를 새로 만들지 않고, API 가 generate 한 결과물을 그대로 import 가능
-([[Next_Auth]] 의 "백엔드와 DB 를 공유한다면" 참고)
 ```
 
 ```typescript

@@ -194,6 +194,7 @@ app.enableCors({
     'http://localhost:3000',
     'http://localhost:3001',
     process.env.FRONTEND_URL,
+    frontendUrl?.replace('localhost', '127.0.0.1'), // 127.0.0.1도 막는경우도 있음!
   ].filter(Boolean),   // FRONTEND_URL 없을 때 undefined 제거
   credentials: true,
 });

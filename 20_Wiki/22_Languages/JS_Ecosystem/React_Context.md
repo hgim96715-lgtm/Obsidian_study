@@ -1,11 +1,17 @@
 ---
-aliases: [Context, createContext, Provider, useContext]
+aliases:
+  - Context
+  - createContext
+  - Provider
+  - useContext
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_useMemo_useCallback_useEffect]]"
+  - "[[JS_Operators]]"
+  - "[[NextJS_AuthCache]]"
 ---
 
 # React_Context — 전역 상태를 트리 전체에 공급하기
@@ -271,6 +277,37 @@ export function useAuth(): AuthContextValue {
 useContext(AuthContext)만 하면 Provider 밖에서 쓰일 경우 ctx가 null일 수 있음(createContext의 기본값)
 → null이면 바로 에러를 던져서, "Provider로 안 감쌌다"는 실수를 그 자리에서 바로 알게 해줌
    (조용히 undefined로 진행돼서 한참 뒤에 엉뚱한 곳에서 에러가 나는 것보다 훨씬 디버깅하기 쉬움)
+```
+
+---
+# 실전 — useAuth로 보호된 페이지 만들기 ⭐️⭐️⭐️⭐️
+
+```tsx
+const { user, isLoading } = useAuth();
+const router = useRouter();
+
+useEffect(() => {
+  if (!isLoading && !user) {
+    router.replace('/login?next=/users/me');
+  }
+}, [isLoading, user, router]);
+```
+
+```
+이 effect가 하는 일: "확인이 끝났는데 로그인된 사용자가 없다면" 로그인 페이지로 보냄
+(!isLoading/!user 같은 부정 표현을 정확히 읽는 법은 [[JS_Operators]]의 "! (논리 NOT)" 참고)
+
+⚠️ isLoading을 먼저 확인해야 하는 이유:
+  isLoading이 true인 동안(아직 /me 응답을 기다리는 중)에는 user가 당연히 아직 null임
+  이 시점에 곧바로 "user가 없으니 비로그인"이라고 판단하면, 실제로는 로그인된 사용자인데도
+  응답이 도착하기 전이라는 이유만으로 잘못 로그인 페이지로 튕겨버리는 버그가 생김
+  (왜 새로고침 시 이 "확인 시간"이 필요한지는 [[NextJS_AuthCache]]의 "/me 패턴" 참고)
+
+  → isLoading이 끝나길(false) 먼저 기다린 뒤에야 user 유무로 진짜 판단을 내림
+
+의존성 배열에 router가 들어가는 이유:
+  effect 안에서 router.replace를 호출하므로 — useRouter()가 보통 안정적인 참조를 주긴 하지만,
+  effect 안에서 쓰는 외부 값은 의존성 배열에 명시하는 게 정석(린트 규칙이 강제하기도 함)
 ```
 
 ---
