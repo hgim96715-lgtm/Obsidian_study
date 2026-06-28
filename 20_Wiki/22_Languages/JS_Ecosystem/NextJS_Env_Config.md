@@ -8,8 +8,8 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NestJS_Env_Config]]"
-  - "[[NextJS_API_Integration]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NextJS_API_Mapper]]"
 ---
 # NextJS_Env_Config — 환경변수
 

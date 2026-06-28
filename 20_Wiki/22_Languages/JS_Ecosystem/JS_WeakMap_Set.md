@@ -10,9 +10,9 @@ tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Array]]"
   - "[[JS_Date]]"
   - "[[React_DatePicker]]"
+  - "[[JS_Array_Methods]]"
 ---
 
 
@@ -110,7 +110,7 @@ const visitedDates = useMemo(() => {
 }, [visits]);
 ```
 
-```bash
+```txt
 왜 Set<string> 이고 Set<Date> 가 아닌지:
   visit.visitedAt 는 ISO 문자열 ('2026-06-18T03:00:00.000Z')
   slice(0, 10) 으로 'YYYY-MM-DD' 부분만 뽑으면 → 원시값(string)

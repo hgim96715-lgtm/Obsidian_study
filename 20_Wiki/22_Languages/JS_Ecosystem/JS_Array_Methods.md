@@ -11,6 +11,7 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
   - "[[NextJS_API_Mapper]]"
+  - "[[JS_Primitive_Methods]]"
 ---
 # JS_Array_Methods — 배열 메서드, 언제 뭘 쓰나
 

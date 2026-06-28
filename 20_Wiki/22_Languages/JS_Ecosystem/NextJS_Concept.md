@@ -147,11 +147,11 @@ my-app/
 └── public/
 ```
 
-|폴더|넣는 것|예시|
-|---|---|---|
-|`lib/`|"컴포넌트가 아닌" 모든 로직 — API 래퍼, 인증 헬퍼, DB 클라이언트, 포맷 함수|`lib/api.ts`, `lib/prisma.ts` ([[NextJS_API_Integration]] 참고)|
-|`types/`|프로젝트 전역에서 쓰는 타입 — API 응답 타입, 공통 인터페이스|`types/movie.ts`|
-|`components/`|재사용 가능한 UI 조각|`components/Button.tsx`|
+|폴더|넣는 것| 예시                                                      |
+| ------------- | ------------------------------------------------- | ------------------------------------------------------- |
+|`lib/`|"컴포넌트가 아닌" 모든 로직 — API 래퍼, 인증 헬퍼, DB 클라이언트, 포맷 함수| `lib/api.ts`, `lib/prisma.ts` ([[NextJS_API_Mapper]]참고) |
+|`types/`|프로젝트 전역에서 쓰는 타입 — API 응답 타입, 공통 인터페이스| `types/movie.ts`                                        |
+|`components/`|재사용 가능한 UI 조각| `components/Button.tsx`                                 |
 
 ```txt
 프로젝트 시작할 때 보통 같이 비워두는 자리:

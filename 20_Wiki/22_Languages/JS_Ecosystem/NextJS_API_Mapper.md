@@ -13,14 +13,8 @@ related:
 ---
 # NextJS_API_Mapper — API 타입 정의 + 매퍼 함수
 
-# 한 줄 요약
-
-```txt
-apiTypes.ts = 백엔드가 실제로 보내는 JSON 모양 그대로 (가공 없음)
-mapper 함수 = apiTypes → UI 타입(types.ts) 변환 — 이 둘을 연결하는 다리
-의존 방향: apiTypes → mapper → types  (apiTypes 는 types 를 import 하지 않음)
-```
-
+> [!info] 
+>  apiTypes.ts는 백엔드가 실제로 보내는 JSON 모양 그대로(가공 없음)이고, mapper 함수는 그 apiTypes를 UI 타입(types.ts)으로 변환하는 다리다. 의존 방향은 항상 apiTypes → mapper → types — apiTypes는 types를 import하지 않는다.
 
 ```markdown
 관련: [[NextJS_UI_Types]] — 화면용 `types.ts`와 한 세트이며, 이 노트는 API 타입과 매퍼를 다룬다.
@@ -59,7 +53,7 @@ flowchart TB
   → 컴포넌트는 화면 쪽 끝(types.ts)만 보고, API 쪽(apiTypes.ts)은 mapper 뒤에 숨겨져서 안 보임
 ```
 
->[!info]
+>[!note]
 >한마디로: mapper 가 API 응답을 "우리가 원하는 모양(types.ts)" 으로 변형해주는 역할
 
 |파일|알아야 하는 것|모르는 것|

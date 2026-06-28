@@ -24,7 +24,9 @@ api.ts = 실제로 fetch 를 호출하는 함수들을 모아두는 파일
 주소 결정(getApiBaseUrl) + 요청(fetch) + 응답 받기(apiTypes) + 변환(mapper) 을 한 함수 안에서 끝냄
 ```
 
-> [!info] api.ts 는 "fetch 호출 → apiTypes 로 받기 → mapper 로 변환" 까지를 한 함수 안에 캡슐화한 것
+>[!info] 
+> api.ts는 실제로 fetch를 호출하는 함수들을 모아두는 파일이다.
+>  주소 결정(getApiBaseUrl) + 요청(fetch) + 응답 받기(apiTypes) + 변환(mapper)을 한 함수 안에서 끝낸다 — "fetch 호출 → apiTypes로 받기 → mapper로 변환"까지를 한 함수 안에 캡슐화한 것.
 
 ## 4개 파일의 마지막 조각 — 이 노트가 어디 들어가는지
 

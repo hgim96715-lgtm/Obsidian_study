@@ -12,8 +12,7 @@ tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Array]]"
-  - "[[JS_Control_Flow]]"
+  - "[[JS_Array_Methods]]"
 ---
 # JS_Primitive_Methods — 문자열 & 숫자 메서드
 

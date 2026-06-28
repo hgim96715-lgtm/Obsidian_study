@@ -1,337 +1,194 @@
 ---
 aliases:
-  - 유틸리티 타입
+  - Record
   - Partial
-  - Omit
   - Pick
+  - Omit
+  - ReturnType
+  - utility types
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NestJS_DTO]]"
-  - "[[NextJS_API_Integration]]"
-  - "[[TS_API_Types]]"
-  - "[[JS_Fetch_API]]"
+  - "[[TS_Generics]]"
+  - "[[NestJS_Controller]]"
+  - "[[React_useRef]]"
 ---
-# TS_Utility_Types — 유틸리티 타입
+# TS_Utility_Types — Record, Partial, Pick, Omit 등
 
-# 한 줄 요약
-
-```txt
-기존 타입을 변환해서 새 타입을 만드는 내장 유틸리티
-TS 가 기본 제공 / import 없이 바로 사용
-```
+> [!info] 
+> TS가 기본 제공하는 "타입을 변형해서 새 타입을 만드는" 도구들이다. 객체 모양을 처음부터 다시 적지 않고, 기존 타입에서 일부를 빼거나(Omit) 고르거나(Pick) 선택적으로 만들거나(Partial) 하는 식으로 재사용한다.
 
 ---
 
----
-
-# `Partial<T>` — 전부 선택적으로 ⭐️
+# Record<K, V> — 키-값 객체 타입 ⭐️⭐️⭐️⭐️
 
 ```typescript
-interface Movie {
-  id: number;
-  title: string;
-  genre: string;
-}
-
-// Partial: 모든 속성을 ? (선택적) 으로 만듦
-type PartialMovie = Partial<Movie>;
-// {
-//   id?: number;
-//   title?: string;
-//   genre?: string;
-// }
-
-// PATCH 요청 DTO 패턴
-function updateMovie(id: number, updates: Partial<Movie>) {
-  // updates 는 일부 필드만 있어도 됨
-}
-updateMovie(1, { title: '수정된 제목' });   // ✅ genre 없어도 OK
-```
-
----
-
----
-
-# `Required<T>` — 전부 필수로
-
-```typescript
-interface Config {
-  host?: string;
-  port?: number;
-}
-
-// Required: 모든 선택적 속성을 필수로
-type RequiredConfig = Required<Config>;
-// {
-//   host: string;
-//   port: number;
-// }
-```
-
----
-
----
-
-# `Readonly<T>` — 읽기 전용
-
-```typescript
-interface Movie {
-  id: number;
-  title: string;
-}
-
-const movie: Readonly<Movie> = { id: 1, title: '마이클' };
-movie.title = '수정';   // ❌ 에러 (읽기 전용)
-```
-
----
-
----
-
-# Pick<T, K> — 특정 키만 선택 ⭐️
-
-```typescript
-interface Movie {
-  id: number;
-  title: string;
-  genre: string;
-  description: string;
-  createdAt: Date;
-}
-
-// 특정 키만 골라서 새 타입
-type MovieSummary = Pick<Movie, 'id' | 'title'>;
-// { id: number; title: string; }
-
-// 응답에서 일부 필드만 반환할 때
-function getMovieSummary(movie: Movie): Pick<Movie, 'id' | 'title'> {
-  return { id: movie.id, title: movie.title };
-}
-```
-
----
-
----
-
-# Omit<T, K> — 특정 키 제외 ⭐️
-
-```typescript
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-}
-
-// 특정 키 제외
-type SafeUser = Omit<User, 'password'>;
-// { id: number; name: string; email: string; }
-
-// DTO 패턴 — 생성 시 id 제외 (자동 생성이므로)
-type CreateUserDto = Omit<User, 'id'>;
-// { name: string; email: string; password: string; }
-```
-
-```txt
-Pick vs Omit:
-  Pick  포함할 키 나열 (적을 때 편함)
-  Omit  제외할 키 나열 (제외가 적을 때 편함)
-```
-
----
-
----
-
-# Omit + 교차(&) — 특정 필드만 다른 타입으로 재정의 ⭐️⭐️⭐️
-
-```txt
-지금까지 본 Omit 은 "키를 그냥 빼버리는" 용도였음
-근데 실무에서 더 자주 보는 패턴은 "빼고 → 그 자리에 다른 타입을 다시 채워넣는" 것
-→ 라이브러리가 이미 정의해둔 타입(RequestInit 등)을 그대로 쓰되
-  그 안의 "딱 한 필드만" 더 좁은(혹은 다른) 타입으로 바꾸고 싶을 때 씀
-```
-
-```typescript
-type AdminFetchInit = Omit<RequestInit, "headers"> & {
-  headers?: Record<string, string>;
+const messages: Record<string, string> = {
+  isEmail: '올바른 이메일을 입력해주세요.',
+  isNotEmpty: '필수 항목입니다.',
 };
 ```
 
 ```txt
-한 줄씩:
-  RequestInit                          fetch 의 두 번째 인자 타입 (method/body/headers 등 다 포함)
-                                        원래 headers 의 타입은 HeadersInit
-                                        (= string[][] | Record<string,string> | Headers, 셋 중 하나 허용)
-
-  Omit<RequestInit, "headers">         RequestInit 에서 headers 필드만 빼버림
-                                        (method/body 등 나머지는 전부 그대로 유지)
-
-  & { headers?: Record<string,string> } 방금 뺀 자리에 "내가 원하는 더 좁은 타입" 의 headers 를 새로 추가
-                                        → 결과: method/body 등은 RequestInit 그대로,
-                                          headers 만 Record<string,string> 으로 좁혀진 새 타입
-```
-
-## 왜 그냥 RequestInit & {...} 으로는 안 되는가 ⭐️⭐️
-
-```typescript
-// ❌ Omit 없이 그냥 교차하면
-type Bad = RequestInit & { headers?: Record<string, string> };
-```
-
-```txt
-헷갈리기 쉬운 지점: "& 로 합치면 새로 적은 게 그냥 덮어쓰는 거 아닌가?"
-→ 아님. & (교차 타입)은 "두 타입 모두를 동시에 만족" 해야 하는 타입을 만듦
-  같은 이름의 속성(headers)이 양쪽에 다 있으면, "덮어쓰기" 가 아니라
-  "그 속성의 타입을 둘 다 만족하도록 합치는" 쪽으로 동작함
-
-  → RequestInit.headers 타입(HeadersInit)과 내가 새로 적은 타입(Record<string,string>)이
-    뒤섞여서 의도와 다른, 다루기 애매한 타입이 되어버림
-  → 그래서 먼저 Omit 으로 "원래 있던 headers 자체를 깨끗이 지운 다음"
-    교차로 새 headers 를 추가해야 확실하게 "교체" 가 됨
-
-핵심 원칙:
-  교차 타입(&)으로 "기존 필드의 타입을 바꾸고" 싶다면
-  → 그냥 새 필드를 더하지 말고, 항상 Omit 으로 그 필드를 먼저 지운 다음 더할 것
-```
-
-## 왜 굳이 headers 를 Record<string,string> 으로 좁히는가 ⭐️⭐️
-
-```typescript
-async function AdminFetch(path: string, init: AdminFetchInit = {}) {
-  // ...
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...init.headers,   // ← 여기서 스프레드(...)로 합침
-    },
-  });
-}
-```
-
-```txt
-원래 HeadersInit 타입은 3가지 형태를 다 허용함:
-  Record<string,string>   { 'Content-Type': 'application/json' } 같은 평범한 객체
-  string[][]               [['Content-Type','application/json']] 같은 배열
-  Headers                  new Headers() 로 만든 클래스 인스턴스
-
-근데 코드에서는 ...init.headers 로 "객체 스프레드" 를 해서 합치고 있음
-→ 객체 스프레드는 "평범한 key-value 객체" 일 때만 의도대로 동작함
-  string[][] 나 Headers 인스턴스를 스프레드하면 키-값이 제대로 안 펼쳐져서
-  Authorization 헤더와 제대로 합쳐지지 않는 등 예상과 다르게 동작할 수 있음
-
-→ 그래서 타입 자체를 Record<string,string> 으로 좁혀서
-  "이 함수에 headers 를 넘길 땐 평범한 객체만 가능하다" 고 컴파일 시점에 강제함
-  → 호출하는 쪽이 실수로 Headers 인스턴스나 배열을 넘기는 걸 TS 가 미리 막아줌
-```
-
-```txt
-일반화한 패턴 — 다른 곳에도 그대로 적용 가능:
-  서드파티 타입(RequestInit, HTMLAttributes 등)을 가져다 쓰는데
-  그 중 한 필드만 내 코드에 맞게 더 좁히거나 다른 타입으로 바꾸고 싶을 때
-  → Omit<원래타입, '그필드'> & { 그필드: 새타입 }
+Record<K, V> = "키는 K 타입, 값은 V 타입"인 객체
+  { [key: string]: string } 처럼 직접 인덱스 시그니처를 적는 것과 거의 같은 의미지만,
+  Record가 더 짧고 "이건 키-값 매핑 객체다"라는 의도를 한눈에 드러냄
 ```
 
 ---
 
----
-
-# Record<K, V> — 키-값 맵 타입
+# `Partial<T>` — 모든 속성을 옵셔널로 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// Record<키 타입, 값 타입>
-type MovieMap = Record<number, string>;
-// { [key: number]: string }
+interface User { name: string; age: number; }
 
-const movies: MovieMap = {
-  1: '마이클',
-  2: '악마는 프라다를 입는다',
-};
+type PartialUser = Partial<User>;
+// { name?: string; age?: number; } 와 동일 — 둘 다 있어도, 하나만 있어도, 아예 없어도 됨
+```
 
-// 고정 키 목록
-type Status = 'pending' | 'approved' | 'rejected';
-type StatusLabel = Record<Status, string>;
+## 중첩된 형태 — Record<string, Partial<Record<string, string>>> 분해 ⭐️⭐️⭐️⭐️
 
-const labels: StatusLabel = {
-  pending:  '대기중',
-  approved: '승인됨',
-  rejected: '거부됨',
+```typescript
+const FIELD_MESSAGES: Record<string, Partial<Record<string, string>>> = {
+  email: { isEmail: '올바른 이메일을 입력해주세요.' },
+  password: { minLength: '비밀번호는 8자 이상이어야 합니다.' },
 };
 ```
 
----
+```txt
+안에서 바깥으로 풀면:
+  Record<string, string>                    → "제약 이름 → 메시지" 객체 (예: { isEmail: '...' })
+  Partial<Record<string, string>>            → 그 객체의 모든 키가 옵셔널 — 모든 제약이 다 있을 필요는 없음
+  Record<string, Partial<Record<string,...>>> → "필드 이름 → (제약별 메시지, 일부만 있을 수 있음)" 객체
 
----
-
-# `ReturnType<T>` — 함수 반환 타입 추출
-
-```typescript
-function getMovie() {
-  return { id: 1, title: '마이클', genre: '드라마' };
-}
-
-// 함수의 반환 타입 자동 추출
-type MovieType = ReturnType<typeof getMovie>;
-// { id: number; title: string; genre: string; }
-
-// 서비스 반환 타입 재사용
-type ServiceResult = ReturnType<typeof movieService.findAll>;
+전체 의미: "필드 이름으로 들어가면, 그 필드가 가질 수 있는 제약들의 메시지 묶음이 나오는데,
+           그 메시지들이 전부 다 있는 건 아닐 수도 있다"
 ```
 
----
-
----
-
-# 조합 패턴
+### Partial이 왜 필요한가 — 없으면 생기는 문제 ⭐️⭐️⭐️⭐️
 
 ```typescript
-interface Movie {
-  id: number;
-  title: string;
-  genre: string;
-  password: string;
-  createdAt: Date;
-}
+// Partial 없이 Record<string, Record<string, string>> 라면
+FIELD_MESSAGES['email']['isEmail'];  // TS가 "이건 항상 string"이라고 믿어버림
 
-// 생성 DTO: id / createdAt 제외 + 전부 선택적
-type CreateMovieDto = Partial<Omit<Movie, 'id' | 'createdAt'>>;
-
-// 수정 DTO: id / password 제외 + 전부 선택적
-type UpdateMovieDto = Partial<Omit<Movie, 'id' | 'password'>>;
-
-// 응답 DTO: password 제외
-type MovieResponse = Omit<Movie, 'password'>;
+// Partial이 있으면
+FIELD_MESSAGES['email']?.['isEmail']; // TS가 "string | undefined"로 정확히 봄 → ?. 가 타입상으로도 강제됨
 ```
 
 ```txt
-이 조합들과 위 "Omit + &" 의 차이:
-  Partial<Omit<T, K>>   "키를 빼고, 남은 키들을 선택적으로" — 변형(transform)을 두 번 적용
-  Omit<T, K> & {...}    "키를 빼고, 그 자리에 다른 타입을 다시 넣음" — 한 필드를 교체(override)
+Record<string, V>는 "이 객체의 어떤 키로 접근해도 항상 V 타입의 값이 있다"고 TS에게 약속하는 것
+실제로는 email/password 같은 일부 키만 있고 나머지 무수히 많은 문자열 키는 없는데,
+Record<string, V>만 쓰면 TS는 그 차이를 모름 — Partial을 씌워야 "없을 수도 있다"는 게 타입에 반영됨
 
-  목적이 다름: 앞은 "필드 구성 자체를 줄이거나 느슨하게" 하는 것
-             뒤는 "필드 구성은 거의 그대로 두되, 특정 필드의 타입만 바꾸는" 것
+→ FIELD_MESSAGES[property]?.[constraint] 처럼 ?.(옵셔널 체이닝)를 쓰는 게 의미 있어지는 것도
+  바로 이 Partial 덕분 — Partial이 없었다면 TS 입장에서 그 ?.는 "불필요한 안전장치"로 보였을 것
+  (?. 자체의 동작은 [[JS_OptionalChaining]] 참고)
 ```
 
 ---
+
+# Pick<T, K> / Omit<T, K> — 일부만 고르거나 빼기 ⭐️⭐️⭐️⭐️
+
+```typescript
+interface User { id: number; email: string; password: string; }
+
+type PublicUser = Omit<User, 'password'>;        // { id: number; email: string; }
+type LoginInput = Pick<User, 'email' | 'password'>; // { email: string; password: string; }
+```
+
+|유틸리티|역할|
+|---|---|
+|`Pick<T, K>`|T에서 K로 지정한 속성들만 골라서 새 타입을 만듦|
+|`Omit<T, K>`|T에서 K로 지정한 속성들을 제외한 나머지로 새 타입을 만듦|
+
+```txt
+Pick과 Omit은 정확히 반대 방향에서 같은 일을 함 — "남길 것"을 지정하느냐, "뺄 것"을 지정하느냐
+필드가 적으면 Pick, 필드가 많고 빼는 게 적으면 Omit이 더 짧아짐
+```
+
+---
+
+# Omit + 교차(&) — 서드파티 타입의 필드를 재정의하는 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 이미 user 필드가 다른 타입으로 존재하는 third-party 타입이 있다고 가정
+type RequestWithUser = Omit<Request, 'user'> & { user: JwtPayload };
+```
+
+```txt
+왜 Omit이 먼저 필요한가:
+  그냥 Request & { user: JwtPayload } 라고만 하면, 원래 Request에 user 필드가
+  전혀 없을 때는 문제없이 "추가"가 되지만, 원래도 user 필드가 있었다면(타입이 다르면)
+  교차 타입 안에서 같은 키에 대해 서로 호환 안 되는 두 타입이 충돌하게 됨
+
+  → 먼저 Omit으로 기존 user 필드를 제거한 뒤, 새 모양의 user를 교차(&)로 추가하면
+    "필드를 추가하는 것"이 아니라 "필드를 다른 타입으로 교체하는 것"이 안전하게 표현됨
+
+[[NestJS_Controller]]에서 본 Request & { user?: JwtPayload }는 원래 Request에 user 필드가
+전혀 없는 경우라 Omit 없이 그냥 교차만 한 것 — 둘 다 같은 발상이고, 원래 필드가 있었는지 여부로 Omit 필요성이 갈림
+```
+
+---
+
+# `ReturnType<T>` — 함수의 반환 타입 추출 ⭐️⭐️⭐️
+
+```typescript
+const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+```
+
+```txt
+typeof setTimeout         → setTimeout이라는 "함수 자체"의 타입을 얻음
+ReturnType<typeof setTimeout> → 그 함수를 호출했을 때 "반환되는 값"의 타입만 뽑아냄
+
+setTimeout이 환경(브라우저/Node)에 따라 반환 타입이 다를 수 있어서(number vs NodeJS.Timeout 등),
+그 타입을 직접 알아내 적기보다 ReturnType으로 "지금 이 환경에서 setTimeout이 실제로 반환하는 타입"을
+자동으로 가져오는 것 — useRef로 타이머 id를 저장하는 패턴 자체는 [[React_useRef]] 참고
+```
+
+---
+
+# `Required<T>` /` Readonly<T>` — 짧게 ⭐️
+
+```typescript
+interface Config { url?: string; }
+
+type FullConfig = Required<Config>;   // { url: string; } — Partial의 반대, 전부 필수로
+type FrozenUser = Readonly<User>;     // 모든 필드가 readonly — 재할당 불가
+```
+
+---
+
+# ⚠️ NestJS의 PartialType/OmitType/PickType과 혼동 주의 ⭐️⭐️⭐️⭐️
+
+```txt
+이름이 거의 같아서 헷갈리기 쉬운 다른 것:
+  TS 내장          Partial<T> / Omit<T,K> / Pick<T,K>     — 순수 타입 변형, 런타임에 아무 일도 안 함
+  @nestjs/mapped-types  PartialType() / OmitType() / PickType() — 실제 클래스를 만들어서 반환하는 함수
+
+NestJS 버전이 따로 필요한 이유:
+  DTO는 클래스이고, class-validator 데코레이터(@IsString() 등)가 그 필드에 붙어있음
+  TS의 Partial<CreateDto> 는 "타입"만 옵셔널로 바꿀 뿐, 데코레이터(런타임 검증 로직)까지는 안 따라옴
+  → NestJS의 PartialType(CreateDto)는 필드를 옵셔널로 바꾸면서 데코레이터도 그대로 복사해서
+    "진짜 동작하는 DTO 클래스"를 새로 만들어줌 — 그래서 UpdateDto에는 항상 이 NestJS 버전을 씀
+    (DTO에 적용하는 실전 예시는 [[NestJS_DTO]]의 "Mapped Types" 참고)
+
+→ 일반 interface/type에는 TS 내장 버전, class-validator가 붙은 DTO 클래스에는 NestJS 버전
+```
 
 ---
 
 # 한눈에
 
-|유틸리티|변환|주 용도|
-|---|---|---|
-|`Partial<T>`|모든 속성 → 선택적|PATCH DTO|
-|`Required<T>`|모든 속성 → 필수|완전한 객체 보장|
-|`Readonly<T>`|모든 속성 → 읽기 전용|불변 객체|
-|`Pick<T, K>`|일부 키만 선택|특정 필드만 노출|
-|`Omit<T, K>`|일부 키 제외|민감 정보 제외 ⭐️|
-|`Omit<T, K> & {...}`|특정 필드만 다른 타입으로 교체|서드파티 타입 확장 시 필드 좁히기 ⭐️⭐️|
-|`Record<K, V>`|키-값 맵|상태 맵 / 딕셔너리|
-|`ReturnType<T>`|함수 반환 타입|타입 재사용|
-
-```txt
-필드 타입을 바꾸고 싶을 때 기억할 한 줄:
-  그냥 & 로 더하면 타입이 뒤섞임 → 항상 Omit 으로 먼저 지우고 & 로 새로 채울 것
-```
+|유틸리티|역할|
+|---|---|
+|`Record<K, V>`|키-값 객체 타입|
+|`Partial<T>`|모든 속성을 옵셔널로|
+|`Required<T>`|모든 속성을 필수로 (Partial의 반대)|
+|`Readonly<T>`|모든 속성을 재할당 불가로|
+|`Pick<T, K>`|지정한 속성만 골라서 새 타입|
+|`Omit<T, K>`|지정한 속성만 제외하고 새 타입|
+|`Omit<T,K> & {...}`|서드파티 타입의 필드를 다른 타입으로 안전하게 교체|
+|`ReturnType<typeof fn>`|함수가 반환하는 값의 타입 추출|
+|NestJS `PartialType()` 등|TS 내장과 이름은 같지만 실제 클래스+데코레이터까지 만드는 런타임 함수|

@@ -193,7 +193,6 @@ npx kill-port 3000   # 강제 종료
 
 ```txt
 ⚠️ .env 로 포트를 바꿨다면, 프론트엔드(Next.js)에서 이 API 를 호출하는 baseURL 도 같이 맞춰야 함
-   → [[NextJS_API_Integration]] 의 getApiBaseUrl / NEXT_PUBLIC_API_URL 참고
    하나만 바꾸고 다른 쪽을 그대로 두면 "연결이 안 된다" 는 에러로 이어짐
 ```
 
