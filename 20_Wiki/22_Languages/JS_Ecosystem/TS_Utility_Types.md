@@ -1,11 +1,5 @@
 ---
-aliases:
-  - Omit
-  - Partial
-  - Pick
-  - Record
-  - ReturnType
-  - utility types
+aliases: [Omit, Partial, Pick, Record, ReturnType, utility types]
 tags:
   - TypeScript
 related:
@@ -48,6 +42,12 @@ interface User { name: string; age: number; }
 type PartialUser = Partial<User>;
 // { name?: string; age?: number; } 와 동일 — 둘 다 있어도, 하나만 있어도, 아예 없어도 됨
 ```
+
+```txt
+서드파티 라이브러리도 이 발상을 그대로 가져다 쓰는 경우가 많음 — 예를 들어 차트 라이브러리의
+PartialTheme류 타입은 "테마 전체가 아니라 일부만 덮어쓰기" 위한 것으로, [[React_Charts]] 참고
+```
+
 
 ## 중첩된 형태 — Record<string, Partial<Record<string, string>>> 분해 ⭐️⭐️⭐️⭐️
 

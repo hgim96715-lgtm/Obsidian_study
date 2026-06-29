@@ -487,6 +487,76 @@ each: true 없으면: 배열 자체를 숫자로 검사 → 항상 실패
 each: true 있으면: [1, 2, 3] 각 요소가 숫자인지 검사, [1, '2', 3] → '2' 숫자 아님 → 실패
 ```
 
+## @ValidateNested — 중첩된 DTO/배열도 검증하기 ⭐️⭐️⭐️⭐️
+
+```typescript
+class AddressDto {
+  @IsNotEmpty()
+  @IsString()
+  city: string;
+}
+
+class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address: AddressDto;
+}
+```
+
+```txt
+@ValidateNested() 없이 그냥 address: AddressDto 라고만 적으면:
+  class-validator는 address 필드가 "있다/없다" 정도만 보고, 그 안의 city가
+  실제로 @IsNotEmpty()/@IsString() 규칙을 지키는지는 전혀 검사하지 않음
+  (중첩된 객체 내부까지 자동으로 검증이 타고 들어가는 게 기본 동작이 아님)
+
+@ValidateNested()를 붙이면:
+  "이 필드도 또 다른 class-validator 검증 대상이다" — AddressDto 자체의 데코레이터들을
+  재귀적으로 한 번 더 실행함
+
+@Type(() => AddressDto)가 항상 같이 필요한 이유:
+  HTTP 요청은 JSON으로 오므로, address는 처음엔 그냥 "평범한 객체"일 뿐 AddressDto의
+  진짜 인스턴스가 아님 — class-validator의 데코레이터들은 실제 클래스 인스턴스에서만
+  제대로 동작하므로, @Type()으로 먼저 "이 평범한 객체를 AddressDto 인스턴스로 변환해라"고
+  class-transformer에게 알려줘야 함
+  → @ValidateNested()와 @Type()은 거의 항상 한 쌍으로 같이 씀(하나만 쓰면 제대로 동작 안 함)
+```
+
+
+```typescript
+// 배열 형태의 중첩 DTO — each: true를 여기서도 똑같이 씀
+class CreatePostDto {
+  @ValidateNested({ each: true })
+  @Type(() => TagDto)
+  tags: TagDto[];
+}
+```
+
+```txt
+배열 안의 "각 요소"가 또 다른 DTO일 때는 ValidateNested에도 { each: true }를 줌 —
+배열 전체가 아니라 tags 배열의 각 TagDto 요소마다 재귀적으로 검증을 적용한다는 뜻
+(바로 위 each: true와 같은 발상 — 대상이 단순 값이 아니라 중첩 DTO일 뿐)
+```
+
+### 검증 실패 시 에러가 나오는 자리 — error.children ⭐️⭐️⭐️⭐️
+
+
+```txt
+address.city가 비어있는 채로 요청이 오면:
+  CreateUserDto 자체의 error.constraints에는 아무것도 안 남음 (name 등 자기 필드는 문제없으니까)
+  대신 address 필드에 대한 ValidationError 하나가 생기고, 그 안의 .children 안에
+  city에 대한 실제 에러(.constraints.isNotEmpty 등)가 들어있음
+
+→ 이게 바로 위 "exceptionFactory" 섹션에서 error.children을 재귀로 타야 했던 이유의
+  실제 메커니즘 — @ValidateNested()를 쓰는 순간부터 에러가 한 단계 더 깊은 곳에 생기기 때문
+  (프론트에서 부분 수정 객체를 만들 때의 null/undefined 구분과는 다른 주제지만,
+   "값이 어디 들어있는지 정확히 추적해야 한다"는 점은 [[TS_PartialUpdate]]와 결이 비슷함)
+```
+
+
 ## @IsDate vs @IsDateString ⭐️
 
 ```typescript

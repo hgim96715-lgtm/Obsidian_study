@@ -316,24 +316,27 @@ NestJS 프로젝트의 애매한 위치:
 # nest g — 리소스 생성 ⭐️
 
 ```bash
+# nest g <종류> <경로/이름> [옵션]
 nest g resource movie          # 모듈 + 컨트롤러 + 서비스 + DTO 한번에
 nest g module movie            # 개별 생성
 nest g controller movie
 nest g service movie
 nest g service exhibitions --no-spec   # 테스트 파일 없이
+nest g service admin/admin-users --no-spec --flat  # 기존 폴더 안에 서비스 파일만 생성
+# >(즉,기존 admin 폴더 안에 admin-users.service.ts만 생)
 ```
 
-|schematic|단축|생성 내용|
-|---|---|---|
-|`resource`|`res`|모듈+컨트롤러+서비스+DTO 한번에|
-|`module`|`mo`|모듈만|
-|`controller`|`co`|컨트롤러만|
-|`service`|`s`|서비스만|
-|`guard`|`gu`|가드|
-|`middleware`|`mi`|미들웨어|
-|`pipe`|`pi`|파이프|
-|`interceptor`|`in`|인터셉터|
-|`decorator`|`d`|데코레이터|
+| schematic     | 단축    | 생성 내용               |
+| ------------- | ----- | ------------------- |
+| `resource`    | `res` | 모듈+컨트롤러+서비스+DTO 한번에 |
+| `module`      | `mo`  | 모듈만                 |
+| `controller`  | `co`  | 컨트롤러만               |
+| `service`     | `s`   | 서비스만                |
+| `guard`       | `gu`  | 가드                  |
+| `middleware`  | `mi`  | 미들웨어                |
+| `pipe`        | `pi`  | 파이프                 |
+| `interceptor` | `in`  | 인터셉터                |
+| `decorator`   | `d`   | 데코레이터               |
 
 ```txt
 nest g resource 실행 시 선택:

@@ -1,9 +1,9 @@
 ---
-aliases: [00_JS_Ecosystem_HomePage — JS · TS · React · Next.js]
+aliases:
+  - 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
 tags:
   - HomePage
 related:
-  - "[[00_HTML_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
 cssclasses:
   - max
@@ -61,16 +61,17 @@ flowchart TB
 
 ️
 
-| 클러스터              | JS                                     | TS                | React                                                                                                               | Next.js                                                                                                                                            |
-| ----------------- | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 인증/토큰 흐름          | [[JS_URL_Encoding]]                    | —                 | [[React_Context]]                                                                                                   | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
-| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] | [[TS_DOM_Events]] | [[React_useRef]]                                                                                                    | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
-| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션)           | —                 | [[React_CSSProperties]]                                                                                             | —                                                                                                                                                  |
-| React 훅 기초        | —                                      | —                 | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useId]] · [[React_Portal]] | —                                                                                                                                                  |
-| 폼 처리              | [[JS_FormData]]                        | —                 | [[React_useFormStatus]] · [[React_ControlledInput]]                                                                 | [[NextJS_Server_Actions]]                                                                                                                          |
-| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                       | —                 | —                                                                                                                   | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
-| 라우팅 · 메타데이터       | —                                      | —                 | —                                                                                                                   | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
-| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]      | —                 | —                                                                                                                   | —                                                                                                                                                  |
+| 클러스터              | JS                                     | TS                                     | React                                                                                                               | Next.js                                                                                                                                            |
+| ----------------- | -------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 인증/토큰 흐름          | [[JS_URL_Encoding]]                    | —                                      | [[React_Context]]                                                                                                   | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
+| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] | [[TS_DOM_Events]]                      | [[React_useRef]]                                                                                                    | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
+| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션)           | —                                      | [[React_CSSProperties]]                                                                                             | —                                                                                                                                                  |
+| React 훅 기초        | —                                      | —                                      | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useId]] · [[React_Portal]] | —                                                                                                                                                  |
+| 폼 처리              | [[JS_FormData]]                        | —                                      | [[React_useFormStatus]] · [[React_ControlledInput]]                                                                 | [[NextJS_Server_Actions]]                                                                                                                          |
+| 차트/시각화            | [[JS_BrowserAPI]] (SSR 제약)             | [[TS_Utility_Types]] (`PartialTheme`류) | [[React_Charts]]                                                                                                    | [[NextJS_API_Mapper]] (데이터 shape 변환) · [[NestJS_Prisma]] (버전 변경 사례)                                                                                |
+| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                       | —                                      | —                                                                                                                   | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
+| 라우팅 · 메타데이터       | —                                      | —                                      | —                                                                                                                   | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
+| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]      | —                                      | —                                                                                                                   | —                                                                                                                                                  |
 
 
 ```txt
@@ -91,10 +92,10 @@ flowchart TB
 이것부터 모르면 위 클러스터의 코드 예시 자체가 안 읽히는 경우가 많음
 ```
 
-| 언어         | 노트                                                                                                                                                                                                                                                                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript | [TS_TypeAssertion]] (`as`) · [[TS_Generics]] (`<T>`) · [[TS_Class_Patterns]] (`implements`/`extends`/`readonly`) · [[TS_Utility_Types]] (`Record`/`Partial`/`Omit`/`ReturnType`) · [[TS_PartialUpdate]] (PATCH 객체 만들기)                                                                                     |
-| JavaScript | [[JS_OptionalChaining]] (`?.` / `??`) · [[JS_Array_Methods]] (`map`/`filter`/`reduce` 등) · [[JS_Loops_Conditionals]] (`if`/`switch`/`for`/`while`) · [[JS_Operators]] (`===`/`&&`/`...`/구조분해/`instanceof`) · [[JS_Truthy_Falsy]] (truthy/falsy) · [[JS_Object_Methods]] (`Object.keys`/`entries`/`assign`) |
+| 언어         | 노트                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript | [[TS_TypeAssertion]] (`as`) · [[TS_Generics]] (`<T>`) · [[TS_Class_Patterns]] (`implements`/`extends`/`readonly`) · [[TS_Utility_Types]] (`Record`/`Partial`/`Omit`/`ReturnType`) · [[TS_PartialUpdate]] (PATCH 객체 만들기)                                                                                                                                                                                                     |
+| JavaScript | [[JS_OptionalChaining]] (`?.` / `??`) · [[JS_Array_Methods]] (`map`/`filter`/`reduce`/`Array.from` 등) · [[JS_Loops_Conditionals]] (`if`/`switch`/`for`/`while`) · [[JS_Operators]] (`===`/`&&`/`...`/구조분해/`instanceof`) · [[JS_Truthy_Falsy]] (truthy/falsy) · [[JS_Object_Methods]] (`Object.keys`/`entries`/`assign`) · [[JS_Map_Set]] (`Set`/`Map`/`WeakMap`/`WeakSet`) · [[JS_Promise]] (`async`/`await`/`Promise.all`) |
 
 ---
 # 보안 기초 — 프레임워크 무관 ⭐️⭐️
@@ -116,13 +117,13 @@ JS/TS/React/Next.js 중 어느 트랙에도 속하지 않는, 웹 자체의 보�
 모든 노트가 다른 트랙과 얽힐 필요는 없음 — 그 자체로 완결된 노트들은 그냥 목록으로만 관리
 ```
 
-| 트랙      | 독립 노트                                                                       |
-| ------- | --------------------------------------------------------------------------- |
-| JS      | [[JS_Primitive_Methods]]                                                    |
-| TS      | [[TS_Type_Guards]]                                                          |
-| React   | [[React_Concept]] · [[React_Component]] · [[React_Charts]] · [[React_Vite]] |
-| Next.js | [[NextJS_Concept]] · [[NextJS_Env_Config]]                                  |
-| 도구/설정   | [[Monorepo_PNPM]]                                                           |
+| 트랙      | 독립 노트                                                    |
+| ------- | -------------------------------------------------------- |
+| JS      | [[JS_Primitive_Methods]]                                 |
+| TS      | [[TS_Type_Guards]]                                       |
+| React   | [[React_Concept]] · [[React_Component]] · [[React_Vite]] |
+| Next.js | [[NextJS_Concept]] · [[NextJS_Env_Config]]               |
+| 도구/설정   | [[Monorepo_PNPM]]                                        |
 
 
 ```txt

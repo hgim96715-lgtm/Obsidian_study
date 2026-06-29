@@ -15,6 +15,7 @@ related:
   - "[[NestJS_Controller]]"
   - "[[NextJS_API_Client]]"
   - "[[React_Context]]"
+  - "[[JS_Promise]]"
 ---
 # JS_Operators — 비교 · 논리 · 스프레드/Rest · 구조분해 · instanceof
 

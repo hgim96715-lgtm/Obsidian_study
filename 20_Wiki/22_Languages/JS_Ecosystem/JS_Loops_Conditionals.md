@@ -1,11 +1,18 @@
 ---
-aliases: [for in, for loop, for of, if else, switch, while]
+aliases:
+  - for in
+  - for loop
+  - for of
+  - if else
+  - switch
+  - while
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
   - "[[NextJS_API_Mapper]]"
+  - "[[JS_Promise]]"
 ---
 
 # JS_Loops_Conditionals — 조건문과 반복문

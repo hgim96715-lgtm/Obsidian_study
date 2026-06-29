@@ -899,6 +899,86 @@ useEffect(() => {
 ```
 
 ---
+# 데이터 복사 — structuredClone (깊은 복사) ⭐️⭐️⭐️⭐️
+
+```txt
+어디서 import하는 함수가 아니라, 브라우저와 최신 Node.js(17+)가 기본으로 제공하는 전역 함수
+fetch/setTimeout처럼 그냥 바로 호출하면 됨 — import 없이 쓸 수 있어서
+"어디서 가져오는 거지" 하고 찾아도 안 나오는 게 당연함
+```
+
+```typescript
+const original = { user: { name: '홍길동' }, tags: ['a', 'b'] };
+const copy = structuredClone(original);
+
+copy.user.name = '김철수';
+original.user.name; // '홍길동' — 원본은 안 바뀜 (완전히 독립된 복사본)
+```
+
+## 왜 스프레드(...)로는 부족할 때가 있나 — 얕은 복사 vs 깊은 복사 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+const shallow = { ...original };
+shallow.user.name = '김철수';
+original.user.name; // '김철수' — 안쪽 객체는 같은 참조라 원본도 같이 바뀜 (의도와 다를 수 있음)
+```
+
+|방법|중첩된 객체/배열도 독립적으로 복사되는가|
+|---|---|
+|`{ ...obj }` / `[...arr]`|아니요 — 한 단계만 (얕은 복사) — [[JS_Operators]] 참고|
+|`structuredClone(obj)`|네 — 몇 단계든 전부 새로 복사 (깊은 복사)|
+
+
+```txt
+{ ...obj }는 "한 단계"까지만 새로 복사함 — 중첩된 객체/배열은 원본과 같은 참조를 그대로 공유함
+얕은 복사로 충분한 경우(중첩이 없는 평평한 객체)엔 스프레드가 더 짧고 흔하게 쓰임 —
+"중첩된 부분까지 완전히 독립적인 복사본이 필요한가"가 둘을 가르는 기준
+```
+
+## 실전 — "되돌리기" 가능한 편집 상태 만들기 ⭐️⭐️⭐️⭐️
+
+```tsx
+useEffect(() => {
+  if (!open || !card) return;
+  setMode('view');
+  setCustomization(structuredClone(card.customization));
+}, [open, card]);
+```
+
+
+```txt
+card.customization을 structuredClone 없이 그대로 setCustomization에 넘기면:
+  state(customization)와 card.customization이 같은 객체를 가리키게 됨
+  → 편집 폼에서 customization의 중첩 필드를 직접 바꾸면, 아직 저장도 안 했는데
+    원본 card 데이터까지 같이 바뀌어버리는 위험이 생김 (둘이 같은 객체를 공유해서)
+
+structuredClone으로 감싸면:
+  card.customization과 완전히 독립된 "복사본"을 state로 들고 시작함
+  → 편집 중에 마음대로 고쳐도 원본 card는 전혀 안 바뀜
+  → 사용자가 "취소"를 누르면 그냥 이 state를 버리면 됨 (원본은 멀쩡하니까)
+```
+
+## 한계 — 복사할 수 없는 것들 ⭐️⭐️⭐️
+
+```txt
+structuredClone이 복사 못 하는 것들:
+  함수(function) — 복사 시도하면 에러
+  DOM 노드 — 에러
+  클래스 인스턴스의 메서드(프로토타입 체인) — 데이터 필드는 복사되지만 메서드는 안 따라옴
+
+→ 순수 데이터(객체/배열/문자열/숫자/Date/Map/Set 등)를 복사할 때만 적합
+  함수나 클래스 인스턴스가 섞인 객체는 structuredClone으로 못 복사함
+```
+
+```txt
+비교적 최신 API(2022년경부터 주요 브라우저/Node 17+ 지원) — 아주 오래된 환경까지 지원해야 한다면
+typeof structuredClone === 'function'으로 존재 여부를 먼저 확인하는 게 안전함
+(이런 기능 지원 여부 감지 패턴 자체는 위 "typeof X !== 'undefined' — 환경/기능 감지 패턴" 참고)
+```
+
+
+---
 
 # 한눈에
 
