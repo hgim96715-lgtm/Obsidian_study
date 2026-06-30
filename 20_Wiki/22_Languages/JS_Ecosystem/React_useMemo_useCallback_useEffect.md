@@ -18,22 +18,21 @@ related:
 
 ```mermaid-beautiful
 flowchart TB
-    Q{"풀려는 문제?"}
+    Q{"무엇이 필요?"}
 
-    Q -->|렌더링 이후<br/>리액트 바깥과 동기화| UE["useEffect — 부수효과"]
-    UE --> UE1["막는 것: fetch · 타이머 · 구독 · DOM 등<br/>매번 불필요하게 반복 실행"]
-    UE --> UE2["반환: 없음 (또는 cleanup)"]
+    Q -->|렌더 **후** 실행<br/>fetch · 타이머 · 구독| UE["useEffect"]
+    Q -->|매 렌더 **계산** 반복| UM["useMemo<br/>정렬·필터 · Context value 객체"]
+    Q -->|매 렌더 **함수** 참조가 문제| UC["useCallback"]
 
-    Q -->|매 렌더마다<br/>똑같은 일 반복| MEM["메모이제이션 — 이전 결과 재사용"]
+    UE --> F{"함수를 effect 밖에?"}
+    F -->|아니오 · **기본**| IN["effect **안에** 로직<br/>deps: a, b … 값만"]
+    F -->|예 · 여러 곳 호출 등| OUT["useCallback fn<br/>useEffect deps: fn, …"]
 
-    MEM -->|계산 결과| UM["useMemo"]
-    UM --> UM1["막는 것: 무거운 정렬/필터 등<br/>같은 계산 재실행"]
-    UM --> UM2["반환: 계산 결과 값<br/>+ 객체/배열 참조 고정 (Context value 등)"]
-
-    MEM -->|함수| UCB["useCallback"]
-    UCB --> UCB1["막는 것: () => {} 를<br/>렌더마다 새로 만들기"]
-    UCB --> UCB2["얻는 것: deps 동안 같은 참조<br/>prevFn === nextFn"]
-    UCB --> UCB3["예: clearSession · refreshUser<br/>→ useMemo value · useEffect deps"]
+    UC --> W{"참조 고정이 꼭 필요?"}
+    W -->|Context Provider value| OK1["useCallback ✅"]
+    W -->|React.memo 자식 props| OK2["useCallback ✅"]
+    W -->|effect deps용 fn만| NG["보통 ❌<br/>→ effect 안 로직으로 충분"]
+    W -->|그 외| NO["그냥 function 선언"]
 ```
 
 |훅|막는 것|반환하는 것|
@@ -47,13 +46,18 @@ useCallback "반환"이 헷갈리면:
   const fn = () => clearAuth()     // 렌더마다 새 함수 — 내용은 같아도 참조(주소)가 매번 다름
   const fn = useCallback(() => clearAuth(), [])  // deps 안 바뀌면 지난 렌더와 같은 fn 재사용
   → 새 함수를 "만드는 게" 아니라, 다른 훅/자식이 === 로 비교할 때 참조가 안 바뀌게 하는 훅
-  → 그래서 AuthProvider의 clearSession · refreshUser 처럼 useMemo value · useEffect deps에 넣을 때 씀
+  → AuthProvider의 clearSession · refreshUser → useMemo value에 넣을 때 ✅
+  → effect + useEffect만 → effect 안 로직, useCallback ❌ (fn을 deps에 넣을 필요 없음)
 ```
 
 ```
 useMemo와 useCallback은 같은 부류(메모이제이션 — "이전 결과를 기억해서 재사용")
 useEffect는 다른 부류(부수효과 — "렌더링이 끝난 뒤 따로 처리해야 하는 일")
 → 셋이 코드에 같이 보이는 경우가 많아서 묶여 보이지만, 풀어야 하는 문제 자체는 서로 다름
+
+  useEffect  = 렌더 끝난 뒤 · 로직은 effect 안 · deps는 바뀌는 값만 (a, b …)
+  useMemo    = 계산 결과 / value 객체 참조 고정
+  useCallback = 함수 참조 고정 — Context·memo 자식. effect deps용만이면 보통 불필요
 ```
 
 ---
@@ -101,6 +105,77 @@ useEffect(() => {
 |렌더 중에 계산 가능한 값을 useEffect+state로 만듦|불필요한 리렌더 한 번 더 발생 — 그냥 렌더 중에 바로 계산하면 됨|
 |effect 안에서 비동기 함수가 끝나기 전에 컴포넌트가 사라짐|이미 사라진 컴포넌트의 state를 갱신하려다 경고/누수 — cleanup에서 취소 플래그로 막음|
 
+## async 함수를 useEffect 안에서 호출하기 — void 패턴 ⭐️⭐️⭐️⭐️
+
+```tsx
+useEffect(() => {
+  void load(searchQ);
+}, [load, searchQ]);
+```
+
+```txt
+useEffect의 콜백은 직접 async로 만들 수 없음:
+  useEffect(async () => { ... })  // ❌ — async 함수는 항상 Promise를 반환하는데,
+                                  //    useEffect의 콜백 반환값은 "cleanup 함수 또는 undefined"여야 함
+                                  //    Promise를 반환하면 React가 그걸 cleanup 함수로 착각해서
+                                  //    예측하기 어려운 동작이 생길 수 있음
+
+→ async 작업이 필요하면 항상 "내부 함수로 정의하고 호출"하는 형태를 써야 함
+```
+
+```txt
+void 연산자가 하는 일:
+  JS의 void 연산자는 뒤에 오는 표현식을 실행하고, 결과값을 undefined로 바꿔서 반환함
+  → void load(searchQ) 는 load(searchQ)를 호출(실행은 됨)하지만,
+    그 반환값(Promise)을 undefined로 바꿔서 버리는 것
+
+void가 없으면:
+  load(searchQ)를 그냥 호출하면 그 반환값(Promise)이 암묵적으로 콜백에서 반환됨
+  → "이 Promise 처리 안 하고 그냥 버리는 거 맞냐?" 는 ESLint의 no-floating-promises 경고가 뜸
+    (실수로 await를 빠뜨린 건지, 의도적으로 버리는 건지 코드만 봐선 구분 안 되기 때문)
+
+void를 붙이면:
+  "이게 Promise를 반환하는 거 알고, 의도적으로 버리는 것"을 명시적으로 선언 — 경고 없음
+  useEffect 콜백도 void(undefined)를 반환하게 돼서 타입도 딱 맞음
+
+→ 요약: void load(...)는 "load를 실행하되, 그 반환값(Promise)은 의도적으로 무시한다"는 선언
+```
+
+## 내부 함수 패턴 vs void 패턴 — 언제 뭘 쓰나 ⭐️⭐️⭐️
+
+```tsx
+// 방법 1 — 내부에 async 함수를 별도로 정의하고 호출 (cancelled 플래그 같이 쓸 때 더 적합)
+useEffect(() => {
+  let cancelled = false;
+  async function load() {
+    const data = await fetchData();
+    if (!cancelled) setData(data);
+  }
+  void load();
+  return () => { cancelled = true; };
+}, []);
+
+// 방법 2 — void로 직접 호출 (외부에 useCallback으로 안정화된 함수가 있을 때 간단)
+useEffect(() => {
+  void load(searchQ);
+}, [load, searchQ]);
+```
+
+```txt
+둘 다 "useEffect 안에서 async 작업"이라는 같은 문제를 푸는 방법임
+차이는 주로 복잡도:
+
+  void 패턴이 더 간단한 경우:
+    load가 이미 useCallback으로 만들어진 안정된 함수여서 그냥 호출만 하면 됨
+    cancelled 플래그나 cleanup이 따로 필요 없는 경우
+
+  내부 함수 패턴이 더 맞는 경우:
+    비동기 작업이 끝나기 전에 컴포넌트가 사라질 수 있어서 cancelled 플래그가 필요한 경우
+    effect 안에서 여러 async 단계가 있어서 그 흐름 전체를 한 함수로 묶는 게 읽기 쉬운 경우
+    (cancelled 플래그 패턴 자체는 바로 아래 섹션 참고)
+```
+
+
 ## 의존성을 객체 대신 원시값으로 좁히기 ⭐️⭐️⭐️⭐️
 
 ```tsx
@@ -134,7 +209,7 @@ useEffect(() => {
     if (!cancelled) setUser(data); // cancelled면 이 결과는 버림
   }
 
-  load();
+  void load();
 
   return () => {
     cancelled = true;

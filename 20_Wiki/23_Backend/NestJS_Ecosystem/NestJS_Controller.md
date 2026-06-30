@@ -202,6 +202,40 @@ getMovies(
 }
 ```
 
+## { optional: true } — 기본값 없이 선택적으로 만들기 ⭐️⭐️⭐️
+
+```typescript
+@Get()
+getUsers(
+  @Query('inactiveDays', new ParseIntPipe({ optional: true }))
+  inactiveDays?: number,
+) {
+  // inactiveDays를 안 보내면 → undefined (에러 없음)
+  // inactiveDays를 보내면 → number로 변환 (잘못된 값이면 400)
+}
+```
+
+```txt
+DefaultValuePipe 조합과의 차이:
+
+  DefaultValuePipe(0) + ParseIntPipe
+    → "값이 없으면 0으로 채운 뒤 변환" — 결과 타입은 항상 number
+    → 기본값이 있어야 하는 경우에 적합
+
+  new ParseIntPipe({ optional: true })
+    → "값이 없으면 그냥 undefined로 통과, 값이 있으면 변환" — 결과 타입은 number | undefined
+    → "이 파라미터는 없어도 되는데, 있으면 반드시 정수여야 한다"는 의미를 한 줄로 표현
+    → 매개변수 타입을 number?로 선언해두면 undefined인 경우를 직접 처리할 수 있음
+
+ParseUUIDPipe, ParseEnumPipe 등 다른 Parse* 계열도 같은 { optional: true } 옵션을 지원함
+```
+
+| 방법                                     | 값 없을 때         | 값 있을 때 | 결과 타입                            |
+| -------------------------------------- | -------------- | ------ | -------------------------------- |
+| `ParseIntPipe` 단독                      | 400 에러         | 변환 성공  | `number`                         |
+| `DefaultValuePipe(0), ParseIntPipe`    | 0으로 치환 후 변환    | 변환 성공  | `number`                         |
+| `new ParseIntPipe({ optional: true })` | `undefined` 통과 | 변환 성공  | <code>number \| undefined</code> |
+
 ## Pipe 적용 위치 ⭐️
 
 |적용 범위|문법|언제|

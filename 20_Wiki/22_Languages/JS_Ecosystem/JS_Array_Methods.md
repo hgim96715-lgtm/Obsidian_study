@@ -1,21 +1,16 @@
 ---
-aliases:
-  - array methods
-  - filter
-  - forEach
-  - map
-  - reduce
-tags:
-  - JavaScript
+aliases: [array methods, Array.from, filter, forEach, map, reduce]
+tags: [JavaScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
-  - "[[JS_Primitive_Methods]]"
-  - "[[NextJS_API_Mapper]]"
   - "[[JS_Map_Set]]"
   - "[[JS_Object_Methods]]"
-  - "[[JS_Loops_Conditionals]]"
+  - "[[JS_Operators]]"
+  - "[[JS_Primitive_Methods]]"
   - "[[JS_Promise]]"
+  - "[[NextJS_API_Mapper]]"
+  - "[[TS_Type_Guards]]"
 ---
 # JS_Array_Methods — 배열 메서드, 언제 뭘 쓰나
 
@@ -50,17 +45,17 @@ const sorted = [...items].sort((a, b) => a - b);
 
 # 순회 계열 — 무엇을 반환하는가로 구분 ⭐️⭐️⭐️⭐️
 
-|메서드|반환하는 것|길이|용도|
-|---|---|---|---|
-|`forEach`|`undefined` (반환값 없음)|—|각 요소에 대해 뭔가 "실행"만 함 (부수효과용)|
-|`map`|새 배열|원본과 같음|각 요소를 변환|
-|`filter`|새 배열|원본과 같거나 줄어듦|조건에 맞는 것만 추림|
-|`find`|요소 하나 (또는 `undefined`)|—|조건에 맞는 첫 번째 요소 찾기|
-|`findIndex`|인덱스 (또는 `-1`)|—|조건에 맞는 첫 번째 위치 찾기|
-|`some`|`boolean`|—|조건에 맞는 게 하나라도 있는가|
-|`every`|`boolean`|—|전부 조건에 맞는가|
-|`includes`|`boolean`|—|정확히 그 값이 배열에 있는가 (`===` 비교)|
-|`reduce`|값 하나 (타입은 직접 정함)|—|배열 전체를 하나의 값으로 누적/집계|
+| 메서드         | 반환하는 것                 | 길이          | 용도                          |
+| ----------- | ---------------------- | ----------- | --------------------------- |
+| `forEach`   | `undefined` (반환값 없음)   | —           | 각 요소에 대해 뭔가 "실행"만 함 (부수효과용) |
+| `map`       | 새 배열                   | 원본과 같음      | 각 요소를 변환                    |
+| `filter`    | 새 배열                   | 원본과 같거나 줄어듦 | 조건에 맞는 것만 추림                |
+| `find`      | 요소 하나 (또는 `undefined`) | —           | 조건에 맞는 첫 번째 요소 찾기           |
+| `findIndex` | 인덱스 (또는 `-1`)          | —           | 조건에 맞는 첫 번째 위치 찾기           |
+| `some`      | `boolean`              | —           | 조건에 맞는 게 하나라도 있는가           |
+| `every`     | `boolean`              | —           | 전부 조건에 맞는가                  |
+| `includes`  | `boolean`              | —           | 정확히 그 값이 배열에 있는가 (`===` 비교) |
+| `reduce`    | 값 하나 (타입은 직접 정함)       | —           | 배열 전체를 하나의 값으로 누적/집계        |
 
 ```typescript
 // 실전에서 본 예시들
@@ -195,29 +190,143 @@ Array.from(arr, mapFn)과 Array.from(arr).map(mapFn)의 차이:
   한 번에 처리함 — 실무에선 성능 차이보다는 한 줄로 줄어드는 가독성 차이가 더 큼
 ```
 
+## Array.from + Map.entries() — Map을 배열로 변환하는 흔한 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+const monthly = Array.from(monthlyBuckets.entries()).map(
+  ([month, count]) => ({ month, count }),
+);
+```
+
+```txt
+왜 Array.from과 .map을 같이 쓰는가:
+  monthlyBuckets.entries()는 Map의 "이터레이터"를 반환함 — [키, 값] 쌍을 순서대로 내주는 객체
+  이터레이터는 for...of로는 순회할 수 있지만, 배열이 아니라서 .map() 같은 배열 메서드를 직접 못 씀
+  → Array.from으로 "진짜 배열"로 변환해야 비로소 .map()을 쓸 수 있음
+
+Array.from(monthlyBuckets.entries())가 만드는 것:
+  [['2026-01', 3], ['2026-02', 7], ['2026-03', 2], ...]
+  → [키, 값] 쌍이 배열의 각 요소
+
+.map(([month, count]) => ({ month, count }))가 하는 것:
+  [키, 값] 배열을 { month, count } 객체로 변환 — 배열 구조분해로 꺼내서 객체로 다시 포장
+  ([month, count])는 첫 번째 인자로 받은 [키, 값] 배열을 구조분해하는 것
+  ([[JS_Operators]]의 배열 구조분해 참고)
+```
+
+## => ({ }) — 화살표 함수에서 객체를 바로 반환하기 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 이렇게 쓰면 중괄호가 "함수 본문"으로 인식됨 — 아무것도 반환 안 함
+.map(([month, count]) => { month, count })
+
+// ✅ 소괄호로 감싸야 "객체 리터럴"임을 알릴 수 있음
+.map(([month, count]) => ({ month, count }))
+```
+
+```txt
+화살표 함수에서 => 바로 뒤에 { }가 오면, JS는 그걸 "함수 본문(코드 블록)"으로 읽음
+  => { month, count }  →  "month와 count라는 이름의 변수를 참조하는 표현식 두 줄이 있는 본문"
+                          아무것도 return하지 않아서 결과는 undefined — 의도와 다름
+
+소괄호( )로 한 번 감싸면:
+  => ({ month, count })  →  "괄호 안의 { }는 객체 리터럴이다"라고 JS에 알려줌
+                            { month, count }를 그대로 반환 (return이 생략된 implicit return)
+
+{ month, count } 안에서 : 없이 이름만 쓰는 이유:
+  ES6 단축 속성(shorthand property) 문법 —
+  { month: month, count: count }를 { month, count }로 줄여 쓴 것
+  (키 이름과 변수 이름이 같을 때만 가능)
+```
+
+```txt
+세 가지를 구분해서 기억:
+  => 값            표현식 하나를 바로 반환 (implicit return)
+  => ({ 키: 값 })   객체 리터럴을 반환 (소괄호 필수)
+  => { return 값 }  함수 본문 — return 키워드 직접 써야 함
+```
+
 ## Array.from 한눈에 ⭐️
 
-|입력|결과|
-|---|---|
-|유사 배열(NodeList 등)|그 항목들을 담은 진짜 배열|
-|이터러블(Set, Map, 문자열)|그 값들을 담은 배열|
-|`{ length: N }`|`undefined`로 채워진 N개짜리 배열|
-|`{ length: N }`, mapFn|mapFn이 각 인덱스에 적용된 N개짜리 배열|
+| 입력                     | 결과                        |
+| ---------------------- | ------------------------- |
+| 유사 배열(NodeList 등)      | 그 항목들을 담은 진짜 배열           |
+| 이터러블(Set, Map, 문자열)    | 그 값들을 담은 배열               |
+| `{ length: N }`        | `undefined`로 채워진 N개짜리 배열  |
+| `{ length: N }`, mapFn | mapFn이 각 인덱스에 적용된 N개짜리 배열 |
+
+---
+# Array.isArray — 배열인지 확인 ⭐️⭐️⭐️⭐️
+
+```typescript
+Array.isArray([1, 2, 3]);  // true
+Array.isArray('hello');    // false
+Array.isArray({ length: 3 }); // false — 유사 배열이어도 진짜 배열 아님
+Array.isArray(undefined);  // false — 에러 없이 false 반환
+```
+
+```txt
+Array.from과 같은 "Array의 정적 메서드" — 인스턴스에 붙이는 게 아니라 Array.xxx() 형태로 씀
+
+왜 그냥 typeof나 instanceof 안 쓰나:
+  typeof []  →  'object'  (배열도 객체라서 구분 안 됨)
+  [] instanceof Array  →  iframe 같은 다른 실행 컨텍스트에서 생성된 배열은 false가 나올 수 있음
+  Array.isArray([])  →  어떤 환경에서 만들어진 배열이든 항상 정확히 true
+```
+
+## TypeScript에서 타입 좁히기(narrowing)로 동작 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+function processInput(input: string | string[]) {
+  if (Array.isArray(input)) {
+    input.join(', ');  // 이 블록 안에서 input은 string[]으로 좁혀짐
+  } else {
+    input.toUpperCase();  // 이 블록 안에서 input은 string으로 좁혀짐
+  }
+}
+```
+
+```txt
+Array.isArray()는 런타임에 "진짜 배열인가"를 확인하는 것이지만,
+TypeScript는 이걸 타입 가드로 인식해서, if 블록 안에서 자동으로 타입을 좁혀줌
+
+이런 "런타임 확인이 컴파일 타임 타입 좁히기도 동시에 해주는" 함수들을
+타입 가드(type guard)라고 부름 — 더 자세한 패턴은 [[TS_Type_Guards]] 참고
+```
+
+## API 응답처럼 unknown이나 any를 다룰 때 ⭐️⭐️⭐️
+
+```typescript
+function parseApiResponse(data: unknown) {
+  if (Array.isArray(data)) {
+    return data.map(item => item.id);  // data가 unknown[]으로 좁혀짐
+  }
+  return [];
+}
+```
+
+```txt
+unknown 타입에 바로 .map()을 호출하면 에러가 남 — 배열인지 확인 전까지는 배열 메서드를 쓸 수 없음
+Array.isArray()로 먼저 확인하면 그 안에서 배열 메서드를 쓸 수 있게 됨
+(unknown 타입 자체에 대한 내용은 [[TS_Type_Guards]] 참고)
+```
 
 ---
 
 # 한눈에
 
-| 상황                            | 메서드                                |
-| ----------------------------- | ---------------------------------- |
-| 각 요소를 변환한 새 배열이 필요            | `map`                              |
-| 조건에 맞는 것만 걸러내고 싶음             | `filter`                           |
-| 그냥 각 요소에 대해 실행만 하면 됨(반환값 불필요) | `forEach`                          |
-| 조건에 맞는 첫 번째 요소/위치를 찾고 싶음      | `find` / `findIndex`               |
-| 조건에 맞는 게 있는지/전부 맞는지만 알고 싶음    | `some` / `every`                   |
-| 정확히 그 값이 배열에 있는지만 확인          | `includes`                         |
-| 배열 전체를 하나의 값으로 집계             | `reduce`                           |
-| 원본을 그대로 두고 정렬하고 싶음            | `[...arr].sort(...)` (복사 먼저)       |
-| 배열 안에서 async 작업을 순서대로 기다려야 함  | `forEach` 대신 `for...of` + `await`  |
-| 실제 데이터 없이 N개만큼 반복 렌더링(스켈레톤 등) | `Array.from({ length: N }, mapFn)` |
-| 유사 배열/이터러블을 진짜 배열로            | `Array.from(...)`                  |
+| 상황                            | 메서드                                                           |
+| ----------------------------- | ------------------------------------------------------------- |
+| 각 요소를 변환한 새 배열이 필요            | `map`                                                         |
+| 조건에 맞는 것만 걸러내고 싶음             | `filter`                                                      |
+| 그냥 각 요소에 대해 실행만 하면 됨(반환값 불필요) | `forEach`                                                     |
+| 조건에 맞는 첫 번째 요소/위치를 찾고 싶음      | `find` / `findIndex`                                          |
+| 조건에 맞는 게 있는지/전부 맞는지만 알고 싶음    | `some` / `every`                                              |
+| 정확히 그 값이 배열에 있는지만 확인          | `includes`                                                    |
+| 배열 전체를 하나의 값으로 집계             | `reduce`                                                      |
+| 원본을 그대로 두고 정렬하고 싶음            | `[...arr].sort(...)` (복사 먼저)                                  |
+| 배열 안에서 async 작업을 순서대로 기다려야 함  | `forEach` 대신 `for...of` + `await`                             |
+| 실제 데이터 없이 N개만큼 반복 렌더링(스켈레톤 등) | `Array.from({ length: N }, mapFn)`                            |
+| 유사 배열/이터러블을 진짜 배열로            | `Array.from(...)`                                             |
+| Map/Set 등 이터레이터를 객체 배열로       | `Array.from(map.entries()).map(([k, v]) => ({ 키: k, 값: v }))` |

@@ -1,21 +1,17 @@
 ---
-aliases:
-  - 구조분해
-  - instanceof
-  - operators
-  - rest
-  - spread
-tags:
-  - JavaScript
+aliases: [구조분해, destructuring, instanceof, logical NOT, operators, rest, spread]
+tags: [JavaScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[JS_Array_Methods]]"
+  - "[[JS_BrowserAPI]]"
   - "[[JS_Loops_Conditionals]]"
   - "[[JS_OptionalChaining]]"
+  - "[[JS_Promise]]"
   - "[[JS_Truthy_Falsy]]"
   - "[[NestJS_Controller]]"
   - "[[NextJS_API_Client]]"
   - "[[React_Context]]"
-  - "[[JS_Promise]]"
 ---
 # JS_Operators — 비교 · 논리 · 스프레드/Rest · 구조분해 · instanceof
 
@@ -159,7 +155,10 @@ const merged = { ...init, headers };
 ⚠️ 얕은 복사(shallow copy)라는 점 주의:
   { ...obj } 는 obj의 "한 단계"까지만 새로 복사함
   obj 안에 또 다른 객체/배열이 들어있다면, 그 안쪽 것은 원본과 같은 참조를 그대로 공유함
-  → 중첩된 객체까지 완전히 복사하려면 별도의 깊은 복사(structuredClone 등)가 필요함
+  → 중첩된 객체까지 완전히 복사하려면 별도의 깊은 복사가 필요함 — structuredClone이 정확히 그 역할,
+    어디서 import하는 함수가 아니라 브라우저/Node가 기본 제공하는 전역 함수라는 것 등은 [[JS_BrowserAPI]] 참고
+
+객체를 합칠 때 Object.assign과 뭐가 다른지(원본을 바꾸는지 여부)는 [[JS_Object_Methods]] 참고
 ```
 
 ## Rest — 모으기
@@ -279,7 +278,7 @@ catch (e) {
 }
 ```
 
-```
+```txt
 instanceof는 "이 값이 특정 클래스(또는 그 클래스를 상속한 클래스)로 만들어졌는가"를 확인함
 typeof와 다른 점: typeof는 string/number/boolean 같은 원시 타입에 씀, instanceof는 클래스로
 만든 객체(직접 만든 클래스, Error, Array, Date 등)에 씀
@@ -300,24 +299,70 @@ count ||= 10;    // count가 falsy면 10을 대입 (count = count || 10)
 count ??= 10;    // count가 null/undefined일 때만 10을 대입 (count = count ?? 10)
 ```
 
-```
+```txt
 ??=는 "값이 아직 없을 때만 기본값을 채워넣기"에 자주 씀 —
 ?? 자체의 동작(0/''는 안 건드림)은 [[JS_OptionalChaining]] 참고
 ```
 
 ---
+# 단축 속성(Shorthand Property) / 화살표 함수 객체 반환 ⭐️⭐️⭐️⭐️
+
+```typescript
+const month = '2026-01';
+const count = 7;
+
+// 단축 속성 — 키 이름과 변수 이름이 같으면 ": 값" 생략 가능
+const obj = { month, count };           // { month: '2026-01', count: 7 }
+const obj2 = { month: month, count: count }; // 위와 완전히 동일
+```
+
+```txt
+{ month }는 "month라는 이름의 키에, 지금 스코프의 month 변수 값을 넣어라"는 뜻
+→ 변수명과 키 이름이 같을 때만 쓸 수 있는 축약 — 다르면 반드시 { 키: 변수 } 형태로 써야 함
+```
+
+## 화살표 함수에서 객체를 바로 반환 — `=> ({ })` ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 중괄호가 "함수 본문"으로 인식됨 — undefined 반환
+.map(([month, count]) => { month, count })
+
+// ✅ 소괄호로 감싸면 "객체 리터럴"을 반환
+.map(([month, count]) => ({ month, count }))
+
+// 풀어 쓴 것과 동일
+.map(([month, count]) => {
+  return { month, count };
+})
+```
+
+```txt
+=> 뒤에 { }가 바로 오면 JS가 "함수 본문(코드 블록)"으로 읽음
+객체 리터럴을 반환하고 싶으면 ( )로 감싸서 "이건 표현식이다"라고 알려줘야 함
+
+세 가지 구분:
+  => 값           단일 표현식을 바로 반환 (implicit return)
+  => ({ 키: 값 }) 객체 리터럴을 반환 — 소괄호 필수
+  => { return 값 } 함수 본문 — return 키워드 직접 써야 반환됨
+```
+
+---
+
+---
 
 # 한눈에
 
-| 연산자                                     | 핵심                                             |
-| --------------------------------------- | ---------------------------------------------- |
-| `===`                                   | 타입 변환 없이 값+타입까지 정확히 비교 — 거의 항상 `==` 대신 이걸 쓸 것  |
-| 객체/배열 `===`                             | 내용이 아니라 참조 비교 — `{} === {}`는 항상 false          |
-| `&&`                                    | 왼쪽이 falsy면 즉시 멈추고 왼쪽 반환 — 조건부 렌더링에서 숫자 0 함정 주의 |
-| <code>\|</code>                         | 왼쪽이 truthy면 즉시 멈추고 왼쪽 반환                       |
-| `[...arr]` / `{...obj}`                 | 배열/객체를 펼쳐서 새로 만들기 — 얕은 복사                      |
-| `(...args)`                             | 함수 매개변수에서 나머지를 배열로 모으기(Rest)                   |
-| `const { a } = obj` / `const [a] = arr` | 구조분해 — 객체는 이름 기준, 배열은 위치 기준                    |
-| `function f({ a } = {})`                | 함수 매개변수 구조분해 + 인자 없을 때 안전장치                    |
-| `instanceof`                            | 클래스 인스턴스인지 확인 — 원시 타입엔 `typeof`                |
-| `??=` / <code>\|=</code>                | 값이 없을 때만(또는 falsy일 때만) 기본값 대입                  |
+| 연산자                                     | 핵심                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `===`                                   | 타입 변환 없이 값+타입까지 정확히 비교 — 거의 항상 `==` 대신 이걸 쓸 것                           |
+| 객체/배열 `===`                             | 내용이 아니라 참조 비교 — `{} === {}`는 항상 false                                   |
+| `&&`                                    | 왼쪽이 falsy면 즉시 멈추고 왼쪽 반환 — 조건부 렌더링에서 숫자 0 함정 주의                          |
+| `\|`                                    | 왼쪽이 truthy면 즉시 멈추고 왼쪽 반환                                                |
+| `[...arr]` / `{...obj}`                 | 배열/객체를 펼쳐서 새로 만들기 — 얕은 복사                                               |
+| `(...args)`                             | 함수 매개변수에서 나머지를 배열로 모으기(Rest)                                            |
+| `const { a } = obj` / `const [a] = arr` | 구조분해 — 객체는 이름 기준, 배열은 위치 기준                                             |
+| `{ month, count }`                      | 단축 속성(shorthand) — `{ month: month, count: count }`와 동일, 키와 변수 이름이 같을 때 |
+| `=> ({ 키: 값 })`                         | 화살표 함수에서 객체 반환 — `=> { }`는 함수 본문, `=> ({ })`는 객체 리터럴 (소괄호 필수)           |
+| `function f({ a } = {})`                | 함수 매개변수 구조분해 + 인자 없을 때 안전장치                                             |
+| `instanceof`                            | 클래스 인스턴스인지 확인 — 원시 타입엔 `typeof`                                         |
+| `??=` / <code>\|=</code>                | 값이 없을 때만(또는 falsy일 때만) 기본값 대입                                           |
