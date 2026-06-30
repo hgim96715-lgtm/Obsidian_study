@@ -8,11 +8,14 @@ related:
   - "[[00_Project_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Deployment_HomePage]]"
   - "[[00_SQL_HomePage]]"
   - "[[00_Git_HomePage]]"
   - "[[00_Linux_HomePage]]"
+  - "[[00_Docker_HomePage]]"
+  - "[[00_Python_HomePage]]"
   - "[[00_Certifications_HomePage]]"
+  - "[[00_Career_HomePage]]"
 ---
 
 # Obsidian_study
@@ -31,32 +34,48 @@ related:
 
 | 분야 | 주요 주제 |
 |------|-----------|
-| **Web Basics** | HTML, CSS |
-| **JS Ecosystem** | JavaScript, TypeScript, React, Next.js |
-| **Backend** | Node.js, NestJS (Module, Auth, TypeORM, Testing 등) |
-| **Database** | SQL / PostgreSQL, MongoDB |
-| **Infrastructure** | Linux, Git, Docker, Redis |
-| **Deploy** | AWS, GitHub Actions |
-| **Tools** | VS Code, Postman, Obsidian |
+| **JS Ecosystem** | JavaScript, TypeScript, React, Next.js (HTML/CSS 포함) |
+| **Backend** | Node.js, NestJS (Module, Auth, Prisma, Testing 등) |
+| **Database** | SQL, PostgreSQL, MySQL |
+| **Infrastructure** | Linux, Git, Docker, Deployment (CI/CD · 클라우드 배포) |
+| **Languages** | Python |
+| **Tools** | VS Code, Postman, Obsidian, Mac, DataGrip, Terminal |
+| **Career** | 이력서 · 포트폴리오 · 자기소개서 |
 | **Certification** | SQLD 취득 · DAsP 준비 중 |
 
 ## 저장소 구조
 
 ```txt
 Obsidian_study/
-├── 00_Inbox/                    # 임시 메모·아이디어
-├── 10_Toolbox/                  # VS Code, Postman, Obsidian 등 개발 도구
-├── 20_Wiki/                     # 핵심 학습 노트
-│   ├── 21_Web_Basics/           # HTML, CSS
+├── 00_Inbox/                         # 임시 메모·아이디어
+├── 10_Toolbox/                       # VS Code, Postman, Obsidian, Mac 등 개발 도구
+│   ├── DataGrip/
+│   ├── Mac/
+│   ├── Obsidian/
+│   ├── Postman/
+│   ├── Snippets/
+│   ├── Terminal/
+│   └── VSCode/
+├── 20_Wiki/                          # 핵심 학습 노트
 │   ├── 22_Languages/
-│   │   ├── JS_Ecosystem/        # JS · TS · React · Next.js (통합)
+│   │   ├── JS_Ecosystem/             # JS · TS · React · Next.js (통합)
 │   │   └── Python/
 │   ├── 23_Backend/
-│   │   └── NestJS_Ecosystem/    # NestJS · Node.js (통합)
-│   ├── 26_Infrastructure/       # Linux, Git, Docker, Redis, Deploy
-│   └── 27_Database/             # SQL, MongoDB
-├── 30_Project/                  # 프로젝트별 노트
-└── 40_Certifications(자격증)/   # 자격증 정리
+│   │   └── NestJS_Ecosystem/         # NestJS · Node.js (통합)
+│   ├── 24_Data_Processing/           # (예정)
+│   ├── 25_Orchestration/             # (예정)
+│   ├── 26_Infrastructure/
+│   │   ├── Deployment/               # 배포 · CI/CD · 클라우드
+│   │   ├── Docker/
+│   │   ├── Linux/
+│   │   └── git/
+│   └── 27_Database/
+│       └── SQL/
+├── 30_Project/                       # 프로젝트별 노트 (music-community 등)
+├── 40_Certifications(자격증)/        # 자격증 정리 (SQLD, DAsP)
+└── 50_Career/                        # 이력서 · 포트폴리오 · 자소서
+    ├── Portfolio.md
+    └── 이력서.md
 ```
 
 각 주제 묶음은 홈페이지 노트에서 목차 형태로 연결됩니다.
@@ -65,6 +84,12 @@ Obsidian_study/
 - `00_Project_HomePage` — 프로젝트 (music-community 등)
 - `00_JS_Ecosystem_HomePage` — JS · TS · React · Next.js
 - `00_NestJS_Ecosystem_HomePage` — NestJS · NodeJS
+- `00_Deployment_HomePage` — 배포 · CI/CD · 클라우드 인프라
+- `00_SQL_HomePage` — SQL · PostgreSQL
+- `00_Docker_HomePage` · `00_Git_HomePage` · `00_Linux_HomePage` — 인프라 기초
+- `00_Python_HomePage` — Python
+- `00_Certifications_HomePage` — 자격증
+- `00_Career_HomePage` — 이력서 · [[Portfolio]] · 자기소개서
 
 ## 특징
 
@@ -72,10 +97,18 @@ Obsidian_study/
 - Obsidian 위키링크(`[[노트명]]`)로 관련 주제를 클러스터 단위로 연결
 - Postman·VS Code Debugger 등 실무 도구 사용법 병행
 
-## 참고
+## Git에서 제외하는 항목 (`.gitignore`)
 
-- Obsidian 설정(`.obsidian`)과 이미지 에셋은 `.gitignore`로 제외
-- Markdown 노트 위주의 학습 기록 저장소입니다
+| 항목 | 이유 |
+|------|------|
+| `.obsidian/` | Obsidian vault 설정 (로컬 환경마다 다름) |
+| `99_Assets(이미지&첨부파일저장소)/` | 이미지·첨부파일 저장소 |
+| `*.png`, `*.jpg`, `*.svg` 등 이미지·바이너리 | 용량·바이너리 관리 회피 |
+| `_Deploy/` | 재정리 중인 임시 배포 노트 폴더 |
+| `.env`, `node_modules/`, `dist/`, `.next/` 등 | 환경 변수·빌드 산출물 |
+| `.vscode/`, `.idea/` | 에디터/IDE 설정 |
+
+Markdown 노트 위주의 학습 기록 저장소입니다.
 
 ---
 
