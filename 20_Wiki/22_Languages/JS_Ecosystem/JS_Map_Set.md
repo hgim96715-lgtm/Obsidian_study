@@ -13,6 +13,7 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[NestJS_StatsBucket]]"
+  - "[[NestJS_Throttle]]"
 ---
 # JS_Map_Set — Set / Map / WeakMap / WeakSet
 
@@ -203,6 +204,8 @@ function countByKey(items: Item[]) {
 ```txt
 이 카운팅 패턴을 "미리 0으로 채운 고정 키 목록" 위에서 하면 — 날짜별/시간대별 통계처럼
 데이터가 없는 구간도 0으로 보여줘야 하는 차트용 집계가 됨 — 실전 적용은 [[NestJS_StatsBucket]] 참고
+
+Map을 "마지막 실행 시각"을 기억하는 스로틀링 저장소로 쓰는 패턴은 [[NestJS_Throttle]] 참고
 ```
 
 ---

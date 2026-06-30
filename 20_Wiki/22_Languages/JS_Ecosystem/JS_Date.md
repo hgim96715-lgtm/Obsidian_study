@@ -17,6 +17,7 @@ related:
   - "[[SQL_Date_Functions]]"
   - "[[NestJS_StatsBucket]]"
   - "[[date-statistics-pattern]]"
+  - "[[NestJS_Throttle]]"
 ---
 # JS_Date — Date 객체
 
@@ -669,6 +670,64 @@ function toLocalMonthKey(date: Date): string {
 
 "로컬(Local)"이라는 이름이 붙은 이유는 toISOString()이 UTC 기준이라 시간대에 따라
 날짜가 밀릴 수 있기 때문 — 자세한 건 위 "문자열 파싱 — 핵심 규칙" 참고
+```
+
+---
+
+# Date.now() vs new Date() — 반환 타입부터 다름 ⭐️⭐️⭐️⭐️
+
+```typescript
+Date.now()    // → 숫자(number): 1719745000000
+new Date()    // → Date 객체:    2026-06-30T06:30:00.000Z
+```
+
+|구분|`Date.now()`|`new Date()`|
+|---|---|---|
+|반환값|`number` (ms 숫자)|`Date` 객체|
+|용도|시간 "간격/차이" 계산|날짜 "값" 자체를 다룰 때|
+|비교·계산|바로 `-` 연산 가능|`.getTime()`으로 숫자 변환 후|
+|DB/API 전달|❌ (숫자라 타입 안 맞음)|✅ Prisma `DateTime`, ISO 문자열 등|
+|인스턴스 생성|없음 (정적 메서드)|Date 객체 생성|
+
+## 언제 뭘 쓰나 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ✅ Date.now() — "얼마나 지났는지" 계산할 때
+const start = Date.now();
+await heavyWork();
+console.log(`${Date.now() - start}ms 걸림`);
+
+// ✅ Date.now() — 스로틀링처럼 시간 간격 비교할 때
+const prev = this.lastTouch.get(userId) ?? 0;
+if (Date.now() - prev < 60_000) return; // 60초 미만이면 건너뜀
+
+// ✅ new Date() — DB에 저장할 때 (Prisma DateTime 필드)
+await this.prisma.user.update({
+  data: { lastActiveAt: new Date() },
+});
+
+// ✅ new Date() — API 응답이나 로직에서 날짜 값 자체가 필요할 때
+const expiresAt = new Date();
+expiresAt.setDate(expiresAt.getDate() + 30); // 30일 후
+```
+
+```txt
+한 줄 구분 기준:
+  "숫자로 빼서 비교하거나 측정이 목적" → Date.now()
+  "날짜 값 자체를 저장하거나 전달이 목적" → new Date()
+
+둘을 같이 쓰는 패턴 — 스로틀링 구현에서 자주 나옴 ([[NestJS_Throttle]] 참고):
+  Date.now()   → Map에 저장, 차이 계산용 숫자
+  new Date()   → Prisma에 저장, 실제 timestamp 값
+```
+
+## new Date().getTime() === Date.now() ⭐️
+
+```typescript
+new Date().getTime()  // 1719745000000 — Date 객체에서 ms 숫자를 꺼냄
+Date.now()            // 1719745000000 — 처음부터 ms 숫자로 반환
+
+// 완전히 동일한 결과, Date.now()가 더 짧고 객체 생성이 없어서 간격 계산에 더 적합
 ```
 
 ---

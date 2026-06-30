@@ -1,11 +1,19 @@
 ---
-aliases: [의존성배열, cancelled, cleanup 함수, dependendy array, useCallback, useEffect, useMemo]
+aliases:
+  - 의존성배열
+  - cancelled
+  - cleanup 함수
+  - dependendy array
+  - useCallback
+  - useEffect
+  - useMemo
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_Context]]"
+  - "[[NestJS_Throttle]]"
 ---
 # React_useMemo_useCallback_useEffect — 언제, 무엇을, 왜
 
@@ -105,7 +113,13 @@ useEffect(() => {
 |렌더 중에 계산 가능한 값을 useEffect+state로 만듦|불필요한 리렌더 한 번 더 발생 — 그냥 렌더 중에 바로 계산하면 됨|
 |effect 안에서 비동기 함수가 끝나기 전에 컴포넌트가 사라짐|이미 사라진 컴포넌트의 state를 갱신하려다 경고/누수 — cleanup에서 취소 플래그로 막음|
 
-## async 함수를 useEffect 안에서 호출하기 — void 패턴 ⭐️⭐️⭐️⭐️
+## async 함수를 useEffect 안에서 호출하기 — void 패턴 ⭐️⭐️⭐️⭐
+
+```txt
+void 연산자 자체의 역할(Promise 반환을 의도적으로 버리는 것)은 이 섹션에서 다루지만,
+NestJS Guard에서 fire-and-forget으로 쓰는 패턴(응답을 막지 않고 DB 업데이트 등을 실행)은
+[[NestJS_Throttle]] 참고 — 같은 void 발상이지만 맥락이 다름
+```
 
 ```tsx
 useEffect(() => {

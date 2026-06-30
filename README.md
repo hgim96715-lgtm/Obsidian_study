@@ -89,7 +89,7 @@ Obsidian_study/
 - `00_Docker_HomePage` · `00_Git_HomePage` · `00_Linux_HomePage` — 인프라 기초
 - `00_Python_HomePage` — Python
 - `00_Certifications_HomePage` — 자격증
-- `00_Career_HomePage` — 이력서 · [[Portfolio]] · 자기소개서
+- `00_Career_HomePage` — 이력서 · 포트폴리오 · 자소서
 
 ## 특징
 
