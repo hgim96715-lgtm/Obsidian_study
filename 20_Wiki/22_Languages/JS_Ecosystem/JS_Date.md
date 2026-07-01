@@ -14,10 +14,9 @@ related:
   - "[[NestJS_DTO]]"
   - "[[NextJS_Concept]]"
   - "[[React_DatePicker]]"
-  - "[[SQL_Date_Functions]]"
   - "[[NestJS_StatsBucket]]"
-  - "[[date-statistics-pattern]]"
   - "[[NestJS_Throttle]]"
+  - "[[Snippet_date-statistics-pattern]]"
 ---
 # JS_Date — Date 객체
 

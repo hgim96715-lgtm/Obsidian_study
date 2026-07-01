@@ -1,4 +1,6 @@
 ---
+aliases:
+  - Dieployment
 tags:
   - Homepage
   - Deploy
@@ -6,6 +8,10 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DevOps_HomePage]]"
+cssclasses:
+  - max
+  - table-max
+  - table-wrap
 ---
 
 # 00_Deployment_HomePage — 배포 & 인프라

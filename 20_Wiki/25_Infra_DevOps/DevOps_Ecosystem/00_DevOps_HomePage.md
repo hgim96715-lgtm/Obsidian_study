@@ -9,6 +9,10 @@ related:
   - "[[00_Deployment_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
+cssclasses:
+  - max
+  - table-max
+  - table-wrap
 ---
 # 00_DevOps_HomePage — Docker · Git · Linux
 

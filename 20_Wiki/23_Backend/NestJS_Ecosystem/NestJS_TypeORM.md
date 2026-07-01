@@ -94,7 +94,6 @@ TypeOrmModule.forRoot({
   → forRootAsync 사용
 ```
 
->→ process.env 내용은 [[NodeJS_Process_Env]] 참조 
 
 ---
 

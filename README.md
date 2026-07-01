@@ -1,13 +1,11 @@
 ---
-aliases:
-  - README
-tags:
-  - README
+aliases: [README]
+tags: [README]
 related:
   - "[[00_Career_HomePage]]"
   - "[[00_Certifications_HomePage]]"
-  - "[[00_DB_HomePage]]"
   - "[[00_Data_Engineering_Ecosystem_HomePage]]"
+  - "[[00_DB_HomePage]]"
   - "[[00_Deployment_HomePage]]"
   - "[[00_DevOps_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"

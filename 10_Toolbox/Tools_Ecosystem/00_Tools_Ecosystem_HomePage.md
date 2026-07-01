@@ -14,6 +14,10 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DevOps_HomePage]]"
   - "[[00_DB_HomePage]]"
+cssclasses:
+  - max
+  - table-max
+  - table-wrap
 ---
 # 00_Toolbox_HomePage — 개발 도구 · 작업 환경
 

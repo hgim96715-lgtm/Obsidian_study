@@ -1,10 +1,13 @@
 ---
-aliases: [빌드도구, CRA, create-react-app, Vite]
+aliases:
+  - 빌드도구
+  - CRA
+  - create-react-app
+  - Vite
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[Docker_Build]]"
   - "[[NextJS_Concept]]"
   - "[[React_Concept]]"
 ---
@@ -59,7 +62,7 @@ Vite + React:
 Next.js:
   React 기반 "풀스택 프레임워크"
   SSR / SSG / 폴더 기반 라우팅 / API Route 가 기본 내장
-#  → [[Next_Concept]] 참고
+
 
 언제 무엇을 쓰나:
   SEO 필요 / 서버 렌더링 필요 / API Route 도 같이 쓰고 싶다  → Next.js
@@ -151,7 +154,6 @@ server.proxy 가 필요한 이유:
   → 그냥 fetch('/api/...') 하면 CORS 에러 날 수 있음
   proxy 설정하면 Vite 가 /api 로 시작하는 요청을 NestJS 로 대신 전달
   → 개발 중엔 마치 같은 origin 인 것처럼 동작 (운영 배포 시엔 별도 CORS 설정 필요)
-#  → [[NestJS_Deploy#CORS]] 참고
 ```
 
 ---

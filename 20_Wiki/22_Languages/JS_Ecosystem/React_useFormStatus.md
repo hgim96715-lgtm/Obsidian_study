@@ -1,13 +1,8 @@
 ---
-aliases:
-  - React_useActionState
-  - useActionState
-  - useFormStatus
-tags:
-  - React
+aliases: [React_useActionState, useActionState, useFormStatus]
+tags: [React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[HTML_FormData]]"
   - "[[NextJS_Server_Actions]]"
   - "[[React_ControlledInput]]"
 ---
@@ -336,8 +331,6 @@ flowchart TD
 
 `redirect()`, `redirectTo`, `redirect: false`의 차이는  
 [[NextJS_Routing]] 의 "callbackUrl / redirectTo / next" 섹션 참고
-
-이 프로젝트의 실제 로그인 폼 구현은 [[Project_Notes]] 참고.
 ```
 
 ---

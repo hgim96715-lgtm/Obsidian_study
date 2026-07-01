@@ -784,11 +784,11 @@ export class MovieController {
 }
 ```
 
-|적용 범위|예시|
-|---|---|
-|메서드만|`@UseGuards(...)` 를 그 메서드 위에만|
-|컨트롤러 전체|`@UseGuards(...)` 를 클래스 위에|
-|앱 전체|`app.useGlobalGuards(...)` 또는 `APP_GUARD` provider ([[NestJS_Guard]] 참고)|
+| 적용 범위   | 예시                                                 |
+| ------- | -------------------------------------------------- |
+| 메서드만    | `@UseGuards(...)` 를 그 메서드 위에만                      |
+| 컨트롤러 전체 | `@UseGuards(...)` 를 클래스 위에                         |
+| 앱 전체    | `app.useGlobalGuards(...)` 또는 `APP_GUARD` provider |
 
 ```txt
 판단 기준: 컨트롤러의 거의 모든 라우트가 같은 보호/변환이 필요하다면 클래스 레벨로 한 번에

@@ -10,7 +10,6 @@ related:
 ---
 # NextJS_Concept — Next.js 란
 
-# 한 줄 요약
 
 ```txt
 Next.js = React 기반 풀스택 프레임워크 (Vercel 제작, 오픈소스)
@@ -89,7 +88,6 @@ function Counter() {
 }
 ```
 
-> 어느 쪽을 써야 하는지 판단 기준, 컴포넌트 분리 패턴은 [[NextJS_Data_Fetching]] 참고
 
 ---
 
@@ -103,7 +101,6 @@ function Counter() {
 |SSG|빌드 시점에 미리 생성 (빠름)|`cache: 'force-cache'`|
 |ISR|SSG + 주기적 재생성|`next: { revalidate: 60 }`|
 
-> 캐싱 옵션별 기본값, Cache Components 등 자세한 건 [[NextJS_Data_Fetching]] / [[NextJS_Caching_Frontend]] 참고
 
 ---
 
@@ -287,11 +284,4 @@ NEXT_PUBLIC_ 접두사, .env.local vs .env 우선순위, 서버/클라이언트 
 개념 vs 적용 — 이 노트는 "Next.js 가 뭔지" 와 "NestJS 와 같이 쓸 때 포트" 까지만
 ```
 
-| 상황                                          | 어디를 보면 되는가                 |
-| ------------------------------------------- | -------------------------- |
-| App Router 폴더 규칙 / 동적 라우팅 / useParams       | [[NextJS_Routing]]         |
-| fetch 캐싱 / Server·Client 컴포넌트 선택 / Suspense | [[NextJS_Data_Fetching]]   |
-| 환경변수 / NEXT_PUBLIC_ / .env.local            | [[NextJS_Env_Config]]      |
-| fetchAPI 래퍼 / getApiBaseUrl / 도메인 API 함수    | [[NextJS_API_Integration]] |
-| 모노레포 설정 / pnpm workspace                    | [[Monorepo_PNPM]]          |
-| NestJS PORT 환경변수                            | [[NestJS_Concept]]         |
+
