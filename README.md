@@ -15,7 +15,7 @@ related:
   - "[[00_Project_HomePage]]"
   - "[[00_Python_Ecosystem_HomePage]]"
   - "[[00_Python_HomePage]]"
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Tools_Ecosystem_HomePage]]"
 ---
 
 # Obsidian_study

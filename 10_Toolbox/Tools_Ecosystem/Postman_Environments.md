@@ -5,7 +5,7 @@ aliases:
 tags:
   - Postman
 related:
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Tools_Ecosystem_HomePage]]"
 ---
 
 # Postman_Environments — 환경변수

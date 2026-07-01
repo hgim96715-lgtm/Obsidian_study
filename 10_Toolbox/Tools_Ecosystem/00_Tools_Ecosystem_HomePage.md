@@ -4,6 +4,7 @@ aliases:
   - Tools
   - VS Code
   - Postman
+  - DataGrip
   - Obsidian
   - Mac
 tags:
@@ -12,20 +13,22 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DevOps_HomePage]]"
+  - "[[00_DB_HomePage]]"
 ---
 # 00_Toolbox_HomePage — 개발 도구 · 작업 환경
 
 > [!info]
 > `20_Wiki`는 **언어·프레임워크·인프라 개념**을, `10_Toolbox`는 **매일 쓰는 도구와 작업 환경**을 모아 둔 폴더다.
-> VS Code 설정, Postman API 테스트, Obsidian vault 꾸미기, Mac 단축키처럼 "코드 밖"에서 손에 익히는 것들이 여기 해당한다.
+> VS Code 설정, Postman API 테스트, **DataGrip DB 확인**, Obsidian vault 꾸미기, Mac 단축키처럼 "코드 밖"에서 손에 익히는 것들이 여기 해당한다.
 
 ```txt
 폴더 위치: 10_Toolbox/Tools_Ecosystem/
-파일명 prefix: Obsidian_ / VSCode_ / Postman_ / Mac_ / Snippet_
+파일명 prefix: Obsidian_ / VSCode_ / Postman_ / DataGrip_ / Mac_ / Snippet_
 
 이 폴더에 없는 것:
   Git · Docker · Linux 개념     → [[00_DevOps_HomePage]]
   NestJS · Next.js 프레임워크   → [[00_NestJS_Ecosystem_HomePage]] · [[00_JS_Ecosystem_HomePage]]
+  PostgreSQL SQL 문법·ER 개념  → [[00_DB_HomePage]] · [[NestJS_Prisma]]
   ESLint·Prettier "규칙이 코드에 주는 영향" → Wiki (여기는 VS Code 연동·설정)
 ```
 
@@ -36,6 +39,7 @@ flowchart TB
         O["Obsidian\nObsidian_Plugins · Obsidian_Vault_Settings"]
         V["VS Code\nVSCode_Settings_json · VSCode_Extensions · VSCode_ESLint · VSCode_Prettier · 단축키"]
         P["Postman\nBasics · Environments · WebSocket"]
+        D["DataGrip\nBasics · 연결 · KST"]
         M["Mac\nMac_단축키"]
         S["Snippets\nSnippet_date-statistics-pattern"]
     end
@@ -47,6 +51,8 @@ flowchart TB
     M -->|"⌘·⌥ 기호"| V
     O -->|"vault에서 Wiki 읽기"| WIKI
     P -->|"Nest API 호출"| PROJ
+    D -->|"Prisma 테이블·SQL"| PROJ
+    D -->|"timestamptz 표시"| S
     S -->|"JS_Date · StatsBucket"| WIKI
 ```
 
@@ -121,6 +127,27 @@ NestJS API 로컬 테스트할 때 [[Postman_Environments]]의 토큰·환경변
 
 ---
 
+# DataGrip ⭐️⭐️⭐️
+
+```txt
+PostgreSQL GUI — 스키마·데이터·SQL 콘솔
+Postman = HTTP / DataGrip = DB
+Neon·Docker 연결 문자열은 DataGrip에만 (로컬 .env는 Docker 유지)
+timestamptz UTC 표시 → SET TIME ZONE 'Asia/Seoul'
+```
+
+| 순서 | 노트 | 핵심 내용 |
+|:---:|---|---|
+| 1 | [[DataGrip_Basics]] ⭐ | 데이터 소스 · local vs neon-prod · SSL · **SET TIME ZONE** · Init script |
+| ⬜ | [[DataGrip_단축키]] | 실행 · 포맷 · 테이블 탐색 (예정) |
+
+```txt
+UTC 04:07 +00 = KST 13:07 +09 (같은 instant) — [[Snippet_date-statistics-pattern]]과 짝
+Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
+```
+
+---
+
 # Mac ⭐️⭐️
 
 ```txt
@@ -150,6 +177,8 @@ NestJS API 로컬 테스트할 때 [[Postman_Environments]]의 토큰·환경변
 | 하고 싶은 일 | 먼저 볼 노트 |
 |---|---|
 | API 요청·응답 확인 | [[Postman_Basics]] → [[Postman_Environments]] |
+| DB 테이블·`lastActiveAt` 확인 | [[DataGrip_Basics]] → `SET TIME ZONE` |
+| Neon vs Docker DB 헷갈림 | [[DataGrip_Basics]] § music-community 데이터 소스 |
 | Socket.IO / WebSocket 테스트 | [[Postman_WebSocket]] |
 | VS Code 저장 시 자동 포맷·린트 | [[VSCode_Settings_json]] → [[VSCode_ESLint]] · [[VSCode_Prettier]] |
 | 확장 프로그램 고민 | [[VSCode_Extensions]] |
@@ -167,5 +196,6 @@ NestJS API 로컬 테스트할 때 [[Postman_Environments]]의 토큰·환경변
 |---|---|
 | 도구 UI·설정·단축키 | 언어 문법·프레임워크 개념 |
 | Postman으로 Nest API 호출 | NestJS Controller · Guard |
+| DataGrip 연결·KST 표시 | [[NestJS_Prisma]] · [[Snippet_date-statistics-pattern]] |
 | VS Code ESLint **설정** | ESLint **규칙**이 코드에 주는 영향 |
 | Git 명령어 | [[00_DevOps_HomePage]] Git 섹션 |

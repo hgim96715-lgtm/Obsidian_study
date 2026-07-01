@@ -4,7 +4,7 @@ aliases:
 tags:
   - Obsidian
 related:
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Tools_Ecosystem_HomePage]]"
   - "[[Obsidian_Vault_Settings]]"
 ---
 # Obsidian_Plugins — 커뮤니티 플러그인 정리

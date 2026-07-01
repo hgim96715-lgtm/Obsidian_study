@@ -4,7 +4,7 @@ aliases:
 tags:
   - Postman
 related:
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Tools_Ecosystem_HomePage]]"
   - "[[NestJS_Concept]]"
 ---
 # Postman_Basics — 기본 사용법

@@ -1,8 +1,10 @@
 ---
-aliases: [Date]
-tags: [Snippet]
+aliases:
+  - Date
+tags:
+  - Snippet
 related:
-  - "[[00_Toolbox_HomePage]]"
+  - "[[00_Tools_Ecosystem_HomePage]]"
   - "[[JS_Date]]"
   - "[[NestJS_StatsBucket]]"
 ---
