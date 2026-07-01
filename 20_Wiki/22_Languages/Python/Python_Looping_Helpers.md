@@ -10,7 +10,6 @@ tags:
 related:
   - "[[Python_Lists_Tuples]]"
   - "[[Python_Control_Flow]]"
-  - "[[Spark_Session_Context]]"
   - "[[00_Python_HomePage]]"
 ---
 # Python_Looping_Helpers — range / enumerate / zip

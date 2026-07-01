@@ -1,20 +1,8 @@
 ---
-aliases:
-  - 가상환경
-  - venv
-  - requirements.txt
-  - pip
-  - 의존성관리
-  - python환경
-tags:
-  - Python
-  - Linux
+aliases: [가상환경, 의존성관리, pip, python환경, requirements.txt, venv]
+tags: [Python, Linux]
 related:
-  - "[[Linux_Fundamental_Rules]]"
-  - "[[Spark_Installation_Local_Docker]]"
-  - "[[Dockerfile_Basics]]"
   - "[[Python_Database_Connect]]"
-  - "[[Linux_Python_Env]]"
 ---
 ## 개념 한 줄 요약
 

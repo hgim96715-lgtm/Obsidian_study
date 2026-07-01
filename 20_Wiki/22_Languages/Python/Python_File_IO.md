@@ -10,7 +10,6 @@ aliases:
 tags:
   - Python
 related:
-  - "[[Text_vs_Binary]]"
   - "[[Python_JSON]]"
   - "[[Python_Pathlib]]"
   - "[[00_Python_HomePage]]"

@@ -698,7 +698,7 @@ b * 2 = "hellohello"
   "world"  → "hellohello" 에 없음  ❌
 ```
 
-> `deque.rotate()` 상세 → [[Python_Collections_Counter#② deque — 양방향 큐]] 참고
+> `deque.rotate()` 상세 →  참고
 
 ---
 
@@ -917,7 +917,7 @@ rows_extended = [r + (datetime.now(), status) for r in rows]
 활용:
   Airflow DAG 에서 배치 적재 시 updated_at 추가
   execute_values 로 DB 에 한 방에 넣을 때
-  → [[Airflow_Hooks#hook.get_conn() + execute_values]] 참고
+  →  참고
 ```
 
 

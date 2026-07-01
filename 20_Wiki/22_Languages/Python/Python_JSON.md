@@ -14,11 +14,7 @@ tags:
 related:
   - "[[Python_Dictionaries]]"
   - "[[Python_File_IO]]"
-  - "[[Airflow_Hooks]]"
-  - "[[Airflow_XComs]]"
-  - "[[Serialization_JSON_XML]]"
   - "[[00_Python_HomePage]]"
-  - "[[Kafka_Python_Serialization]]"
 ---
 # Python_JSON
 
@@ -269,7 +265,7 @@ consumer = KafkaConsumer(
 )
 ```
 
-> 자세한 내용 → [[Kafka_Python_Serialization]]
+> 자세한 내용
 
 ## 설정 파일 관리
 

@@ -6,7 +6,6 @@ aliases:
 tags:
   - Python
 related:
-  - "[[PyFlink_Operators_Basic]]"
   - "[[00_Python_HomePage]]"
 ---
 # Python AST: 코드의 뼈대를 보는 X-ray

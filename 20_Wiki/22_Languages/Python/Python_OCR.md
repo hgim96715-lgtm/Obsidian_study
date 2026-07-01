@@ -382,7 +382,7 @@ results = reader.readtext("image.png")
 
 df = pd.DataFrame(results, columns=["bbox", "text", "confidence"])
 df = df[df["confidence"] > 0.5]   # 신뢰도 필터링
-print(df[["text", "confidence"]])
+print(df)
 ```
 
 ---

@@ -322,8 +322,6 @@ ORDER BY "likeCount" DESC, id DESC
 LIMIT 5;
 ```
 
->[[PG_Specific#튜플 비교 — 다중 컬럼]] 참고  
-
 ```txt
 튜플 비교 (PostgreSQL 전용):
   (a, b) < (x, y)
@@ -349,7 +347,8 @@ cursor 값은 프론트에서 전달:
 
 # ⑤ Page vs Cursor 선택 기준
 
-| |Page Based|Cursor Based|
+|
+|Page Based|Cursor Based|
 |---|---|---|
 |특정 페이지 이동|✅|❌|
 |무한 스크롤|△|✅|

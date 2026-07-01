@@ -7,7 +7,6 @@ tags:
   - Python
 related:
   - "[[00_Python_HomePage]]"
-  - "[[Sklearn_TF_IDF]]"
   - "[[Python_Library_Faker]]"
 ---
 

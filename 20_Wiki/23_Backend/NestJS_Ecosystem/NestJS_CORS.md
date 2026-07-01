@@ -1,9 +1,9 @@
 ---
 aliases: [CORS, Cross-Origin, enableCors]
-tags:
-  - NestJS
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[JS_Array_Methods]]"
   - "[[JS_Fetch_API]]"
 ---
 # NestJS_CORS — CORS 설정
@@ -154,10 +154,10 @@ app.enableCors({
   FRONTEND_URL 을 안 설정한 로컬 환경에서는 undefined 가 그대로 배열에 들어가 검증 로직이 이상해질 수 있음
   → filter(Boolean) 으로 undefined/null/'' 같은 falsy 값만 제거
   → 배포 환경에서 FRONTEND_URL 을 설정해두면 그때는 자동으로 배열에 포함됨
-  (filter(Boolean) 원리는 [[JS_Array]] 참고)
+  (filter(Boolean) 원리는 [[JS_Array_Methods]] 참고)
 ```
 
->참고 : [[JS_Array]]
+>참고 : [[JS_Array_Methods]]
 
 ---
 

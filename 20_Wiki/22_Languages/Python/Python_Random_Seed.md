@@ -9,7 +9,6 @@ tags:
   - Python
 related:
   - "[[Python_Modules_Imports]]"
-  - "[[Spark_Transformations_vs_Actions]]"
   - "[[Python_Lambda_Map]]"
   - "[[00_Python_HomePage]]"
 ---
@@ -171,7 +170,7 @@ print(my_state)
 ## [비교] `randint` vs `uniform` vs `choice` 한 눈에 보기
 
 | **함수**                   | **뽑는 대상**    | **예시 코드**  | **결과 타입**  |
-| ------------------------ | ------------ | ---------- | ---------- |
-| **`randint(1, 10)`**     | 정수 (Integer) | 주사위 굴리기    | `5`        |
+| ------------------------ | ------------ | ---------- | ---------- | |
+**`randint(1, 10)`**     | 정수 (Integer) | 주사위 굴리기    | `5`        |
 | **`uniform(1.0, 10.0)`** | 실수 (Float)   | 온도, 키, 몸무게 | `5.239...` |
 | **`choice(['A', 'B'])`** | 리스트 요소       | 메뉴 고르기     | `'A'`      |

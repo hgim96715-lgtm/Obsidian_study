@@ -11,7 +11,6 @@ tags:
   - Python
 related:
   - "[[Python_Dictionaries]]"
-  - "[[Spark_Core_Broadcast]]"
   - "[[00_Python_HomePage]]"
   - "[[Python_Lists_Tuples]]"
   - "[[Python_DateTime]]"

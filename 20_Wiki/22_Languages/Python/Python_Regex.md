@@ -14,7 +14,6 @@ related:
   - "[[Python_String_Methods]]"
   - "[[Python_String_Case_Replace]]"
   - "[[00_Python_HomePage]]"
-  - "[[SQL_Regular_Expression]]"
 ---
 # Python_Regex — 정규표현식
 
@@ -180,7 +179,7 @@ else:
     print("못 찾음")
 ```
 
-## 그룹핑 () — 일부만 꺼내기
+## 그룹핑 — 일부만 꺼내기
 
 ```python
 # 괄호로 그룹 지정

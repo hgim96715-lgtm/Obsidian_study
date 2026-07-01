@@ -96,6 +96,7 @@ instanceof Error 체크가 필요한 이유:
 ```typescript
 @Injectable()
 export class UsersService {
+  constructor(){}
   private readonly logger = new Logger(UsersService.name);
 
   touchLastActiveAtFromGuard(userId: string, role: UserRole): void {

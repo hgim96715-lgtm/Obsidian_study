@@ -22,10 +22,8 @@ related:
   - "[[Python_Variables_Types]]"
   - "[[Python_Lists_Tuples]]"
   - "[[00_Python_HomePage]]"
-  - "[[Spark_General_Transformations]]"
   - "[[Python_String_Indexing_Slicing]]"
   - "[[Python_Membership_In]]"
-  - "[[SQL_Regular_Expression]]"
 ---
 
 # Python_String_Methods

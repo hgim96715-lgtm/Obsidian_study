@@ -11,12 +11,7 @@ tags:
   - SQL
 related:
   - "[[00_Python_HomePage]]"
-  - "[[PostgreSQL_Setup]]"
   - "[[Python_Functions]]"
-  - "[[Docker_Host_vs_Internal_Network]]"
-  - "[[Airflow_Hooks]]"
-  - "[[Linux_OpenSSL]]"
-  - "[[SQL_Subquery]]"
   - "[[Python_JSON]]"
 ---
 # Python_Database_Connect — Python + PostgreSQL 연결
@@ -293,8 +288,8 @@ cur.execute("WHERE id = %s",          (ids[0],))       # ✅ 첫 원소만
 ```
 
 | 상황         | 전달 방법            | SQL 변환 결과                          |
-| ---------- | ---------------- | ---------------------------------- |
-| 단일 값       | `("001",)`       | `{text}= '001'`                    |
+| ---------- | ---------------- | ---------------------------------- | |
+단일 값       | `("001",)`       | `{text}= '001'`                    |
 | IN 절       | `(tuple(ids),)`  | `IN ('001','002','003')`           |
 | ALL/ANY 배열 | `(ids,)`         | `!= ALL(ARRAY['001','002','003'])` |
 | 여러 값 순서대로  | `("a", 1, True)` | 각 `%s` 에 순서대로                      |
@@ -386,7 +381,8 @@ execute_values(
 )
 ```
 
-| |`cur.execute()`|`execute_values()`|
+|
+|`cur.execute()`|`execute_values()`|
 |---|---|---|
 |종류|커서 메서드|psycopg2.extras 함수|
 |호출 방식|`cur.execute(sql, params)`|`execute_values(cur, sql, values)`|

@@ -7,7 +7,6 @@ aliases:
 tags:
   - Python
 related:
-  - "[[01_Faker_data]]"
   - "[[00_Python_HomePage]]"
   - "[[Python_Mock_Data_Generator]]"
 ---

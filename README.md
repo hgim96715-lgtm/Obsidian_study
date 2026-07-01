@@ -4,18 +4,18 @@ aliases:
 tags:
   - README
 related:
-  - "[[00_Toolbox_HomePage]]"
-  - "[[00_Project_HomePage]]"
+  - "[[00_Career_HomePage]]"
+  - "[[00_Certifications_HomePage]]"
+  - "[[00_DB_HomePage]]"
+  - "[[00_Data_Engineering_Ecosystem_HomePage]]"
+  - "[[00_Deployment_HomePage]]"
+  - "[[00_DevOps_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[00_Deployment_HomePage]]"
-  - "[[00_SQL_HomePage]]"
-  - "[[00_Git_HomePage]]"
-  - "[[00_Linux_HomePage]]"
-  - "[[00_Docker_HomePage]]"
+  - "[[00_Project_HomePage]]"
+  - "[[00_Python_Ecosystem_HomePage]]"
   - "[[00_Python_HomePage]]"
-  - "[[00_Certifications_HomePage]]"
-  - "[[00_Career_HomePage]]"
+  - "[[00_Toolbox_HomePage]]"
 ---
 
 # Obsidian_study
@@ -36,10 +36,11 @@ related:
 |------|-----------|
 | **JS Ecosystem** | JavaScript, TypeScript, React, Next.js (HTML/CSS 포함) |
 | **Backend** | Node.js, NestJS (Module, Auth, Prisma, Testing 등) |
-| **Database** | SQL, PostgreSQL, MySQL |
-| **Infrastructure** | Linux, Git, Docker, Deployment (CI/CD · 클라우드 배포) |
-| **Languages** | Python |
-| **Tools** | VS Code, Postman, Obsidian, Mac, DataGrip, Terminal |
+| **Database** | PostgreSQL, MySQL, SQL, Redis (예정) |
+| **Data Engineering** | Airflow, Kafka, Spark (`Data_Engineering_Ecosystem`, 예정) |
+| **Infra / DevOps** | Docker, Git, Linux, Deployment (CI/CD · 클라우드 배포) |
+| **Python** | Python 문법·표준 라이브러리 (`Python/` → `Python_Ecosystem` 통합 예정) |
+| **Tools** | VS Code, Postman, Obsidian, Mac (`Tools_Ecosystem`) |
 | **Career** | 이력서 · 포트폴리오 · 자기소개서 |
 | **Certification** | SQLD 취득 · DAsP 준비 중 |
 
@@ -48,46 +49,42 @@ related:
 ```txt
 Obsidian_study/
 ├── 00_Inbox/                         # 임시 메모·아이디어
-├── 10_Toolbox/                       # VS Code, Postman, Obsidian, Mac 등 개발 도구
-│   ├── DataGrip/
-│   ├── Mac/
-│   ├── Obsidian/
-│   ├── Postman/
-│   ├── Snippets/
-│   ├── Terminal/
-│   └── VSCode/
+├── 10_Toolbox/                       # VS Code · Postman · Obsidian · Mac 등 개발 도구
+│   └── Tools_Ecosystem/              # Obsidian_ · VSCode_ · Postman_ · Mac_ · Snippet_
 ├── 20_Wiki/                          # 핵심 학습 노트
 │   ├── 22_Languages/
 │   │   ├── JS_Ecosystem/             # JS · TS · React · Next.js (통합)
-│   │   └── Python/
+│   │   ├── Python/                   # 기존 Python 노트 (→ Python_Ecosystem 통합 예정)
+│   │   └── Python_Ecosystem/         # Python · NumPy · Pandas · Streamlit (폴더·홈만 정리)
 │   ├── 23_Backend/
 │   │   └── NestJS_Ecosystem/         # NestJS · Node.js (통합)
-│   ├── 24_Data_Processing/           # (예정)
-│   ├── 25_Orchestration/             # (예정)
-│   ├── 26_Infrastructure/
-│   │   ├── Deployment/               # 배포 · CI/CD · 클라우드
-│   │   ├── Docker/
-│   │   ├── Linux/
-│   │   └── git/
-│   └── 27_Database/
-│       └── SQL/
+│   ├── 24_Data_Processing/
+│   │   └── Data_Engineering_Ecosystem/  # Airflow · Kafka · Spark (폴더·홈만 정리, 예정)
+│   ├── 25_Infra_DevOps/
+│   │   ├── DevOps_Ecosystem/         # Docker · Git · Linux
+│   │   └── Deployment/               # 배포 · CI/CD · 클라우드
+│   └── 26_Database/
+│       └── DB_Ecosystem/             # PostgreSQL · MySQL · Redis (예정)
 ├── 30_Project/                       # 프로젝트별 노트 (music-community 등)
 ├── 40_Certifications(자격증)/        # 자격증 정리 (SQLD, DAsP)
-└── 50_Career/                        # 이력서 · 포트폴리오 · 자소서
-    ├── Portfolio.md
-    └── 이력서.md
+├── 50_Career/                        # 이력서 · 포트폴리오 · 자소서
+│   ├── Portfolio.md
+│   └── 이력서.md
+└── 100_Temp/                         # 재정리 중 임시 보관 (정리 후 삭제 예정)
 ```
 
 각 주제 묶음은 홈페이지 노트에서 목차 형태로 연결됩니다.
 
-- `00_Toolbox_HomePage` — Obsidian · VS Code · Postman · Mac
+- `00_Toolbox_HomePage` — Obsidian · VS Code · Postman · Mac · Snippet_
 - `00_Project_HomePage` — 프로젝트 (music-community 등)
 - `00_JS_Ecosystem_HomePage` — JS · TS · React · Next.js
-- `00_NestJS_Ecosystem_HomePage` — NestJS · NodeJS
+- `00_NestJS_Ecosystem_HomePage` — NestJS · Node.js
+- `00_DB_HomePage` — PostgreSQL · MySQL · Redis (예정)
+- `00_DevOps_HomePage` — Docker · Git · Linux
 - `00_Deployment_HomePage` — 배포 · CI/CD · 클라우드 인프라
-- `00_SQL_HomePage` — SQL · PostgreSQL
-- `00_Docker_HomePage` · `00_Git_HomePage` · `00_Linux_HomePage` — 인프라 기초
-- `00_Python_HomePage` — Python
+- `00_Python_Ecosystem_HomePage` — Python 생태계 (NumPy · Pandas · Streamlit, `Python/` 통합 예정)
+- `00_Python_HomePage` — 기존 Python 노트 목차 (→ `Python_Ecosystem`으로 이전 예정)
+- `00_Data_Engineering_Ecosystem_HomePage` — Airflow · Kafka · Spark (예정)
 - `00_Certifications_HomePage` — 자격증
 - `00_Career_HomePage` — 이력서 · 포트폴리오 · 자소서
 
@@ -104,7 +101,7 @@ Obsidian_study/
 | `.obsidian/` | Obsidian vault 설정 (로컬 환경마다 다름) |
 | `99_Assets(이미지&첨부파일저장소)/` | 이미지·첨부파일 저장소 |
 | `*.png`, `*.jpg`, `*.svg` 등 이미지·바이너리 | 용량·바이너리 관리 회피 |
-| `_Deploy/` | 재정리 중인 임시 배포 노트 폴더 |
+| `100_Temp/` | 재정리 중인 임시 노트 (정리 후 삭제 예정) |
 | `.env`, `node_modules/`, `dist/`, `.next/` 등 | 환경 변수·빌드 산출물 |
 | `.vscode/`, `.idea/` | 에디터/IDE 설정 |
 

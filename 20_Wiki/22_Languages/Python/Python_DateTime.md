@@ -14,14 +14,10 @@ aliases:
 tags:
   - Python
 related:
-  - "[[CS_Blocking_vs_NonBlocking]]"
-  - "[[Airflow_Queues_Scaling]]"
   - "[[Python_Modules_Imports]]"
-  - "[[Airflow_Sensors]]"
   - "[[Python_Mock_Data_Generator]]"
   - "[[Python_Calendar_Module]]"
   - "[[00_Python_HomePage]]"
-  - "[[SQL_Date_Functions]]"
 ---
 # Python_DateTime — 날짜와 시간
 
@@ -163,8 +159,6 @@ while True:
 ⚠️ time.sleep() 은 CPU 를 완전히 멈추는 Blocking 함수
    비동기(async) 환경에서는 asyncio.sleep() 사용
 ```
-
->[[CS_Blocking_vs_NonBlocking]] 참고 
 
 ---
 

@@ -417,6 +417,6 @@ for item in items:
 |인터파크 전시|`/contents/api/goods/genre`|`/v1/goods/{id}/summary`|가격 팝업만|
 |(다음 프로젝트)|—|—|—|
 
-> 인터파크 전시 상세 → [[01_docker_init.sql]]
+> 인터파크 전시 상세
 
 ---

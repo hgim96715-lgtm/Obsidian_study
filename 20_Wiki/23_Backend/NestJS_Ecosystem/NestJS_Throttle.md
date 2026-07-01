@@ -125,6 +125,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
+  constructor(){} 
   private readonly logger = new Logger(UsersService.name);
 
   /** JwtAuthGuard — 응답 막지 않음 */
@@ -173,15 +174,48 @@ error.stack vs String(error):
 ## Guard에서 호출하는 패턴
 
 ```typescript
-// JwtAuthGuard 안에서
-canActivate(context: ExecutionContext): boolean {
-  // ... JWT 검증 ...
-  const user = request.user;
+// JwtAuthGuard 안에서 — 실제 흐름
+async canActivate(context: ExecutionContext): Promise<boolean> {
+  // ... @Public() 데코레이터 확인 ...
 
-  this.usersService.touchLastActiveAtFromGuard(user.id, user.role);
+  const request = context.switchToHttp().getRequest<Request>();
+  const token = this.extractBearerToken(request);
+  if (!token) throw new UnauthorizedException();
 
-  return true; // DB 업데이트 완료를 기다리지 않고 바로 true 반환
+  try {
+    const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+      secret: this.configService.getOrThrow('JWT_SECRET'),
+    });
+
+    request.user = payload;                // ① request에 페이로드 세팅
+    this.someService.touchLastActiveAtFromGuard(payload.sub, payload.role);        // ② fire-and-forget
+    return true;    // DB 업데이트 완료를 기다리지 않고 바로 true 반환
+  } catch {
+    throw new UnauthorizedException();
+  }
 }
+```
+
+```txt
+포인트 1 — canActivate는 async / Promise<boolean>
+  JWT 검증(jwtService.verifyAsync)이 비동기이므로 Guard 자체도 async가 되어야 함
+  단순 예시에서 boolean으로 표기하는 경우가 있지만, 실제 JWT Guard는 항상 async
+
+포인트 2 — 데이터 출처는 payload, request.user가 아님
+  ① request.user = payload    → 이후 컨트롤러/서비스에서 @CurrentUser() 등으로 꺼낼 수 있도록 세팅
+  ② touchLastActiveAtFromGuard(payload.sub, payload.role)
+     → request.user를 통하지 않고 payload에서 직접 꺼내 호출
+  ① ②는 순서 바꿔도 동작은 같지만, request.user를 먼저 세팅하는 게 의도를 더 명확히 드러냄
+
+포인트 3 — payload.sub vs user.id
+  sub(subject)는 JWT 표준 클레임 — 토큰이 "누구에 관한 것"인지를 나타냄
+  관례적으로 userId를 sub에 담음
+  → JwtPayload 타입 안에서 sub: string 으로 정의해두면 payload.sub = userId
+
+포인트 4 — someService 위치
+  touchLastActiveAt 로직을 AuthService에 둘 수도 있고, UsersService에 둘 수도 있음
+  Guard가 어떤 Service를 주입받는지에 따라 달라지며, 범용 규칙은 없음
+  → 중요한 것은 "서비스명"이 아니라 fire-and-forget 호출 패턴 자체
 ```
 
 ---

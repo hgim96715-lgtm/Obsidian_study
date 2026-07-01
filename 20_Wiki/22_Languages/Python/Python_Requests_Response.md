@@ -7,11 +7,8 @@ tags:
   - Python
 related:
   - "[[Python_JSON]]"
-  - "[[Pandas_Json_Normalize]]"
-  - "[[Airflow_Hooks]]"
   - "[[Python_Requests_Methods]]"
   - "[[00_Python_HomePage]]"
-  - "[[Encoding_Decoding_Concept]]"
 ---
 # Python_Requests_Response
 
@@ -222,7 +219,7 @@ print(res.text)            # 이제 정상 출력
 
 ```txt
 requests 가 Content-Type 의 charset 을 못 읽으면 잘못된 인코딩으로 해석함
-공공데이터 CSV 는 cp949 가 많음 → [[Encoding_Decoding_Concept]] 참고
+공공데이터 CSV 는 cp949 가 많음 →  참고
 ```
 
 ---

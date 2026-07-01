@@ -6,7 +6,6 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_FFmpeg]]"
   - "[[NestJS_Scheduling]]"
-  - "[[Redis_Docker]]"
 ---
 
 # NestJS_Queue — 큐
@@ -97,7 +96,7 @@ pnpm install @nestjs/bullmq bullmq
 Redis 가 필요:
   BullMQ 는 Redis 에 Job 을 저장
   Docker 로 Redis 실행 후 연결
-# → [[NestJS_Caching]] Redis 설정 참고
+# →  Redis 설정 참고
 ```
 
 ---

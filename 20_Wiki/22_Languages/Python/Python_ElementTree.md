@@ -10,7 +10,6 @@ related:
   - "[[Python_Requests_Methods]]"
   - "[[Python_Requests_Response]]"
   - "[[Python_JSON]]"
-  - "[[Serialization_JSON_XML]]"
 ---
 
 # Python_ElementTree — XML 파싱

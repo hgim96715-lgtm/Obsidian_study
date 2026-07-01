@@ -8,7 +8,6 @@ tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[Linux_Shell_Cron_Job]]"
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Service_Provider]]"
 ---
@@ -299,7 +298,7 @@ Cron 작업에서 에러 처리 중요한 이유:
   @Cron 메서드 안에서 처리 안 된 에러가 발생해도
   앱 전체가 죽지 않고 다음 스케줄에 다시 실행됨
   → 그래도 try/catch + 로깅은 필수 (원인 파악 위해)
- # → [[NestJS_Logging]] 참고
+ # →  참고
 ```
 
 ---

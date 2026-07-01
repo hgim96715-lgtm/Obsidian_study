@@ -17,7 +17,6 @@ related:
   - "[[HTTP_Status_Codes]]"
   - "[[Python_Requests_Methods]]"
   - "[[Python_Requests_Response]]"
-  - "[[Encoding_Decoding_Concept]]"
 ---
 
 # Python_URL_Parsing
@@ -69,8 +68,8 @@ Endpoint : /getStrtpntAlocFndTrainInfo
 >공공데이터 가이드 문서에 `End Point`라고 적힌 주소를 보았다면, 파이썬 코드에서는 이를 `BASE_URL`이라는 변수에 담아서 공통 뼈대로 사용하는 것이 올바른 방법이다!
 
 | **일반 개발자 실무 / 파이썬 코드**         | **공공데이터포털 가이드 문서**                               |
-| ------------------------------ | ------------------------------------------------ |
-| **Base URL** (공통/기본 주소)        | **End Point** (예: `.../run/v2`)                  |
+| ------------------------------ | ------------------------------------------------ | |
+**Base URL** (공통/기본 주소)        | **End Point** (예: `.../run/v2`)                  |
 | **Endpoint / Path** (세부 기능 경로) | **오퍼레이션(Operation) / 상세기능** (예: `/getTrainList`) |
 
 ---
@@ -154,7 +153,7 @@ url = f"{base_url}?serviceKey={api_key}&returnType=JSON&{query_str}"
 파라미터 이름에 [] :: 등 특수문자 -> f-string 직접 조립
 ```
 
->[[Python_Requests_Methods#params 의 함정 — 특수문자 인코딩 ⭐|params 함정]]  / [[02_API_Producer]] 실제 사례 참고
+>[[Python_Requests_Methods#params 의 함정 — 특수문자 인코딩 ⭐|params 함정]]  /  실제 사례 참고
 
 
 ---
@@ -165,7 +164,7 @@ url = f"{base_url}?serviceKey={api_key}&returnType=JSON&{query_str}"
 
 > URL 에 한글이나 특수문자가 포함되면 깨지거나 에러가 발생한다. 
 > `quote()` 로 퍼센트 인코딩(%) 처리를 해줘야 한다. 
-> 인코딩/디코딩 개념 자체가 궁금하면 → [[Encoding_Decoding_Concept]] 참고
+> 인코딩/디코딩 개념 자체가 궁금하면 →  참고
 
 ## quote — 인코딩
 

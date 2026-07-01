@@ -1,4 +1,9 @@
-
+---
+aliases: [자격증, Certifications]
+tags: [HomePage]
+related:
+  - "[[00_DB_HomePage]]"
+---
 ## 취득 완료
 
 - [x] SQLD  (유효기한 : 2026.03.27 ~ 2028.03.27 )

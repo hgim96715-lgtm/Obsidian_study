@@ -8,8 +8,6 @@ aliases:
 tags:
   - Python
 related:
-  - "[[RDD_Concept]]"
-  - "[[Spark_Session_Context]]"
   - "[[00_Python_HomePage]]"
   - "[[Python_List_Comprehension]]"
   - "[[Python_Lists_Tuples]]"
@@ -199,7 +197,7 @@ Spark 연결고리:
   Spark collect() → 결과 강제 실행
 
   둘 다 Lazy Evaluation 원리 동일
-  → [[Spark_Core_Objects]] 참고
+  →  참고
 ```
 
 ---

@@ -4,7 +4,6 @@ tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[Linux_FFmpeg]]"
   - "[[NestJS_FileUpload]]"
   - "[[NestJS_Queue]]"
 ---
@@ -261,8 +260,5 @@ Worker 에서 FfmpegService 호출
     ↓
 변환 / 썸네일 추출 / 압축
     ↓
-결과 파일 저장 (로컬 or S3 # → [[AWS_S3]])
-
-FFmpeg CLI 개념:
-# → [[Linux_FFmpeg]] 참고
+결과 파일 저장 (로컬 or S3)
 ```
