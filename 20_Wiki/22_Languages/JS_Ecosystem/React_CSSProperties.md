@@ -1,12 +1,17 @@
 ---
-aliases: [CSS custom property, CSS variable, CSSProperties]
+aliases:
+  - CSS custom property
+  - CSS variable
+  - CSSProperties
 tags:
   - React
   - CSS
+  - Tailwind
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
   - "[[TS_TypeAssertion]]"
+  - "[[React_Styling]]"
 ---
 
 # React_CSSProperties — style 프롭과 CSS 커스텀 속성

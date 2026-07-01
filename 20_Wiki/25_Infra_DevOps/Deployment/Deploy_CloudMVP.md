@@ -18,6 +18,7 @@ related:
   - "[[NextJS_AuthCache]]"
   - "[[Web_XSS_CSRF]]"
   - "[[Docker_Dockerfile]]"
+  - "[[NestJS_Migration]]"
 ---
 # Deploy_CloudMVP — Vercel + Railway + Neon (pnpm 모노레포)
 

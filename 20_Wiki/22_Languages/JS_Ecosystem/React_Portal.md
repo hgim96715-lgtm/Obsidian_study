@@ -1,20 +1,13 @@
 ---
-aliases:
-  - Portal
-  - createPortal
-  - mounted pattern
-  - 마운트(mount)
-  - Hydration
-tags:
-  - React
+aliases: [마운트(mount), createPortal, Hydration, mounted pattern, Portal]
+tags: [React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
-  - "[[React_useId]]"
   - "[[NextJS_ServerClient]]"
+  - "[[React_useId]]"
   - "[[React_useMemo_useCallback_useEffect]]"
 ---
-
 # React_Portal — createPortal로 DOM 트리 밖에 렌더링하기
 
 > [!info] 

@@ -13,6 +13,7 @@ related:
   - "[[JS_Operators]]"
   - "[[NestJS_DTO]]"
   - "[[PG_Types]]"
+  - "[[NestJS_Migration]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
@@ -101,6 +102,11 @@ flowchart TB
 |`migrate dev --name x`|로컬 개발|마이그레이션 생성 + DB 적용 + Client 재생성|
 |`migrate deploy`|배포/CI|기존 마이그레이션만 순서대로 적용 (새로 생성 안 함)|
 |`generate`|Client만 다시|DB 변경 없이 타입만 재생성|
+
+```txt
+migrate reset / resolve / diff / --create-only / seed / 커스텀 SQL 추가 / 에러 처리
+→ [[NestJS_Migration]] 참고
+```
 
 ## Prisma 6 → 7 주요 변경 ⭐️⭐️
 

@@ -12,13 +12,6 @@ related:
 ---
 # NextJS_API_Client — api.ts: fetch 호출 한 곳에 모으기
 
-# 한 줄 요약
-
-```txt
-api.ts = 실제로 fetch 를 호출하는 함수들을 모아두는 파일
-주소 결정(getApiBaseUrl) + 요청(fetch) + 응답 받기(apiTypes) + 변환(mapper) 을 한 함수 안에서 끝냄
-```
-
 >[!info] 
 > api.ts는 실제로 fetch를 호출하는 함수들을 모아두는 파일이다.
 >  주소 결정(getApiBaseUrl) + 요청(fetch) + 응답 받기(apiTypes) + 변환(mapper)을 한 함수 안에서 끝낸다 — "fetch 호출 → apiTypes로 받기 → mapper로 변환"까지를 한 함수 안에 캡슐화한 것.

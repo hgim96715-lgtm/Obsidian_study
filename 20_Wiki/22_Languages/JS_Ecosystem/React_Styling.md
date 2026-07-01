@@ -1,375 +1,392 @@
 ---
-aliases: [스타일링, CSS Modules, lucide-react, Tailwind]
-tags:
-  - Tailwind
+aliases: [CSS, DesignToken, globals.css, JSDoc 주석, React, Tailwind]
+tags: [React, CSS, Tailwind]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_Routing]]"
-  - "[[React_Component]]"
+  - "[[JS_BrowserAPI]]"
+  - "[[JS_DOM]]"
+  - "[[React_CSSProperties]]"
 ---
+# React_Styling — 스타일링 전략
 
-# React_TailwindCSS — Tailwind CSS
-
-```txt
-Tailwind CSS = 유틸리티 클래스 기반 CSS 프레임워크
-미리 정의된 클래스를 조합해서 스타일 적용
-CSS 파일 따로 안 써도 됨
-```
-
----
+> [!info] 
+> Next.js + Tailwind 프로젝트에서 스타일을 관리하는 두 축 
+>  `globals.css`(커스텀 클래스 · CSS 변수 · 전역 초기화)와 클래스명 상수 파일(오타 방지 · 리팩토링 · 의도 문서화)
+>  Tailwind로 못 하는 것은 globals.css에, 단순 유틸리티는 Tailwind에 역할을 나눈다.
 
 ---
 
-# 왜 쓰나 ⭐️
-
-```txt
-기존 CSS:
-  .card { padding: 16px; background: white; border-radius: 8px; }
-  .card-title { font-size: 18px; font-weight: bold; }
-  → 클래스 이름 고민 / CSS 파일 왔다갔다
-
-Tailwind:
-  <div className="p-4 bg-white rounded-lg">
-    <h2 className="text-lg font-bold">제목</h2>
-  </div>
-  → 클래스 이름 없이 JSX 안에서 바로 스타일 적용
-  → CSS 파일 거의 안 씀
-
-장점:
-  클래스 이름 고민 불필요
-  컴포넌트 안에서 스타일 바로 확인
-  빌드 시 사용한 클래스만 포함 → 번들 작음
-```
-
----
-
----
-
-# 설치 (Next.js)
-
-```bash
-# create-next-app 시 Tailwind 선택하면 자동 설정
-pnpm create next-app@latest my-app
-# Tailwind CSS? → Yes
-
-# 기존 프로젝트에 추가
-pnpm add -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-```
+# globals.css 기본 구조 ⭐️⭐️⭐️⭐️
 
 ```css
 /* app/globals.css */
+
+/* 1. Tailwind 세 레이어 — 반드시 이 순서로 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 2. CSS 변수 (디자인 토큰) */
+/* 3. 전역 초기화 */
+/* 4. 커스텀 컴포넌트 클래스 */
+/* 5. 애니메이션 */
 ```
 
----
+## @layer — 우선순위 제어 ⭐️⭐️⭐️
 
----
+```css
+/* @layer 없이 작성하면 → 파일 순서에 따라 우선순위 결정 (예측하기 어려움) */
+/* @layer로 감싸면 → 레이어 순서(base < components < utilities)로 우선순위 고정 */
 
-# 자주 쓰는 유틸리티 클래스 ⭐️
-
-## 여백
-
-```txt
-p-4    padding: 16px (전체)
-px-4   padding 좌우
-py-4   padding 상하
-pt-4   padding 위
-pb-4   padding 아래
-
-m-4    margin: 16px (전체)
-mx-auto margin 좌우 auto (가운데 정렬)
-mt-4   margin 위
-
-단위:
-  1 = 4px / 2 = 8px / 4 = 16px / 6 = 24px / 8 = 32px
-```
-
-## 크기
-
-```txt
-w-full      width: 100%
-w-1/2       width: 50%
-w-[200px]   width: 200px  (임의값)
-h-screen    height: 100vh
-h-full      height: 100%
-max-w-xl    max-width: 576px
-```
-
-## 텍스트
-
-```txt
-text-sm     font-size: 14px
-text-base   font-size: 16px
-text-lg     font-size: 18px
-text-xl     font-size: 20px
-text-2xl    font-size: 24px
-
-font-normal  font-weight: 400
-font-medium  font-weight: 500
-font-bold    font-weight: 700
-
-text-gray-500   color: gray
-text-center     text-align: center
-truncate        말줄임 (overflow hidden + ellipsis)
-```
-
-## 배경 & 테두리
-
-```txt
-bg-white        background: white
-bg-gray-100     background: 연한 회색
-bg-blue-500     background: 파란색
-
-rounded         border-radius: 4px
-rounded-lg      border-radius: 8px
-rounded-full    border-radius: 9999px (원형)
-
-border          border: 1px solid
-border-gray-200 border-color: 연한 회색
-```
-
-## Flexbox
-
-```txt
-flex            display: flex
-items-center    align-items: center
-justify-center  justify-content: center
-justify-between justify-content: space-between
-gap-4           gap: 16px
-flex-col        flex-direction: column
-flex-wrap       flex-wrap: wrap
-```
-
-## Grid
-
-```txt
-grid            display: grid
-grid-cols-2     grid-template-columns: repeat(2, 1fr)
-grid-cols-3     3열
-gap-4           gap: 16px
-col-span-2      grid-column: span 2
-```
-
----
-
----
-
-# 반응형 ⭐️
-
-```txt
-접두사 없음   모바일 기본 (모든 크기)
-sm:           640px 이상
-md:           768px 이상
-lg:           1024px 이상
-xl:           1280px 이상
-2xl:          1536px 이상
-
-모바일 퍼스트:
-  작은 화면 → 기본값
-  큰 화면   → 접두사로 덮어쓰기
-```
-
-```tsx
-// 모바일: 1열 / 태블릿: 2열 / 데스크탑: 3열
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {items.map(item => <Card key={item.id} {...item} />)}
-</div>
-
-// 모바일: 숨김 / 데스크탑: 표시
-<nav className="hidden lg:flex">...</nav>
-
-// 모바일: 작은 텍스트 / 데스크탑: 큰 텍스트
-<h1 className="text-xl lg:text-4xl font-bold">제목</h1>
-```
-
----
-
----
-
-# 상태 변형 ⭐️
-
-```txt
-hover:   마우스 올렸을 때
-focus:   포커스됐을 때
-active:  클릭 중
-disabled: 비활성화
-```
-
-```tsx
-<button
-  className="
-    bg-blue-500 text-white px-4 py-2 rounded
-    hover:bg-blue-600
-    active:bg-blue-700
-    disabled:bg-gray-300 disabled:cursor-not-allowed
-  "
->
-  저장
-</button>
-
-<input
-  className="
-    border border-gray-300 rounded px-3 py-2
-    focus:outline-none focus:ring-2 focus:ring-blue-500
-  "
-/>
-```
-
----
-
----
-
-# 다크모드 ⭐️
-
-```txt
-dark: 접두사 = 다크모드일 때 적용
-```
-
-```tsx
-// tailwind.config.ts
-module.exports = {
-  darkMode: 'class',  // 'class' = 수동 / 'media' = 시스템 설정 자동
+@layer base {
+  /* HTML 기본 태그 스타일 초기화 · 전역 기본값 */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: var(--font-sans); }
+  a { color: inherit; text-decoration: none; }
 }
 
-// 루트에 dark 클래스 추가 시 다크모드 적용
-<html className="dark">
+@layer components {
+  /* 재사용 가능한 컴포넌트 클래스 — Tailwind utilities보다 낮은 우선순위 */
+  .post-card-shell { ... }
+  .play-button { ... }
+}
 
-// 컴포넌트
-<div className="bg-white dark:bg-gray-900 text-black dark:text-white">
-  <h1 className="text-gray-900 dark:text-gray-100">제목</h1>
-</div>
-```
-
----
-
----
-
-# 조건부 클래스 ⭐️
-
-```tsx
-// 삼항 연산자
-<div className={`p-4 rounded ${isActive ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}>
-
-// clsx / cn 유틸리티 (더 깔끔)
-import { clsx } from 'clsx';
-
-<div className={clsx(
-  'p-4 rounded',
-  isActive && 'bg-blue-500 text-white',
-  !isActive && 'bg-gray-100',
-  hasError && 'border border-red-500',
-)}>
-
-// shadcn/ui 의 cn 함수 (tailwind-merge + clsx)
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  'p-4 rounded',
-  isActive ? 'bg-blue-500' : 'bg-gray-100',
-)}>
+@layer utilities {
+  /* 커스텀 유틸리티 — Tailwind utilities와 같은 레벨 */
+  .text-balance { text-wrap: balance; }
+}
 ```
 
 ```txt
-문자열 템플릿 리터럴로 조건부 클래스:
-  공백 실수 / 클래스 충돌 위험 있음
+레이어 우선순위: base < components < utilities
+→ utilities(Tailwind bg-red-500 등)가 components(.post-card-shell)보다 항상 이김
+→ JSX에서 className="post-card-shell bg-red-500"처럼 쓸 때
+  bg-red-500이 post-card-shell 안의 background를 오버라이드할 수 있음
 
-clsx / cn 권장:
-  가독성 좋음
-  undefined / false 값 자동 무시
-  tailwind-merge 로 중복 클래스 충돌 방지
-```
----
----
-# 아이콘 — lucide-react ⭐️
+@layer components 안에 넣어야 하는 것:
+  커스텀 컴포넌트 클래스 — Tailwind 유틸리티로 덮어쓸 수 있어야 할 때
 
-```txt
-lucide-react = Tailwind 와 함께 가장 많이 쓰는 아이콘 라이브러리
-SVG 아이콘을 React 컴포넌트로 제공
-className 으로 Tailwind 클래스 바로 적용 가능
-```
-
-```bash
-pnpm add lucide-react
-```
-
-```tsx
-import { ArrowRight, Search, X, ChevronDown, Heart } from 'lucide-react';
-
-// 기본 사용
-<ArrowRight />
-
-// Tailwind 로 크기 / 색상 조절
-<ArrowRight className="w-4 h-4" />            // 16px
-<ArrowRight className="w-5 h-5 text-blue-500" /> // 20px + 파란색
-<ArrowRight className="w-6 h-6 text-gray-400" /> // 24px + 회색
-
-// 버튼 안에 아이콘
-<button className="flex items-center gap-2">
-  더보기 <ArrowRight className="w-4 h-4" />
-</button>
-```
-
-```txt
-크기 기준:
-  w-4 h-4   16px  (작은 인라인 아이콘)
-  w-5 h-5   20px  (기본)
-  w-6 h-6   24px  (버튼 아이콘)
-  w-8 h-8   32px  (큰 아이콘)
-
-아이콘 목록:
-  https://lucide.dev/icons 에서 검색
-  컴포넌트 이름은 PascalCase
-  예: arrow-right → ArrowRight / chevron-down → ChevronDown
+@layer utilities 안에 넣어야 하는 것:
+  Tailwind처럼 단일 속성 유틸리티 — 오히려 남들한테 안 덮어써지길 원할 때
 ```
 
 ---
 
----
+# CSS 변수 — 디자인 토큰 ⭐️⭐️⭐️⭐️
 
-# 실전 카드 컴포넌트 예시
+```css
+/* globals.css */
 
-```tsx
-type ExhibitionCardProps = {
-  title:     string;
-  dateRange: string;
-  status:    string;
-  statusColor: string;
+:root {
+  /* 브랜드 컬러 */
+  --color-primary:      #335b73;
+  --color-primary-soft: #e4eff5;
+  --color-primary-muted: color-mix(in srgb, #335b73 70%, transparent);
+
+  /* 타이포그래피 */
+  --font-sans: 'Pretendard', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* 간격/크기 */
+  --radius-card: 1rem;
+  --radius-btn:  9999px;
+
+  /* 그림자 */
+  --shadow-card: 0 2px 8px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 8px 24px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.06);
+}
+```
+
+```css
+/* 다크모드 — classList.toggle('dark') 또는 data-theme 패턴 */
+/* ([[JS_BrowserAPI]] applyTheme 함수 참고) */
+
+/* 방법 1: .dark 클래스 기반 */
+.dark {
+  --color-primary:      #7ab3d0;
+  --color-primary-soft: #1a2f3d;
+}
+
+/* 방법 2: data-theme 속성 기반 */
+[data-theme="dark"] {
+  --color-primary:      #7ab3d0;
+  --color-primary-soft: #1a2f3d;
+}
+```
+
+```typescript
+// Tailwind에서 CSS 변수 사용 — tailwind.config.ts
+export default {
+  theme: {
+    extend: {
+      colors: {
+        primary:      'var(--color-primary)',
+        'primary-soft': 'var(--color-primary-soft)',
+      },
+      borderRadius: {
+        card: 'var(--radius-card)',
+        btn:  'var(--radius-btn)',
+      },
+    },
+  },
 };
 
-function ExhibitionCard({ title, dateRange, status, statusColor }: ExhibitionCardProps) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="text-base font-semibold text-gray-900 line-clamp-2">
-          {title}
-        </h2>
-        <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${statusColor}`}>
-          {status}
-        </span>
-      </div>
-      <p className="mt-2 text-sm text-gray-500">{dateRange}</p>
-    </div>
-  );
-}
+// JSX에서: className="bg-primary-soft text-primary rounded-card"
+```
+
+```txt
+CSS 변수의 장점:
+  JS에서도 접근 가능: getComputedStyle(el).getPropertyValue('--color-primary')
+  다크모드 전환 시 변수만 바꾸면 → 그 변수를 쓰는 모든 곳이 자동으로 바뀜
+  Tailwind config에 연결하면 유틸리티 클래스로도 사용 가능
 ```
 
 ---
+
+# 커스텀 클래스 — globals.css에 정의 ⭐️⭐️⭐️⭐️
+
+```txt
+Tailwind로 표현하기 어려운 것들을 globals.css에 클래스로 정의:
+  - 여러 레이어 box-shadow
+  - :hover/:active와 조합된 transition
+  - 복잡한 그라디언트
+  - 의사 요소(::before, ::after)
+  - 스크롤바 스타일
+```
+
+```css
+@layer components {
+
+  /* 카드 계층 — 입체감 3단계 */
+  .post-card-shell {
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+  }
+
+  .post-card-shell:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+
+  /* 재생 버튼 — 브랜드 그라디언트 */
+  .play-button {
+    background: linear-gradient(135deg, var(--color-primary) 0%, #5a8fa8 100%);
+    border-radius: 50%;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .play-button:hover  { opacity: 0.9; transform: scale(1.05); }
+  .play-button:active { opacity: 0.8; transform: scale(0.97); }
+
+  /* 브랜드 필 버튼 */
+  .brand-pill-btn {
+    border-radius: var(--radius-btn);
+    background-color: var(--color-primary);
+    color: white;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+  }
+
+  .brand-pill-btn:hover { background-color: color-mix(in srgb, var(--color-primary) 85%, black); }
+
+}
+```
+
+## 스크롤바 스타일링
+
+```css
+/* @layer 밖에 — 브라우저 전용 선택자라 레이어 관리 불필요 */
+
+/* Chrome / Safari / Edge */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(0 0 0 / 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgb(0 0 0 / 0.35); }
+
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent; }
+```
+
+---
+
+# @keyframes — 애니메이션 ⭐️⭐️
+
+```css
+/* globals.css */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+```
+
+```css
+@layer components {
+  /* 애니메이션 클래스 */
+  .animate-fade-in {
+    animation: fade-in 0.25s ease both;
+  }
+
+  /* 스켈레톤 로딩 */
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.25rem;
+  }
+}
+```
+
+```typescript
+// Tailwind에 @keyframes 연결 — tailwind.config.ts
+export default {
+  theme: {
+    extend: {
+      animation: {
+        'fade-in': 'fade-in 0.25s ease both',
+      },
+      keyframes: {
+        'fade-in': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+    },
+  },
+};
+// → className="animate-fade-in" 으로 사용 가능
+```
+
+---
+
+# 클래스명 상수 관리 ⭐️⭐️⭐️⭐️
+
+```txt
+globals.css에서 정의한 클래스명을 문자열로 JSX에 직접 쓰면:
+  오타 위험 / 리팩토링 어려움 / 의도 파악 어려움
+
+→ 상수 파일로 추출해서 import해서 사용
+```
+
+## 세 가지 형태
+
+```typescript
+// styles/classNames.ts
+
+// 형태 1: 단순 클래스명 상수
+/** 브랜드 입체감 — 3단계 (카드 쉘 · 트랙 · 재생 버튼) · 클래스는 globals.css */
+export const postCardShell = 'post-card-shell';
+export const postCard      = 'post-card';
+export const playButton    = 'play-button';
+export const brandPillBtn  = 'brand-pill-btn';
+
+// 형태 2: 복합 클래스 (여러 클래스 조합)
+export const savedCardFace   = 'saved-card-face';
+export const savedCardFaceLg = 'saved-card-face saved-card-face-lg';
+// → savedCardFaceLg를 쓰면 두 클래스를 한 번에 적용
+
+// 형태 3: 객체 — 테마/변형을 한 묶음으로
+/** 태그 없을 때 헤더 — primary-soft */
+export const neoHeaderDefault = {
+  band:     'bg-[#e4eff5]',          // Tailwind arbitrary value
+  text:     'text-[#335b73]',
+  muted:    'text-[#335b73]/70',
+  cardBack: '#d8e5ee',               // 색상값 (인라인 스타일용, 클래스 아님)
+};
+```
+
+```txt
+/** JSDoc 주석 */의 실용적 가치:
+  VSCode에서 상수에 hover하면 주석 내용이 팝업으로 보임
+  "이 클래스가 왜 있는지, 어디서 정의됐는지" 파일 이동 없이 바로 확인
+```
+
+## JSX에서 사용
+
+```tsx
+import { postCardShell, playButton, neoHeaderDefault } from '@/styles/classNames';
+
+// 단독 사용
+<div className={postCardShell}>
+
+// Tailwind와 혼합
+<div className={`${postCardShell} mt-4 cursor-pointer`}>
+
+// clsx / cn과 조합 (조건부 클래스)
+<div className={cn(postCardShell, isActive && 'ring-2 ring-primary')}>
+
+// 객체 테마
+<header className={neoHeaderDefault.band}>
+  <h1 className={neoHeaderDefault.text}>제목</h1>
+  <div style={{ backgroundColor: neoHeaderDefault.cardBack }} />
+</header>
+```
+
+---
+
+# globals.css vs Tailwind — 언제 어느 쪽 ⭐️⭐️⭐️⭐️
+
+|상황|globals.css|Tailwind|
+|---|---|---|
+|복잡한 box-shadow 레이어|✅|어렵 (arbitrary value로 가능하지만 길어짐)|
+|:hover/:active + transition 조합|✅|hover: 접두사로 가능하지만 JSX가 길어짐|
+|::before, ::after 의사 요소|✅|before: / after: 접두사로 가능|
+|@keyframes 애니메이션|✅|config 연결 후 animate- 클래스로|
+|스크롤바 스타일|✅|불가|
+|단순 색상 / 간격 / 크기|—|✅ `bg-[#e4eff5]` `mt-4` `rounded-lg`|
+|다크모드 단순 변형|—|✅ `dark:bg-gray-900`|
+|CSS 변수 정의|✅ (`:root` 에서)|tailwind.config에 연결 후 사용|
+
+```txt
+판단 기준:
+  "이 스타일을 Tailwind로 쓰면 className이 너무 길어지거나 JSX가 지저분해지는가?"
+  → Yes → globals.css에 클래스로 정의
+  → No  → Tailwind arbitrary value나 유틸리티로 바로 작성
+
+기본 규칙:
+  컴포넌트 정체성을 가진 스타일 (카드, 버튼 등 반복 사용) → globals.css 클래스
+  일회성 조정 (mt-4, text-sm 등) → Tailwind inline
+```
 
 ---
 
 # 한눈에
 
-| 카테고리   | 예시                                                       |
-| ------ | -------------------------------------------------------- |
-| 여백     | `p-4` `px-6` `m-auto` `gap-4`                            |
-| 크기     | `w-full` `h-screen` `max-w-xl`                           |
-| 텍스트    | `text-lg` `font-bold` `text-gray-500` `truncate`         |
-| 배경·테두리 | `bg-white` `rounded-lg` `border`                         |
-| Flex   | `flex` `items-center` `justify-between`                  |
-| Grid   | `grid` `grid-cols-3` `col-span-2`                        |
-| 반응형    | `md:grid-cols-2` `lg:hidden`                             |
-| 상태     | `hover:bg-blue-600` `focus:ring-2` `disabled:opacity-50` |
-| 다크모드   | `dark:bg-gray-900` `dark:text-white`                     |
+```txt
+globals.css 구조:
+  @tailwind base / components / utilities  (이 순서 필수)
+  :root { --css-변수 }                    디자인 토큰
+  @layer components { .클래스명 }         커스텀 컴포넌트 클래스
+  @keyframes                              애니메이션 정의
+  ::-webkit-scrollbar                     스크롤바
+
+CSS 변수:
+  :root에서 선언 → .dark / [data-theme="dark"]에서 덮어쓰기
+  tailwind.config에 연결 → Tailwind 유틸리티로도 사용 가능
+
+클래스명 상수:
+  단순: export const name = 'css-class'
+  복합: export const name = 'class1 class2'
+  객체: export const theme = { band: 'bg-...', cardBack: '#hex' }
+  /** JSDoc */ → hover 시 VSCode 팝업으로 의도 확인
+
+globals.css vs Tailwind:
+  복잡한 shadow·transition·의사요소·스크롤바 → globals.css
+  단순 색상·간격·크기 → Tailwind
+  반복 사용 컴포넌트 스타일 → globals.css 클래스 + 상수 파일
+```

@@ -45,7 +45,7 @@ flowchart TB
         P["Postman\nBasics · Environments · WebSocket"]
         D["DataGrip\nBasics · 연결 · KST"]
         M["Mac\nMac_단축키"]
-        S["Snippets\nSnippet_date-statistics-pattern\nSnippet_youtube-iframe-embed-react"]
+        S["Snippets\nSnippet_date-statistics-pattern\nSnippet_youtube-iframe-embed-react\nSnippet_normalize-embed-url"]
     end
 
     WIKI["20_Wiki\n개념 · 프레임워크"]
@@ -174,6 +174,7 @@ Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
 |---|---|
 | [[Snippet_date-statistics-pattern]] ⭐ | 날짜 통계 · UTC 함정 · 일 키 · [[JS_Date]] · [[NestJS_StatsBucket]] 연결 |
 | [[Snippet_youtube-iframe-embed-react]] ⭐ | YouTube IFrame API · `YT.Player` · `onError` 101/150 · React fallback |
+| [[Snippet_normalize-embed-url]] ⭐ | 공유 링크 → embed URL · POST 시 DB 저장 · YouTube · Spotify |
 
 ---
 
@@ -193,7 +194,9 @@ Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
 | Callout·테마 색 | [[Obsidian_Vault_Settings]] |
 | 날짜 통계 UTC·일 키 함정 | [[Snippet_date-statistics-pattern]] |
 | YouTube embed · 101/150 fallback | [[Snippet_youtube-iframe-embed-react]] |
+| 공유 URL → embed URL (올리기 시) | [[Snippet_normalize-embed-url]] |
 | VS Code에 YouTube 로더 스니펫 등록 | [[Snippet_youtube-iframe-embed-react]] § VS Code → [[VSCode_User_Snippets]] |
+| VS Code에 normalize 함수 뼈대 | [[Snippet_normalize-embed-url]] § VS Code → [[VSCode_User_Snippets]] |
 
 ---
 

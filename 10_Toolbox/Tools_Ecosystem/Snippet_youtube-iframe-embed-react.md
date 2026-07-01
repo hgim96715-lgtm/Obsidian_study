@@ -9,6 +9,7 @@ related:
   - "[[00_Tools_Ecosystem_HomePage]]"
   - "[[00_Project_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[TS_YouTube]]"
 ---
 
 # Snippet_youtube-iframe-embed-react — YouTube IFrame API · React

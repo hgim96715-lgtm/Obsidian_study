@@ -14,6 +14,7 @@ related:
   - "[[NestJS_Prisma]]"
   - "[[NestJS_StatsBucket]]"
   - "[[Deploy_CloudMVP]]"
+  - "[[NestJS_Migration]]"
 ---
 # NestJS_PostgreSQL — 로컬 개발 환경 & 기초
 

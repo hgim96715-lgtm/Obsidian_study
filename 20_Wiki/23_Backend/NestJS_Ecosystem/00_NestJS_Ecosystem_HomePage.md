@@ -1,14 +1,12 @@
 ---
-aliases:
-  - 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
-  - NestJS Ecosystem HomePage
-tags:
-  - HomePage
+aliases: [00_NestJS_Ecosystem_HomePage — NestJS · NodeJS, NestJS Ecosystem HomePage]
+tags: [HomePage]
 related:
-  - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[00_DB_HomePage]]"
   - "[[00_Deployment_HomePage]]"
   - "[[00_DevOps_HomePage]]"
-  - "[[00_DB_HomePage]]"
+  - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[00_Project_HomePage]]"
 cssclasses:
   - max
   - table-max
@@ -73,20 +71,33 @@ flowchart TB
 NodeJS "기초" 개념이 아니라 NestJS 프레임워크 자체가 만든 영역 — 다른 트랙과 안 얽힘
 ```
 
-| 영역        | 노트                                                                                                                                                                                     |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 요청 데이터 검증 | [[NestJS_DTO]] (→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결, [[00_JS_Ecosystem_HomePage]] 참고)                                                                   |
-| 데이터베이스    | [[NestJS_Prisma]] · [[NestJS_PostgreSQL]] · [[NestJS_Prisma_Monorepo]] · [[NestJS_StatsBucket]] (통계 집계 → [[React_Charts]]와 연결) · [[00_DB_HomePage]] (DB 전체 홈 — 순수 SQL · MySQL · Redis) |
-| 모듈/DI 구조  | [[NestJS_Module]] · [[NestJS_Service_Provider]]                                                                                                                                        |
-| 패턴/기법     | [[NestJS_Throttle]] (스로틀링 · fire-and-forget) · [[NestJS_Logger]] (내장 로거) · [[NestJS_Pagination]]                                                                                       |
-| 설정/인프라    | [[NestJS_CORS]] · [[NestJS_Env_Config]] · [[00_Deployment_HomePage]] (배포 인프라)                                                                                                          |
-| API 문서화   | [[NestJS_Swagger]] · [[NestJS_Versioning]]                                                                                                                                             |
-| 기초 개념     | [[NestJS_Concept]]                                                                                                                                                                     |
+| 영역        | 노트                                                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 요청 데이터 검증 | [[NestJS_DTO]] (→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결, [[00_JS_Ecosystem_HomePage]] 참고)                                                                                          |
+| 데이터베이스    | [[NestJS_Prisma]] · [[NestJS_PostgreSQL]] · [[NestJS_Prisma_Monorepo]] · [[NestJS_StatsBucket]] (통계 집계 → [[React_Charts]]와 연결) · [[NestJS_Migration]] · [[00_DB_HomePage]] (DB 전체 홈 — 순수 SQL · MySQL · Redis) |
+| 모듈/DI 구조  | [[NestJS_Module]] · [[NestJS_Service_Provider]]                                                                                                                                                               |
+| 패턴/기법     | [[NestJS_Throttle]] (스로틀링 · fire-and-forget) · [[NestJS_Logger]] (내장 로거) ·                                                                                                                                    |
+| 설정/인프라    | [[NestJS_CORS]] · [[NestJS_Env_Config]] · [[00_Deployment_HomePage]] (배포 인프라)                                                                                                                                 |
+| API 문서화   | [[NestJS_Swagger]] · [[NestJS_Versioning]]                                                                                                                                                                    |
+| 기초 개념     | [[NestJS_Concept]]                                                                                                                                                                                            |
 
 ```txt
 이 목록은 폴더 안에 있다고 알고 있는 노트 이름만 적어둔 것 — 실제 내용을 아직 안 봤으니
 혹시 위 클러스터 표에 들어가야 하는 게 있다면 표로 옮기면 됨
 ```
+
+---
+
+# Toolbox · Project
+
+```txt
+Wiki(23)는 Nest 개념 · Toolbox(10)는 복붙 패턴 · Project(30)는 프로젝트별 ER
+```
+
+| 하고 싶은 일 | 먼저 볼 노트 |
+|---|---|
+| 공유 URL → embed URL (올리기 API) | [[Snippet_normalize-embed-url]] |
+| music-community ER · 스키마 헷갈림 | [[MusicCommunity_DB]] |
 
 ---
 

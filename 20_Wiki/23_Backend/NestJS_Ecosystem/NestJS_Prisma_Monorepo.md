@@ -1,10 +1,13 @@
 ---
-aliases: [pnpm Prisma, Prisma 모노레포]
+aliases:
+  - pnpm Prisma
+  - Prisma 모노레포
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Prisma]]"
+  - "[[NestJS_Migration]]"
 ---
 # NestJS_Prisma_Monorepo — pnpm 모노레포에서 Prisma
 
