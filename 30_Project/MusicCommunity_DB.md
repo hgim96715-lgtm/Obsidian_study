@@ -88,6 +88,7 @@ erDiagram
         uuid authorId FK
         string body
         timestamptz createdAt
+        timestamptz updatedAt
         timestamptz deletedAt "nullable ⬜"
         uuid parentId "nullable ⬜"
     }
@@ -164,6 +165,7 @@ erDiagram
 | `Friendship` vs `Block`                         | 맞친구 **요청·수락** vs **차단** — 테이블 분리 —                                |
 | `Block.id` vs `blockerId`                       | 차단 row PK ≠ `User.id` — `blockerId`/`blockedId`가 사람 FK            |
 | **Chat**(기능) vs `Comment` vs `RoomMessage`      | 피드 댓글 = `Comment` · 방 채팅 = `RoomMessage`                          |
+| `Comment.createdAt` vs `updatedAt`              | **최초 작성** vs **수정** (`body` PATCH 시 `@updatedAt`) — `Recommendation`과 동일 |
 | Prisma `DateTime` vs ER `timestamptz`           | schema 타입명 `DateTime` · DB `@db.Timestamptz(3)`                   |
 
 ---
@@ -294,9 +296,11 @@ erDiagram
 | --- | --- |
 | `recommendationId` | 어떤 추천 글 아래 |
 | `authorId` | 댓글 작성자 |
-| `body` | 텍스트 + 이모지 |
+| `body` | 텍스트 + 이모지 · **수정 가능** (본인) |
+| `createdAt` | 최초 작성 |
+| `updatedAt` | 마지막 수정 — `Recommendation` · `SavedCard`와 같이 `@updatedAt` |
 | `parentId` ⬜ | 대댓글 1단계 |
-| `deletedAt` ⬜ | soft delete |
+| `deletedAt` ⬜ | soft delete (12는 hard `DELETE` 가능) |
 
 
 

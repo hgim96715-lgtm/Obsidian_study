@@ -28,26 +28,25 @@ JS/TS 범용 문법(JS_Array_Methods, TS_Generics, JS_OptionalChaining 등)은
 
 ```mermaid-beautiful
 flowchart TB
-    JS["00_JS_Ecosystem_HomePage<br/>범용 문법 — 이 폴더 밖"]
+    JS["JS · TS 범용 문법<br/>00_JS_Ecosystem — 폴더 밖"]
 
-    NODE["Node.js<br/>런타임"]
-    NEST["NestJS<br/>프레임워크"]
+    subgraph STACK["기술 스택 — 한 묶음"]
+        direction LR
+        NODE["Node.js"] --> NEST["NestJS"]
+    end
 
-    subgraph CLUSTER["연결 클러스터 — NodeJS ↔ NestJS가 만나는 곳"]
+    subgraph NOTES["이 폴더 노트 구성"]
         direction TB
-        C1["인증 · JWT<br/>Passport · Buffer ↔ JwtGuard · Auth_Concept · Bcrypt"]
-        C2["HTTP 요청 · 응답<br/>HTTP_Request · Buffer ↔ Controller · Response"]
-        C3["이벤트<br/>EventEmitter ↔ @nestjs/event-emitter"]
+        CLUSTER["연결 클러스터<br/>Node ↔ Nest 만나는 곳"]
+        SOLO["독립 노트<br/>Nest 고유 · Node와 무관"]
     end
 
-    subgraph SOLO["독립 노트 — NestJS 고유 (Node와 안 얽힘)"]
-        S1["DTO · Prisma · Module · Swagger · Concept …"]
-    end
+    JS -.-> STACK
+    STACK --> NOTES
+```
 
-    JS -.->|"JS_Array_Methods · TS_Generics 등"| NEST
-    NODE --> NEST
-    NEST --> CLUSTER
-    NEST --> SOLO
+```txt
+큰 틀: 범용 문법은 JS 홈 → Node 위에 Nest → 아래 표는 연결 묶음 · 독립 노트 두 층
 ```
 
 ---

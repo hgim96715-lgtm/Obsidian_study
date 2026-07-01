@@ -1,5 +1,9 @@
 ---
-aliases: [브라우저 API, document, navigator, window]
+aliases:
+  - 브라우저 API
+  - document
+  - navigator
+  - window
 tags:
   - JavaScript
 related:
@@ -7,6 +11,7 @@ related:
   - "[[JS_CustomEvent]]"
   - "[[NextJS_Routing]]"
   - "[[NextJS_TokenStorage]]"
+  - "[[JS_DOM]]"
 ---
 # JS_BrowserAPI — 브라우저 내장 API
 
@@ -21,7 +26,7 @@ related:
 | 다이얼로그       | `confirm` / `alert` / `prompt`                                  |
 | 페이지 이동      | `location` (origin으로 절대 URL 만들기 포함)                             |
 | 저장소         | `localStorage` / `sessionStorage`                               |
-| DOM 조작      | `document`, `classList`, `dataset`, `style`                     |
+| DOM 조작      | `document`, `classList`, `dataset`, `style` → 상세: [[JS_DOM]]    |
 | 시스템 설정 감지   | `matchMedia` (다크모드 등)                                           |
 | 타이머         | `setTimeout` / `setInterval`                                    |
 | 디바이스/사용자 정보 | `navigator` (클립보드, 공유, 언어 등), `geolocation`                     |
@@ -295,6 +300,11 @@ const toggleTheme = () => {
 ---
 
 # DOM 조작 — document
+
+```txt
+querySelector / createElement / appendChild 같은 기본 DOM 조작 →  [[JS_DOM]]
+이 섹션은 BrowserAPI 특화 사용 패턴 (다크모드 테마, 전역 html 조작)에 집중
+```
 
 ```typescript
 document.title = '영화 목록 | MyApp';
@@ -1005,5 +1015,6 @@ typeof structuredClone === 'function'으로 존재 여부를 먼저 확인하는
 |`new URLSearchParams()`|쿼리 파라미터 빌드|URLSearchParams|
 
 ```txt
-컴포넌트 간 상태 동기화(dispatchEvent/addEventListener/CustomEvent)는 [[JS_CustomEvent]] 로 분리됨
+DOM 기본 조작 (querySelector/createElement/appendChild 등) → [[JS_DOM]]
+컴포넌트 간 상태 동기화 (dispatchEvent/addEventListener/CustomEvent) → [[JS_CustomEvent]]
 ```

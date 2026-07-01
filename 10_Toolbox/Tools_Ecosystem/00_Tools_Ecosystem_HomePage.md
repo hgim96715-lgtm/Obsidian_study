@@ -45,7 +45,7 @@ flowchart TB
         P["Postman\nBasics · Environments · WebSocket"]
         D["DataGrip\nBasics · 연결 · KST"]
         M["Mac\nMac_단축키"]
-        S["Snippets\nSnippet_date-statistics-pattern"]
+        S["Snippets\nSnippet_date-statistics-pattern\nSnippet_youtube-iframe-embed-react"]
     end
 
     WIKI["20_Wiki\n개념 · 프레임워크"]
@@ -173,6 +173,7 @@ Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
 | 노트 | 핵심 내용 |
 |---|---|
 | [[Snippet_date-statistics-pattern]] ⭐ | 날짜 통계 · UTC 함정 · 일 키 · [[JS_Date]] · [[NestJS_StatsBucket]] 연결 |
+| [[Snippet_youtube-iframe-embed-react]] ⭐ | YouTube IFrame API · `YT.Player` · `onError` 101/150 · React fallback |
 
 ---
 
@@ -191,6 +192,8 @@ Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
 | Obsidian 플러그인 확인 | [[Obsidian_Plugins]] |
 | Callout·테마 색 | [[Obsidian_Vault_Settings]] |
 | 날짜 통계 UTC·일 키 함정 | [[Snippet_date-statistics-pattern]] |
+| YouTube embed · 101/150 fallback | [[Snippet_youtube-iframe-embed-react]] |
+| VS Code에 YouTube 로더 스니펫 등록 | [[Snippet_youtube-iframe-embed-react]] § VS Code → [[VSCode_User_Snippets]] |
 
 ---
 

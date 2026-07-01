@@ -70,7 +70,7 @@ flowchart TB
 
 # TypeORM vs Prisma
 
-||TypeORM|Prisma|
+| |TypeORM|Prisma|
 |---|---|---|
 |정의 방식|Entity 클래스|`schema.prisma` 파일 하나|
 |흐름|코드 먼저 → DB 반영|스키마 먼저 → Client 자동 생성|

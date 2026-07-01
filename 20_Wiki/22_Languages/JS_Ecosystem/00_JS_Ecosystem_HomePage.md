@@ -22,37 +22,27 @@ Python(Pandas/Airflow/Kafka)은 이 묶음과 실제로 얽힌 적이 없어서 
 
 ```mermaid-beautiful
 flowchart TB
-    PY["Python<br/>별도 폴더 — 이 묶음과 무관"]
+    PY["Python<br/>별도 폴더 — 무관"]
 
-    JS["JavaScript<br/>런타임"]
-    TS["TypeScript<br/>타입 시스템"]
-    REACT["React<br/>컴포넌트 모델"]
-    NEXT["Next.js<br/>프레임워크"]
+    subgraph STACK["기술 스택 — 한 묶음"]
+        direction LR
+        JS["JavaScript"] --> TS["TypeScript"] --> REACT["React"] --> NEXT["Next.js"]
+    end
 
-    subgraph CLUSTER["연결 클러스터 — 같은 행끼리 같이 보면 됨"]
+    subgraph NOTES["이 폴더 노트 구성"]
         direction TB
-        C1["인증/토큰<br/>URL_Encoding · Context · TokenStorage · API_Client …"]
-        C2["브라우저 · DOM<br/>BrowserAPI · DOM_Events · useRef · ServerClient"]
-        C3["React 훅<br/>useMemo · Context · useRef · useFormStatus"]
-        C4["API · 타입 매핑<br/>Fetch_API · API_Client · Mapper · UI_Types"]
-        C5["라우팅 · 메타데이터<br/>Routing · Metadata"]
-        C6["날짜/문자열<br/>Date · URL_Encoding"]
+        BASE["범용 문법 기초<br/>전 트랙에 깔림"]
+        CLUSTER["연결 클러스터<br/>표 — 같은 행끼리 같이 보기"]
+        SOLO["독립 노트<br/>클러스터 밖"]
     end
 
-    subgraph BASE["범용 문법 기초 — 전 트랙에 깔림"]
-        B["Generics · Array_Methods · OptionalChaining · Loops …"]
-    end
-
-    subgraph SOLO["독립 노트 — 클러스터 밖"]
-        S["Concept · Operators · Env_Config · Vite …"]
-    end
-
-    PY -.->|"얽힌 적 없음"| JS
-    JS --> TS --> REACT --> NEXT
+    PY -.-> STACK
+    STACK --> NOTES
     BASE --> CLUSTER
-    NEXT --> CLUSTER
-    REACT --> SOLO
-    NEXT --> SOLO
+```
+
+```txt
+큰 틀: Python은 별도 → JS·TS·React·Next는 위에서 아래로 쌓임 → 아래 표는 문법 기초 · 연결 묶음 · 독립 노트 세 층
 ```
 
 ---
@@ -61,17 +51,17 @@ flowchart TB
 
 ️
 
-| 클러스터              | JS                                     | TS                                     | React                                                                                                               | Next.js                                                                                                                                            |
-| ----------------- | -------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 인증/토큰 흐름          | [[JS_URL_Encoding]]                    | —                                      | [[React_Context]]                                                                                                   | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
-| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] | [[TS_DOM_Events]]                      | [[React_useRef]]                                                                                                    | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
-| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션)           | —                                      | [[React_CSSProperties]]                                                                                             | —                                                                                                                                                  |
-| React 훅 기초        | —                                      | —                                      | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useId]] · [[React_Portal]] | —                                                                                                                                                  |
-| 폼 처리              | [[JS_FormData]]                        | —                                      | [[React_useFormStatus]] · [[React_ControlledInput]]                                                                 | [[NextJS_Server_Actions]]                                                                                                                          |
-| 차트/시각화            | [[JS_BrowserAPI]] (SSR 제약)             | [[TS_Utility_Types]] (`PartialTheme`류) | [[React_Charts]]                                                                                                    | [[NextJS_API_Mapper]] (데이터 shape 변환) · [[NestJS_Prisma]] (버전 변경 사례)                                                                                |
-| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                       | —                                      | —                                                                                                                   | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
-| 라우팅 · 메타데이터       | —                                      | —                                      | —                                                                                                                   | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
-| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]      | —                                      | —                                                                                                                   | —                                                                                                                                                  |
+| 클러스터              | JS                                                       | TS                                     | React                                                                                                               | Next.js                                                                                                                                            |
+| ----------------- | -------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 인증/토큰 흐름          | [[JS_URL_Encoding]]                                      | —                                      | [[React_Context]]                                                                                                   | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] · [[NextJS_Routing]] · [[NextJS_API_Client]]                                     |
+| 브라우저 환경 · DOM 이벤트 | [[JS_BrowserAPI]] · [[JS_CustomEvent]] · [[JS_DOM]]      | [[TS_DOM_Events]]                      | [[React_useRef]]                                                                                                    | [[NextJS_ServerClient]] (use client/server 경계)                                                                                                     |
+| 스타일링 · CSS        | [[JS_BrowserAPI]] (style 섹션) ·<br>[[JS_DOM]] (classList) | —                                      | [[React_CSSProperties]]                                                                                             | —                                                                                                                                                  |
+| React 훅 기초        | —                                                        | —                                      | [[React_useMemo_useCallback_useEffect]] · [[React_Context]] · [[React_useRef]] · [[React_useId]] · [[React_Portal]] | —                                                                                                                                                  |
+| 폼 처리              | [[JS_FormData]]                                          | —                                      | [[React_useFormStatus]] · [[React_ControlledInput]]                                                                 | [[NextJS_Server_Actions]]                                                                                                                          |
+| 차트/시각화            | [[JS_BrowserAPI]] (SSR 제약)                               | [[TS_Utility_Types]] (`PartialTheme`류) | [[React_Charts]]                                                                                                    | [[NextJS_API_Mapper]] (데이터 shape 변환) · [[NestJS_Prisma]] (버전 변경 사례)                                                                                |
+| API 통신 · 타입 매핑    | [[JS_Fetch_API]]                                         | —                                      | —                                                                                                                   | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_UI_Types]] (← 백엔드 [[NestJS_DTO]]의 OpenAPI 타입 생성과 연결, [[00_NestJS_Ecosystem_HomePage]] 참고) |
+| 라우팅 · 메타데이터       | —                                                        | —                                      | —                                                                                                                   | [[NextJS_Routing]] · [[NextJS_Metadata]]                                                                                                           |
+| 날짜/문자열 — 독립 유틸    | [[JS_Date]] · [[JS_URL_Encoding]]                        | —                                      | —                                                                                                                   | —                                                                                                                                                  |
 
 
 ```txt
