@@ -9,6 +9,7 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_TokenStorage]]"
   - "[[NextJS_AuthCache]]"
+  - "[[NestJS_CORS]]"
 ---
 
 # Web_XSS_CSRF — 두 공격이 정확히 뭔지

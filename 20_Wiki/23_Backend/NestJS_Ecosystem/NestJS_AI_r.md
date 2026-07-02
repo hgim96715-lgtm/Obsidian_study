@@ -1,12 +1,16 @@
 ---
-aliases: [설명 생성, AI, Anthropic, Claude]
+aliases:
+  - 설명 생성
+  - AI
+  - Anthropic
+  - Claude
 tags:
   - NestJS
   - AI
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Env_Config]]"
-  - "[[NestJS_External_API]]"
+  - "[[NestJS_External_API_r]]"
   - "[[NestJS_Service_Provider]]"
 ---
 # NestJS_AI — Claude AI 연동

@@ -1,10 +1,13 @@
 ---
-aliases: [영상 처리, fluent-ffmpeg, NestJS FFmpeg]
+aliases:
+  - 영상 처리
+  - fluent-ffmpeg
+  - NestJS FFmpeg
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_FileUpload]]"
+  - "[[NestJS_FileUpload_r]]"
   - "[[NestJS_Queue]]"
 ---
 

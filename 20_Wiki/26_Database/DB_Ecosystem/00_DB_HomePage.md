@@ -65,12 +65,14 @@ PostgreSQL이든 MySQL이든 Redis든 공통으로 알아야 하는 개념들
 특정 DB에 종속되지 않는 원리 — 먼저 개념을 잡고, 각 DB 노트에서 구체적인 문법을 봄
 ```
 
-|개념|노트|핵심|
-|---|---|---|
-|ACID · 트랜잭션|[[DB_Transaction]]|BEGIN · COMMIT · ROLLBACK · Isolation Level 4단계|
-|인덱스 원리|[[DB_Index]]|B-Tree 구조 · 복합 인덱스 컬럼 순서 · 언제 안 타는가|
-|정규화|[[DB_Normalization]]|1NF · 2NF · 3NF · 반정규화 트레이드오프|
-|N+1 문제|[[DB_N_Plus_1]]|ORM include 전략 → [[NestJS_Prisma]] 연결|
+| 개념            | 노트                      | 핵심                                              |
+| ------------- | ----------------------- | ----------------------------------------------- |
+| ACID · 트랜잭션   | [[DB_Transaction]]      | BEGIN · COMMIT · ROLLBACK · Isolation Level 4단계 |
+| 인덱스 원리        | [[DB_Index]]            | B-Tree 구조 · 복합 인덱스 컬럼 순서 · 언제 안 타는가             |
+| 정규화           | [[DB_Normalization]]    | 1NF · 2NF · 3NF · 반정규화 트레이드오프                   |
+| N+1 문제        | [[DB_N_Plus_1]]         | ORM include 전략 → [[NestJS_Prisma]] 연결           |
+| 무중단 마이그레이션 패턴 | [[DB_MigrationPattern]] | Expand-Contract · 무중단 DDL · 백필 전략               |
+
 
 ---
 

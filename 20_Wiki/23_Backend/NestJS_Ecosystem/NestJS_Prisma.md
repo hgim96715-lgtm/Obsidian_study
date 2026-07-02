@@ -8,7 +8,7 @@ tags:
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Module]]"
-  - "[[NestJS_Pagination]]"
+  - "[[NestJS_Pagination_r]]"
   - "[[NestJS_Prisma_Monorepo]]"
   - "[[JS_Operators]]"
   - "[[NestJS_DTO]]"
@@ -802,7 +802,7 @@ this.prisma.post.findMany({
 });
 ```
 
-> 커서 기반 페이지네이션은 [[NestJS_Pagination]] 참고
+> 커서 기반 페이지네이션은 [[NestJS_Pagination_r]] 참고
 
 ---
 

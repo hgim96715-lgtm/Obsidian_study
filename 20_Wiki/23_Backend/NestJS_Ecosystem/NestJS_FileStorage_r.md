@@ -1,13 +1,21 @@
 ---
-aliases: [클라우드 스토리지, 파일 저장소, Cloudflare R2, public URL, R2, S3]
+aliases:
+  - 클라우드 스토리지
+  - 파일 저장소
+  - Cloudflare R2
+  - public URL
+  - R2
+  - S3
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Deploy]]"
   - "[[NestJS_Env_Config]]"
-  - "[[NestJS_FileUpload]]"
+  - "[[NestJS_FileUpload_r]]"
 ---
+
+
 # NestJS_FileStorage — 클라우드 파일 저장소 (S3 호환)
 
 # 한 줄 요약

@@ -1,11 +1,15 @@
 ---
-aliases: [Bull Queue, BullMQ, NestJS Queue, Redis]
+aliases:
+  - Bull Queue
+  - BullMQ
+  - NestJS Queue
+  - Redis
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_FFmpeg]]"
-  - "[[NestJS_Scheduling]]"
+  - "[[NestJS_FFmpeg_r]]"
+  - "[[NestJS_Scheduling_r]]"
 ---
 
 # NestJS_Queue — 큐

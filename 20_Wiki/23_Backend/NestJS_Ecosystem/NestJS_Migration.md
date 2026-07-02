@@ -15,11 +15,12 @@ related:
   - "[[NestJS_Prisma_Monorepo]]"
   - "[[NestJS_PostgreSQL]]"
   - "[[Deploy_CloudMVP]]"
+  - "[[DB_MigrationPattern]]"
 ---
 # NestJS_Migration — Prisma 마이그레이션
 
-> [!info]
->  마이그레이션 = schema.prisma 변경을 실제 DB에 반영하는 과정. 
+> [!info] 
+> 마이그레이션 = schema.prisma 변경을 실제 DB에 반영하는 과정
 >  `migrate dev`(로컬 개발) → `migrate deploy`(운영 배포) 가 기본 흐름이고, `_prisma_migrations` 테이블이 어떤 SQL이 이미 적용됐는지 추적한다.
 
 ---
@@ -65,7 +66,7 @@ schema.prisma만 고치면 DB는 안 바뀜 → migrate dev 필수
 
 # migrate dev vs db push — 언제 뭘 쓰나 ⭐️⭐️⭐️⭐️
 
-| |`migrate dev`|`db push`|
+||`migrate dev`|`db push`|
 |---|---|---|
 |마이그레이션 파일|생성됨 (`prisma/migrations/`)|생성 안 됨|
 |이력 추적|`_prisma_migrations` 테이블에 기록|기록 안 됨|
@@ -118,7 +119,7 @@ Railway/Neon 배포 시:
 
 ---
 
-# `_prisma_migrations` 테이블 — 이력 추적 ⭐️⭐️⭐️
+# _prisma_migrations 테이블 — 이력 추적 ⭐️⭐️⭐️
 
 ```txt
 migrate dev / migrate deploy를 실행하면 DB에 _prisma_migrations 테이블이 자동 생성됨
@@ -411,4 +412,8 @@ ENUM ADD VALUE:
 seed:
   upsert로 멱등성 보장 — 여러 번 실행해도 중복 없음
   migrate reset 시 자동 실행
+
+운영 중 스키마를 안전하게 변경해야 한다면 (컬럼 이름 변경, 타입 변경, NOT NULL 추가 등):
+  → [[DB_MigrationPattern]] Expand-Contract 패턴 참고
+  (migrate deploy 한 번으로 끝내는 게 아니라 배포를 단계별로 분리하는 전략)
 ```
