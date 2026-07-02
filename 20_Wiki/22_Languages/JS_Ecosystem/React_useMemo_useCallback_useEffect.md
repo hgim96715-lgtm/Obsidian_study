@@ -21,27 +21,51 @@ related:
 >  셋 다 "매번 다시 하지 않기" 위한 훅이지만, 막는 대상이 다르다. `useEffect`는 렌더링 자체와는 별개인 "리액트 바깥과의 동기화"(부수효과)를 처리하고, `useMemo`는 "계산 결과"를, `useCallback`은 "함수 자체"를 재사용한다.
 
 ---
-
-# 셋의 카테고리부터 구분하기 ⭐️⭐️⭐
+# 흐름도
 
 ```mermaid-beautiful
 flowchart TB
-    Q{"무엇이 필요?"}
+  RENDER["렌더링"] --> NEED{무엇이 필요한가}
 
-    Q -->|렌더 **후** 실행<br/>fetch · 타이머 · 구독| UE["useEffect"]
-    Q -->|매 렌더 **계산** 반복| UM["useMemo<br/>정렬·필터 · Context value 객체"]
-    Q -->|매 렌더 **함수** 참조가 문제| UC["useCallback"]
+  NEED -->|부수효과| EFF
+  NEED -->|값| MEM
+  NEED -->|함수| CB
 
-    UE --> F{"함수를 effect 밖에?"}
-    F -->|아니오 · **기본**| IN["effect **안에** 로직<br/>deps: a, b … 값만"]
-    F -->|예 · 여러 곳 호출 등| OUT["useCallback fn<br/>useEffect deps: fn, …"]
+  subgraph EFFECT["useEffect — 리액트 바깥 동기화"]
+    direction TB
+    EFF["useEffect"]
+    EFF --> ED1["의존성 배열"]
+    EFF --> ED2["cleanup으로 정리"]
+    EFF --> ED3["async는 내부 함수 · void 호출"]
+    EFF --> ED4["cancelled로 결과 무시"]
+  end
 
-    UC --> W{"참조 고정이 꼭 필요?"}
-    W -->|Context Provider value| OK1["useCallback ✅"]
-    W -->|React.memo 자식 props| OK2["useCallback ✅"]
-    W -->|effect deps용 fn만| NG["보통 ❌<br/>→ effect 안 로직으로 충분"]
-    W -->|그 외| NO["그냥 function 선언"]
+  subgraph MEMO["useMemo — 계산 결과 재사용"]
+    direction TB
+    MEM["useMemo"]
+    MEM --> MD1["의존성 배열"]
+    MEM --> MD2["무거운 정렬 · 필터"]
+    MEM --> MD3["객체 · 배열 참조 안정화"]
+  end
+
+  subgraph CALLB["useCallback — 함수 참조 고정"]
+    direction TB
+    CB["useCallback"]
+    CB --> CD1["의존성 배열"]
+    CB --> CD2["memo 자식에 전달"]
+    CB --> CD3["다른 훅 deps에 넣는 함수"]
+    CB --> CD4["Context value 안의 함수"]
+  end
 ```
+
+```txt
+useEffect만: cleanup · async void · cancelled — 메모이제이션 훅과 별개
+useMemo: 무거운 계산 · Context value 등 참조 안정화
+useCallback: memo 자식 · useEffect deps · Context에 넣는 함수
+의존성 배열 문법은 셋이 같지만, 각 훅 아래에만 해당
+```
+
+---
 
 |훅|막는 것|반환하는 것|
 |---|---|---|

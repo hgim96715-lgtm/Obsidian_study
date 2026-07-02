@@ -27,69 +27,32 @@ related:
   이 노트(NextJS_AuthCache)   그 토큰을 "언제 다시 검증하고, 유저 정보는 어디에 캐싱할지" +
                               도메인이 다른 배포에서 cookie를 쓰면 왜 더 복잡해지는지
 ```
+---
+# 흐름도
 
 ```mermaid-beautiful
 flowchart TB
-    subgraph ROLES["역할 분담"]
-        TS["NextJS_TokenStorage<br/>토큰 저장 위치<br/>localStorage · cookie · 메모리"]
-        AC["NextJS_AuthCache · 이 노트<br/>검증 시점 · user 캐시 · cross-origin cookie"]
-    end
+  LOGIN["로그인"] --> TOKEN["토큰 · localStorage<br/>탭·새로고침 후에도 유지"]
+  LOGIN --> USER["유저 정보 · Context<br/>메모리만 · 새로고침 시 사라짐"]
 
-    subgraph CACHE["두 캐시 레이어"]
-        LS[("localStorage<br/>토큰 · 새로고침 후에도 유지")]
-        CTX[("Context 메모리<br/>user · 새로고침 시 사라짐")]
-    end
+  LOAD["앱 로드 · 새로고침"] --> READ{토큰 있음?}
+  READ -->|없음| GUEST["비로그인"]
+  READ -->|있음| ME["me 재호출<br/>유효성 · 유저 정보"]
+  ME -->|200| CACHE["Context 갱신"]
+  ME -->|401| CLEAR["토큰 삭제"]
 
-    TS --> LS
+  SSR["SSR 첫 렌더"] --> BLIND["토큰 못 읽음"]
+  BLIND --> CSR["CSR 보강<br/>재요청 · merge"]
+  CSR --> CACHE
 
-    subgraph LOGIN["로그인 직후"]
-        L1["POST /auth/login"] --> L2["accessToken + user"]
-        L2 --> L3["token → localStorage"]
-        L2 --> L4["user → Context"]
-    end
+  CACHE --> UI["화면 · 버튼 표시"]
+  UI --> API["API 요청"]
+  API --> GUARD["서버 Guard<br/>최종 권한 판단"]
+```
 
-    L3 --> LS
-    L4 --> CTX
-    AC --> LOGIN
-
-    subgraph REFRESH["새로고침 · 앱 재진입"]
-        R0["Context 초기화"] --> R1{"localStorage<br/>토큰?"}
-        R1 -->|없음| GUEST["guest UI"]
-        R1 -->|있음| R2["GET /auth/me Bearer"]
-        R2 -->|200| R3["user 캐시 갱신"]
-        R2 -->|401| R4["토큰 삭제 · guest"]
-        R3 --> CTX
-    end
-
-    AC --> REFRESH
-
-    subgraph SSR_CSR["SSR → CSR 보강"]
-        S1["Next 서버 SSR<br/>localStorage 못 읽음<br/>likedByMe 모름"] --> S2["HTML → 브라우저"]
-        S2 --> S3["/me 완료 후"]
-        S3 --> S4["재-fetch user.id<br/>또는 merge"]
-        S4 --> S5["♥ · 개인화 UI 맞춤"]
-    end
-
-    R3 --> S3
-    AC --> SSR_CSR
-
-    subgraph GUARD["보호 API — 캐시는 표시용"]
-        H1["Heart · 올리기 · 클릭"] --> H2["authFetch Bearer"]
-        H2 --> H3["Nest JwtAuthGuard"]
-        H3 --> H4["허용 / 거부<br/>최종 판단은 서버"]
-    end
-
-  CTX -.->|버튼 표시만| H1
-  CTX -.->|신뢰하지 않음| H3
-
-    subgraph DEPLOY["런칭 시 토큰 저장 (TokenStorage 쪽)"]
-        D1{"프론트·백엔드<br/>도메인 분리?"}
-        D1 -->|MVP 7.5| D2["Bearer + localStorage 유지"]
-        D1 -->|보안 강화| D3["httpOnly cookie 검토"]
-        D3 --> D4["CORS · SameSite · credentials<br/>또는 같은 루트 도메인 · BFF"]
-    end
-
-    TS --> DEPLOY
+```txt
+캐시 2층: 토큰은 localStorage · 유저 정보는 메모리 — 매 로드마다 me로 다시 확인
+클라이언트 캐시는 표시용 · 실제 허용 여부는 항상 서버가 판단
 ```
 
 ---

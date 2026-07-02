@@ -17,6 +17,45 @@ related:
 > XSS는 "내 사이트에 남의 악성 스크립트가 끼어들어 실행되는 것"이고, CSRF는 "내가 로그인해둔 사이트에 다른 사이트가 내 의지와 무관하게 요청을 대신 보내는 것"이다. 토큰을 어디에 저장할지(localStorage vs httpOnly 쿠키) 고를 때, 이 둘 중 어느 쪽 위험을 줄일지의 트레이드오프가 생긴다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  ATTACK{공격 유형}
+
+  subgraph XSS["XSS — 스크립트 삽입"]
+    direction TB
+    X1["내 페이지 안에서 악성 스크립트 실행"]
+    X1 --> X2["localStorage 등 JS 접근 영역 노출"]
+  end
+
+  subgraph CSRF["CSRF — 요청 위조"]
+    direction TB
+    C1["다른 사이트가 내 사이트로 요청 대신 보냄"]
+    C1 --> C2["쿠키는 도메인 기준 자동 첨부"]
+    C2 --> C3["SameSite로 완화"]
+  end
+
+  subgraph BEARER["Bearer 토큰"]
+    direction TB
+    B1["Authorization 헤더는 코드가 명시해야 실림"]
+    B1 --> B2["자동 첨부 없음 · CSRF 성립 안 함"]
+  end
+
+  ATTACK -->|스크립트| X1
+  ATTACK -->|요청| C1
+
+  X2 --> LS["localStorage · XSS에 약함"]
+  C2 --> CK["httpOnly 쿠키 · CSRF에 약함"]
+```
+
+```txt
+XSS는 페이지 안 실행 · CSRF는 다른 사이트가 내 사이트로 요청을 대신 보냄
+쿠키는 브라우저가 자동 첨부 · Bearer 헤더는 명시 설정만 — CSRF에 안전
+저장 위치는 XSS vs CSRF 중 어느 쪽을 줄일지의 트레이드오프
+```
+
+---
 
 # XSS(Cross-Site Scripting) — 내 사이트에 악성 스크립트가 끼어듦 ⭐️⭐️⭐️⭐️
 

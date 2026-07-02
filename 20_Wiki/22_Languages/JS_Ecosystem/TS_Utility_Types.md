@@ -16,6 +16,46 @@ related:
 > TS가 기본 제공하는 "타입을 변형해서 새 타입을 만드는" 도구들이다. 객체 모양을 처음부터 다시 적지 않고, 기존 타입에서 일부를 빼거나(Omit) 고르거나(Pick) 선택적으로 만들거나(Partial) 하는 식으로 재사용한다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  BASE["기존 타입"] --> GOAL{변형 목적}
+
+  subgraph MAP["매핑 · 옵션"]
+    direction TB
+    REC["Record · 키값 객체"]
+    PART["Partial · 전부 옵셔널"]
+    REQ["Required · 전부 필수"]
+    RO["Readonly · 읽기 전용"]
+  end
+
+  subgraph CUT["속성 고르기"]
+    direction TB
+    PICK["Pick · 남길 속성 지정"]
+    OMIT["Omit · 뺄 속성 지정"]
+    OMIT --> REPLACE["교차로 필드 타입 교체"]
+  end
+
+  subgraph FN["함수에서 추출"]
+    direction TB
+    RET["ReturnType · 반환 타입"]
+  end
+
+  GOAL -->|키값 매핑| REC
+  GOAL -->|옵셔널| PART
+  GOAL -->|일부만| PICK
+  GOAL -->|제외| OMIT
+  GOAL -->|반환 타입| RET
+```
+
+```txt
+기존 타입을 처음부터 다시 안 적고 변형 — Record · Partial · Pick · Omit · ReturnType
+Pick은 남기기 · Omit은 빼기 — Omit 후 교차로 서드파티 필드 교체
+NestJS PartialType 등은 이름 같지만 타입만이 아니라 클래스와 데코레이터를 만드는 별개
+```
+
+---
 
 # Record<K, V> — 키-값 객체 타입 ⭐️⭐️⭐️⭐️
 

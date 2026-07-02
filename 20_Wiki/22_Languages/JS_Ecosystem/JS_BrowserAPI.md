@@ -18,6 +18,41 @@ related:
 > [!info] 
 >  브라우저가 JS에 기본으로 제공하는 API들이다. 설치 없이 바로 사용할 수 있고, React/Next.js 어디서든 동일하게 동작한다.
 
+---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  ROOT["브라우저 내장 API<br/>window · document · navigator"]
+
+  ROOT --> GUARD{사용 전 확인}
+  GUARD --> ENV["환경 감지<br/>서버에는 브라우저 객체 없음"]
+  GUARD --> FEAT["기능 감지<br/>브라우저마다 지원 다름"]
+
+  ENV --> NEED["렌더 중 · 모듈 최상단 · 범용 유틸"]
+  FEAT --> ALWAYS["기능별 존재 확인"]
+
+  NEED --> SKIP["useEffect 안은<br/>환경 감지 생략 가능"]
+  ALWAYS --> CALL["API 호출"]
+  SKIP --> CALL
+  NEED --> CALL
+
+  ROOT --> CAT["카테고리"]
+  CAT --> D1["다이얼로그 confirm alert prompt"]
+  CAT --> D2["location · localStorage · sessionStorage"]
+  CAT --> D3["document DOM 조작"]
+  CAT --> D4["matchMedia · setTimeout"]
+  CAT --> D5["navigator clipboard share geo"]
+  CAT --> D6["URLSearchParams · 파일 미리보기 · 창 제어"]
+```
+
+```txt
+환경 감지와 기능 감지는 질문이 다름 — typeof 패턴 문법은 같아도 목적이 별개
+useEffect·이벤트 핸들러 안: 환경 감지는 보통 불필요 · 기능 감지는 여전히 필요
+```
+
+---
+
 # 빠르게 찾기 ⭐️⭐️⭐️
 
 | 카테고리        | API                                                             |

@@ -20,6 +20,36 @@ prevState인가" 와 "isPending이 대체 어디서 나오는가" 두 가지임
 ```
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  SUBMIT["폼 제출"] --> FD["FormData 자동 생성"]
+
+  FD --> ACT{액션 연결}
+  ACT -->|폼에 직접| ONE["인자 1개 · formData"]
+  ACT -->|useActionState| TWO["인자 2개 · prevState · formData"]
+
+  TWO --> UAS["useActionState"]
+  UAS --> OUT["state · formAction · isPending"]
+  OUT --> RET["예상 실패는 return<br/>state에 메시지 반영"]
+  OUT --> PEND1["같은 컴포넌트 · isPending"]
+
+  SUBMIT --> UFS["useFormStatus"]
+  UFS --> CHILD["form 자식 컴포넌트 안에서만"]
+  CHILD --> PEND2["pending 읽기"]
+
+  USE["useState"] --> PRE["제출 전 · 사용자 조작"]
+  OUT --> POST["제출 후 · 결과·처리중"]
+```
+
+```txt
+useActionState 액션은 prevState가 앞 — reduce와 같은 누적 패턴
+isPending과 pending은 같은 정보 · 읽는 위치만 다름
+useState는 제출 전 · useActionState는 제출 후
+```
+
+---
 
 # 왜 필요한가 ⭐️
 

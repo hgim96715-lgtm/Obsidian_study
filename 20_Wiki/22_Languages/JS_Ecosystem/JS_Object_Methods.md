@@ -16,6 +16,29 @@ related:
 >   객체 자체는 map/filter 같은 배열 메서드를 직접 못 쓰지만, 일단 이 메서드들로 배열을 만들고 나면 [[JS_Array_Methods]]의 모든 메서드를 그대로 이어서 쓸 수 있다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    OBJ["객체 obj"] --> EXTRACT{무엇이 필요?}
+    EXTRACT -->|키만| KEYS["Object.keys()"]
+    EXTRACT -->|값만| VALS["Object.values()"]
+    EXTRACT -->|키+값| ENT["Object.entries() ⭐"]
+    KEYS --> ARR["배열"]
+    VALS --> ARR
+    ENT --> ARR
+    ARR --> ARRAY["map · filter · for...of<br/>JS_Array_Methods"]
+    ARRAY -->|가공 후 복원| FROM["Object.fromEntries()"]
+    FROM --> NEW["새 객체"]
+```
+
+```txt
+객체는 map/filter 직접 ❌ — keys/values/entries로 배열 만든 뒤 배열 메서드 사용
+모르겠으면 entries부터 — 키만 [k] · 값만 [, v] 구조분해로 건너뛰기
+합치기: 평소 { ...a, ...b } · fromEntries는 entries 가공 후 되돌릴 때
+```
+
+---
 
 # 왜 필요한가 — 객체는 배열 메서드를 직접 못 씀 ⭐️⭐️⭐️
 

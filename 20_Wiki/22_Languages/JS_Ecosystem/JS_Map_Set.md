@@ -22,6 +22,46 @@ related:
 >  WeakSet/WeakMap은 Set/Map과 거의 같지만, 참조가 사라지면 자동으로 메모리가 정리된다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  CHOOSE{무엇이 필요한가}
+
+  subgraph SET["Set — 중복 없는 값"]
+    direction TB
+    S1["add · has · delete · size"]
+    S1 --> S2["원시값은 값으로 비교"]
+    S1 --> S3["객체 Date는 참조 비교"]
+    S3 --> S4["중복 제거 시 문자열 키로 변환"]
+  end
+
+  subgraph MAP["Map — key-value"]
+    direction TB
+    M1["set · get · has · delete"]
+    M1 --> M2["key에 객체 · 함수 가능"]
+    M1 --> M3["삽입 순서 보장"]
+    M1 --> M4["카운팅 · 집계"]
+  end
+
+  subgraph WEAK["WeakMap · WeakSet"]
+    direction TB
+    W1["객체만 허용"]
+    W1 --> W2["참조 사라지면 GC"]
+    W1 --> W3["순회 · size 없음"]
+  end
+
+  CHOOSE -->|중복 제거| S1
+  CHOOSE -->|key-value| M1
+  CHOOSE -->|메모리 자동 정리| W1
+```
+
+```txt
+Set은 값 중복 제거 · Map은 key-value · Weak는 참조 없어지면 자동 GC
+Set에 객체 Date는 참조 비교 — 같은 날은 YYYY-MM-DD 문자열 키로
+```
+
+---
 
 # Set — 중복 없는 값 모음 ⭐️
 

@@ -17,6 +17,28 @@ related:
 Next.js 라우팅(NextJS_Routing)과는 별개의 주제임 — 어디서 URL을 직접 문자열로 조립하든
 (쿼리스트링, fetch URL, a 태그 href 등) 항상 같은 이유로 필요해지는 범용 JS 함수
 ```
+---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    RAW["특수문자 · 한글 포함 문자열"] --> NEED{URL에 어떻게 넣나}
+    NEED -->|값 한 조각| PIECE["쿼리 파라미터 · callbackUrl 등"]
+    NEED -->|URL 전체| WHOLE["이미 경로 구조가 있는 주소"]
+
+    PIECE --> ENC1["encodeURIComponent<br/>슬래시 · 물음표 · 등호까지 인코딩"]
+    WHOLE --> ENC2["encodeURI<br/>구조 문자는 유지 · 한글만"]
+
+    ENC1 --> SAFE["퍼센트 인코딩 · 안전한 URL"]
+    ENC2 --> SAFE
+    SAFE --> READ["읽을 때 대부분 자동 디코딩"]
+    READ --> DEC["decodeURIComponent<br/>수동 파싱할 때만"]
+```
+
+```txt
+실전 기본: 변수를 URL에 끼워 넣는다 → encodeURIComponent
+encodeURI는 완성된 URL 전체에 비ASCII만 붙일 때 — 드물다
+```
 
 ---
 

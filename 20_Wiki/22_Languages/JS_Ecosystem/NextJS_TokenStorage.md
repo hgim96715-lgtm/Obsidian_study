@@ -31,6 +31,32 @@ related:
 ```
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  RESP["로그인 응답 accessToken"] --> NEED["새로고침·이동 후에도<br/>로그인 상태 유지"]
+
+  NEED --> PICK{저장 위치}
+  PICK --> LS["localStorage · sessionStorage<br/>지속 · XSS 노출 · CSRF 안전"]
+  PICK --> COOKIE["httpOnly 쿠키<br/>XSS 안전 · CSRF 노출"]
+  PICK --> MEM["메모리 state<br/>새로고침 시 사라짐"]
+
+  LS --> WRAP["get · set · clear 로 감싸기"]
+  WRAP --> GUARD["서버 실행 시<br/>브라우저 객체 없음 가드"]
+  GUARD --> GET["getApiAccessToken"]
+  GET --> HDR["Bearer 헤더에 실어 API 요청"]
+
+  OK["로그인 성공"] --> SET["setApiAccessToken"]
+  OUT["로그아웃 · 만료"] --> CLEAR["clearApiAccessToken"]
+```
+
+```txt
+저장 위치는 XSS vs CSRF 트레이드오프 — Bearer 방식은 localStorage와 자연스럽게 맞음
+get set clear로 키·저장 방식을 한곳에 모음 · Next 서버 렌더 시 가드 없으면 에러
+```
+
+---
 
 # 왜 토큰을 클라이언트에 저장해야 하나 ⭐️⭐️
 

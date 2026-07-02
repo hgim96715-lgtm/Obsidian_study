@@ -26,6 +26,27 @@ related:
 ```
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    CMP["비교<br/>=== 엄격 · 참조 비교"]
+    LOG["논리<br/>and or not 단축평가"]
+    DOT{점3개 ...}
+    DOT -->|리터럴 안| SPREAD["spread · 펼치기"]
+    DOT -->|매개변수| REST["rest · 모으기"]
+    REST --> DEST["구조분해<br/>객체 · 배열"]
+    SPREAD --> COPY["복사 · 합치기"]
+    INST["instanceof<br/>클래스 인스턴스"]
+```
+
+```txt
+and: a falsy면 a 반환 · b 안 평가 / or: a truthy면 a 반환
+같은 ... 문법 — 위치에 따라 spread(펼치기) vs rest(모으기)
+구조분해에서 rest로 나머지 필드·요소를 한 번에 모음
+```
+
+---
 
 # 비교 연산자 — == vs === ⭐️⭐️⭐️⭐️
 

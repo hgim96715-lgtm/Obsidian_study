@@ -17,6 +17,43 @@ related:
 > 비제어 인풋은 React가 그 값을 모르기 때문에, 폼이 외부 요인(예: action 완료 후 자동 reset)으로 비워지면 state와 화면이 서로 다른 값을 가리키는 불일치가 생길 수 있다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  INPUT["입력 컴포넌트"] --> WHO{값의 주인}
+
+  subgraph UNCTL["비제어 — DOM이 주인"]
+    direction TB
+    U1["value 연결 없음"]
+    U1 --> U2["React는 현재 값 모름"]
+    U1 --> U3["필요 시 ref로 읽기"]
+    U1 --> U4["외부 reset 시 state와 불일치"]
+  end
+
+  subgraph CTL["제어 — state가 주인"]
+    direction TB
+    C1["value · onChange 연결"]
+    C1 --> C2["React가 항상 값 앎"]
+    C1 --> C3["렌더마다 state로 DOM 반영"]
+    C1 --> C4["성공 시에만 set으로 명시 초기화"]
+  end
+
+  WHO -->|DOM| U1
+  WHO -->|state| C1
+
+  RESET["form action 완료 후 자동 reset"] --> U4
+  U4 --> FIX["제어 컴포넌트로 전환"]
+  FIX --> C1
+```
+
+```txt
+비제어는 DOM 주인 · 제어는 state 주인
+action 후 자동 reset이면 비제어에서 화면과 state 불일치 — 제어로 전환
+성공 시에만 set으로 state 초기화 · 실패 시 입력값 유지
+```
+
+---
 
 # 제어 vs 비제어 — 누가 값의 주인인가 ⭐️⭐️⭐️⭐️
 

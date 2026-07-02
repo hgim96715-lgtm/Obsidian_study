@@ -19,6 +19,26 @@ related:
 >  Vercel(프론트) + Railway(API)처럼 도메인이 다른 구조에서 로그인·쿠키가 안 되는 이유가 대부분 여기에 있다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    FE["프론트<br/>origin A · vercel.app"] --> BR["브라우저"]
+    BR -->|"cross-origin fetch"| API["Nest API<br/>origin B · railway.app"]
+    API --> CORS["main.ts enableCors<br/>origin · credentials"]
+    CORS --> HDR["Access-Control-* 응답 헤더"]
+    HDR --> BR
+    BR -->|origin 매칭| OK["요청 통과"]
+    BR -->|미설정 · 불일치| BLOCK["브라우저 차단"]
+```
+
+```txt
+same-origin = 프로토콜·도메인·포트 모두 같음 — CORS 불필요
+cross-origin = 하나라도 다름 — 서버가 origin을 명시 허용해야 함
+credentials: true 는 서버·fetch 양쪽 모두 — origin: '*' 와 같이 쓸 수 없음
+```
+
+---
 
 # CORS가 필요한 이유 ⭐️⭐️⭐️
 

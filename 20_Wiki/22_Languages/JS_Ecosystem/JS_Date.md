@@ -23,10 +23,32 @@ related:
 > [!info] 
 > Date는 내부적으로 "UTC 타임스탬프" 하나만 저장한다. 문자열 파싱 방식(날짜만 / 시간 포함 / 오프셋 포함)에 따라 해석이 달라지고, "날짜 자체"와 "경과 시간(ms)"을 구분해서 다뤄야 상대 날짜 표시(오늘/어제/N일 전) 같은 곳에서 버그가 안 생긴다.
 
+---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    IN["입력<br/>ISO 문자열 · ms · 연월일"] --> PARSE{문자열 형태}
+    PARSE -->|"YYYY-MM-DD만"| UTC["UTC 자정 해석"]
+    PARSE -->|"T시간 · 오프셋 없음"| LOCAL["로컬 해석"]
+    PARSE -->|"+09:00 · Z"| OFF["오프셋 명시"]
+    UTC --> STORE
+    LOCAL --> STORE
+    OFF --> STORE
+    STORE["Date<br/>UTC ms 하나 저장"]
+
+    STORE --> KIND{무엇이 필요?}
+    KIND -->|경과 시간| MS["Date.now() · getTime()<br/>숫자 ms"]
+    KIND -->|캘린더 날짜| DAY["startOfDay · Intl timeZone<br/>KST 키 · en-CA"]
+    MS --> REL["상대 표시<br/>오늘 · 어제 · N일 전"]
+    DAY --> REL
+    STORE --> FMT["표시만<br/>toLocaleDateString · format"]
 ```
-이 노트의 모든 "트릭"(+09:00 / T12:00:00 / en-CA / startOfDay)은
-전부 "Date는 UTC 타임스탬프 하나, 시간대는 표시할 때만 적용" 이라는 규칙 하나에서 나온 변형임
-→ 그 규칙부터 이해하면 나머지는 자연스럽게 이어짐
+
+```txt
+Date 내부 = UTC 타임스탬프 하나 · 시간대는 표시·집계할 때만 적용
+이 노트의 트릭(+09:00 / T12:00:00 / en-CA / startOfDay)은 위 규칙에서 나온 변형
+경과 ms(스로틀·차이)와 캘린더 날짜(오늘/어제)를 섞으면 버그 — 용도부터 나누기
 ```
 
 ---

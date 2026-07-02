@@ -19,6 +19,26 @@ related:
 > "falsy"한 값은 딱 7개뿐이고, 그 외의 모든 값(빈 배열·빈 객체 포함!)은 truthy다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    VAL["값 x"] --> KIND{어떤 연산?}
+    KIND -->|if and or 삼항| CHECK{falsy 7개?}
+    CHECK -->|예| F["falsy<br/>false · 0 · null · undefined · NaN"]
+    CHECK -->|아니오| T["truthy<br/>빈 배열 · 빈 객체 · 문자열 0 · 문자열 false"]
+    KIND -->|널리시 ??| NULL{null 또는 undefined?}
+    NULL -->|예| DEF["기본값"]
+    NULL -->|아니오| KEEP["x 유지<br/>0 · 빈 문자열도 값으로 취급"]
+```
+
+```txt
+falsy는 딱 7개만 — 나머지는 전부 truthy (빈 배열·빈 객체 포함)
+비었는지 확인: array.length · Object.keys().length — if(array) ❌
+??는 truthy/falsy 안 봄 — [[JS_OptionalChaining]]
+```
+
+---
 
 # Falsy 값 — 정확히 이 7개뿐 ⭐️⭐️⭐️⭐️
 

@@ -28,6 +28,33 @@ TypeScript는 그 위에 타입 검사만 더하는 것
 ```
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    QDOT["옵셔널 ?."]
+    QDOT --> PROP["속성 체이닝<br/>a?.b?.c"]
+    QDOT --> CALL["함수 호출<br/>fn?.()"]
+    QDOT --> IDX["배열 · 동적키<br/>arr?.［i］"]
+
+    PROP --> MID{null · undefined?}
+    CALL --> MID
+    IDX --> MID
+    MID -->|예| UNDEF["undefined · 에러 없음"]
+    MID -->|아니오| VAL["값 도달"]
+
+    VAL --> COAL["널리시 ??"]
+    COAL -->|null · undefined만| DEF["기본값 b"]
+    COAL -->|0 · 빈문자열 유지| KEEP["그대로 사용"]
+```
+
+```txt
+?. = 중간에 없으면 멈춤 · 일반 접근은 TypeError
+?? = null · undefined만 기본값 — 0 · 빈 문자열은 유효한 값
+흔한 조합: error?.message ?? 기본 메시지
+```
+
+---
 
 # ?. — 옵셔널 체이닝 ⭐️⭐️⭐️⭐️
 

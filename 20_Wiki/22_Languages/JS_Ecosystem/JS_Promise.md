@@ -21,41 +21,28 @@ related:
 > Promise는 "지금은 모르지만 나중에 결과가 나올 값"을 표현하는 객체
 >  pending(대기) → fulfilled(성공) 또는 rejected(실패) 중 하나로 끝나는 상태 머신이고, async/await는 이 Promise를 다루는 문법을 더 읽기 쉽게 만들어준 것일 뿐
 
+---
+# 흐름도
+
 ```mermaid-beautiful
 flowchart TB
-    START(["비동기 시작<br/>fetch() · new Promise() · async 함수()"])
+    START["new Promise · fetch 등"] --> PENDING["pending<br/>대기 중"]
+    PENDING -->|resolve| FUL["fulfilled · 결과값"]
+    PENDING -->|reject| REJ["rejected · 에러"]
+    FUL --> OK[".then / await"]
+    REJ --> ERR[".catch / try·catch"]
+    SYNTAX["async/await<br/>Promise를 읽기 쉽게"] -.-> OK
+    SYNTAX -.-> ERR
 
-    START --> PENDING
-
-    PENDING["⏳ pending<br/>아직 결과 없음"]
-
-    PENDING -->|"resolve(값)"| FULFILLED["✅ fulfilled<br/>결과값 있음"]
-    PENDING -->|"reject(에러) · throw"| REJECTED["❌ rejected<br/>에러 있음"]
-
-    FULFILLED --> CHAIN[".then(값 => ...)"]
-    REJECTED --> CHAIN2[".catch(에러 => ...)"]
-
-    FULFILLED --> AWAIT["await promise"]
-    REJECTED --> TRYCATCH["try { await } catch { }"]
-
-    CHAIN --> USE(["값 / 에러 사용"])
-    CHAIN2 --> USE
-    AWAIT --> USE
-    TRYCATCH --> USE
-
-    LOCK["🔒 fulfilled · rejected 이후<br/>상태 다시 변경 ❌"]
-
-    FULFILLED -.-> LOCK
-    REJECTED -.-> LOCK
-
-    EQUIV["async/await ≡ then/catch<br/>같은 Promise · 다른 문법"]
-
-    CHAIN -.-> EQUIV
-    AWAIT -.-> EQUIV
+    LOCK["한 번 fulfilled/rejected<br/>되면 되돌릴 수 없음"]
+    FUL -.- LOCK
+    REJ -.- LOCK
 ```
 
 ```txt
-읽는 순서: 시작 → pending(대기) → 성공 또는 실패 중 하나로 끝 → 그 결과를 then/catch 또는 await로 꺼냄
+이미 Promise 반환 함수(fetch 등)는 new Promise로 다시 감쌀 필요 없음 — await만
+여러 개 동시: Promise.all · 순서대로: for...of + await
+fire-and-forget: void promise.catch() — [[NestJS_Throttle]]
 ```
 
 ---

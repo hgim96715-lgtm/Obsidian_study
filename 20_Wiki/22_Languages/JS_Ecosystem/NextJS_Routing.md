@@ -1,11 +1,16 @@
 ---
-aliases: [callbackUrl, redirect, usePathname, useRouter]
+aliases:
+  - callbackUrl
+  - redirect
+  - usePathname
+  - useRouter
 tags:
   - React
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_URL_Encoding]]"
+  - "[[NextJS_TokenStorage]]"
   - "[[NextJS_TokenStorage]]"
 ---
 # NextJS_Routing — 페이지 이동과 경로 다루기
@@ -15,38 +20,32 @@ related:
 >  지금 경로 문자열이 필요하면 `usePathname()`, 쿼리스트링이 필요하면 `useSearchParams()`. 
 >  `redirect()`는 서버 전용 함수이고, `redirectTo`/`callbackUrl`은 함수가 아니라 "어디로 돌아갈지"를 기억해두는 관습적인 파라미터 이름일 뿐이다.
 
----
+> **한 줄:** 클릭 → `Link` · 로직 끝 이동 → `useRouter` · 서버 → `redirect` · 토큰은 `pathname` 바뀔 때 다시 읽기.
 
-## 한눈에 — 어떤 걸 쓸까 (mermaid)
+---
+# 흐름도
 
 ```mermaid-beautiful
 flowchart TB
-  START["이동이 필요함"]
-
-  START --> RUNTIME{"코드가 어디서 실행되나?"}
-
-  RUNTIME -->|"서버<br/>async page · Server Action · Route Handler"| SRV["redirect(href)<br/>next/navigation"]
-  RUNTIME -->|"클라이언트<br/>'use client' 컴포넌트"| CLI["브라우저에서 이동"]
-
-  CLI --> TRIGGER{"누가 이동을 시작하나?"}
-
-  TRIGGER -->|"사용자가 직접 클릭<br/>메뉴 · 카드 · 텍스트 링크"| LINK["<Link href=...><br/>프리페치 O"]
-  TRIGGER -->|"폼 제출 성공 · if 조건 등<br/>내 코드가 판단한 뒤"| ROUTER["useRouter()"]
-
-  ROUTER --> METHOD{"뒤로가기로<br/>방금 페이지로 돌아가야 하나?"}
-
-  METHOD -->|"예 — 목록 → 상세 같은 탐색"| PUSH["router.push(href)<br/>히스토리에 쌓음"]
-  METHOD -->|"아니오 — 로그인 성공 후 등"| REPLACE["router.replace(href)<br/>현재 항목 덮어씀"]
-
-  CLI --> READ["경로·쿼리만 읽을 때"]
-  READ --> PATH["usePathname()<br/>/login 만 — ? 뒤 제외"]
-  READ --> QUERY["useSearchParams()<br/>?callbackUrl=... 만"]
-
-  PATH --> SYNC["localStorage 등 React가 모르는 값<br/>→ useEffect(..., [pathname])<br/>경로 바뀔 때 다시 읽기"]
+  NAV{이동 주체}
+  NAV -->|사용자 클릭| LINK["Link<br/>프리페치 자동"]
+  NAV -->|코드 로직 끝| ROUTER["useRouter"]
+  NAV -->|서버 컴포넌트| REDIRECT["redirect<br/>렌더 중단 후 이동"]
+  ROUTER --> HIST{히스토리}
+  HIST -->|쌓기| PUSH["push"]
+  HIST -->|덮기| REPLACE["replace"]
+  READ["경로 읽기"]
+  READ --> PATH["usePathname<br/>경로만"]
+  READ --> QUERY["useSearchParams<br/>쿼리스트링"]
+  PATH --> SYNC["useEffect pathname<br/>경로 바뀔 때 재확인"]
+  GUARD["로그인 필요"] --> SAVE["callbackUrl에<br/>현재 경로 저장"]
+  SAVE --> LOGIN["로그인 페이지"]
+  LOGIN --> BACK["성공 후 replace<br/>저장 경로로 복귀"]
 ```
-
-
-> **한 줄:** 클릭 → `Link` · 로직 끝 이동 → `useRouter` · 서버 → `redirect` · 토큰은 `pathname` 바뀔 때 다시 읽기.
+```txt
+클릭은 Link · 로직 끝 이동은 useRouter · 서버는 redirect
+callbackUrl은 Next API가 아니라 돌아갈 경로를 담는 관습적 파라미터 이름
+```
 
 ---
 
@@ -249,6 +248,11 @@ router.back()보다 callbackUrl 패턴이 훨씬 안정적임
 | `push` vs `replace`                   | 히스토리에 쌓을지(push) 덮어쓸지(replace)                            |
 | `usePathname()`                       | 지금 경로 문자열 (쿼리스트링 미포함), 경로 바뀌면 리렌더                        |
 | `useSearchParams()`                   | `?key=value` 쿼리스트링 읽기                                    |
+| `useEffect(..., [pathname])`          | 경로 바뀔 때마다 다시 확인하는 트릭 (localStorage처럼 React가 모르는 상태 동기화용) |
+| `redirect()`                          | 서버 전용 — 렌더링을 멈추고 즉시 이동시키는 실제 함수                          |
+| `useCallback`                         | 라우팅과 무관한 일반 React 훅 (함수 메모이제이션) — `callbackUrl`과 이름만 비슷  |
+| `callbackUrl` / `redirectTo` / `next` | 함수가 아니라 "돌아갈 경로"를 담아두는 관습적인 파라미터 이름 (셋 다 같은 개념)          |
+| `router.back()` vs `callbackUrl`      | 히스토리 기반(부정확할 수 있음) vs 명시적 경로 기억(안정적)                     || `useSearchParams()`                   | `?key=value` 쿼리스트링 읽기                                    |
 | `useEffect(..., [pathname])`          | 경로 바뀔 때마다 다시 확인하는 트릭 (localStorage처럼 React가 모르는 상태 동기화용) |
 | `redirect()`                          | 서버 전용 — 렌더링을 멈추고 즉시 이동시키는 실제 함수                          |
 | `useCallback`                         | 라우팅과 무관한 일반 React 훅 (함수 메모이제이션) — `callbackUrl`과 이름만 비슷  |

@@ -12,7 +12,6 @@ related:
   - "[[JS_Operators]]"
   - "[[JS_BrowserAPI]]"
 ---
-
 # JS_FormData — name-값 수집 / 파일 업로드
 
 > [!info] 
@@ -22,6 +21,29 @@ related:
 ```txt
 JS_BrowserAPI에 모아둔 다른 브라우저 API(localStorage, URLSearchParams 등)와 같은 카테고리지만,
 분량이 꽤 있어서 [[JS_CustomEvent]]처럼 독립 노트로 분리해둠 — 카테고리 자체는 [[JS_BrowserAPI]] 참고
+```
+
+---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    SRC{만들기}
+    SRC -->|form 있음| AUTO["new FormData(form)<br/>input name 자동 수집"]
+    SRC -->|직접| MAN["new FormData()<br/>append · set"]
+    AUTO --> FD["FormData<br/>name-value 쌍"]
+    MAN --> FD
+    FILE["File · input type=file"] -->|append| FD
+
+    FD --> SEND{전송}
+    SEND -->|fetch| FETCH["POST body: formData<br/>Content-Type 직접 ❌"]
+    SEND -->|Next.js| SA["Server Action<br/>form action 자동"]
+```
+
+```txt
+연결 고리 = input name ↔ formData.get(name) — id는 무관
+파일 있으면 FormData · 텍스트만이면 JSON도 가능
+append = 같은 name 누적 · set = 덮어쓰기 · 다중 선택은 getAll()
 ```
 
 ---

@@ -1,5 +1,5 @@
 ---
-aliases: [API 타입, apiTypes, mapper, Mapper 함수]
+aliases: [API 타입, apiTypes, mapper, Mapper 함수, NextJS_ApiTypes_Mapper]
 tags:
   - NextJS
 related:

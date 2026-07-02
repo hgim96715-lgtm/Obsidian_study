@@ -1,6 +1,9 @@
 ---
 aliases:
   - Date
+  - KST
+  - formatFeedDate
+  - formatCommentDate
 tags:
   - Snippet
 related:
@@ -9,215 +12,333 @@ related:
   - "[[NestJS_StatsBucket]]"
 ---
 
-# Snippet_date-statistics-pattern — 날짜 통계 · UTC · 일 키
+# Snippet_date-statistics-pattern — 날짜 키 · KST · UI 표시
+
+> **원본 (music-community):** `apps/web/lib/date.ts` · `apps/api/src/common/kst-date.ts`  
+> 다른 프로젝트에 쓸 때는 **`TIMEZONE` · `UTC_OFFSET` 두 상수만** 바꾸면 됨.
+
+> [!info]
+> **DB** — `timestamptz`로 **UTC instant** 저장 (언제 일어났는지 하나로 고정)  
+> **API (Nest)** — **집계·“오늘”** 은 서비스 타임존 **달력** (`startOfDay` + `gte`)  
+> **Web** — **화면 문구**만 (`오늘` · `3일 전`) — stats 버킷 계산은 API에 맡김
+
+> [!info]
+> **일 키** = `YYYY-MM-DD` 문자열 하나.  
+> `toISOString().slice(0,10)` ❌ — UTC로 **하루 밀림**.  
+> `Intl` + `timeZone` ✅ — Railway(UTC)·브라우저(KST) 어디서 돌려도 **같은 달력**.
+
+> [!warning]
+> `setHours(0,0,0,0)` = **실행 환경 로컬** 자정.  
+> Mac(KST)에선 맞아 보여도 **Railway UTC**에선 “오늘”이 **9시간 어긋남**.  
+> → **`startOfTzDay`** 패턴으로 통일.
+
+---
 
 ## 꼭 기억할 것
 
-| 주제         | 채택 ✅                                                  | 피하기 ❌                                         |
-| ---------- | ----------------------------------------------------- | --------------------------------------------- |
-| **“오늘”**   | 서버 `setHours(0,0,0,0)` 후 `gte`                        | 브라우저만 따로 “오늘” 계산해 stats 맞추기                   |
-| **일 키**    | `getFullYear` + `getMonth` + `getDate` → `YYYY-MM-DD` | `date.toISOString().slice(0,10)` (UTC로 하루 밀림) |
-| **일 키 파싱** | `"2026-06-19".split('-')` 로 x축                        | `new Date("2026-06-19")` (UTC 자정 해석)          |
-| **상대 일수**  | **달력 일** 차이 (`startOfDay` 끼리)                         | `Date.now() - ts` 만으로 “며칠 전”                  |
-| **통계 창**   | 달력 연속 N일 / 올해 1월~이번 달                                 | “지금부터 168시간” (차트와 어긋남)                        |
+| 주제 | 채택 ✅ | 피하기 ❌ |
+| --- | --- | --- |
+| **“오늘” (API)** | `createdAt >= startOfTzDay(now)` | 서버 `setHours(0,0,0,0)` (UTC 배포) |
+| **일 키** | `toTzDateKey(date)` → `YYYY-MM-DD` | `date.toISOString().slice(0,10)` |
+| **일 키 → x축** | `"2026-07-01".split('-')` | `new Date("2026-07-01")` (UTC 자정) |
+| **“며칠 전” (UI)** | **달력 일** 차이 (`startOfTzDay` 끼리) | `Date.now() - ts` 만 |
+| **통계 창** | 달력 연속 N일 / 올해 1월~이번 달 | “168시간 슬라이딩” |
+| **입력** | API ISO 문자열 `new Date(iso)` | 혼용 X |
 
 ---
 
-## 범용 함수 — 경계 (startOf*)
-
-> **모두 “서버(또는 실행 환경) 로컬 타임존”** 기준.  
-> 원본 `Date`는 **변경하지 않고** 복사본을 반환하는 패턴 권장.
-
-### `startOfDay` — 그날 00:00:00.000
+## 0. 프로젝트마다 바꿀 상수
 
 ```ts
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+/** 한국 서비스 — music-community 기본값 */
+const TIMEZONE = 'Asia/Seoul';
+const UTC_OFFSET = '+09:00'; // TIMEZONE과 짝 맞출 것
+
+/** 다른 예: 미국 동부 */
+// const TIMEZONE = 'America/New_York';
+// const UTC_OFFSET = '-05:00'; // DST 있으면 offset 고정 대신 라이브러리 검토
 ```
 
-**쓰는 곳:** “오늘” 카운트 · 일 버킷 시작 · 상대 일수 계산
-
-### `startOfMonth` — 그달 1일 00:00
-
-```ts
-function startOfMonth(date: Date): Date {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(1);
-  return start;
-}
-```
-
-**이 프로젝트:** `apps/api/src/admin/admin-stats.service.ts`
-
-### `startOfYear` — 올해 1월 1일 00:00
-
-```ts
-function startOfYear(date: Date): Date {
-  const start = startOfMonth(date);
-  start.setMonth(0);
-  return start;
-}
-```
-
-**쓰는 곳:** `monthly[]` · `hourly[]` 쿼리 창 (`createdAt >= startOfYear`)
-
-### `endOfDay` (필요할 때)
-
-```ts
-function endOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-```
-
-Prisma는 보통 `gte startOfDay` + `lt startOfNextDay` 조합이 더 안전함.
+> [!info]
+> `UTC_OFFSET`는 **`startOfTzDay`** 에만 씀 — `"${key}T00:00:00${UTC_OFFSET}"` 로  
+> “그 타임존 달력의 00:00” instant를 만듦.
 
 ---
 
-## 범용 함수 — 로컬 키 (집계·API)
+## 1. 코어 4함수 (Web · API 공통 복붙)
 
-DB 행 → **차트/API용 문자열 키**. UTC ISO 자르기 대신 **로컬 필드**로 조립.
+> 파일 하나(`date.ts` / `kst-date.ts`)에 두고 **Web·Nest 둘 다 import** 하거나,  
+> monorepo면 `packages/shared/date.ts` 로 빼도 됨.
 
-### `toLocalDateKey` → `YYYY-MM-DD`
+### `toTzDateKey` — 달력 일 키
 
 ```ts
-function toLocalDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+/** instant → 서비스 타임존 기준 YYYY-MM-DD (집계·차트 버킷 키) */
+function toTzDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+  // en-CA → "2026-07-02" 형태 (ISO와 같은 순서)
 }
 ```
 
-### `toLocalMonthKey` → `YYYY-MM`
+### `startOfTzDay` — 그날 00:00 (DB `gte` 비교용)
 
 ```ts
-function toLocalMonthKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+/**
+ * 서비스 타임존 "그날" 00:00:00.000 의 UTC instant.
+ * Prisma: where: { createdAt: { gte: startOfTzDay() } }
+ */
+function startOfTzDay(reference = new Date()): Date {
+  const key = toTzDateKey(reference);
+  return new Date(`${key}T00:00:00${UTC_OFFSET}`);
 }
 ```
 
-### `toLocalHour` → `0`~`23`
+### `differenceInCalendarDays` — 달력 기준 며칠 차이
 
 ```ts
-function toLocalHour(date: Date): number {
-  return date.getHours();
-}
-```
-
-| 키 | 형식 | 예 |
-|----|------|-----|
-| 일 | `YYYY-MM-DD` | `2026-06-19` |
-| 월 | `YYYY-MM` | `2026-06` |
-| 시 | 정수 | `14` |
-
----
-
-## 범용 함수 — 달력 일수
-
-### `differenceInCalendarDays` — “며칠 전” (달력 기준)
-
-```ts
+/** latter - earlier (달력 일). UI "오늘/어제/N일 전" 용 */
 function differenceInCalendarDays(latter: Date, earlier: Date): number {
-  const ms = startOfDay(latter).getTime() - startOfDay(earlier).getTime();
+  const ms =
+    startOfTzDay(latter).getTime() - startOfTzDay(earlier).getTime();
   return Math.round(ms / 86_400_000);
 }
 ```
 
-| `days` | UI 예 |
-|--------|--------|
-| `0` | 오늘 |
-| `1` | 어제 |
-| `2~6` | N일 전 |
-| `≥7` | 절대 날짜만 (`2026.06.12`) |
-
-**이 프로젝트:** `apps/web/lib/date.ts` — `formatFeedDate`
-
-### `addCalendarDays` — N일 더하기/빼기
+### `formatDisplayDate` — 절대 날짜만
 
 ```ts
-function addCalendarDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+/** ISO → "2026.07.02" (표시용 · split으로 파싱 안전) */
+function formatDisplayDate(iso: string): string {
+  const key = toTzDateKey(new Date(iso));
+  const [y, m, d] = key.split('-');
+  return `${y}.${m}.${d}`;
 }
 ```
 
-**최근 7일 시작일:** `addCalendarDays(startOfDay(now), -(7 - 1))`
-
 ---
 
-## 범용 패턴 — 기간 창 한눈에
+## 2. UI 포맷 — music-community `date.ts`
 
-| 의미 | 시작 시각 (로컬) | 버킷 |
-|------|------------------|------|
-| 오늘 | `startOfDay(now)` | 1일 |
-| 최근 7일 (오늘 포함) | `startOfDay(now)` − 6일 | 7일 키 |
-| 올해 월별 | `startOfYear(now)` | 1월~이번 달 `YYYY-MM` |
-| 올해 시간대 | `startOfYear(now)` + `getHours()` | 24칸 |
+> API JSON은 `…Z` (UTC). **표시는 항상 helper 경유.**
 
-```mermaid
-flowchart TB
-    NOW["now"]
-    NOW --> TOD["startOfDay → today"]
-    NOW --> D7["startOfDay − 6일 → daily[]"]
-    NOW --> YR["startOfYear → monthly[] · hourly 원본"]
-```
-
-
-
----
-
-## 범용 패턴 — 일 버킷 키 배열 만들기
+### `formatFeedDate` — 피드 카드 헤더 (상대 + 절대)
 
 ```ts
-function buildDailyDateKeys(days: number, reference = new Date()): string[] {
-  const start = startOfDay(reference);
-  start.setDate(start.getDate() - (days - 1));
+/** 피드 @닉 옆 — 7일 미만이면 "오늘 · 2026.07.02" */
+export function formatFeedDate(iso: string): string {
+  const absolute = formatDisplayDate(iso);
+  const days = differenceInCalendarDays(new Date(), new Date(iso));
 
+  if (days >= 7) return absolute;
+  if (days <= 0) return `오늘 · ${absolute}`;
+  if (days === 1) return `어제 · ${absolute}`;
+  return `${days}일 전 · ${absolute}`;
+}
+```
+
+| `days` | 출력 |
+| --- | --- |
+| `0` | `오늘 · 2026.07.02` |
+| `1` | `어제 · 2026.07.01` |
+| `2~6` | `3일 전 · 2026.06.29` |
+| `≥7` | `2026.06.25` (절대만) |
+
+### `formatCommentDate` — 댓글·채팅 (짧게 · A안)
+
+```ts
+/** 닉네임 옆 — 7일+ 절대만 · 그 전은 상대만 (날짜 중복 X) */
+export function formatCommentDate(iso: string): string {
+  const days = differenceInCalendarDays(new Date(), new Date(iso));
+
+  if (days >= 7) return formatDisplayDate(iso);
+  if (days <= 0) return '오늘';
+  if (days === 1) return '어제';
+  return `${days}일 전`;
+}
+```
+
+```text
+피드 헤더:  formatFeedDate    →  "오늘 · 2026.07.02"
+댓글 메타:  formatCommentDate →  "오늘"  (닉네임 · 오늘)
+```
+
+> JSX: `<time dateTime={iso}>{formatCommentDate(iso)}</time>` — ISO는 속성에, 짧은 문구는 children.
+
+---
+
+## 3. API 전용 — Nest `kst-date.ts` 확장
+
+```ts
+/** 0~23 — hourly[] 버킷 */
+export function getTzHour(date: Date): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: TIMEZONE,
+      hour: 'numeric',
+      hour12: false,
+    }).format(date),
+  );
+}
+
+export function getTzMonthKey(date: Date): string {
+  return toTzDateKey(date).slice(0, 7); // YYYY-MM
+}
+
+export function getTzYear(date: Date): number {
+  return Number(toTzDateKey(date).slice(0, 4));
+}
+```
+
+---
+
+## 4. 역할 나누기 (헷갈릴 때)
+
+```mermaid
+flowchart LR
+    subgraph DB["DB timestamptz"]
+        ISO["2026-07-01T15:00:00.000Z"]
+    end
+    subgraph API["Nest · 집계"]
+        SOD["startOfTzDay"]
+        KEY["toTzDateKey → daily[]"]
+        ISO --> SOD --> KEY
+    end
+    subgraph WEB["Web · 표시"]
+        F1["formatFeedDate"]
+        F2["formatCommentDate"]
+        ISO --> F1
+        ISO --> F2
+    end
+```
+
+| 레이어 | 하는 일 | 안 하는 일 |
+| --- | --- | --- |
+| **Nest** | `gte startOfTzDay` · Map 버킷 · `daily[]` | “3일 전” 한글 문구 |
+| **Web** | `formatFeedDate` · `formatCommentDate` | stats “오늘” 창 계산 |
+| **DB** | UTC instant 저장 | KST로 저장 X |
+
+---
+
+## 5. 통계 패턴 — 기간 창
+
+| 의미 | 시작 (TZ 달력) | 버킷 |
+| --- | --- | --- |
+| 오늘 DAU | `lastActiveAt >= startOfTzDay(now)` | 1일 |
+| 최근 7일 | `startOfTzDay(now) - 6 × 86400000ms` | 7 × `toTzDateKey` |
+| 7일+ 미접속 | `null` OR `< startOfTzDay - 7일` | 카운트 |
+| 올해 월별 | `getTzYear` · `getTzMonthKey` | `YYYY-MM` |
+
+```ts
+/** 최근 N일(오늘 포함) 일 키 배열 — Map 초기값 */
+function buildDailyDateKeys(days: number, reference = new Date()): string[] {
+  const startMs = startOfTzDay(reference).getTime() - (days - 1) * 86_400_000;
   const keys: string[] = [];
+
   for (let i = 0; i < days; i++) {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    keys.push(toLocalDateKey(day));
+    keys.push(toTzDateKey(new Date(startMs + i * 86_400_000)));
   }
   return keys;
 }
-```
 
-`Map`에 넣을 때:
-
-```ts
+// 집계 Map: keys.map(k => [k, 0])
 const buckets = new Map(buildDailyDateKeys(7).map((k) => [k, 0]));
 ```
 
----
-
-## 범용 패턴 — 올해 월 버킷
-
 ```ts
-function buildMonthlyKeysThisYear(reference = new Date()): string[] {
-  const year = reference.getFullYear();
-  const endMonth = reference.getMonth();
-  const keys: string[] = [];
-
-  for (let month = 0; month <= endMonth; month++) {
-    keys.push(toLocalMonthKey(new Date(year, month, 1)));
-  }
-  return keys;
+/** 차트 x축 — date 키는 split만 (Date 파싱 금지) */
+function formatAxisDate(dateKey: string): string {
+  const [, month, day] = dateKey.split('-');
+  return `${Number(month)}/${Number(day)}`;
 }
 ```
 
-작년 데이터는 `row.createdAt.getFullYear() !== year` 로 **집계에서 제외**.
+---
+
+## 6. 레거시 vs TZ-aware (마이그레이션 메모)
+
+| | `setHours(0,0,0,0)` + `getDate()` | **이 스니펫 (Intl + offset)** |
+| --- | --- | --- |
+| 로컬 Mac | ✅ 보통 OK | ✅ |
+| Railway / Vercel server UTC | ❌ “오늘” 틀림 | ✅ |
+| 브라우저 Web UI | TZ = 사용자 기기 (대부분 OK) | ✅ **서비스 TZ 고정** |
+| 다른 프로젝트 이식 | 환경마다 다름 | **상수 2개만 교체** |
 
 ---
 
+## 7. 함정 체크리스트
 
+| ❌ | ✅ |
+| --- | --- |
+| `new Date('2026-07-01')` | `key.split('-')` |
+| `toISOString().slice(0,10)` | `toTzDateKey(date)` |
+| Web에서 stats “오늘” 계산 | Nest `daily[]` · `today` 필드 |
+| 댓글에 `formatFeedDate` | `formatCommentDate` (짧게) |
+| `timestamp` without tz | `timestamptz` |
 
+---
+
+## 8. music-community 파일 맵
+
+| 파일 | 역할 |
+| --- | --- |
+| `apps/web/lib/date.ts` | `formatFeedDate` · `formatCommentDate` |
+| `apps/api/src/common/kst-date.ts` | `toKstDateKey` · `startOfKstDay` · hour/month/year |
+| `apps/api/src/admin/admin-stats.service.ts` | daily · monthly · hourly 버킷 |
+| `apps/docs/date.md` | 프로젝트 정본 문서 |
+
+---
+
+## 9. 전체 복붙 템플릿 (`lib/date.ts`)
+
+```ts
+/** Snippet_date-statistics-pattern — TIMEZONE/UTC_OFFSET만 프로젝트에 맞게 */
+const TIMEZONE = 'Asia/Seoul';
+const UTC_OFFSET = '+09:00';
+
+function toTzDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function startOfTzDay(reference = new Date()): Date {
+  const key = toTzDateKey(reference);
+  return new Date(`${key}T00:00:00${UTC_OFFSET}`);
+}
+
+function differenceInCalendarDays(latter: Date, earlier: Date): number {
+  const ms =
+    startOfTzDay(latter).getTime() - startOfTzDay(earlier).getTime();
+  return Math.round(ms / 86_400_000);
+}
+
+export function formatDisplayDate(iso: string): string {
+  const [y, m, d] = toTzDateKey(new Date(iso)).split('-');
+  return `${y}.${m}.${d}`;
+}
+
+export function formatFeedDate(iso: string): string {
+  const absolute = formatDisplayDate(iso);
+  const days = differenceInCalendarDays(new Date(), new Date(iso));
+  if (days >= 7) return absolute;
+  if (days <= 0) return `오늘 · ${absolute}`;
+  if (days === 1) return `어제 · ${absolute}`;
+  return `${days}일 전 · ${absolute}`;
+}
+
+export function formatCommentDate(iso: string): string {
+  const days = differenceInCalendarDays(new Date(), new Date(iso));
+  if (days >= 7) return formatDisplayDate(iso);
+  if (days <= 0) return '오늘';
+  if (days === 1) return '어제';
+  return `${days}일 전`;
+}
+```

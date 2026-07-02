@@ -14,6 +14,39 @@ related:
 > 가장 흔한 용도는 ① DOM 엘리먼트에 직접 접근하기, ② 렌더링과 무관한 값(타이머 ID, 이전 값 등)을 들고 있기 — 둘 다 `.current`라는 하나의 속성을 통해 값을 읽고 쓴다.
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+  REF["useRef"] --> BOX["매 렌더 같은 객체<br/>current로 읽고 씀"]
+  BOX --> NORENDER["값 바뀌어도 리렌더 없음"]
+
+  BOX --> USE{용도}
+
+  subgraph DOM["DOM 접근"]
+    direction TB
+    DOM1["JSX ref 속성 연결"]
+    DOM1 --> DOM2["마운트 후 current에 노드"]
+    DOM2 --> DOM3["focus · contains · scroll 등"]
+    DOM2 --> DOM4["초기 null · 옵셔널 체이닝"]
+  end
+
+  subgraph STORE["값 저장"]
+    direction TB
+    ST1["타이머 id · 이전 값"]
+    ST1 --> ST2["화면과 무관한 값"]
+  end
+
+  USE -->|엘리먼트| DOM1
+  USE -->|기억만| ST1
+```
+
+```txt
+useState는 리렌더 유발 · useRef는 current만 바꿔도 화면 안 바뀜
+DOM 접근과 값 저장 — 용도는 다르지만 둘 다 current 하나로 다룸
+```
+
+---
 
 # ref란 무엇인가 — useState와 다른 점 ⭐️⭐️⭐️
 

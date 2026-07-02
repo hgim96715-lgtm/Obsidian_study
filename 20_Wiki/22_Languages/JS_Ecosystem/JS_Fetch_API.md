@@ -21,6 +21,27 @@ related:
 >   이 노트 순서: fetch 자체 이해 → 왜/어떻게 래퍼로 감싸는지
 
 ---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TB
+    REQ["fetch(url, options)"] --> RES["Response<br/>status · ok · body 스트림"]
+    RES --> CHECK{res.ok?}
+    CHECK -->|4xx/5xx| ERR["throw 직접<br/>fetch는 자동 ❌"]
+    CHECK -->|2xx| PARSE["res.json() · text()<br/>body 1회만"]
+    PARSE --> DATA["데이터"]
+
+    APP["실전 앱"] -.->|래퍼| WRAP["fetchAPI<br/>baseURL · ok · 파싱"]
+    WRAP --> REQ
+```
+
+```txt
+2단계: fetch() = 헤더 수신 → res.json() = body 파싱 (Promise 기반 · [[JS_Promise]])
+POST JSON: JSON.stringify + Content-Type · 파일: FormData ([[JS_FormData]])
+실전 래퍼 패턴 → [[NextJS_API_Client]]
+```
+
+---
 
 # fetch 등장 배경
 

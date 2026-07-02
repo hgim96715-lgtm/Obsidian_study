@@ -1,6 +1,13 @@
 ---
-aliases: [array methods, Array.from, filter, forEach, map, reduce]
-tags: [JavaScript]
+aliases:
+  - array methods
+  - Array.from
+  - filter
+  - forEach
+  - map
+  - reduce
+tags:
+  - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
@@ -9,7 +16,7 @@ related:
   - "[[JS_Operators]]"
   - "[[JS_Primitive_Methods]]"
   - "[[JS_Promise]]"
-  - "[[NextJS_API_Mapper]]"
+  - "[[NextJS_ApiTypes_Mapper]]"
   - "[[TS_Type_Guards]]"
 ---
 # JS_Array_Methods — 배열 메서드, 언제 뭘 쓰나

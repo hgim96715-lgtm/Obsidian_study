@@ -1,14 +1,10 @@
 ---
-aliases:
-  - throttling
-  - fire-and-forget
-  - rate limiting
-tags:
-  - NestJS
+aliases: [fire-and-forget, rate limiting, throttling]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[JS_Map_Set]]"
   - "[[JS_Date]]"
+  - "[[JS_Map_Set]]"
   - "[[JS_Promise]]"
   - "[[NestJS_Prisma]]"
   - "[[React_useMemo_useCallback_useEffect]]"
@@ -18,6 +14,26 @@ related:
 
 > [!info] 
 > 스로틀링(throttling)은 "일정 시간 안에는 한 번만 실행"하는 패턴이다. API 요청이 올 때마다 DB를 업데이트하면 요청 수만큼 UPDATE가 발생하므로, 메모리의 Map으로 마지막 실행 시각을 기억해두고 일정 시간 이내이면 건너뛰는 방식으로 구현한다.
+
+---
+# 흐름도 
+
+```mermaid-beautiful
+flowchart TB
+    REQ([API 요청]) --> AUTH[Guard 인증]
+    AUTH -->|void · fire-and-forget| TOUCH[touchLastActiveAt]
+    AUTH --> CTRL[Controller → 응답]
+
+    TOUCH --> CHECK{Map 조회<br/>N ms 이내?}
+    CHECK -->|예| SKIP[건너뜀]
+    CHECK -->|아니오| MAP[Map.set 먼저]
+    MAP --> DB[(DB UPDATE)]
+```
+
+```txt
+Map: userId → 마지막 갱신 시각(ms) — 첫 요청은 ?? 0으로 통과
+fire-and-forget: lastActiveAt 같은 부가 작업은 await 없이 — 핵심 응답 속도 유지
+```
 
 ---
 
