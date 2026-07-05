@@ -14,12 +14,13 @@ related:
   - "[[NestJS_DTO]]"
   - "[[PG_Types]]"
   - "[[NestJS_Migration]]"
+  - "[[NestJS_Idempotency]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
 > [!info] 
 > Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM
->  반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일
+> 반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일이다.
 
 ---
 
@@ -384,15 +385,84 @@ AT TIME ZONE 연산자 · PostgreSQL 타입 전체(JSONB · UUID · ARRAY · ENU
     USING "createdAt" AT TIME ZONE 'UTC';
 ```
 
-## @@unique — 복합 유니크
+## @@unique — 복합 유니크 ⭐️⭐️⭐️⭐️
 
 ```prisma
 model Director {
   name String
   dob  DateTime
   @@unique([name, dob])
+  // 이름+생년월일 조합이 같은 행은 DB가 물리적으로 거부
 }
-// findUnique({ where: { name_dob: { name, dob } } })   ⚠️ 필드명_필드명으로 묶임
+```
+
+```txt
+@unique  vs  @@unique:
+  @unique    컬럼 하나가 테이블 전체에서 유일 (한 필드 선언에 바로 붙임)
+  @@unique   컬럼 조합이 유일 (두 개 이상의 컬럼을 묶어서 유일성 보장)
+
+  예: userId + postId 조합 → 한 사람이 같은 글에 좋아요 두 번 못 누름
+      userId가 여러 행에 있어도 되고, postId가 여러 행에 있어도 됨
+      둘의 "조합"만 중복이 안 되면 됨
+```
+
+## 조회 — 복합 unique 키 이름 규칙
+
+```typescript
+// @@unique([name, dob]) → Prisma가 자동으로 name_dob 라는 복합 키 이름 생성
+await prisma.director.findUnique({
+  where: {
+    name_dob: { name: '봉준호', dob: new Date('1969-09-14') },
+    //  ↑ 필드명_필드명 형태로 묶임 ⚠️ 헷갈리기 쉬운 포인트
+  },
+});
+
+// @@unique([userId, postId]) → userId_postId
+await prisma.postLike.findUnique({
+  where: { userId_postId: { userId: 1, postId: 42 } },
+});
+```
+
+```txt
+복합 unique 이름 커스텀 (name 옵션):
+  @@unique([userId, postId], name: "user_post_like")
+  → where: { user_post_like: { userId, postId } }
+
+  자동 생성 이름(필드명_필드명)이 길거나 읽기 어려울 때 사용
+```
+
+## 중복 요청 방어 — P2002 에러 처리 ⭐️⭐️⭐️⭐️
+
+```typescript
+// @@unique / @unique 위반 시 Prisma가 던지는 에러: P2002
+async createLike(userId: number, postId: number) {
+  try {
+    return await this.prisma.postLike.create({
+      data: { userId, postId },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === 'P2002'
+    ) {
+      // 어떤 필드 조합이 충돌했는지
+      // e.meta.target → ['userId', 'postId']
+      throw new ConflictException('이미 좋아요를 눌렀습니다.');
+    }
+    throw e;
+  }
+}
+```
+
+```txt
+P2002가 발생하는 시점:
+  DB가 INSERT/UPDATE를 실행하는 순간 unique 제약 위반 감지
+  → 코드에서 "이미 있는지 먼저 조회"하는 방어 코드 없이도 DB가 보장
+  → "조회 → 없으면 INSERT" 패턴보다 안전
+    (조회와 INSERT 사이에 다른 요청이 끼어들 수 있는 race condition 방지)
+
+버튼 두 번 클릭, 네트워크 재시도 등 중복 요청 방어의 가장 기본 패턴
+→ 더 복잡한 중복 방어 전략(멱등키, 낙관적/비관적 잠금) → [[NestJS_Idempotency]]
 ```
 
 ## @@id — 복합 PK ⭐️
@@ -532,7 +602,7 @@ model User {
 여러 건                         → findMany
 ```
 
-||조건|결과|
+| |조건|결과|
 |---|---|---|
 |`findUnique`|**반드시** unique 컬럼만|단건 또는 `null`|
 |`findFirst`|자유 (`NOT` 포함)|첫 행 또는 `null`|
@@ -802,7 +872,7 @@ this.prisma.post.findMany({
 });
 ```
 
-> 커서 기반 페이지네이션은 [[NestJS_Pagination_r]] 참고
+> 커서 기반 페이지네이션은 [[NestJS_Pagination]] 참고
 
 ---
 
@@ -820,7 +890,7 @@ const rows = await this.prisma.exhibition.groupBy({
 });
 ```
 
-||역할|
+| |역할|
 |---|---|
 |`aggregate`|전체(또는 where 조건)를 한 번에 집계|
 |`groupBy`|컬럼 값 기준으로 그룹별 집계 (SQL `GROUP BY`)|

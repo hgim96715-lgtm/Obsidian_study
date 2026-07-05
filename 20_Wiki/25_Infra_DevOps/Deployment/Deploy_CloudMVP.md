@@ -1,24 +1,15 @@
 ---
-aliases:
-  - 배포
-  - Deploy
-  - Dockerfile
-  - Neon
-  - Railway
-  - Vercel
-tags:
-  - Deploy
-  - NextJS
-  - NestJS
+aliases: [배포, Deploy, Dockerfile, Neon, Railway, Vercel]
+tags: [Deploy, NextJS, NestJS]
 related:
   - "[[00_Deployment_HomePage]]"
+  - "[[Docker_Dockerfile]]"
   - "[[NestJS_Env_Config]]"
+  - "[[NestJS_Migration]]"
   - "[[NestJS_Prisma_Monorepo]]"
   - "[[NestJS_Prisma]]"
   - "[[NextJS_AuthCache]]"
   - "[[Web_XSS_CSRF]]"
-  - "[[Docker_Dockerfile]]"
-  - "[[NestJS_Migration]]"
 ---
 # Deploy_CloudMVP — Vercel + Railway + Neon (pnpm 모노레포)
 
@@ -275,7 +266,14 @@ flowchart TB
 
 ---
 
-# 1. Neon (DB) ⭐️⭐️⭐️
+# 1. Neon (DB) ⭐️⭐️⭐
+
+```txt
+Neon은 PostgreSQL 데이터베이스를 클라우드에서 제공하는 관리형 서버리스 데이터베이스 서비스
+
+PostgreSQL = 데이터베이스 소프트웨어
+Neon       = PostgreSQL을 클라우드에서 생성·운영해 주는 서비스
+```
 
 ## 프로젝트 생성 및 DATABASE_URL 복사
 
@@ -301,7 +299,11 @@ postgresql://<role>:<password>@<host>-pooler.<region>.aws.neon.tech/neondb?sslmo
 
 ---
 
-# 2. Railway (API) ⭐️⭐️⭐️⭐️
+# 2. Railway (API) ⭐️⭐️⭐️⭐
+
+```txt
+Railway는 서버·데이터베이스·Redis 같은 백엔드 인프라를 간편하게 배포하고 운영하도록 도와주는 클라우드 플랫폼
+```
 
 ```txt
 Railway → New Project → Deploy from GitHub repo
@@ -354,7 +356,12 @@ export class HealthController {
 
 ---
 
-# 3. Vercel (Web) ⭐️⭐️⭐️
+# 3. Vercel (Web) ⭐️⭐️⭐
+
+```txt
+Vercel은 웹 프론트엔드, 특히 Next.js 애플리케이션을 간편하게 빌드하고 배포하는 클라우드 플랫폼
+```
+
 
 ```txt
 Vercel → Import GitHub repo

@@ -184,7 +184,7 @@ async createOrder(dto: CreateOrderDto) {
 ```txt
 Prisma 에러 코드:
   P2002 = Unique constraint failed
-  e.meta.target = 어떤 필드에서 충돌했는지 ['paymentTxId'] 형태로 반환
+  e.meta.target = 어떤 필드에서 충돌했는지 ['paymentTxId'] 형태로 반환 [[NestJS_Prisma]] 참고 
 ```
 
 ---
