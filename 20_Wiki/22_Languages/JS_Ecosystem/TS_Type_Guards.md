@@ -14,130 +14,127 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[JS_Operators]]"
   - "[[TS_Utility_Types]]"
+  - "[[TS_Unknown_Any]]"
+  - "[[TS_TypeAssertion]]"
 ---
-# TS_Type_Guards — 타입 가드 & 타입 좁히기
+# TS_Type_Guards — 타입 좁히기
 
-> [!info] 
-> 타입 좁히기(narrowing)는 "여러 타입이 될 수 있는 값"을 특정 블록 안에서 더 구체적인 타입으로 확정하는 것이다. TypeScript는 특정 조건문 패턴을 보고 그 블록 안에서 자동으로 타입을 좁혀준다 — 이 조건문 패턴을 타입 가드라고 부른다.
+> [!info] 타입 가드 = "이 값이 어떤 타입인지 런타임에 확인해서 TS에게 알려주는 것." `unknown` / 유니온 타입처럼 "여러 가능성" 안에서 실제 타입을 특정하는 방법들이다.
 
 ---
 
-# 왜 타입 좁히기가 필요한가 ⭐️⭐️⭐️⭐️
+# 왜 필요한가 ⭐️⭐️⭐️
 
 ```typescript
-function process(input: string | number) {
-  input.toUpperCase(); // ❌ — input이 number일 수도 있어서 TS가 에러를 냄
+function process(value: string | number) {
+  value.toUpperCase(); // ❌ number에는 없음 → TS 에러
 }
-```
 
-```txt
-input이 string | number 타입이면, TS 입장에서는 "둘 중 뭔지 모름"
-string에만 있는 .toUpperCase()를 바로 호출하면 "number에는 이 메서드 없다"고 에러를 냄
-
-→ "지금 이 값이 어떤 타입인지"를 런타임에 확인하고, 그 확인한 블록 안에서만 해당 타입의 메서드를 쓰게 함
-  이게 타입 좁히기고, 그 조건식을 타입 가드라고 부름
-```
-
----
-
-# typeof — 원시 타입 판별 ⭐️⭐️⭐️⭐️
-
-```typescript
-function process(input: string | number) {
-  if (typeof input === 'string') {
-    input.toUpperCase(); // 이 블록 안에서 input은 string
+function process(value: string | number) {
+  if (typeof value === 'string') {
+    value.toUpperCase(); // ✅ 여기서는 string 확정
   } else {
-    input.toFixed(2);    // 이 블록 안에서 input은 number
+    value.toFixed(2);   // ✅ 여기서는 number 확정
   }
 }
 ```
 
 ```txt
-typeof가 반환하는 문자열:
-  'string' / 'number' / 'boolean' / 'bigint' / 'symbol' / 'undefined' / 'function' / 'object'
-
-⚠️ 배열과 null은 typeof로 구분 안 됨 — 둘 다 'object'를 반환함
-  typeof []    → 'object'
-  typeof null  → 'object'
-  → 배열은 Array.isArray(), null은 === null 체크로 따로 처리해야 함
+좁히기(Narrowing):
+  타입의 범위를 점점 좁혀나가는 것
+  if 블록 안에서 TS는 조건을 분석해서 타입이 무엇으로 확정됐는지 추적함
+  좁힌 이후에는 그 타입의 메서드/속성을 자동완성과 함께 안전하게 쓸 수 있음
 ```
 
 ---
 
-# Array.isArray — 배열 판별 ⭐️⭐️⭐️⭐️
+# typeof — 원시 타입 좁히기 ⭐️⭐️⭐️
 
 ```typescript
-function process(input: string | string[]) {
-  if (Array.isArray(input)) {
-    input.join(', '); // string[]
-  } else {
-    input.toUpperCase(); // string
-  }
-}
+typeof x === 'string'     // string
+typeof x === 'number'     // number
+typeof x === 'boolean'    // boolean
+typeof x === 'bigint'     // bigint
+typeof x === 'symbol'     // symbol
+typeof x === 'undefined'  // undefined
+typeof x === 'function'   // function
+typeof x === 'object'     // object | null ⚠️
 ```
 
 ```txt
-typeof []는 'object'라서 typeof로 배열을 잡을 수 없음
-Array.isArray()가 배열 전용 타입 가드 — 자세한 동작은 [[JS_Array_Methods]] 참고
+⚠️ typeof null === 'object' — 역사적 버그, null이 object로 잘못 분류됨
+  null 체크는 별도로 해야 함
+
+  if (typeof x === 'object' && x !== null) { ... }
+```
+
+```typescript
+function format(value: string | number | boolean): string {
+  if (typeof value === 'string')  return value;
+  if (typeof value === 'number')  return value.toLocaleString();
+  if (typeof value === 'boolean') return value ? '예' : '아니오';
+  const _: never = value; // 모든 케이스 처리 확인
+  return _;
+}
 ```
 
 ---
 
-# instanceof — 클래스 인스턴스 판별 ⭐️⭐️⭐️
+# instanceof — 클래스 인스턴스 좁히기 ⭐️⭐️⭐️⭐️
 
 ```typescript
-function handleError(error: unknown) {
-  if (error instanceof Error) {
-    console.log(error.message); // Error 클래스의 속성 접근 가능
-  }
-}
-
-class ApiError extends Error {
+class NetworkError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
+    this.name = 'NetworkError';
   }
 }
 
-function handle(error: Error | ApiError) {
-  if (error instanceof ApiError) {
-    error.statusCode; // ApiError에만 있는 속성
+function handleError(err: unknown) {
+  if (err instanceof NetworkError) {
+    console.log(err.statusCode); // NetworkError 확정 → statusCode 접근 가능
+    return;
   }
+  if (err instanceof Error) {
+    console.log(err.message);    // Error 확정
+    return;
+  }
+  console.log(String(err));      // 나머지: 문자열로 변환
 }
 ```
 
 ```txt
-instanceof는 클래스(생성자 함수)에만 씀 — 일반 interface나 type alias는 런타임에 사라지므로 instanceof 불가
-  (interface는 TS 컴파일 후 JS에 남지 않음 → 런타임에 "이게 X 인터페이스인가" 체크 자체가 불가능)
-  → interface/type을 판별하려면 아래 in 연산자나 사용자 정의 타입 가드를 써야 함
+instanceof 체크 순서:
+  서브클래스(NetworkError)를 먼저, 부모 클래스(Error)를 나중에 체크
+  순서가 반대면 NetworkError도 Error이므로 부모 블록에 걸려버림
+
+catch 블록에서 가장 자주 쓰이는 패턴:
+  catch(err) → err: unknown (TS 4.0+)
+  → instanceof Error로 좁혀야 err.message에 접근 가능
 ```
 
----
-
-# null / undefined 체크 ⭐️⭐️⭐️⭐️
+## catch 블록 — 가장 흔한 실전 패턴 ⭐️⭐️⭐️⭐️
 
 ```typescript
-function greet(name: string | null | undefined) {
-  if (name == null) {            // null과 undefined 동시에 (== 활용)
-    return '이름 없음';
+try {
+  await fetchData();
+} catch (err) {
+  // 패턴 1 — 단순 메시지 추출
+  const message = err instanceof Error ? err.message : String(err);
+  setError(message);
+
+  // 패턴 2 — Prisma 에러 분기
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') throw new ConflictException('중복입니다.');
   }
-  return name.toUpperCase();    // 이 시점에서 name은 string
+  if (err instanceof HttpException) throw err; // NestJS HTTP 예외는 그대로 올려보냄
+  throw new InternalServerErrorException('서버 오류');
 }
-
-// 더 명시적으로 구분하고 싶을 때
-if (name === null) { /* null 처리 */ }
-if (name === undefined) { /* undefined 처리 */ }
-if (name != null) { /* null/undefined 아닌 경우 */ }
-```
-
-```txt
-== null (느슨한 비교)은 null과 undefined 둘 다를 한 번에 걸러주는 유일한 상황 —
-평소엔 ===을 써야 하지만 이 경우만은 == null이 관용적인 패턴
-(== vs ===의 일반론은 [[JS_Operators]] 참고)
 ```
 
 ---
 
-# in 연산자 — 객체에 특정 키가 있는지 ⭐️⭐️⭐️⭐️
+# in — 객체 속성 존재 여부로 좁히기 ⭐️⭐️⭐️
 
 ```typescript
 type Cat = { meow: () => void };
@@ -145,143 +142,190 @@ type Dog = { bark: () => void };
 
 function makeSound(animal: Cat | Dog) {
   if ('meow' in animal) {
-    animal.meow(); // Cat
+    animal.meow(); // Cat 확정
   } else {
-    animal.bark(); // Dog
+    animal.bark(); // Dog 확정
   }
 }
 ```
 
 ```txt
-interface/type alias처럼 런타임에 없어지는 타입들을 구분할 때 주로 씀
-"이 객체에 이 키가 있으면 이 타입이다"라는 방식으로 구조적으로 판별
-(in 연산자 자체의 동작은 [[JS_Operators]] 참고)
+'속성명' in 객체 — 해당 속성이 객체에 있는지 런타임에 확인
+  → 타입 간에 고유한 속성으로 구분할 때 유용
+  → 인터페이스/타입에만 있고 클래스가 아닌 경우 (instanceof 불가)
 
-API 응답 타입이 여러 모양일 때 특히 유용:
-```
+unknown 좁히기에서 in 쓸 때 주의:
+  typeof x === 'object' && x !== null 체크 먼저 필요
+  (null이나 원시값에 in 연산자를 쓰면 런타임 에러)
 
-```typescript
-type SuccessResponse = { data: unknown; status: 'ok' };
-type ErrorResponse = { error: string; status: 'error' };
-
-function handleResponse(res: SuccessResponse | ErrorResponse) {
-  if ('data' in res) {
-    res.data; // SuccessResponse
-  } else {
-    res.error; // ErrorResponse
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    console.log((err as { message: unknown }).message);
   }
-}
 ```
 
 ---
 
-# 사용자 정의 타입 가드 — is 키워드 ⭐️⭐️⭐️⭐️
+# 타입 서술어 (Type Predicate) — `value is Type` ⭐️⭐️⭐️⭐️
 
 ```typescript
+// 반환 타입을 "value is Type" 형태로 쓰면
+// 이 함수가 true를 반환한 블록에서 TS가 자동으로 타입을 좁혀줌
+function isError(value: unknown): value is Error {
+  return value instanceof Error;
+}
+
 function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
+
+// 사용
+const err: unknown = getError();
+if (isError(err)) {
+  err.message; // ✅ 여기서는 Error로 확정됨
+}
 ```
 
 ```txt
-반환 타입을 boolean 대신 "value is string"으로 선언하면:
-  TS가 "이 함수가 true를 반환한 블록 안에서는 value가 string이다"라고 인식해줌
-  → 재사용 가능한 타입 가드 함수를 직접 만드는 방법
+Type Predicate가 필요한 경우:
+  같은 좁히기 로직을 여러 곳에서 재사용하고 싶을 때
+  복잡한 조건(여러 필드 동시 체크)을 함수로 추출하고 싶을 때
+  Array.filter에서 타입을 좁히고 싶을 때 (아래 참고)
 ```
+
+## Array.filter + 타입 서술어 ⭐️⭐️⭐️
 
 ```typescript
-// 실전 — API 응답이 특정 모양인지 검증
-type ApiUser = { id: number; email: string };
+const items: (string | null)[] = ['a', null, 'b', null, 'c'];
 
-function isApiUser(value: unknown): value is ApiUser {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'email' in value &&
-    typeof (value as ApiUser).id === 'number' &&
-    typeof (value as ApiUser).email === 'string'
-  );
+// ❌ filter(Boolean)은 null을 걸러내지만 타입은 여전히 (string | null)[]
+const filtered = items.filter(Boolean);
+
+// ✅ 타입 서술어로 null을 걸러내면서 타입도 string[]로 확정
+function isNotNull<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
-
-const data: unknown = await fetch('/api/user').then(r => r.json());
-if (isApiUser(data)) {
-  data.id;    // ApiUser 타입으로 안전하게 접근
-  data.email;
-}
-```
-
-```txt
-is 키워드가 없이 그냥 boolean을 반환하면:
-  if (isString(value)) { ... } 블록 안에서도 value의 타입은 여전히 unknown 그대로
-  → is 키워드가 "이 함수의 반환이 true일 때 이 매개변수는 이 타입이다"라는 약속을 TS에 알려주는 것
-
-⚠️ 이 약속이 런타임에서도 맞아야 함 — TS는 그 함수 내부 구현을 믿고 따라가는 것이지,
-   직접 검증하지는 않음 → 구현이 잘못되면 컴파일은 통과해도 런타임에 에러가 날 수 있음
+const filtered = items.filter(isNotNull); // string[]
 ```
 
 ---
 
-# unknown — any보다 안전한 "모르는 타입" ⭐️⭐️⭐️⭐️
+# 판별 유니온 (Discriminated Union) ⭐️⭐️⭐️⭐️
 
 ```typescript
+// 공통 tag 필드로 타입을 구분
+type SuccessResponse = { status: 'success'; data: User };
+type ErrorResponse   = { status: 'error';   message: string };
+type Response = SuccessResponse | ErrorResponse;
+
+function handleResponse(res: Response) {
+  switch (res.status) {
+    case 'success':
+      res.data.name; // SuccessResponse 확정
+      break;
+    case 'error':
+      res.message;   // ErrorResponse 확정
+      break;
+  }
+}
+```
+
+```txt
+판별 유니온의 조건:
+  ① 공통 필드(tag)가 있어야 함 (status, type, kind 등)
+  ② 그 필드의 값이 각 타입마다 리터럴 타입으로 달라야 함
+  → TS가 switch/if로 tag를 확인하면 나머지 필드를 자동으로 좁혀줌
+
+API 응답, Redux 액션, 이벤트 타입 등에서 자주 쓰임
+```
+
+## 판별 유니온 + never 소진 체크
+
+```typescript
+function handleResponse(res: Response) {
+  switch (res.status) {
+    case 'success': return res.data;
+    case 'error':   throw new Error(res.message);
+    default:
+      const _: never = res; // 모든 케이스 처리 → 여기 도달 불가
+      throw new Error('처리되지 않은 응답');
+  }
+}
+```
+
+---
+
+# Assertion Function — 에러를 throw해서 좁히기 ⭐️⭐️
+
+```typescript
+// assert 함수: 조건이 false면 throw, true면 통과 → 이후 타입이 좁혀짐
+function assertString(value: unknown): asserts value is string {
+  if (typeof value !== 'string') {
+    throw new TypeError(`Expected string, got ${typeof value}`);
+  }
+}
+
 function process(value: unknown) {
-  value.toUpperCase();     // ❌ — unknown에는 아무 메서드도 바로 못 씀
-
-  if (typeof value === 'string') {
-    value.toUpperCase();   // ✅ — 타입 가드 통과 후에는 사용 가능
-  }
+  assertString(value);
+  value.toUpperCase(); // ✅ assertString 통과 후에는 string 확정
 }
 ```
 
 ```txt
-any vs unknown:
-  any   → 모든 타입 체크를 끔 — 어디서든 마음대로 접근 가능, TS가 아무것도 안 잡아줌
-  unknown → "일단 모르는 타입"이지만 타입 체크를 켜놓음
-            바로 사용 불가, 반드시 타입 가드로 확인 후에만 사용 가능
+asserts value is Type:
+  이 함수가 정상적으로 반환(throw 없이)되면
+  호출한 이후부터 value가 Type이라고 TS가 보장
 
-→ "타입을 모르는 값"을 다룰 때는 any 대신 unknown을 쓰고, 쓰기 전에 타입 가드로 확인하는 게 안전함
-  (API 응답, try/catch의 error, JSON.parse 결과 등이 대표적인 unknown 상황)
-```
-
-```typescript
-// try/catch의 error는 unknown 타입
-try {
-  await api.call();
-} catch (error) {
-  if (error instanceof Error) {
-    console.error(error.message); // Error로 좁혀진 후에야 .message 사용 가능
-  }
-}
+용도:
+  유효성 검사 함수를 별도로 분리하면서 타입 좁히기도 같이 하고 싶을 때
+  테스트 코드의 assert 유틸
 ```
 
 ---
 
-# 타입 가드 선택 기준 ⭐️⭐️⭐️⭐️
+# 좁히기가 안 되는 경우 — as 단언과의 차이 ⭐️⭐️⭐️
 
-|판별 대상|방법|
-|---|---|
-|원시 타입(string/number/boolean)|`typeof value === 'string'`|
-|null / undefined|`value === null` / `value == null`(둘 다)|
-|배열|`Array.isArray(value)`|
-|클래스 인스턴스|`value instanceof ClassName`|
-|interface/type — 특정 키 유무로|`'key' in value`|
-|재사용 가능한 복잡한 검증|사용자 정의 타입 가드 (`value is Type`)|
+```typescript
+// ❌ as는 실제로 검사하지 않음 — "내가 보장하겠다"는 약속만
+const user = data as User; // data가 실제로 User 모양이 아니어도 TS는 통과
+
+// ✅ 타입 가드는 런타임에 실제로 확인
+if (isUser(data)) {
+  // 여기서 data가 진짜 User 모양임을 런타임에 확인함
+}
+```
+
+```txt
+타입 가드 vs as 단언:
+  타입 가드  런타임에 실제로 확인 → 안전
+  as         컴파일 타임만 속임 → 런타임 에러 가능
+
+  as는 "내가 확신한다"고 책임지는 것
+  → 확신이 없으면 타입 가드로 실제로 확인해야 함
+
+  → [[TS_TypeAssertion]] 참고
+```
 
 ---
 
 # 한눈에
 
+|방법|문법|주요 용도|
+|---|---|---|
+|`typeof`|`typeof x === 'string'`|string/number/boolean 등 원시 타입|
+|`instanceof`|`x instanceof Error`|클래스 인스턴스, catch 블록|
+|`in`|`'prop' in obj`|속성 존재 여부로 구분 (인터페이스 타입)|
+|타입 서술어|`fn(x): x is Type`|재사용 가능한 좁히기 함수, Array.filter|
+|판별 유니온|`switch(x.status)`|status/type 공통 필드로 구분|
+|Assertion|`asserts x is Type`|조건 불만족 시 throw하는 검사 함수|
+
 ```txt
-타입 좁히기: 여러 타입이 될 수 있는 값을, 조건 블록 안에서 더 구체적인 타입으로 확정하는 것
-타입 가드: 그 조건식 패턴 — TypeScript가 "이 조건을 통과하면 이 타입이다"라고 인식하는 특정 패턴들
+가장 자주 쓰는 순서:
+  catch 블록     → instanceof Error
+  원시 타입 구분  → typeof
+  유니온 타입    → 판별 유니온 (status/type 필드)
+  null 제거      → isNotNull 타입 서술어 + Array.filter
+  복잡한 객체    → in + typeof 조합
 
-typeof      원시 타입 — ⚠️ 배열/null은 둘 다 'object'라 구분 못 함
-Array.isArray  배열 전용 — typeof의 한계를 메움
-instanceof  클래스 인스턴스 — interface/type에는 못 씀(런타임에 존재 안 함)
-in          객체의 키 존재 여부 — interface/type을 구분할 때 주로 씀
-value is T  사용자 정의 타입 가드 — 재사용 가능, 구현 정확성은 개발자 책임
-== null     null과 undefined 동시 체크 — 이 경우만 ==가 관용적
-
-unknown vs any: unknown은 타입 가드 필수, any는 체크 없이 통과 — 외부 데이터는 unknown이 더 안전
+타입 가드 없이 좁힐 때 → as (안전 보장 없음) → [[TS_TypeAssertion]]
+any/unknown/void/never 개념 → [[TS_Unknown_Any]]
 ```
