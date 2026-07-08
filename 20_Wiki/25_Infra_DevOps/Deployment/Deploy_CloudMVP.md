@@ -312,12 +312,12 @@ Railway → New Project → Deploy from GitHub repo
 Settings → Root Directory: 비워둘 것 (레포 루트)
 ```
 
-|변수|값|필수|
-|---|---|---|
-|`DATABASE_URL`|Neon Connect → Connection string (진짜 URL — 더미 아님)|✅|
-|`API_JWT_SECRET`|`openssl rand -base64 32`|✅|
-|`FRONTEND_URL`|Vercel origin만 — `https://xxx.vercel.app` (경로 ❌, 3단계 후 확정)|✅|
-|`PORT`|Railway 자동 주입|설정 불필요|
+| 변수               | 값                                                          | 필수     |
+| ---------------- | ---------------------------------------------------------- | ------ |
+| `DATABASE_URL`   | Neon Connect → Connection string (진짜 URL — 더미 아님)          | ✅      |
+| `API_JWT_SECRET` | `openssl rand -base64 32`                                  | ✅      |
+| `FRONTEND_URL`   | Vercel origin만 — `https://xxx.vercel.app` (경로 ❌, 3단계 후 확정) | ✅      |
+| `PORT`           | Railway 자동 주입                                              | 설정 불필요 |
 
 ```txt
 Deploy 완료 → Settings → Networking → Generate Domain
