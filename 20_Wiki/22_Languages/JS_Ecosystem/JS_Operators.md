@@ -13,377 +13,339 @@ related:
   - "[[NextJS_API_Client]]"
   - "[[React_Context]]"
 ---
-# JS_Operators — 비교 · 논리 · 스프레드/Rest · 구조분해 · instanceof
+# JS_Operators — 연산자 & 구조분해
 
 > [!info] 
->  삼항연산자는 [[JS_Loops_Conditionals]], 옵셔널 체이닝(`?.`)/널리시 코얼레싱(`??`)은 [[JS_OptionalChaining]]에 이미 정리돼 있다. 이 노트는 그 외에 실제 코드에서 계속 등장했던 비교(`===`), 논리(`&&`/`||`), 스프레드/Rest(`...`)와 그걸 가장 많이 쓰는 구조분해 할당, `instanceof`를 다룬다.
-
-```txt
-이미 다른 노트에 있는 연산자 — 여기서 중복 안 함:
-  ? :        → JS_Loops_Conditionals
-  ?. / ??    → JS_OptionalChaining
-  typeof     → JS_BrowserAPI의 "환경/기능 감지 패턴"
-```
-
----
-# 흐름도
-
-```mermaid-beautiful
-flowchart TB
-    CMP["비교<br/>=== 엄격 · 참조 비교"]
-    LOG["논리<br/>and or not 단축평가"]
-    DOT{점3개 ...}
-    DOT -->|리터럴 안| SPREAD["spread · 펼치기"]
-    DOT -->|매개변수| REST["rest · 모으기"]
-    REST --> DEST["구조분해<br/>객체 · 배열"]
-    SPREAD --> COPY["복사 · 합치기"]
-    INST["instanceof<br/>클래스 인스턴스"]
-```
-
-```txt
-and: a falsy면 a 반환 · b 안 평가 / or: a truthy면 a 반환
-같은 ... 문법 — 위치에 따라 spread(펼치기) vs rest(모으기)
-구조분해에서 rest로 나머지 필드·요소를 한 번에 모음
-```
+> 구조분해 · 스프레드 · 논리 연산자처럼 매일 쓰는 문법이지만 `{ user: me }` 같은 이름 바꾸기나 `??=` 같은 할당 단축형은 처음 보면 헷갈린다.
 
 ---
 
-# 비교 연산자 — == vs === ⭐️⭐️⭐️⭐️
+# 구조분해 (Destructuring) ⭐️⭐️⭐️⭐️
+
+## 객체 구조분해 — 기본
 
 ```typescript
-'1' == 1    // true  — 타입을 강제로 변환해서 비교(type coercion)
-'1' === 1   // false — 타입까지 정확히 같아야 함
+const person = { name: '홍길동', age: 30, city: '서울' };
 
-null == undefined   // true  (이 둘만 예외적으로 ==에서 같다고 취급됨)
-null === undefined  // false
+const { name, age } = person;
+// person.name → name, person.age → age
+```
+
+## 이름 바꾸기 (Alias) ⭐️⭐️⭐️⭐️
+
+```typescript
+const { name: displayName } = person;
+// person.name을 꺼내서 displayName이라는 변수에 담음
+// name 변수는 생기지 않음 — displayName만 생김
+
+const { user: me } = useAuth();
+// useAuth()가 반환한 객체의 user 필드를
+// me라는 이름의 변수로 받음
 ```
 
 ```txt
-== 는 비교 전에 양쪽 타입을 서로 맞춰보려고 시도함(문자열을 숫자로 변환하는 등) —
-그 변환 규칙이 직관적이지 않은 경우가 많아서 예상 못 한 결과가 나올 수 있음
+{ 원래이름: 새이름 } — 콜론 뒤가 "이 범위에서 쓸 변수명"
 
-→ 거의 항상 ===(엄격한 비교)를 쓰는 게 안전함 — 타입 변환 없이 "값과 타입이 둘 다 같은가"만 봄
-```
+왜 이름을 바꾸는가 — 이름 충돌(Naming Collision) 해결:
 
-```
-⚠️ 객체/배열은 ===로도 "내용"이 아니라 "참조(메모리 주소)"를 비교함
+  // props로 받은 user = 프로필 대상 (피드/댓글에서 탭한 사람)
+  function ProfileSheet({ user }: { user: User }) {
 
-{ id: 1 } === { id: 1 }   // false — 서로 다른 객체이므로
-const a = { id: 1 };
-a === a                    // true — 같은 객체를 가리키므로
+    // useAuth()도 user를 반환하는데 이건 "로그인한 나"
+    // 같은 스코프에서 user가 두 개 → 하나를 me로 이름 바꾸기
+    const { user: me } = useAuth();
 
-→ 내용이 같은지 비교하려면 필드를 직접 비교하거나(a.id === b.id),
-  JSON.stringify로 문자열화해서 비교하는 식의 별도 방법이 필요함
-```
-
----
-
-# 논리 연산자 — && / || 단축 평가(short-circuit) ⭐️⭐️⭐️⭐️
-
-```typescript
-a && b   // a가 falsy면 그 즉시 a를 반환(b는 평가도 안 함) — a가 truthy면 b를 평가해서 반환
-a || b   // a가 truthy면 그 즉시 a를 반환 — a가 falsy면 b를 평가해서 반환
-```
-
-```txt
-"단축 평가"라는 이름의 의미: 왼쪽만 보고 답이 정해지면, 오른쪽은 코드 자체를 실행조차 안 함
-→ if (user) { doSomething(user); } 를 user && doSomething(user); 한 줄로 줄이는 식으로 자주 씀
-
-falsy/truthy가 정확히 뭘 가리키는지(빈 배열/빈 객체도 truthy라는 것 등)는 [[JS_Truthy_Falsy]] 참고
-```
-
-## React에서 흔한 && 조건부 렌더링과 그 함정 ⭐️⭐️⭐️⭐️
-
-```tsx
-{user && <Profile user={user} />}
-// user가 없으면(null/undefined) 그 즉시 멈추고 false 같은 값이 반환돼서 아무것도 안 그려짐
-// user가 있으면 <Profile />까지 평가돼서 그려짐
-```
-
-```tsx
-// ⚠️ 흔한 버그 — 왼쪽 값이 숫자 0일 때
-{count && <span>{count}개</span>}
-// count가 0이면? && 는 0이 falsy라서 0을 그대로 반환함
-// → 화면에 <span>이 안 그려지는 게 아니라, 숫자 0이 그대로 텍스트로 찍혀버림 ("0"이 보임)
-
-// ✅ boolean으로 명확히 만들어서 방지
-{count > 0 && <span>{count}개</span>}
-```
-
-```txt
-이 함정이 ?.와 연결되는 지점:
-  a?.b 는 "a가 없으면 멈추고 undefined"라는 점에서 a && a.b 와 비슷한 발상이지만,
-  ?.는 항상 undefined를 반환하는 반면 &&는 "왼쪽 값 그 자체"(0, '', false 등)를 그대로 반환함
-  → 그래서 조건부 렌더링에서는 숫자 0이나 빈 문자열을 왼쪽에 두면 ?.보다 의도와 다르게 동작하기 쉬움
-```
-
----
-# ! (논리 NOT) — 부정 표현을 정확히 읽기 ⭐️⭐️⭐️⭐️
-
-```
-!변수명 을 글자 그대로 직역하면 의미가 왜곡되기 쉬움 — 항상 "원래 의미를 먼저 떠올리고, 그걸 반대로" 읽을 것
-
-  isLoading = "로딩 중이다"          → !isLoading = "로딩 중이 아니다"(= 확인이 끝났다)
-  user      = "사용자 객체가 있다"     → !user      = "사용자 정보가 없다"
-
-⚠️ !isLoading을 "로딩이 없다"로 읽으면 헷갈림 — "로딩"이라는 사물이 있다/없다가 아니라,
-   "지금 로딩 중인 상태인가"라는 boolean을 뒤집는 것일 뿐. 변수 이름이 동사/형용사형(is~)이면
-   먼저 그 문장을 완성해서("로딩 중이다") 읽고, 그 다음에 부정(! → "아니다")을 붙이는 순서가 안전함
-```
-
-```typescript
-if (!isLoading && !user) {
-  router.replace('/login?next=/users/me');
-}
-```
-
-```
-해석 순서:
-  !isLoading  → "로딩 중이다"의 반대 → "로딩이 끝났다(확인이 끝났다)"
-  !user       → "사용자 정보가 있다"의 반대 → "사용자 정보가 없다"
-  둘 다 동시에(&&) → "확인은 끝났는데, 로그인된 사용자가 없다" → 그제서야 로그인 페이지로 이동
-
-isLoading이 끝나길 먼저 확인해야 하는 이유:
-  isLoading이 true인 동안(아직 응답을 기다리는 중)에는 user가 아직 null일 수 있는 게 당연함 —
-  이 시점에 무작정 "user가 없으니 비로그인"이라고 판단하면, 실제로는 로그인된 사용자인데도
-  응답이 오기 전이라는 이유만으로 잘못 로그아웃 처리될 위험이 있음
-  → !isLoading으로 "판단해도 되는 시점"이 됐는지부터 확인하고, 그 다음에야 user 유무를 봄
-  (이 패턴이 실제로 쓰이는 곳은 [[React_Context]]의 "보호된 페이지" 예시 참고)
-```
-
----
-
-# 스프레드 / Rest — 같은 ... , 반대 의미 ⭐️⭐️⭐️⭐️
-
-```txt
-스프레드(spread) = 펼치기 — 배열/객체를 풀어서 새 배열/객체를 만들 때
-Rest = 모으기 — 여러 개의 남은 인자/요소를 하나의 배열로 모을 때
-같은 문법(...)인데 쓰이는 위치에 따라 정반대로 동작하는 게 헷갈리는 지점
-```
-
-## 스프레드 — 펼치기
-
-```typescript
-const copy = [...items];               // 배열 복사 (얕은 복사)
-const sorted = [...items].sort(...);    // 원본은 그대로 두고 복사본만 정렬 — [[JS_Array_Methods]] 참고
-
-const merged = { ...init, headers };
-// init 객체의 모든 필드를 펼쳐 넣고, headers만 새 값으로 덮어씀
-// (실제 코드: authFetch가 기존 fetch 옵션은 유지하면서 headers만 교체하던 패턴)
-```
-
-```txt
-⚠️ 얕은 복사(shallow copy)라는 점 주의:
-  { ...obj } 는 obj의 "한 단계"까지만 새로 복사함
-  obj 안에 또 다른 객체/배열이 들어있다면, 그 안쪽 것은 원본과 같은 참조를 그대로 공유함
-  → 중첩된 객체까지 완전히 복사하려면 별도의 깊은 복사가 필요함 — structuredClone이 정확히 그 역할,
-    어디서 import하는 함수가 아니라 브라우저/Node가 기본 제공하는 전역 함수라는 것 등은 [[JS_BrowserAPI]] 참고
-
-객체를 합칠 때 Object.assign과 뭐가 다른지(원본을 바꾸는지 여부)는 [[JS_Object_Methods]] 참고
-```
-
-## Rest — 모으기
-
-```typescript
-export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
-// Roles('admin', 'editor') 처럼 몇 개를 넘기든, roles는 ['admin', 'editor'] 배열로 모아짐
-```
-
-```typescript
-// 구조분해할당에서도 동일한 발상
-const [first, ...rest] = [1, 2, 3];
-// first = 1, rest = [2, 3]
-
-// 객체 구조분해에서도 — 특정 필드만 빼고 나머지를 모음
-const { id, ...updateFields } = body;
-// id는 따로 변수로, 나머지 필드는 updateFields 객체로 모임
-// (NestJS에서 PK를 제외하고 나머지 필드만 update에 넘길 때 자주 쓰는 패턴)
-```
-
-```txt
-구분하는 법: 함수를 "정의"할 때 매개변수 자리의 ...는 Rest(모으기)
-            배열/객체 리터럴 "안"에 들어가는 ...는 스프레드(펼치기)
-```
-
----
-
-# 구조분해 할당(Destructuring) — 객체/배열에서 값 바로 꺼내기 ⭐️⭐️⭐️⭐️
-
-```txt
-엄밀히는 연산자가 아니라 "할당 패턴"이지만, 위 Rest(...)를 가장 많이 같이 쓰는 문법이라 여기 같이 정리함
-배열/객체의 값을 변수로 꺼낼 때 obj.xxx를 반복하지 않고 한 줄로 바로 꺼내는 문법
-```
-
-## 객체 구조분해 — 이름(키) 기준
-
-```typescript
-const movie = { id: 1, title: '마이클', genre: '드라마' };
-const { title, genre } = movie;   // movie.title, movie.genre 를 각각 변수로
-
-const { title: movieTitle } = movie;   // 이름 바꾸기 — movieTitle 이라는 새 이름으로
-const { year = 2024 } = movie;         // 기본값 — year 속성이 없으면(undefined) 2024 사용
-```
-
-```txt
-⚠️ 기본값은 undefined일 때만 적용됨 — null이면 적용 안 되고 null이 그대로 들어옴
-  const { x = 10 } = { x: undefined };  // x = 10
-  const { x = 10 } = { x: null };       // x = null  ← 의외로 기본값이 안 먹음
-```
-
-## 배열 구조분해 — 위치(인덱스) 기준
-
-```typescript
-const [first, second] = [1, 2, 3];     // 위치대로 매칭
-const [, second2] = [1, 2, 3];          // 쉼표로 자리를 비워서 건너뛰기 — second2 = 2
-```
-
-```txt
-객체 vs 배열 구조분해의 핵심 차이:
-  객체  { id, title }    → 속성 "이름"으로 매칭, 순서 무관
-  배열  [first, second]  → "위치(인덱스)"로 매칭, 순서 중요
-
-  API 응답처럼 키가 있는 데이터는 객체 구조분해
-  useState() 처럼 "값 + 그 값을 바꾸는 함수" 순서로 오는 반환값은 배열 구조분해
-  const [value, setValue] = useState(0);
-```
-
-## 함수 매개변수에서 바로 구조분해 ⭐️⭐️⭐️
-
-```typescript
-// ❌ 객체를 그대로 받으면 매번 movie. 반복
-function getMovie(movie) { console.log(movie.title); }
-
-// ✅ 매개변수 자리에서 바로 구조분해 — 함수 시그니처만 봐도 뭘 쓰는지 드러남
-function getMovie({ title, genre = '드라마' }) { console.log(title, genre); }
-```
-
-```typescript
-// ⚠️ 호출 시 인자를 아예 안 넘기면 에러
-function getMovie({ title }) { console.log(title); }
-getMovie();   // TypeError: Cannot destructure ... of 'undefined'
-
-// ✅ 매개변수 자체에 기본값 {} 를 줘서 안전하게
-function getMovie({ title } = {}) { console.log(title); }   // undefined, 에러 없음
-getMovie();
-```
-
-```typescript
-// 실전 — NestJS DTO / React props에서 거의 표준 패턴
-async createMovie({ title, genre, detail }: CreateMovieDto) { /* ... */ }
-
-function MovieCard({ title, genre, onDelete }: MovieCardProps) {
-  return <div onClick={() => onDelete()}>{title} - {genre}</div>;
-}
-```
-
-## 중첩 구조분해 — 짧게만 ⭐️
-
-```typescript
-const { address: { city } } = user;   // address 자체는 변수로 안 남고, city만 바로 꺼내짐
-```
-
-```txt
-2~3단계 넘는 깊은 중첩은 가독성이 오히려 떨어짐 — 그럴 땐 단계별로 나눠서
-const { address } = user; const { city } = address; 처럼 쪼개는 게 더 읽기 편한 경우가 많음
-```
-
----
-
-# instanceof — 인스턴스 타입 체크 ⭐️⭐️⭐️
-
-```typescript
-catch (e) {
-  if (e instanceof ApiError && e.status === 401) {
-    // ApiError의 인스턴스일 때만, 그리고 그 경우에만 status 같은 ApiError 고유 필드에 접근 가능
+    // 이제 두 개가 명확히 구분됨
+    // user = 보고 있는 상대방
+    // me   = 로그인한 나
   }
-}
+```
+
+## 이름 충돌과 deps 배열 ⭐️⭐️⭐️
+
+```typescript
+useEffect(() => {
+  if (!user || !me) return;
+  void loadRelation();
+}, [open, user, me]);
+//          ↑     ↑
+//    props user  useAuth user (이름만 me로 바뀐 것)
 ```
 
 ```txt
-instanceof는 "이 값이 특정 클래스(또는 그 클래스를 상속한 클래스)로 만들어졌는가"를 확인함
-typeof와 다른 점: typeof는 string/number/boolean 같은 원시 타입에 씀, instanceof는 클래스로
-만든 객체(직접 만든 클래스, Error, Array, Date 등)에 씀
+deps에 user와 me가 둘 다 있는 이유:
+  user  → 어떤 프로필을 보고 있는가 (props에서 온 변수)
+  me    → 내가 누구인가 (useAuth에서 온 변수)
+
+  "이름을 me로 바꿨으니 같은 거 아냐?" 라고 느낄 수 있지만
+  const { user: me } = useAuth() 는
+  useAuth()의 user를 "me라는 새 변수명으로 꺼낸 것"일 뿐
+  props의 user와는 출처부터 완전히 다른 별개의 값
+
+  → 둘 다 바뀔 수 있고, 둘 다 바뀌면 effect를 다시 실행해야 하므로
+    deps 배열에 둘 다 있어야 함
 ```
 
-|연산자|확인하는 대상|예시|
-|---|---|---|
-|`typeof`|원시 타입|`typeof x === 'string'`|
-|`instanceof`|클래스의 인스턴스|`e instanceof ApiError`|
+## 기본값 설정
+
+```typescript
+const { name = '익명', role = 'user' } = person;
+// person.name이 undefined일 때만 '익명' 사용
+// null이면 기본값 안 씀 (null ≠ undefined)
+```
+
+## 이름 바꾸기 + 기본값 조합
+
+```typescript
+const { user: me = null } = useAuth();
+// user를 me로 꺼내는데, undefined면 null로 대체
+```
+
+## 중첩 구조분해
+
+```typescript
+const { address: { city, zip } } = person;
+// person.address.city → city
+// person.address.zip  → zip
+
+// 실전 — API 응답
+const { data: { user, token } } = await login(email, password);
+```
+
+## 나머지 모으기 — rest
+
+```typescript
+const { name, ...rest } = person;
+// name을 꺼내고, 나머지는 rest 객체로 모음
+// rest = { age: 30, city: '서울' }
+```
 
 ---
 
-# 할당 연산자 축약형 ⭐️
+# 배열 구조분해 ⭐️⭐️⭐️
 
 ```typescript
-count += 1;     // count = count + 1
-count ||= 10;    // count가 falsy면 10을 대입 (count = count || 10)
-count ??= 10;    // count가 null/undefined일 때만 10을 대입 (count = count ?? 10)
+const [first, second, ...others] = [1, 2, 3, 4, 5];
+// first = 1, second = 2, others = [3, 4, 5]
+
+// 건너뛰기
+const [, second, , fourth] = [1, 2, 3, 4];
+// second = 2, fourth = 4
+
+// useState — 배열 구조분해의 대표 사례
+const [count, setCount] = useState(0);
+// 반환 배열의 [0] → count, [1] → setCount
 ```
 
 ```txt
-??=는 "값이 아직 없을 때만 기본값을 채워넣기"에 자주 씀 —
-?? 자체의 동작(0/''는 안 건드림)은 [[JS_OptionalChaining]] 참고
+useState가 배열을 반환하는 이유:
+  객체를 반환하면 { value, setValue }처럼 이름이 고정됨
+  배열을 반환하면 [count, setCount]처럼 원하는 이름으로 자유롭게 받을 수 있음
+  → 같은 훅을 여러 번 써도 이름 충돌 없음
+
+  const [count, setCount] = useState(0);
+  const [name, setName]   = useState('');
+```
+
+## Promise.all 결과 구조분해
+
+```typescript
+const [friends, requests] = await Promise.all([
+  fetchFriends(),
+  fetchFriendRequests(),
+]);
+// 순서대로 배열 구조분해 — 인덱스 0 → friends, 1 → requests
 ```
 
 ---
-# 단축 속성(Shorthand Property) / 화살표 함수 객체 반환 ⭐️⭐️⭐️⭐️
+
+# 스프레드 (...) ⭐️⭐️⭐️⭐️
+
+## 배열 스프레드
 
 ```typescript
-const month = '2026-01';
-const count = 7;
+const a = [1, 2, 3];
+const b = [4, 5, 6];
 
-// 단축 속성 — 키 이름과 변수 이름이 같으면 ": 값" 생략 가능
-const obj = { month, count };           // { month: '2026-01', count: 7 }
-const obj2 = { month: month, count: count }; // 위와 완전히 동일
+const merged = [...a, ...b];          // [1, 2, 3, 4, 5, 6]
+const copy   = [...a];                // 얕은 복사
+const added  = [...a, 7];            // [1, 2, 3, 7]
+const sorted = [...items].sort(...);  // 원본 안 건드리고 정렬
+```
+
+## 객체 스프레드
+
+```typescript
+const defaults = { theme: 'light', lang: 'ko' };
+const overrides = { theme: 'dark' };
+
+const config = { ...defaults, ...overrides };
+// { theme: 'dark', lang: 'ko' }
+// 같은 키는 나중에 오는 것이 이김 ⭐️
+
+// state 업데이트 패턴
+setState(prev => ({ ...prev, name: '새이름' }));
+// 기존 state 유지하면서 name만 바꿈
 ```
 
 ```txt
-{ month }는 "month라는 이름의 키에, 지금 스코프의 month 변수 값을 넣어라"는 뜻
-→ 변수명과 키 이름이 같을 때만 쓸 수 있는 축약 — 다르면 반드시 { 키: 변수 } 형태로 써야 함
+⚠️ 스프레드는 얕은 복사 — 중첩 객체는 참조가 공유됨
+  깊은 복사가 필요하면 structuredClone() → [[JS_BrowserAPI]]
 ```
 
-## 화살표 함수에서 객체를 바로 반환 — `=> ({ })` ⭐️⭐️⭐️⭐️
+## 함수 인자 스프레드
 
 ```typescript
-// ❌ 중괄호가 "함수 본문"으로 인식됨 — undefined 반환
-.map(([month, count]) => { month, count })
+const nums = [1, 5, 3, 2, 4];
+Math.max(...nums);    // Math.max(1, 5, 3, 2, 4)
+Math.min(...nums);    // Math.min(1, 5, 3, 2, 4)
 
-// ✅ 소괄호로 감싸면 "객체 리터럴"을 반환
-.map(([month, count]) => ({ month, count }))
-
-// 풀어 쓴 것과 동일
-.map(([month, count]) => {
-  return { month, count };
-})
-```
-
-```txt
-=> 뒤에 { }가 바로 오면 JS가 "함수 본문(코드 블록)"으로 읽음
-객체 리터럴을 반환하고 싶으면 ( )로 감싸서 "이건 표현식이다"라고 알려줘야 함
-
-세 가지 구분:
-  => 값           단일 표현식을 바로 반환 (implicit return)
-  => ({ 키: 값 }) 객체 리터럴을 반환 — 소괄호 필수
-  => { return 값 } 함수 본문 — return 키워드 직접 써야 반환됨
+// 배열을 개별 인자로 펼쳐서 넘김
 ```
 
 ---
+
+# 논리 연산자 ⭐️⭐️⭐️⭐️
+
+## && — 앞이 truthy일 때만 뒤를 반환
+
+```typescript
+user && user.name           // user 있으면 user.name, 없으면 user(falsy) 반환
+isLoggedIn && <UserMenu />  // 조건부 렌더링 — React에서 자주 쓰임
+a && b && c                 // a, b 둘 다 truthy여야 c 반환
+```
+
+## || — 앞이 falsy면 뒤를 반환
+
+```typescript
+name || '익명'     // name이 falsy(undefined, null, '', 0 등)면 '익명'
+port || 3000      // port가 없으면 3000 — ⚠️ port가 0이면 0도 falsy로 처리됨
+```
+
+## ?? — null/undefined일 때만 뒤를 반환 ⭐️⭐️⭐️
+
+```typescript
+name ?? '익명'    // name이 null 또는 undefined일 때만 '익명'
+port ?? 3000     // port가 null/undefined일 때만 3000 (0은 그대로 0)
+```
+
+```txt
+|| vs ??:
+  || = falsy 전부 (0, '', false, null, undefined, NaN)
+  ?? = null/undefined만
+
+  포트 번호, 카운터, 빈 문자열처럼 0이나 ''도 유효한 값이라면 반드시 ??
+  → [[JS_OptionalChaining]] 참고
+```
+
+## &&= · ||= · ??= — 논리 할당 단축형 ⭐️⭐️
+
+```typescript
+// &&= — 왼쪽이 truthy일 때만 오른쪽 할당
+a &&= b  // if (a) a = b; 와 동일
+
+// ||= — 왼쪽이 falsy일 때만 오른쪽 할당
+a ||= b  // if (!a) a = b; 와 동일
+
+// ??= — 왼쪽이 null/undefined일 때만 오른쪽 할당
+a ??= b  // if (a == null) a = b; 와 동일
+
+// 실전 패턴
+cache ??= await fetchData();  // 캐시가 없을 때만 fetch
+user.nickname ||= '익명';      // 닉네임 없으면 기본값 설정
+```
+
+---
+
+# 삼항 연산자 ⭐️⭐️⭐️
+
+```typescript
+const label = isLoggedIn ? '로그아웃' : '로그인';
+const value = items.length > 0 ? items[0] : null;
+
+// JSX — 조건부 렌더링
+{isLoading ? <Spinner /> : <Content />}
+```
+
+```txt
+중첩 삼항은 가독성이 나빠짐 → 변수로 미리 계산하거나 if문 사용 권장
+```
+
+---
+
+# 비교 연산자 ⭐️⭐️
+
+```typescript
+===  // 값 + 타입이 같음 (항상 이걸 쓸 것)
+!==  // 값 또는 타입이 다름
+==   // 타입 변환 후 비교 → 예측 불가 ('0' == 0 → true) — 피할 것
+!=   // 마찬가지로 피할 것
+```
+
+```typescript
+// 숫자 비교
+<, >, <=, >=
+
+// 특수 케이스
+NaN === NaN  // false — NaN은 자기 자신과도 같지 않음
+Number.isNaN(value)  // NaN 확인은 이걸 쓸 것
+```
+
+---
+
+# typeof · instanceof ⭐️⭐️⭐️
+
+```typescript
+typeof 'hello'       // 'string'
+typeof 42            // 'number'
+typeof null          // 'object' ← 버그, null이 아님
+typeof undefined     // 'undefined'
+typeof (() => {})    // 'function'
+
+[] instanceof Array   // true
+err instanceof Error  // true
+```
+
+```txt
+런타임 타입 확인 → [[TS_Type_Guards]] 참고
+```
+
+---
+
+# 옵셔널 체이닝 (?.) ⭐️⭐️⭐️
+
+```typescript
+user?.name           // user가 null/undefined면 undefined
+user?.address?.city  // 중간 어디서든 없으면 undefined
+arr?.[0]             // 배열도 ?.로
+fn?.()               // 함수 존재할 때만 호출
+```
+
+```txt
+자세한 내용 (prev?.() 콜백 보존 패턴 등) → [[JS_OptionalChaining]]
+```
 
 ---
 
 # 한눈에
 
-| 연산자                                     | 핵심                                                                      |
-| --------------------------------------- | ----------------------------------------------------------------------- |
-| `===`                                   | 타입 변환 없이 값+타입까지 정확히 비교 — 거의 항상 `==` 대신 이걸 쓸 것                           |
-| 객체/배열 `===`                             | 내용이 아니라 참조 비교 — `{} === {}`는 항상 false                                   |
-| `&&`                                    | 왼쪽이 falsy면 즉시 멈추고 왼쪽 반환 — 조건부 렌더링에서 숫자 0 함정 주의                          |
-| `\|`                                    | 왼쪽이 truthy면 즉시 멈추고 왼쪽 반환                                                |
-| `[...arr]` / `{...obj}`                 | 배열/객체를 펼쳐서 새로 만들기 — 얕은 복사                                               |
-| `(...args)`                             | 함수 매개변수에서 나머지를 배열로 모으기(Rest)                                            |
-| `const { a } = obj` / `const [a] = arr` | 구조분해 — 객체는 이름 기준, 배열은 위치 기준                                             |
-| `{ month, count }`                      | 단축 속성(shorthand) — `{ month: month, count: count }`와 동일, 키와 변수 이름이 같을 때 |
-| `=> ({ 키: 값 })`                         | 화살표 함수에서 객체 반환 — `=> { }`는 함수 본문, `=> ({ })`는 객체 리터럴 (소괄호 필수)           |
-| `function f({ a } = {})`                | 함수 매개변수 구조분해 + 인자 없을 때 안전장치                                             |
-| `instanceof`                            | 클래스 인스턴스인지 확인 — 원시 타입엔 `typeof`                                         |
-| `??=` / <code>\|=</code>                | 값이 없을 때만(또는 falsy일 때만) 기본값 대입                                           |
+|문법|예시|의미|
+|---|---|---|
+|구조분해|`const { name } = obj`|객체에서 꺼내기|
+|이름 바꾸기|`const { user: me } = useAuth()`|user를 꺼내서 me라는 이름으로|
+|기본값|`const { name = '익명' } = obj`|undefined일 때만 기본값|
+|배열 구조분해|`const [a, b] = arr`|인덱스 순서대로|
+|스프레드|`{ ...obj, key: val }`|복사 + 덮어쓰기, 나중 것이 이김|
+|rest|`const { a, ...rest } = obj`|나머지를 한 객체로|
+|`&&`|`a && b`|a가 truthy면 b 반환|
+|`\|`|`a \| b`|a가 falsy면 b (0·''도 falsy)|
+|`??`|`a ?? b`|a가 null/undefined면 b만|
+|`??=`|`a ??= b`|a가 null/undefined일 때만 b를 a에 할당|
+|`?.`|`obj?.prop`|null/undefined면 undefined, 아니면 접근|
+
+```txt
+이름 충돌 해결 패턴:
+  같은 스코프에서 출처가 다른 두 값이 같은 이름일 때
+  하나를 { 원래이름: 새이름 }으로 꺼내서 구분
+  → deps 배열에는 "새이름"(me)이 들어감 — props의 user와는 별개
+```

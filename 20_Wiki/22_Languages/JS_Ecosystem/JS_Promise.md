@@ -349,6 +349,33 @@ const [total, hidden, today] = await Promise.all([
 ]);
 ```
 
+## 왜 배열 구조분해를 쓰는가 ⭐️⭐️⭐️⭐️
+
+```typescript
+// Promise.all의 반환 타입: Promise<[T1, T2, T3]>
+// → await하면 [결과1, 결과2, 결과3] 배열이 나옴
+// → 배열 구조분해로 각 결과에 바로 이름을 붙임
+
+// 구조분해 없이 쓰면
+const results = await Promise.all([fetchFriends(), fetchFriendRequests()]);
+const friendsList    = results[0]; // results[0]으로 꺼내야 함
+const requestsData   = results[1]; // 인덱스만 보면 뭔지 모름
+
+// 구조분해로 쓰면
+const [friendsList, requestsData] = await Promise.all([
+  fetchFriends(),
+  fetchFriendRequests(),
+]);
+// → 한 줄에서 바로 이름 붙이기 — 순서는 Promise.all 배열 순서와 동일
+```
+
+```txt
+Promise.all([A, B, C]) 반환 배열의 순서 = 넘긴 배열의 순서 (완료 순서 아님)
+→ [friendsList, requestsData] 순서가 [fetchFriends(), fetchFriendRequests()] 순서와 1:1
+
+배열 구조분해 자체 → [[JS_Operators]] 참고
+```
+
 ```txt
 직렬: 총 걸리는 시간 = 세 쿼리 시간의 합
 병렬: 총 걸리는 시간 = 그중 가장 오래 걸리는 쿼리 하나의 시간
@@ -375,6 +402,9 @@ const [total, hidden, today] = await Promise.all([
 |`Promise.allSettled`|성공/실패 무관하게 전부 기다린 뒤, 각각의 결과를 모아서 반환|
 |`Promise.race`|가장 먼저 끝난 것(성공이든 실패든) 하나만 반환|
 |`Promise.any`|가장 먼저 "성공"한 것 하나만 반환 — 전부 실패해야만 전체 실패|
+
+
+---
 
 ---
 
