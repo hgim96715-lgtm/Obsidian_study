@@ -1,6 +1,14 @@
 ---
-aliases: [구조분해, destructuring, instanceof, logical NOT, operators, rest, spread]
-tags: [JavaScript]
+aliases:
+  - 구조분해
+  - destructuring
+  - instanceof
+  - logical NOT
+  - operators
+  - rest
+  - spread
+tags:
+  - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Array_Methods]]"
@@ -12,11 +20,51 @@ related:
   - "[[NestJS_Controller]]"
   - "[[NextJS_API_Client]]"
   - "[[React_Context]]"
+  - "[[NestJS_Throttle]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
 > [!info] 
 > 구조분해 · 스프레드 · 논리 연산자처럼 매일 쓰는 문법이지만 `{ user: me }` 같은 이름 바꾸기나 `??=` 같은 할당 단축형은 처음 보면 헷갈린다.
+
+---
+# 흐름도
+
+```mermaid
+flowchart TD
+    W1["왜 · 객체/배열에서 값 꺼내기·복사"]
+    W2["왜 · null·falsy·이름 충돌 다루기"]
+
+    Q{"언제 · 무엇을 하나?"}
+
+    W1 --> Q
+    W2 --> Q
+
+    Q -->|꺼내기| A
+    Q -->|복사·합치기| B
+    Q -->|조건·기본값| C
+    Q -->|안전한 접근| D
+
+    A["구조분해"]
+    A1["{ user: me } 이름 바꾸기"]
+    A2["{ force = false } 옵션 기본값"]
+    A --> A1 --> A2
+
+    B["스프레드 · rest"]
+    B1["{ ...obj, key } · const { a, ...rest }"]
+    B --> B1
+
+    C["&& · || · ?? · ??="]
+    C1["?? — null/undefined만 · || — falsy 전부"]
+    C --> C1
+
+    D["?. · typeof · instanceof"]
+    D1["상세 ?. → JS_OptionalChaining"]
+    D --> D1
+```
+
+> `==` / `!=` 피하기 — `===` / `!==`  
+> truthy/falsy — [[JS_Truthy_Falsy]]
 
 ---
 
@@ -118,6 +166,114 @@ const { data: { user, token } } = await login(email, password);
 const { name, ...rest } = person;
 // name을 꺼내고, 나머지는 rest 객체로 모음
 // rest = { age: 30, city: '서울' }
+```
+
+---
+# 함수 옵션 객체 패턴 — `{ force = false }` ⭐️⭐️⭐️⭐️
+
+```txt
+함수 인자가 많아지거나, 일부가 선택적일 때
+boolean 인자를 여러 개 나열하는 대신 객체 하나로 묶는 패턴
+```
+
+```typescript
+// ❌ 인자가 많아지면 순서 기억이 어려움
+touchLastActiveAt(userId, role, true, false, 'admin');
+
+// ✅ 옵션 객체 — 이름으로 의미가 명확
+touchLastActiveAt(userId, role, { force: true });
+```
+
+## TypeScript 타입 정의
+
+```typescript
+interface TouchOptions {
+  force?:  boolean;  // ? = 선택적 — 안 넘겨도 됨
+  silent?: boolean;
+}
+
+async function touchLastActiveAt(
+  userId: number,
+  role:   string,
+  options: TouchOptions = {},  // 통째로 안 넘겨도 됨 (기본값 빈 객체)
+): Promise<void> {
+  const { force = false, silent = false } = options;
+  //       ↑ 안 넘기면 false가 기본값
+  
+  if (!force && /* 최근에 업데이트했으면 */) return;
+  // force: true면 이 early return을 건너뛰고 강제 업데이트
+}
+```
+
+## 호출 방법
+
+```typescript
+// 기본값으로 호출 — 세 번째 인자 생략
+await touchLastActiveAt(userId, role);
+
+// 옵션 일부만 전달 — 나머지는 기본값
+await touchLastActiveAt(userId, role, { force: true });
+
+// 여러 옵션 전달
+await touchLastActiveAt(userId, role, { force: true, silent: true });
+```
+
+
+```txt
+options = {} 기본값의 의미:
+  호출하는 쪽이 세 번째 인자를 아예 안 넘겨도
+  내부에서 {}(빈 객체)를 받은 것처럼 동작
+  → { force = false, silent = false }가 모두 기본값으로 처리됨
+
+  options: TouchOptions = {} 없이 options?: TouchOptions로 선언하면:
+  → options가 undefined일 수 있어서 const { force } = options 에서 에러
+  → 구조분해 전에 options ?? {} 처리 필요 → 번거로움
+  → = {} 기본값이 더 깔끔
+```
+
+## force 플래그가 자주 쓰이는 패턴
+
+```typescript
+// 파라미터에서 바로 구조분해 — 변수명 없이 더 짧게
+async function touchLastActiveAt(
+  userId: number,
+  role:   string,
+  { force = false }: TouchOptions = {},
+) {
+  if (!force && checkRecentlyUpdated()) return;  // 최근에 했으면 스킵
+  await update();                                 // force: true면 무조건 실행
+}
+```
+
+```txt
+force 플래그가 쓰이는 상황:
+  "보통은 스킵하지만 이 경우엔 반드시 실행해야 해"
+  → 서비스 레벨 쓰로틀 건너뛰기 패턴 → [[NestJS_Throttle]] 참고
+```
+
+## `Partial<T>`— 옵션 객체 타입 유틸리티 ⭐️⭐️
+
+
+```typescript
+interface UserUpdateData {
+  name:  string;
+  email: string;
+  image: string;
+}
+
+// Partial<T> = 모든 필드를 optional로 만듦
+async function updateUser(userId: number, data: Partial<UserUpdateData>) {
+  // name만, email만, 셋 다, 아무것도 안 넘겨도 타입 통과
+}
+
+updateUser(1, { name: '새이름' });  // ✅
+```
+
+
+```txt
+옵션 객체는 보통 모든 필드가 선택적
+→ interface에 ?를 전부 붙이거나 Partial<T>를 쓰거나
+→ Partial<T> 상세는 [[TS_Utility_Types]] 참고
 ```
 
 ---
