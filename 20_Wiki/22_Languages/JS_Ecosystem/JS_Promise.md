@@ -341,47 +341,54 @@ const post = await runActionWithResult(() => fetchPost(id));
 
 # Promise.all — 여러 Promise를 동시에 실행 ⭐️⭐️⭐️⭐️
 
+> **한 줄:** 서로 안 기다려도 되는 작업들을 **같이 시작**하고, **전부 끝날 때까지** 기다린다.
+
 ```typescript
-const [total, hidden, today] = await Promise.all([
-  this.prisma.user.count(),
-  this.prisma.user.count({ where: { isActive: false } }),
-  this.prisma.user.count({ where: { createdAt: { gte: startOfToday } } }),
+// 받은 요청 · 보낸 요청 — 서로 결과 안 보고 각자 조회 가능 → 동시에 돌려도 됨
+const [received, sent] = await Promise.all([
+  this.prisma.friendship.findMany({ where: { addresseeId: userId, status: 'pending' } }),
+  this.prisma.friendship.findMany({ where: { requesterId: userId, status: 'pending' } }),
 ]);
+// received = 1번 자리 결과 · sent = 2번 자리 결과
+// (누가 먼저 끝났는지와 무관 — 넣은 순서 = 꺼내는 순서)
+```
+
+```txt
+직렬 (하나 끝나고 다음)
+  받은 조회 ──완료──▶ 보낸 조회 ──완료──▶ 끝
+  총 시간 ≈ A + B
+
+병렬 Promise.all
+  받은 조회 ──────────┐
+  보낸 조회 ──────────┼── 둘 다 완료 ──▶ 끝
+  총 시간 ≈ max(A, B)   ← 더 느린 쪽만 기다림
+
+조건: B가 A 결과가 필요하면 ❌ Promise.all 말고 await를 순서대로
 ```
 
 ## 왜 배열 구조분해를 쓰는가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// Promise.all의 반환 타입: Promise<[T1, T2, T3]>
-// → await하면 [결과1, 결과2, 결과3] 배열이 나옴
-// → 배열 구조분해로 각 결과에 바로 이름을 붙임
+// Promise.all 반환: Promise<[T1, T2, …]>
+// await 하면 → [결과1, 결과2, …] 배열
 
-// 구조분해 없이 쓰면
-const results = await Promise.all([fetchFriends(), fetchFriendRequests()]);
-const friendsList    = results[0]; // results[0]으로 꺼내야 함
-const requestsData   = results[1]; // 인덱스만 보면 뭔지 모름
+// ❌ 구조분해 없이 — 인덱스로만 꺼냄 (0이 뭔지 나중에 헷갈림)
+const results = await Promise.all([fetchReceived(), fetchSent()]);
+const received = results[0];
+const sent = results[1];
 
-// 구조분해로 쓰면
-const [friendsList, requestsData] = await Promise.all([
-  fetchFriends(),
-  fetchFriendRequests(),
+// ✅ 구조분해 — 넣는 순서와 같은 자리에 이름 붙임
+const [received, sent] = await Promise.all([
+  fetchReceived(), // → received
+  fetchSent(),     // → sent
 ]);
-// → 한 줄에서 바로 이름 붙이기 — 순서는 Promise.all 배열 순서와 동일
 ```
 
 ```txt
-Promise.all([A, B, C]) 반환 배열의 순서 = 넘긴 배열의 순서 (완료 순서 아님)
-→ [friendsList, requestsData] 순서가 [fetchFriends(), fetchFriendRequests()] 순서와 1:1
+Promise.all([A, B, C]) 결과 배열 순서 = [A결과, B결과, C결과]
+→ 먼저 끝난 순서가 아님 · 넘긴 배열 순서와 1:1
 
-배열 구조분해 자체 → [[JS_Operators]] 참고
-```
-
-```txt
-직렬: 총 걸리는 시간 = 세 쿼리 시간의 합
-병렬: 총 걸리는 시간 = 그중 가장 오래 걸리는 쿼리 하나의 시간
-
-→ 서로 의존 관계가 없는 독립적인 작업들일 때만 안전하게 동시 실행 가능
-반환 배열의 순서 = 입력한 배열의 순서 (먼저 끝난 순서 아님)
+배열 구조분해 → [[JS_Operators]]
 ```
 
 ## ⚠️ 하나라도 실패하면 전체가 실패 ⭐️⭐️⭐️⭐️
