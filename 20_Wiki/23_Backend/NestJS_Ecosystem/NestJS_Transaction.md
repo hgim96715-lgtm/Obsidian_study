@@ -9,6 +9,7 @@ related:
   - "[[DB_Transaction]]"
   - "[[NestJS_Idempotency]]"
   - "[[NestJS_Prisma]]"
+  - "[[NestJS_Auth]]"
 ---
 # NestJS_Transaction — Prisma 트랜잭션
 
