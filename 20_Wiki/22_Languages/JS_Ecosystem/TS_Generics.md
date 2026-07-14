@@ -11,12 +11,13 @@ related:
   - "[[React_useRef]]"
   - "[[TS_TypeAssertion]]"
   - "[[React_Context]]"
+  - "[[JS_Primitive_Methods]]"
 ---
 # TS_Generics — `<T>`는 호출할 때 정해지는 타입 변수
 
 > [!info] 
-> `<T>`는 함수/타입을 "쓸 때" 채워지는 타입 자리표시자다.
->  `any`처럼 타입 정보를 버리지 않으면서도, 함수 하나로 여러 타입에 똑같이 동작하게 해준다.
+> `<T>`는 함수/타입을 "쓸 때" 채워지는 타입 자리표시자
+> `any`처럼 타입 정보를 버리지 않으면서도, 함수 하나로 여러 타입에 똑같이 동작하게 해준다.
 
 ---
 
@@ -232,6 +233,75 @@ function getId<T extends { id: string }>(item: T): string {
 ```txt
 T extends { id: string } — "T가 뭐든 상관없지만, 최소한 id: string 필드는 있어야 한다"는 제약
 이 제약이 없으면 item.id를 쓸 수 없음 (T가 아무 타입이나 될 수 있어서)
+```
+
+---
+
+# `readonly T[]` — 읽기 전용 배열 파라미터 ⭐️⭐️⭐️⭐️
+
+```typescript
+// readonly T[] — "이 함수는 배열을 읽기만 하고, 절대 바꾸지 않는다"는 선언
+function pickOne<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+```
+
+```typescript
+// 호출 — const 배열도, mutable 배열도 모두 넣을 수 있음
+const WISHES = ['행복하세요.', '좋은 하루 되세요.'] as const;
+pickOne(WISHES);          // ✅ readonly (as const) 배열
+
+const arr = ['a', 'b'];
+pickOne(arr);             // ✅ 일반 배열도 가능 (readonly로 넣으면 더 넓게 받음)
+```
+
+```txt
+readonly T[] vs T[]:
+
+  파라미터 타입이 T[] 이면:
+    일반 배열만 받을 수 있음
+    readonly 배열('as const'로 만든 것)을 넣으면 TS 에러
+
+  파라미터 타입이 readonly T[] 이면:
+    일반 배열 + readonly 배열 모두 받을 수 있음 (더 넓게 받음)
+    함수 안에서 .push() .pop() .splice() 같은 변경 메서드 호출 불가
+    → "이 함수는 배열을 바꾸지 않는다"는 약속을 타입으로 강제
+
+  → 배열을 읽기만 하는 함수라면 readonly T[]를 쓰는 것이 더 정확하고 유연함
+```
+
+## as const 배열과 조합 ⭐️⭐️⭐️
+
+```typescript
+// as const — 배열을 리터럴 타입의 readonly 튜플로 만듦
+const MORNING_WISHES = [
+  '오늘도 활기차게 시작해요.',
+  '좋은 하루 되세요.',
+  '오늘 하루도 잘 부탁드려요.',
+] as const;
+
+// MORNING_WISHES 타입:
+// readonly ['오늘도 활기차게 시작해요.', '좋은 하루 되세요.', '오늘 하루도 잘 부탁드려요.']
+
+// pickOne 반환 타입: 세 문자열 리터럴 유니온
+// → '오늘도 활기차게 시작해요.' | '좋은 하루 되세요.' | '오늘 하루도 잘 부탁드려요.'
+const wish = pickOne(MORNING_WISHES);
+```
+
+```txt
+as const의 효과:
+  배열이 readonly 튜플로 변환됨 → 요소 수정, 추가, 삭제 불가
+  요소 타입이 string에서 각 문자열 리터럴 타입으로 좁혀짐
+
+pickOne<T>에서 T 추론:
+  items: readonly T[]에 MORNING_WISHES를 넣으면
+  T = '오늘도...' | '좋은 하루...' | '오늘 하루...' 로 추론됨
+  반환 타입도 자동으로 그 유니온 타입
+
+실전에서 자주 쓰는 패턴:
+  const ITEMS = ['a', 'b', 'c'] as const;  // 상수 배열 정의
+  type Item = typeof ITEMS[number];          // 'a' | 'b' | 'c' 타입 추출
+  function pickOne<T>(items: readonly T[]): T { ... }  // 꺼내기
 ```
 
 ---

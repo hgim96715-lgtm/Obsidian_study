@@ -15,6 +15,7 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[JS_Truthy_Falsy]]"
   - "[[JS_Operators]]"
+  - "[[TS_Generics]]"
 ---
 # JS_Primitive_Methods — 문자열 & 숫자 메서드
 
@@ -351,6 +352,26 @@ Math.floor(Math.random() * (max - min + 1)) + min
 // 실전 패턴
 Math.floor(Math.random() * 100)      // 0~99
 Math.floor(Math.random() * 6) + 1    // 주사위 1~6
+```
+
+## pickOne — 배열에서 무작위 하나 꺼내기 ⭐️⭐️⭐️
+
+```typescript
+// Math.random 응용 — 제네릭 유틸 함수
+function pickOne<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+// 사용
+const WISHES = ['행복하세요.', '좋은 하루 되세요.', '즐거운 하루!'] as const;
+const wish = pickOne(WISHES);  // 셋 중 하나 랜덤 반환
+```
+
+```txt
+readonly T[]로 파라미터를 받는 이유:
+  as const 배열 + 일반 배열 모두 받을 수 있게 (더 넓게)
+  함수 안에서 배열을 바꾸지 않겠다는 선언
+  → [[TS_Generics]] "readonly T[] 제네릭 파라미터" 참고
 ```
 
 ---
