@@ -9,6 +9,7 @@ related:
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[React_Suspense]]"
   - "[[NextJS_Concept]]"
+  - "[[JS_WebStorage]]"
 ---
 # React_useSyncExternalStore — 외부 스토어 구독
 

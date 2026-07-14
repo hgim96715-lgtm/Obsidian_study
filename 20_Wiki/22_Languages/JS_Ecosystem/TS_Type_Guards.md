@@ -16,12 +16,13 @@ related:
   - "[[TS_Utility_Types]]"
   - "[[TS_Unknown_Any]]"
   - "[[TS_TypeAssertion]]"
+  - "[[JS_JSON]]"
 ---
 # TS_Type_Guards — 타입 좁히기
 
 > [!info] 
-> 타입 가드 = "이 값이 어떤 타입인지 런타임에 확인해서 TS에게 알려주는 것." 
-> `unknown` / 유니온 타입처럼 "여러 가능성" 안에서 실제 타입을 특정하는 방법들이다.
+> 타입 가드 = "이 값이 어떤 타입인지 런타임에 확인해서 TS에게 알려주는 것."
+>  `unknown` / 유니온 타입처럼 "여러 가능성" 안에서 실제 타입을 특정하는 방법들이다.
 
 ---
 
@@ -163,6 +164,41 @@ unknown 좁히기에서 in 쓸 때 주의:
   if (typeof err === 'object' && err !== null && 'message' in err) {
     console.log((err as { message: unknown }).message);
   }
+```
+
+---
+
+## JSON.parse — unknown 좁히기 실전 ⭐️⭐️⭐️⭐️
+
+```typescript
+// JSON.parse 반환 타입은 any — as unknown으로 받아 단계별 검증
+function parseStringArray(raw: string | null): string[] {
+  try {
+    const parsed = JSON.parse(raw ?? '[]') as unknown;
+
+    if (!Array.isArray(parsed)) return [];
+
+    // filter + 타입 서술어 → 결과가 string[]으로 확정
+    return parsed.filter((x): x is string => typeof x === 'string');
+  } catch {
+    return [];  // SyntaxError 방어
+  }
+}
+```
+
+```txt
+as unknown vs as any:
+  as any   → 이후 모든 접근이 검사 없이 통과 (위험)
+  as unknown → 좁히기 전까지 아무것도 못 씀 (안전)
+
+단계:
+  ① JSON.parse → as unknown
+  ② Array.isArray()로 배열인지 확인
+  ③ filter(타입 서술어)로 요소 타입 좁히기
+  ④ try-catch로 SyntaxError 방어
+
+filter + 타입 서술어 패턴 → [[JS_Array_Methods]] 참고
+JSON.stringify / JSON.parse 전체 → [[JS_JSON]] 참고
 ```
 
 ---

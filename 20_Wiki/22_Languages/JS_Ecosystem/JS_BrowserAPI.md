@@ -13,6 +13,8 @@ related:
   - "[[NextJS_TokenStorage]]"
   - "[[JS_DOM]]"
   - "[[JS_URL_Encoding]]"
+  - "[[JS_WebStorage]]"
+  - "[[JS_JSON]]"
 ---
 # JS_BrowserAPI — 브라우저 내장 API
 
@@ -148,7 +150,7 @@ React 사용 예:
 
 ## window.confirm vs 커스텀 모달
 
-||`window.confirm`|커스텀 모달|
+| |`window.confirm`|커스텀 모달|
 |---|---|---|
 |디자인|브라우저 기본, 변경 불가|자유|
 |비동기 작업|어려움 (블로킹)|자연스러움|
@@ -229,86 +231,10 @@ typeof window 체크를 같이 두는 이유(위 "환경 감지" ① 패턴):
 # 저장소 — localStorage / sessionStorage ⭐️
 
 ```txt
-둘은 저장 기간만 다르고, 메서드(setItem/getItem/removeItem/clear)는 완전히 동일
-→ 하나만 익히면 둘 다 쓸 수 있음
-```
-
-## 기본 4종 메서드
-
-```typescript
-// 저장
-localStorage.setItem('token', 'eyJhb...');
-sessionStorage.setItem('draft', JSON.stringify(formData));
-
-// 읽기 — 없으면 null
-const token = localStorage.getItem('token');
-
-// 삭제(1개)
-localStorage.removeItem('token');
-
-// 전체 삭제
-localStorage.clear();
-```
-
-|메서드|역할|반환값|
-|---|---|---|
-|`setItem(key, value)`|저장 (이미 있으면 덮어씀)|`undefined`|
-|`getItem(key)`|읽기|`string` 또는 `null`|
-|`removeItem(key)`|해당 key 1개만 삭제|`undefined`|
-|`clear()`|저장된 것 전부 삭제|`undefined`|
-
-## localStorage vs sessionStorage
-
-||유지 기간|공유 범위|
-|---|---|---|
-|`localStorage`|브라우저를 완전히 닫아도 유지|같은 도메인이면 모든 탭에서 공유|
-|`sessionStorage`|탭을 닫는 순간 삭제|그 탭 안에서만|
-
-```txt
-선택 기준:
-  로그인 토큰처럼 "다음에 다시 와도 유지"      → localStorage
-  작성 중인 폼처럼 "이 탭에서만, 새로고침까지만" → sessionStorage
-
-실제 토큰 저장 적용 사례 → [[NextJS_TokenStorage]] 참고
-```
-
-## 객체 / 숫자 저장 — 직렬화 필수
-
-```typescript
-// ❌ 객체를 그냥 넣으면 "[object Object]"가 됨
-localStorage.setItem('user', { id: 1 });
-
-// ✅ JSON.stringify로 문자열화
-localStorage.setItem('user', JSON.stringify({ id: 1, name: '홍길동' }));
-
-// 꺼낼 때는 JSON.parse로 복원
-const user = JSON.parse(localStorage.getItem('user') ?? 'null');
-```
-
-```txt
-?? 'null'을 붙이는 이유:
-  getItem은 키가 없으면 null 반환 → JSON.parse(null)은 에러가 아니라 null 반환하지만,
-  숫자/객체가 와야 할 자리에 null이 들어가면 이후 로직에서 타입 에러 위험 → 기본값으로 방어
-```
-
-## React에서 사용
-
-```typescript
-// lazy initial state — 첫 렌더링 1번만 실행
-const [theme, setTheme] = useState(() => localStorage.getItem('theme') ?? 'light');
-
-const toggleTheme = () => {
-  const next = theme === 'light' ? 'dark' : 'light';
-  setTheme(next);
-  localStorage.setItem('theme', next);
-};
-```
-
-```txt
-⚠️ 보안: httpOnly 쿠키와 달리 JS로 직접 접근 가능 → XSS 취약
-   localStorage vs httpOnly 쿠키 트레이드오프 → [[NextJS_TokenStorage]] 참고
-
-같은 탭 안에서 여러 컴포넌트에 동기화가 필요하면 → [[JS_CustomEvent]] 패턴이 더 적합
+localStorage  탭 닫아도 유지 / sessionStorage  탭 닫으면 삭제
+JSON 직렬화, Set 저장, JSON.parse unknown 패턴, SSR 가드
+→ [[JS_WebStorage]] 참고
+JSON.stringify / JSON.parse 전체 → [[JS_JSON]] 참고
 ```
 
 ---
