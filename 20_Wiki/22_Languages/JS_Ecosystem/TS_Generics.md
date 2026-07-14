@@ -1,18 +1,22 @@
 ---
-aliases: [generics, T]
-tags: [TypeScript]
+aliases:
+  - generics
+  - T
+tags:
+  - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Promise]]"
   - "[[NextJS_API_Client]]"
   - "[[React_useRef]]"
   - "[[TS_TypeAssertion]]"
+  - "[[React_Context]]"
 ---
 # TS_Generics — `<T>`는 호출할 때 정해지는 타입 변수
 
 > [!info] 
-> `<T>`는 함수/타입을 "쓸 때" 채워지는 타입 자리표시자
-> `any`처럼 타입 정보를 버리지 않으면서도, 함수 하나로 여러 타입에 똑같이 동작하게 해준다.
+> `<T>`는 함수/타입을 "쓸 때" 채워지는 타입 자리표시자다.
+>  `any`처럼 타입 정보를 버리지 않으면서도, 함수 하나로 여러 타입에 똑같이 동작하게 해준다.
 
 ---
 
@@ -228,6 +232,42 @@ function getId<T extends { id: string }>(item: T): string {
 ```txt
 T extends { id: string } — "T가 뭐든 상관없지만, 최소한 id: string 필드는 있어야 한다"는 제약
 이 제약이 없으면 item.id를 쓸 수 없음 (T가 아무 타입이나 될 수 있어서)
+```
+
+---
+
+# ReadonlySet / ReadonlyMap / ReadonlyArray ⭐️⭐️⭐️
+
+```typescript
+// ReadonlySet — 읽기 전용 Set
+const ids: ReadonlySet<string> = new Set(['a', 'b']);
+ids.has('a');    // ✅ 읽기는 가능
+ids.add('c');    // ❌ TS 에러 — 수정 메서드 없음
+ids.delete('a'); // ❌ TS 에러
+
+// ReadonlyMap
+const map: ReadonlyMap<string, number> = new Map();
+map.get('key');  // ✅
+map.set('k', 1); // ❌
+
+// readonly 배열
+const arr: ReadonlyArray<string> = ['a', 'b'];
+// 또는 축약형
+const arr: readonly string[] = ['a', 'b'];
+arr[0];          // ✅
+arr.push('c');   // ❌
+```
+
+```txt
+언제 쓰는가:
+  Context value에서 "이 Set은 Provider 안에서만 바꾸고, 읽는 쪽은 읽기만 해라"
+  → type FriendIdsContextValue = { ids: ReadonlySet<string>; reload: () => void }
+
+  상태를 외부에 노출할 때 수정 권한을 제한
+  "이 값을 받은 쪽은 건드리지 마라"는 의도를 타입으로 표현
+
+  ⚠️ 타입 수준의 제약 — 런타임에 실제로 막히는 건 아님
+     setIds(원래Set)처럼 Provider 안에서는 여전히 수정 가능
 ```
 
 ---

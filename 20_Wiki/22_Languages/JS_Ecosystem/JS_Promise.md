@@ -1,6 +1,13 @@
 ---
-aliases: [async/await, Promise, Promise.al, Promise.reject, Promise.resolve, then]
-tags: [JavaScript]
+aliases:
+  - async/await
+  - Promise
+  - Promise.al
+  - Promise.reject
+  - Promise.resolve
+  - then
+tags:
+  - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Array_Methods]]"
@@ -8,6 +15,7 @@ related:
   - "[[JS_Operators]]"
   - "[[NestJS_Throttle]]"
   - "[[TS_Generics]]"
+  - "[[React_Context]]"
 ---
 # JS_Promise — 비동기 처리의 기본 단위
 
@@ -306,6 +314,39 @@ fn: () => Promise<void> 타입이라 모든 코드 경로에서 Promise를 반�
     void runAction(() => respondFriendRequest(friendship.id, 'decline'));
   }}
 ```
+
+## void IIFE async — useCallback 안에서 async 쓰기 ⭐️⭐️⭐️
+
+```typescript
+// useCallback 자체를 async로 하면 () => Promise<void> 타입이 됨
+// → 사용 쪽에서 매번 void reload()를 써야 함
+// → () => void 타입을 유지하면서 내부에서 async 쓰는 방법
+
+const reload = useCallback(() => {           // ← () => void
+  void (async () => {                        // ← async IIFE + void
+    const data = await fetchData();
+    setState(data);
+  })();
+}, [deps]);
+```
+
+```txt
+(async () => { ... })():
+  async 함수를 "즉시 실행"하는 IIFE 패턴
+  실행 결과인 Promise를 void로 버림
+
+왜 useCallback(() => { ... })을 async로 안 하는가:
+  async 함수는 Promise를 반환 → reload가 () => Promise<void> 타입
+  onClick={() => reload()} 처럼 쓰면 floating promise 경고
+  () => void 타입을 유지하면 onClick에 그냥 넣어도 됨
+
+더 간단한 대안 — 외부 async 함수를 void로 호출:
+  const doLoad = async () => { const data = await ...; setState(data); };
+  const reload = useCallback(() => { void doLoad(); }, [deps]);
+
+React_Context.md에서 실제 사용 패턴 → [[React_Context]]
+```
+
 
 ## 반환값이 있는 버전
 
