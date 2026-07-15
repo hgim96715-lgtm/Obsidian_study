@@ -18,9 +18,7 @@ related:
 ---
 # NestJS_Prisma — Prisma ORM
 
-> [!info] 
-> Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM
-> 반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일이다.
+> [!info] Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일이다.
 
 ---
 
@@ -629,12 +627,190 @@ const list = await this.prisma.movie.findMany({ where: { isVisible: true }, orde
 // UPDATE
 await this.prisma.user.update({ where: { id }, data: { name } });
 
+// UPDATE — 원자적 업데이트 (아래 참고) ⭐️⭐️⭐️⭐️
+await this.prisma.room.update({
+  where: { id: roomId },
+  data:  { memberCount: { increment: 1 } },
+});
+
 // UPSERT — 있으면 update, 없으면 create
 await this.prisma.user.upsert({ where: { email }, create: { email, passwordHash }, update: { passwordHash } });
 
 // DELETE
 await this.prisma.user.delete({ where: { id } });
 await this.prisma.movie.deleteMany({ where: { isVisible: false } });
+```
+
+---
+
+# 원자적 업데이트 (Atomic Update) ⭐️⭐️⭐️⭐️
+
+```typescript
+// 숫자 필드를 읽지 않고 DB에서 직접 연산
+await this.prisma.room.update({
+  where: { id: roomId },
+  data:  { memberCount: { increment: 1 } },
+});
+// → SQL: UPDATE room SET memberCount = memberCount + 1 WHERE id = ?
+```
+
+```txt
+왜 { increment: 1 }을 쓰는가 — 읽고-쓰기(read-modify-write) 경쟁 조건 방지:
+
+  ❌ 일반 방식 (경쟁 조건 위험):
+    const room = await prisma.room.findUnique({ where: { id } });
+    await prisma.room.update({ data: { memberCount: room.memberCount + 1 } });
+    // 두 요청이 동시에 읽으면 둘 다 같은 값을 +1 → 한 번만 증가
+
+  ✅ 원자적 업데이트:
+    data: { memberCount: { increment: 1 } }
+    // DB가 단일 SQL로 처리 → 경쟁 조건 없음
+```
+
+## 원자적 업데이트 연산자
+
+|연산자|의미|예시|
+|---|---|---|
+|`{ increment: n }`|`+ n`|`{ memberCount: { increment: 1 } }`|
+|`{ decrement: n }`|`- n`|`{ memberCount: { decrement: 1 } }`|
+|`{ multiply: n }`|`* n`|`{ price: { multiply: 1.1 } }`|
+|`{ divide: n }`|`/ n`|`{ ratio: { divide: 2 } }`|
+|`{ set: n }`|`= n` (명시적 덮어쓰기)|`{ retryCount: { set: 0 } }`|
+
+```typescript
+// 조회 없이 카운터 증가
+await this.prisma.post.update({
+  where: { id: postId },
+  data:  { viewCount: { increment: 1 } },
+});
+
+// 여러 필드 동시에
+await this.prisma.stats.update({
+  where: { id },
+  data: {
+    winCount:    { increment: 1 },
+    totalGames:  { increment: 1 },
+    winRate:     { set: newRate },   // 계산된 값을 set으로
+  },
+});
+```
+
+## $transaction과 조합 — 두 테이블 동시 원자 업데이트 ⭐️⭐️⭐️
+
+```typescript
+// 멤버 추가 + 카운터 증가를 하나의 트랜잭션으로
+const [member] = await this.prisma.$transaction([
+  this.prisma.roomMember.create({
+    data: { roomId, userId, role: RoomMemberRole.member },
+  }),
+  this.prisma.room.update({
+    where: { id: roomId },
+    data:  { memberCount: { increment: 1 } },
+  }),
+]);
+```
+
+```txt
+$transaction 배치 방식 + 원자적 업데이트 조합:
+  두 작업이 전부 성공하거나 전부 실패 (트랜잭션 보장)
+  memberCount는 DB 레벨에서 atomic하게 증가
+  const [member] = 구조분해 → 배치 트랜잭션 결과는 배열 순서대로
+
+배치 트랜잭션 상세 → [[NestJS_Transaction]]
+```
+
+---
+
+---
+
+# where — 관계 필터 (some / every / none) ⭐️⭐️⭐️⭐️
+
+```typescript
+// "내가 멤버인 방" — members 중 userId가 일치하는 것이 하나라도 있으면
+room.findMany({
+  where: {
+    members: { some: { userId } },
+  },
+});
+// → SELECT * FROM room WHERE EXISTS (
+//     SELECT 1 FROM room_member WHERE room_id = room.id AND user_id = ?
+//   )
+```
+
+|연산자|의미|예시 상황|
+|---|---|---|
+|`some`|관련 레코드 중 **하나라도** 조건에 맞으면|"내가 멤버인 방", "댓글이 하나라도 있는 게시글"|
+|`every`|관련 레코드 **모두** 조건에 맞아야|"모든 멤버가 활성 상태인 방"|
+|`none`|조건에 맞는 관련 레코드가 **하나도 없으면**|"신고가 없는 게시글", "읽지 않은 메시지가 없는 채팅방"|
+
+```typescript
+// some — 하나라도
+room.findMany({
+  where: {
+    members: { some: { userId } },   // 내가 멤버인 방
+  },
+});
+
+// some — 여러 조건
+post.findMany({
+  where: {
+    comments: { some: { authorId: userId, isDeleted: false } },
+    // 내가 쓴 삭제 안 된 댓글이 하나라도 있는 게시글
+  },
+});
+
+// every — 전부 다
+room.findMany({
+  where: {
+    members: { every: { status: MemberStatus.active } },
+    // 모든 멤버가 active인 방
+  },
+});
+
+// none — 하나도 없음
+post.findMany({
+  where: {
+    reports: { none: {} },  // 신고가 하나도 없는 게시글
+  },
+});
+```
+
+```txt
+조건 안에 빈 {} :
+  { some: {} }  → 관련 레코드가 하나라도 "존재하면"
+  { none: {} }  → 관련 레코드가 하나도 없으면
+  {} 안에 조건을 추가하면 그 조건까지 만족하는 레코드를 기준으로
+
+JOIN 없이 관계로 필터링:
+  SQL은 JOIN 후 WHERE로 필터링하는 방식
+  Prisma는 관계 필터(some/every/none)로 선언적으로 표현
+  → Prisma가 내부적으로 EXISTS 서브쿼리나 JOIN으로 변환
+```
+
+## is / isNot — 단수 관계 필터 ⭐️⭐️⭐️
+
+```typescript
+// some/every/none은 "다대일" 관계(배열)
+// is/isNot은 "일대일" 또는 "다대일의 단수 방향" 관계
+
+comment.findMany({
+  where: {
+    post: { is: { isPublished: true } },
+    // 댓글이 속한 게시글이 공개 상태인 것만
+  },
+});
+
+comment.findMany({
+  where: {
+    post: { isNot: { isDeleted: true } },
+    // 댓글이 속한 게시글이 삭제되지 않은 것만
+  },
+});
+```
+
+```txt
+some/every/none   →  "hasMany" 관계 (배열 필드)  예: post.comments
+is/isNot          →  "belongsTo" 관계 (단수 필드) 예: comment.post
 ```
 
 ---
@@ -890,7 +1066,7 @@ const rows = await this.prisma.exhibition.groupBy({
 });
 ```
 
-| |역할|
+||역할|
 |---|---|
 |`aggregate`|전체(또는 where 조건)를 한 번에 집계|
 |`groupBy`|컬럼 값 기준으로 그룹별 집계 (SQL `GROUP BY`)|
@@ -1101,6 +1277,11 @@ DateTime 필드는 반드시 @db.Timestamptz(3) 명시:
   PostgreSQL 타입 원리 → [[NestJS_PostgreSQL]]
 
 조회: unique 컬럼 하나 → findUnique / 자유조건+1건 → findFirst / 여러 건 → findMany
+관계 필터 (where 안에서):
+  { members: { some: { userId } } }  관련 레코드 중 하나라도 조건 일치
+  { members: { every: { ... } } }    관련 레코드 전부 조건 일치
+  { members: { none: {} } }          관련 레코드가 하나도 없음
+  { post: { is: { isPublished: true } } }  단수 관계 필터 (is/isNot)
 select(필요한 것만, 화이트리스트 — 민감 필드 있으면 더 안전) / omit(뺄 것만, 블랙리스트) /
   include(관계, 내부에서 where·orderBy·take·select 다 가능)
   → select+include 동시 사용 불가, 개수만 필요하면 _count(select/include 둘 다에서 가능)
@@ -1115,6 +1296,13 @@ Json 필드는 읽기(JsonValue)/쓰기(InputJsonValue) 타입이 다름 — 옵
 JSON null을 명시적으로 쓰려면 Prisma.JsonNull (SQL NULL은 Prisma.DbNull)
 
 에러는 Prisma.PrismaClientKnownRequestError + error.code 분기 (P2002 중복 / P2003 FK / P2025 없음)
+
+원자적 업데이트 (읽기 없이 DB에서 직접 연산):
+  data: { count: { increment: 1 } }  → count = count + 1
+  data: { count: { decrement: 1 } }  → count = count - 1
+  data: { price: { multiply: 1.1 } } → price = price * 1.1
+  data: { val:   { set: 0 } }        → val = 0 (명시적 덮어쓰기)
+  경쟁 조건 없이 안전 — $transaction 배치와 조합 가능 → [[NestJS_Transaction]]
 
 Prisma 6 튜토리얼대로 안 되면 버전 차이부터 의심 (prisma.config.ts / adapter / output)
 모노레포 명령 실행 디테일 → [[NestJS_Prisma_Monorepo]]

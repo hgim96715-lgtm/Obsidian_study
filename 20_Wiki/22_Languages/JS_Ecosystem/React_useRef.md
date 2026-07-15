@@ -1,215 +1,310 @@
 ---
-aliases: [current, ref, useRef]
+aliases:
+  - current
+  - ref
+  - useRef
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[TS_DOM_Events]]"
+  - "[[JS_DOM]]"
 ---
-# React_useRef — 렌더링과 무관하게 값을 들고 있기
+# React_useRef — DOM 접근 & 렌더링 무관 값 보관
 
 > [!info] 
-> `useRef`는 "리렌더를 안 일으키면서 값을 기억해두는 상자"다. 
-> 가장 흔한 용도는 ① DOM 엘리먼트에 직접 접근하기, ② 렌더링과 무관한 값(타이머 ID, 이전 값 등)을 들고 있기 — 둘 다 `.current`라는 하나의 속성을 통해 값을 읽고 쓴다.
-
----
-# 흐름도
-
-```mermaid-beautiful
-flowchart TB
-  REF["useRef"] --> BOX["매 렌더 같은 객체<br/>current로 읽고 씀"]
-  BOX --> NORENDER["값 바뀌어도 리렌더 없음"]
-
-  BOX --> USE{용도}
-
-  subgraph DOM["DOM 접근"]
-    direction TB
-    DOM1["JSX ref 속성 연결"]
-    DOM1 --> DOM2["마운트 후 current에 노드"]
-    DOM2 --> DOM3["focus · contains · scroll 등"]
-    DOM2 --> DOM4["초기 null · 옵셔널 체이닝"]
-  end
-
-  subgraph STORE["값 저장"]
-    direction TB
-    ST1["타이머 id · 이전 값"]
-    ST1 --> ST2["화면과 무관한 값"]
-  end
-
-  USE -->|엘리먼트| DOM1
-  USE -->|기억만| ST1
-```
-
-```txt
-useState는 리렌더 유발 · useRef는 current만 바꿔도 화면 안 바뀜
-DOM 접근과 값 저장 — 용도는 다르지만 둘 다 current 하나로 다룸
-```
+> `useRef`는 "렌더링에 영향을 주지 않으면서 값을 유지하는 상자."
+>  `useState`와 달리 `.current`를 바꿔도 리렌더가 일어나지 않는다. 
+>  주된 용도: ① DOM 요소에 직접 접근 ② 타이머 ID·이전 값처럼 렌더링과 무관한 값 보관.
 
 ---
 
-# ref란 무엇인가 — useState와 다른 점 ⭐️⭐️⭐️
+# useState vs useRef ⭐️⭐️⭐️⭐️
 
-|구분|`useState`|`useRef`|
+```typescript
+const [count, setCount] = useState(0);  // 바뀌면 리렌더 O
+const countRef = useRef(0);             // 바뀌어도 리렌더 X
+```
+
+| |`useState`|`useRef`|
 |---|---|---|
-|값이 바뀌면|리렌더 발생|리렌더 안 일어남|
-|값을 읽는 법|변수 그대로|`.current`를 통해서만|
-|적합한 값|화면에 "보여줘야" 하는 값|화면 표시와 무관하게 그냥 "기억"만 해두면 되는 값|
-
-```tsx
-const countRef = useRef(0);
-countRef.current += 1;
-// 값은 바뀌었지만 화면은 안 바뀜 — 리렌더를 일으키는 신호 자체가 없기 때문
-```
+|값 변경 시 리렌더|✅ 리렌더 발생|❌ 리렌더 없음|
+|값 읽기|`count`|`countRef.current`|
+|값 쓰기|`setCount(n)`|`countRef.current = n`|
+|렌더링 결과에 반영|✅ JSX에 표시됨|❌ `.current`를 JSX에 써도 업데이트 안 됨|
 
 ```txt
-useRef가 반환하는 객체({ current: ... })는 컴포넌트가 리렌더돼도 항상 같은 객체임
-→ 그 안의 .current 값만 바뀌는 것이고, useRef를 호출한 변수(countRef) 자체는 매 렌더마다 동일함
-  (useState처럼 "새 값으로 교체"가 아니라, 같은 박스 안의 내용물만 바꾸는 것)
+"화면에 보여야 하는 값" → useState
+"내부에서만 쓰고 화면에 안 보이는 값" → useRef
 ```
 
 ---
 
-# `useRef<T>`(initialValue) — 제네릭과 초기값 ⭐️⭐️⭐️
+# 기본 형태
 
-```tsx
-const rootRef = useRef<HTMLDivElement>(null);
-//              ↑ <T> = .current에 들어갈 값의 타입
-//                        초기값은 null
-```
+```typescript
+import { useRef } from 'react';
 
-```txt
-<HTMLDivElement> — 이 ref를 <div>에 연결할 거라는 타입 선언
-  타입스크립트는 ref.current의 실제 타입을 HTMLDivElement | null 로 추론함
+const ref = useRef(초기값);
 
-왜 초기값이 항상 null인가:
-  useRef가 처음 호출되는 시점(첫 렌더링 중)엔, 그 ref를 매달 DOM 노드가
-  아직 실제로 화면에 만들어지지(커밋되지) 않은 상태임
-  → React가 렌더링을 마치고 실제 DOM에 반영한 "직후"에야 .current를 그 노드로 채워줌
-  → 그 사이(첫 렌더링 도중)에는 가리킬 게 없으니 null이 정직한 시작값
-
-타입이 HTMLDivElement | null 인 이유, 그래서 매번 ?. 가 필요한 이유:
-  rootRef.current.contains(...)   ❌ "null일 수도 있다"는 경고 — 컴파일 에러
-  rootRef.current?.contains(...)  ✅ null이면 그냥 undefined로 안전하게 빠짐
-  → null인 경우(아직 마운트 전, 또는 조건부 렌더링으로 그 엘리먼트가 없는 경우)를
-    항상 같이 고려해야 한다는 걸 타입이 강제해주는 것
+ref.current          // 현재 값 읽기
+ref.current = 새값   // 값 쓰기 (리렌더 없음)
 ```
 
 ---
 
-# DOM 엘리먼트에 직접 접근하기 — 가장 흔한 용도 ⭐️⭐️⭐️
+# 용도 1 — DOM 요소에 직접 접근 ⭐️⭐️⭐️⭐️
 
-```tsx
+```typescript
+// useRef<타입>(null) — 초기값은 null (마운트 전에 DOM이 없음)
+const inputRef = useRef<HTMLInputElement>(null);
+const divRef   = useRef<HTMLDivElement>(null);
+
+// JSX에서 ref 속성으로 연결
+<input ref={inputRef} />
+<div ref={divRef} />
+```
+
+```txt
+React가 요소를 렌더링한 뒤에 ref.current에 그 DOM 요소를 자동으로 넣어줌
+마운트 전: ref.current = null
+마운트 후: ref.current = 실제 DOM 요소 (HTMLInputElement 등)
+언마운트 후: ref.current = null 으로 되돌아감
+```
+
+## 포커스
+
+```typescript
 const inputRef = useRef<HTMLInputElement>(null);
 
+function handleOpen() {
+  // DOM이 준비된 이후에만 실행
+  inputRef.current?.focus();
+}
+
 return <input ref={inputRef} />;
-
-// 나중에 — 진짜 DOM 메서드를 직접 호출
-inputRef.current?.focus();
 ```
 
-```txt
-JSX에 ref={inputRef} 를 달아두면, React가 마운트를 마친 뒤
-실제 DOM 노드를 자동으로 inputRef.current에 채워줌
+## 스크롤 — 채팅 맨 아래로 ⭐️⭐️⭐️⭐️
 
-그 뒤로는 React가 추상화해주지 않는, 브라우저가 원래 제공하는 진짜 DOM 메서드를
-직접 호출할 수 있게 됨 — .focus() / .scrollIntoView() / .contains() / .getBoundingClientRect() 등
-(React는 "무엇을 화면에 그릴지"만 관리하고, 이런 명령형 동작은 ref로 DOM에 직접 요청해야 함)
-```
-
----
-
-# 렌더링과 무관한 값 저장 — 두 번째 용도 ⭐️⭐️
-
-```tsx
-const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-function startTimer() {
-  timerRef.current = setTimeout(() => console.log('done'), 1000);
-}
-
-function cancelTimer() {
-  if (timerRef.current) clearTimeout(timerRef.current);
-}
-```
-
-```txt
-타이머 id, 이전 렌더의 값(previous value), 렌더링 횟수 카운트처럼
-"로직에는 필요하지만 화면에 직접 보여줄 건 아닌 값"을 들고 있을 때 씀
-useState로 만들면 그 값이 바뀔 때마다 불필요한 리렌더가 같이 일어남 — ref는 그게 없음
-```
-
----
-
-# 실전 예시 — 바깥 클릭 감지(Click Outside) 패턴 ⭐️⭐️⭐️⭐️
-
-```txt
-드롭다운/메뉴/팝오버처럼 "이 영역 바깥을 클릭하면 닫는다"는 패턴은
-ref로 그 영역의 실제 DOM 노드를 들고 있어야 "지금 클릭한 곳이 이 안인지 밖인지" 판단할 수 있음
-```
-
-```tsx
-const rootRef = useRef<HTMLDivElement>(null);
+```typescript
+const bottomRef = useRef<HTMLDivElement>(null);
 
 useEffect(() => {
-  if (!open) return;
+  // messages가 추가될 때마다 맨 아래로 스크롤
+  bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+}, [messages.length]);
 
-  function onPointerDown(e: PointerEvent) {
-    if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+return (
+  <div className="overflow-y-auto">
+    {messages.map((m) => <Message key={m.id} message={m} />)}
+    <div ref={bottomRef} />  {/* 스크롤 타깃 — 항상 맨 아래에 있는 빈 div */}
+  </div>
+);
+```
+
+```txt
+빈 div를 ref 타깃으로 쓰는 이유:
+  마지막 메시지에 ref를 달면 메시지가 바뀔 때마다 ref가 재연결됨
+  항상 맨 아래에 있는 빈 div 하나를 두고 그것만 참조 → 더 안정적
+
+ref.current?.scrollIntoView:
+  ?. (옵셔널 체이닝) — null이면 조용히 무시
+  scrollIntoView 옵션 → [[JS_DOM]] 참고
+```
+
+## 타입 — 요소별 타입
+
+```typescript
+useRef<HTMLInputElement>(null)      // <input>
+useRef<HTMLTextAreaElement>(null)   // <textarea>
+useRef<HTMLDivElement>(null)        // <div>
+useRef<HTMLButtonElement>(null)     // <button>
+useRef<HTMLFormElement>(null)       // <form>
+useRef<HTMLVideoElement>(null)      // <video>
+useRef<HTMLCanvasElement>(null)     // <canvas>
+
+// 모르면 → HTMLElement (공통 타입)
+useRef<HTMLElement>(null)
+```
+
+---
+
+# 용도 2 — 렌더링과 무관한 값 보관 ⭐️⭐️⭐️⭐️
+
+## 타이머 ID 보관
+
+```typescript
+const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+function start() {
+  timerRef.current = setTimeout(() => {
+    doSomething();
+  }, 3000);
+}
+
+function cancel() {
+  if (timerRef.current !== null) {
+    clearTimeout(timerRef.current);
+    timerRef.current = null;
   }
+}
 
-  document.addEventListener('pointerdown', onPointerDown);
-  return () => document.removeEventListener('pointerdown', onPointerDown);
-}, [open]);
-
-return <div ref={rootRef}>{/* 메뉴/드롭다운 내용 */}</div>;
+// 언마운트 시 타이머 정리
+useEffect(() => {
+  return () => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+  };
+}, []);
 ```
 
 ```txt
-⚠️ 자주 나는 실수 — addEventListener/cleanup이 핸들러 함수 "안"에 들어가는 경우:
+왜 useState가 아니라 useRef인가:
+  timerRef.current = setTimeout(...)  → 상태 변경이 아님, 리렌더 필요 없음
+  useState로 하면 clearTimeout 직전에 불필요한 리렌더 발생
+```
 
-  function onPointerDown(e) {
-    if (...) setOpen(false);
-    document.addEventListener('pointerdown', onPointerDown);  // ❌ 여기 있으면 안 됨
-    return () => document.removeEventListener(...);            // ❌ 이것도
-  }
+## 이전 값 기억
 
-  이렇게 두면 addEventListener 호출 자체가 onPointerDown "함수 본문 안"에 갇혀버림
-  → onPointerDown은 정의만 되고 아무도 호출하지 않으니, 그 안의 addEventListener 줄은
-    영원히 실행되지 않음 — 리스너가 실제로는 한 번도 등록되지 않는 조용한 버그가 됨
+```typescript
+function usePrevsious<T>(value: T): T | undefined {
+  const prevRef = useRef<T | undefined>(undefined);
 
-  addEventListener와 그 클린업(return)은 항상 useEffect 콜백의 "바로 안"(핸들러 함수 정의와
-  같은 들여쓰기 레벨)에 있어야 함 — 핸들러 함수 정의와 그 핸들러를 등록하는 코드는 서로 다른 줄
+  // 렌더링 후 현재 값을 저장 (다음 렌더에서 "이전 값"이 됨)
+  useEffect(() => {
+    prevRef.current = value;
+  });
+
+  return prevRef.current;  // 렌더 시점엔 아직 이전 값
+}
+
+// 사용
+const prevCount = usePrevsious(count);
+console.log(`이전: ${prevCount}, 현재: ${count}`);
+```
+
+## 최초 마운트 여부 확인
+
+```typescript
+function useIsFirstRender(): boolean {
+  const isFirstRef = useRef(true);
+
+  useEffect(() => {
+    isFirstRef.current = false;  // 첫 렌더 이후 false
+  }, []);
+
+  return isFirstRef.current;
+}
+
+// 사용 — 마운트 시에만 실행하거나 건너뛸 때
+const isFirst = useIsFirstRender();
+
+useEffect(() => {
+  if (isFirst) return;  // 마운트 직후는 건너뜀
+  fetchSearch(query);
+}, [query]);
+```
+
+## 렌더링 횟수 카운터 (디버깅)
+
+```typescript
+const renderCount = useRef(0);
+renderCount.current += 1;
+console.log(`렌더 횟수: ${renderCount.current}`);
+// useState로 하면 setCount가 또 리렌더를 유발 → 무한루프
+```
+
+---
+
+# ⚠️ 주의사항 ⭐️⭐️⭐️⭐️
+
+## 렌더링 중에 ref.current를 읽거나 쓰지 말 것
+
+```typescript
+// ❌ 렌더링 중 ref 접근 — 예측 불가한 동작
+function Component() {
+  const ref = useRef(0);
+  ref.current += 1;              // 렌더링 중에 직접 변경
+
+  return <div>{ref.current}</div>; // 렌더링 중에 읽기
+}
+
+// ✅ useEffect 안에서만 접근
+function Component() {
+  const ref = useRef(0);
+
+  useEffect(() => {
+    ref.current += 1;  // 렌더링이 끝난 후에 접근 — 안전
+  });
+
+  return <div>...</div>;
+}
 ```
 
 ```txt
-rootRef.current?.contains(e.target as Node) 한 줄씩:
+이유:
+  React의 렌더링은 순수 함수여야 함 — 같은 입력에 같은 출력
+  렌더링 중 ref.current를 바꾸면 렌더링이 반복될 때 다른 결과가 나올 수 있음
+  → DOM 접근이나 부수효과는 useEffect 안에서
+```
 
-  rootRef.current        지금 이 컴포넌트가 그린 실제 <div> DOM 노드 (없으면 null)
-  .contains(다른노드)     그 다른 노드가 이 노드의 자손(또는 자기 자신)인지 확인하는 네이티브 DOM 메서드
-  e.target               이번 클릭이 실제로 발생한 가장 안쪽 요소
-  as Node                e.target의 선언 타입(EventTarget)은 .contains에 안 맞아서 타입 단언 필요
-                         (자세한 이유는 [[TS_DOM_Events]] 참고)
+## ref.current를 JSX에 직접 쓰면 업데이트 안 됨
 
-  → "지금 클릭한 지점이 내가 들고 있는 영역(rootRef) 안에 없다면 닫아라"는 뜻
+```typescript
+// ❌ ref.current가 바뀌어도 화면이 업데이트 안 됨
+const countRef = useRef(0);
+return <div>{countRef.current}</div>;  // 항상 초기값만 표시
+
+// ✅ 화면에 표시해야 하는 값은 useState
+const [count, setCount] = useState(0);
+return <div>{count}</div>;
+```
+
+---
+
+# useRef vs useCallback (함수 참조 안정화) ⭐️⭐️
+
+```typescript
+// useCallback — 값이 바뀌면 함수도 새로 생성, deps 관리
+const fn = useCallback(() => { ... }, [deps]);
+
+// useRef — 항상 같은 함수 참조 유지, 최신 클로저를 ref에 저장
+const fnRef = useRef(fn);
+useEffect(() => { fnRef.current = fn; });
+const stableFn = useCallback((...args) => fnRef.current(...args), []);
 ```
 
 ```txt
-PointerEvent를 쓰는 이유(MouseEvent 대신):
-  마우스 클릭뿐 아니라 터치(모바일)·펜 입력까지 한 가지 이벤트로 통합해서 잡을 수 있음
-  → "바깥을 눌렀다"를 마우스 환경에만 한정하고 싶지 않다면 pointerdown이 더 범용적
-  네이티브 이벤트 타입과 React 합성 이벤트 타입의 차이 전반은 [[TS_DOM_Events]] 참고
+useRef로 함수를 안정화하는 게 유용한 경우:
+  deps가 너무 많아서 useCallback이 너무 자주 바뀔 때
+  이벤트 리스너처럼 딱 한 번만 등록하고 항상 최신 클로저를 실행하고 싶을 때
 ```
 
 ---
 
 # 한눈에
 
-|개념|역할|
-|---|---|
-|`useRef(초기값)`|리렌더를 안 일으키는 값 저장 상자 — `.current`로 읽고 씀|
-|`useRef<T>(null)`|DOM 엘리먼트용 — 마운트 후 React가 실제 노드로 `.current`를 채워줌|
-|`.current?.xxx`|타입이 `T \| null`이라 항상 null 가능성을 처리해야 함|
-|DOM 접근 용도|`.focus()`, `.contains()`, `.scrollIntoView()` 등 React가 추상화 안 한 명령형 동작|
-|값 저장 용도|타이머 id, 이전 값, 카운트처럼 화면 표시와 무관한 값|
-|흔한 실수|이벤트 등록(`addEventListener`)과 클린업을 핸들러 함수 안에 잘못 넣는 것|
+```txt
+useRef(초기값):
+  .current로 읽고 쓰는 "상자"
+  .current를 바꿔도 리렌더 없음 → 화면에 보이면 안 되는 값에 사용
+
+DOM 접근:
+  useRef<HTMLInputElement>(null) → <input ref={inputRef} />
+  마운트 후 ref.current에 DOM 요소가 들어옴
+  useEffect 안에서만 접근 (렌더링 중 접근 금지)
+
+주요 사용 패턴:
+  포커스       inputRef.current?.focus()
+  스크롤       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  타이머 ID    clearTimeout(timerRef.current)
+  이전 값      prevRef.current = value (useEffect 안에서)
+  마운트 여부  isFirstRef.current = false
+
+useState와 차이:
+  화면에 보여야 함 → useState
+  내부에서만 쓰고 리렌더 필요 없음 → useRef
+
+scrollIntoView 옵션 → [[JS_DOM]]
+```

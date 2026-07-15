@@ -10,6 +10,7 @@ related:
   - "[[NestJS_Idempotency]]"
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Auth]]"
+  - "[[NestJS_DTO]]"
 ---
 # NestJS_Transaction — Prisma 트랜잭션
 

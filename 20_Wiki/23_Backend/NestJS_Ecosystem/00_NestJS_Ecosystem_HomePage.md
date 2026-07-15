@@ -71,15 +71,15 @@ flowchart TB
 NodeJS "기초" 개념이 아니라 NestJS 프레임워크 자체가 만든 영역 — 다른 트랙과 안 얽힘
 ```
 
-| 영역        | 노트                                                                                                                                                                                                             |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 요청 데이터 검증 | [[NestJS_DTO]] (→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결, [[00_JS_Ecosystem_HomePage]] 참고)                                                                                           |
-| 데이터베이스    | [[NestJS_Prisma]] · [[NestJS_PostgreSQL]] · [[NestJS_Prisma_Monorepo]] · [[NestJS_StatsBucket]] (통계 집계 → [[React_Charts]]와 연결) · [[NestJS_Migration]] · [[00_DB_HomePage]] (DB 전체 홈 — 순수 SQL · MySQL · Redis)  |
-| 모듈/DI 구조  | [[NestJS_Module]] · [[NestJS_Service_Provider]]                                                                                                                                                                |
-| 패턴/기법     | [[NestJS_Throttle]] (스로틀링 · fire-and-forget) · [[NestJS_Logger]] (내장 로거) · [[NestJS_Pagination]] · [[NestJS_Idempotency]] (중복 요청 방어 · 멱등키 · 낙관적/비관적 잠금)                                                        |
-| 인증/보안     | [[NestJS_CORS]] · [[NestJS_Env_Config]] · [[NestJS_Auth]] (Passport · 로컬 · Google · Kakao · Naver · Apple) · [[Auth_Concept]] (OAuth 흐름 · JWT vs 세션) · [[Monorepo_PNPM]] · [[00_Deployment_HomePage]] (배포 인프라) |
-| API 문서화   | [[NestJS_Swagger]] · [[NestJS_Versioning]]                                                                                                                                                                     |
-| 기초 개념     | [[NestJS_Concept]]                                                                                                                                                                                             |
+| 영역        | 노트                                                                                                                                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 요청 데이터 검증 | [[NestJS_DTO]] (→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결, [[00_JS_Ecosystem_HomePage]] 참고)                                                                                                                                         |
+| 데이터베이스    | [[NestJS_Prisma]] · [[NestJS_PostgreSQL]] · [[NestJS_Prisma_Monorepo]] · [[NestJS_StatsBucket]] (통계 집계 → [[React_Charts]]와 연결) · [[NestJS_Migration]] · [[00_DB_HomePage]] (DB 전체 홈 — 순수 SQL · MySQL · Redis)                                                |
+| 모듈/DI 구조  | [[NestJS_Module]] · [[NestJS_Service_Provider]]                                                                                                                                                                                                              |
+| 패턴/기법     | [[NestJS_Throttle]] (스로틀링 · fire-and-forget) · [[NestJS_Logger]] (내장 로거) · [[NestJS_Pagination]] · [[NestJS_Idempotency]] (중복 요청 방어 · 멱등키 · 낙관적/비관적 잠금)                                                                                                      |
+| 인증/보안     | [[NestJS_CORS]] · [[NestJS_Env_Config]] · [[NestJS_Auth]] (Passport · 로컬 · Google · Kakao · Naver · Apple) · [[Auth_Concept]] (OAuth 흐름 · JWT vs 세션) · [[NestJS_WebSocket]] (Gateway · 룸 · 실시간 통신) · [[Monorepo_PNPM]] · [[00_Deployment_HomePage]] (배포 인프라) |
+| API 문서화   | [[NestJS_Swagger]] · [[NestJS_Versioning]]                                                                                                                                                                                                                   |
+| 기초 개념     | [[NestJS_Concept]]                                                                                                                                                                                                                                           |
 
 
 ```txt

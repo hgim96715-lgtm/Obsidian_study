@@ -5,6 +5,7 @@ aliases:
   - createElement
   - appendChild
   - querySelector
+  - scrollIntoView
 tags:
   - JavaScript
 related:
@@ -15,8 +16,8 @@ related:
 # JS_DOM — DOM 조작
 
 > [!info] 
-> DOM(Document Object Model) = 브라우저가 HTML을 파싱해서 만든 트리 구조. 
-> `document.querySelector` / `createElement` / `appendChild` 같은 메서드로 요소를 찾고, 만들고, 추가한다.
+> DOM(Document Object Model) = 브라우저가 HTML을 파싱해서 만든 트리 구조.
+>  `document.querySelector` / `createElement` / `appendChild` 같은 메서드로 요소를 찾고, 만들고, 추가한다. 
 >  React/Next.js를 써도 서드파티 스크립트 로드, 외부 라이브러리 연동 등에서 직접 DOM을 다뤄야 하는 경우가 있다.
 
 ---
@@ -257,6 +258,67 @@ Promise 래핑과 prev?.() 콜백 보존 패턴 → [[JS_Promise]] / [[JS_Option
 
 ---
 
+# 스크롤 — scrollIntoView ⭐️⭐️⭐️⭐️
+
+```typescript
+element.scrollIntoView();                           // 기본 — 요소가 보이도록 스크롤
+element.scrollIntoView({ behavior: 'smooth' });     // 부드러운 애니메이션
+element.scrollIntoView({ behavior: 'instant' });    // 즉시 (기본값)
+element.scrollIntoView({ block: 'end' });           // 요소를 뷰포트 하단에 맞춤
+element.scrollIntoView({ block: 'start' });         // 요소를 뷰포트 상단에 맞춤
+element.scrollIntoView({ block: 'center' });        // 요소를 뷰포트 중앙에 맞춤
+```
+
+|옵션|값|의미|
+|---|---|---|
+|`behavior`|`'smooth'` / `'instant'`|스크롤 애니메이션 여부|
+|`block`|`'start'` / `'center'` / `'end'` / `'nearest'`|수직 정렬 위치|
+|`inline`|`'start'` / `'center'` / `'end'` / `'nearest'`|수평 정렬 위치|
+
+## 채팅 "맨 아래로 스크롤" 패턴 ⭐️⭐️⭐️⭐️
+
+```tsx
+// 메시지 목록 맨 아래에 빈 div를 두고 ref로 참조
+function ChatRoom() {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // messages.length가 바뀔 때마다 맨 아래로 스크롤
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  return (
+    <div className="overflow-y-auto">
+      {messages.map((m) => <MessageItem key={m.id} message={m} />)}
+      <div ref={bottomRef} />  {/* 스크롤 타깃 — 눈에 안 보이는 빈 div */}
+    </div>
+  );
+}
+```
+
+```txt
+빈 div를 마지막에 두는 이유:
+  마지막 메시지 자체에 ref를 달면 메시지가 바뀔 때마다 ref 재연결 필요
+  빈 div 하나를 항상 맨 아래에 두고 그 요소를 scrollIntoView 하면
+  메시지 수와 무관하게 항상 맨 아래로 스크롤됨
+
+?.  (옵셔널 체이닝):
+  bottomRef.current가 아직 null일 수 있음 (마운트 전)
+  ?.scrollIntoView()로 null이면 조용히 무시
+
+behavior: 'smooth':
+  애니메이션으로 부드럽게 스크롤
+  새 메시지가 쏟아질 때는 'instant'가 나을 수 있음
+  (smooth면 이전 스크롤이 끝나기 전에 다음이 시작돼서 버벅일 수 있음)
+
+messages.length가 deps인 이유:
+  messages 배열 자체를 deps에 넣으면 배열 참조가 바뀔 때마다 실행
+  messages.length (숫자)를 deps에 넣으면 실제로 개수가 바뀔 때만 실행
+  새 메시지가 추가됐을 때(length 증가)만 스크롤 → 의도에 맞음
+```
+
+---
+
 # 자주 쓰는 document 속성
 
 ```javascript
@@ -297,4 +359,8 @@ textContent vs innerHTML:
 동적 스크립트 로드:
   querySelector로 중복 확인 → createElement → src/async 설정 → body.appendChild
   완료 대기 필요 시 → Promise + onload/onerror 래핑 ([[JS_Promise]] 참고)
+
+스크롤:
+  el.scrollIntoView({ behavior: 'smooth' })  요소가 보이도록 스크롤
+  채팅 맨 아래로 → 빈 div ref + useEffect([messages.length])
 ```
