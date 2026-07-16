@@ -27,12 +27,12 @@ const [count, setCount] = useState(0);  // 바뀌면 리렌더 O
 const countRef = useRef(0);             // 바뀌어도 리렌더 X
 ```
 
-| |`useState`|`useRef`|
+| Array.sort |`useState`|`useRef`|
 |---|---|---|
-|값 변경 시 리렌더|✅ 리렌더 발생|❌ 리렌더 없음|
-|값 읽기|`count`|`countRef.current`|
-|값 쓰기|`setCount(n)`|`countRef.current = n`|
-|렌더링 결과에 반영|✅ JSX에 표시됨|❌ `.current`를 JSX에 써도 업데이트 안 됨|
+| 값 변경 시 리렌더 |✅ 리렌더 발생|❌ 리렌더 없음|
+| 값 읽기       |`count`|`countRef.current`|
+| 값 쓰기       |`setCount(n)`|`countRef.current = n`|
+| 렌더링 결과에 반영 |✅ JSX에 표시됨|❌ `.current`를 JSX에 써도 업데이트 안 됨|
 
 ```txt
 "화면에 보여야 하는 값" → useState

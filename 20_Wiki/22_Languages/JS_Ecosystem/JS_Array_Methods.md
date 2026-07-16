@@ -288,6 +288,100 @@ sentences.flatMap((s) => s.split(' '));  // ['hello', 'world', 'foo', 'bar']
 ```
 
 ---
+# sort — 비교 함수 규칙 ⭐️⭐️⭐️⭐️
+
+```typescript
+arr.sort((a, b) => 비교값);
+```
+
+|반환값|의미|결과|
+|---|---|---|
+|음수 (`-1`)|a가 b보다 앞|a → b 순서 유지|
+|양수 (`1`)|a가 b보다 뒤|b → a 순서로 바꿈|
+|`0`|순서 무관|현재 순서 유지|
+
+
+```txt
+외우는 법:
+  "a - b" → 오름차순 (작은 것이 앞)
+  "b - a" → 내림차순 (큰 것이 앞)
+
+  음수가 나오면 a가 앞 → a < b 일 때 a가 앞 → 오름차순
+```
+
+## 숫자 정렬
+
+```typescript
+const nums = [3, 1, 4, 1, 5, 9, 2, 6];
+
+nums.sort((a, b) => a - b);  // [1, 1, 2, 3, 4, 5, 6, 9]  오름차순
+nums.sort((a, b) => b - a);  // [9, 6, 5, 4, 3, 2, 1, 1]  내림차순
+```
+
+## 날짜/시간 정렬
+
+```typescript
+// 오래된 순 (오름차순)
+messages.sort((a, b) =>
+  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+);
+
+// 최신순 (내림차순)
+messages.sort((a, b) =>
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+);
+
+// Date 객체 타임스탬프 비교
+members.sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
+```
+
+## 문자열 정렬
+
+```typescript
+names.sort((a, b) => a.localeCompare(b));           // 오름차순 (언어 인식)
+names.sort((a, b) => b.localeCompare(a));           // 내림차순
+names.sort((a, b) => a.localeCompare(b, 'ko'));     // 한국어 기준 정렬
+```
+
+```txt
+a.localeCompare(b):
+  a < b → 음수 → a 앞
+  a > b → 양수 → b 앞
+  a === b → 0
+
+단순 < / > 비교 대신 localeCompare를 쓰는 이유:
+  한글, 대소문자, 특수문자를 언어 규칙에 맞게 정렬
+  'b' < 'a' 이런 ASCII 순서 문제 없음
+```
+
+## 다중 조건 정렬 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 방장을 항상 앞에, 나머지는 입장 시각 순
+const owner = RoomMemberRole.owner;
+
+members.sort((a, b) => {
+  // a가 방장, b는 아님 → a를 앞으로
+  if (a.role === owner && b.role !== owner) return -1;
+  // b가 방장, a는 아님 → b를 앞으로 (a를 뒤로)
+  if (b.role === owner && a.role !== owner) return 1;
+  // 둘 다 방장이거나 둘 다 아님 → 입장 시각 오름차순
+  return a.joinedAt - b.joinedAt;
+});
+```
+
+```txt
+다중 조건 정렬 읽는 법:
+  return -1 → 현재 a, b 순서 그대로 (a 앞)
+  return 1  → b, a로 바꿈 (b 앞)
+  return 0 또는 두 번째 기준 → 첫 번째 조건이 같을 때 두 번째로 판단
+
+"1차 기준이 같으면 2차 기준으로" 패턴:
+  const primary = a.role.localeCompare(b.role);
+  if (primary !== 0) return primary;         // 1차: 역할 순
+  return a.joinedAt - b.joinedAt;           // 2차: 입장 시각 순
+```
+---
 
 # 불변성 — 원본 배열을 바꾸지 않는 메서드 ⭐️⭐️⭐️
 
