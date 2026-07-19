@@ -74,6 +74,97 @@ flowchart TD
 |`forEach`|각 요소에 부수효과|`undefined`|반복 실행|
 
 ---
+# 조건 함수 (Predicate) — return true/false의 의미 ⭐️⭐️⭐️⭐️
+
+```txt
+filter / some / find / every 에 넘기는 함수를 "조건 함수(predicate)"라고 함
+이 함수가 true를 반환하면 "이 요소는 조건에 맞음"
+이 함수가 false를 반환하면 "이 요소는 조건에 안 맞음"
+
+filter  → true인 요소만 남김
+some    → 하나라도 true면 전체 true 반환
+find    → 처음으로 true가 된 요소 반환
+every   → 전부 true여야 true 반환
+```
+
+## early return 패턴 분석 ⭐️⭐️⭐️⭐️
+
+```typescript
+function matchesQuery(room: ApiRoom, raw: string): boolean {
+  const q = raw.trim().replace(/^#/, '').toLowerCase();
+
+  if (!q) return true;
+  //  ↑ q가 빈 문자열이면 → 검색어 없음 → 모든 방이 조건에 맞음 → true
+
+  if (room.name.toLowerCase().includes(q)) return true;
+  //  ↑ 방 이름에 검색어가 있으면 → 조건에 맞음 → true (이후 검사 불필요)
+
+  return room.topicTags.some((t) =>
+    t.replace(/^#/, '').toLowerCase().includes(q),
+  );
+  //  ↑ 태그 중 하나라도 검색어 포함 → true / 없으면 → false
+  //  즉, 이 return은 true일 수도 false일 수도 있음
+}
+
+// 사용: filter에 넘겨서 조건에 맞는 방만 추출
+rooms.filter((room) => matchesQuery(room, searchQuery));
+```
+
+
+```txt
+각 return 이 뜻하는 것:
+
+  if (!q) return true
+    q = '' 또는 ' ' (빈 문자열/공백) → trim() 후 비어있음
+    검색어가 없으면 → 전부 보여줘야 함 → "이 방은 조건에 맞음"(true)
+    → filter에서 모든 방이 통과됨
+
+  if (room.name.includes(q)) return true
+    이름에 검색어가 있으면 이미 답이 나옴 → "맞음"(true) 바로 반환
+    태그까지 검사할 필요 없음 → 조기 반환(early return)으로 불필요한 연산 생략
+
+  return room.topicTags.some(...)
+    여기까지 온 것 = 이름에는 없었음
+    태그 중에서 하나라도 일치하면 → some이 true 반환 → matchesQuery도 true
+    태그도 전부 불일치 → some이 false 반환 → matchesQuery도 false
+    즉, 이 한 줄이 "맞음/안 맞음" 두 경우를 모두 처리
+
+!q:
+  q는 string — 빈 문자열('')은 falsy
+  !q = !'hello' → false (검색어 있음)
+  !q = !''      → true  (검색어 없음)
+  → [[JS_Truthy_Falsy]] 참고
+```
+
+## early return 읽는 법
+
+```typescript
+function predicate(item): boolean {
+  if (확실히 맞는 조건) return true;   // 답이 나왔으니 즉시 종료
+  if (확실히 맞는 조건) return true;   // 또 다른 케이스
+  return 마지막_판단;                  // 여기까지 오면 마지막 조건으로 결정
+  //     ↑ true 또는 false 둘 다 가능
+}
+```
+
+```txt
+왜 early return을 쓰는가:
+  답이 확실한 순간 바로 반환 → 이후 검사를 안 해도 됨
+  코드가 위에서 아래로 읽히며 "이 경우엔 맞음, 저 경우엔 맞음, 그 외엔..." 구조
+  else 중첩 없이 평평하게 읽힘
+
+  // early return 없는 버전 — 읽기 어려움
+  if (!q) {
+    return true;
+  } else if (room.name.includes(q)) {
+    return true;
+  } else {
+    return room.topicTags.some(...);
+  }
+```
+
+
+---
 
 # some vs filter — 가장 헷갈리는 구분 ⭐️⭐️⭐️⭐️
 

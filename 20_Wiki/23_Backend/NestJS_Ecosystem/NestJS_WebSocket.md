@@ -517,6 +517,68 @@ this.server.emit('event', data);
 ```
 
 ---
+# 특정 유저의 소켓 찾기 — sockets.values() ⭐️⭐️⭐️⭐️
+
+```typescript
+/** 강퇴 — 대상 유저 소켓만 (방 전체에 뿌리지 않음) */
+emitMemberKicked(roomId: string, targetUserId: string) {
+  for (const socket of this.server.sockets.sockets.values()) {
+    const client = socket as AuthedSocket;
+    if (client.data.userId === targetUserId) {
+      void client.leave(`room:${roomId}`);       // 룸에서 내보냄
+      client.emit('member:kicked', { roomId });  // 본인에게만 알림
+    }
+  }
+}
+```
+
+```txt
+this.server.sockets.sockets:
+  서버에 현재 연결된 모든 소켓의 Map<socketId, Socket>
+  .values() → 모든 소켓 인스턴스 이터레이터
+
+  this.server                    Server 인스턴스
+  this.server.sockets            네임스페이스(Namespace) 객체
+  this.server.sockets.sockets    Map<string, Socket>
+
+  Gateway가 namespace: '/chat' 를 쓰면
+  this.server는 이미 '/chat' 네임스페이스 기준 → 그 안의 소켓만 포함
+
+왜 server.to(userId)로 안 되는가:
+  socket.id = 서버가 부여한 랜덤값 — userId와 다름
+  → server.to(userId)는 userId로 된 roomId를 찾는 것 → 동작 안 함
+  → 순회해서 client.data.userId가 일치하는 소켓을 골라야 함
+
+한 유저가 여러 탭/기기로 접속하면:
+  같은 userId를 가진 소켓이 여러 개 존재
+  → for...of 순회로 전부 처리됨
+```
+
+## 대안 — user 룸 패턴 ⭐️⭐️⭐️
+
+```typescript
+// handleConnection에서 유저 개인 룸 입장
+async handleConnection(client: AuthedSocket) {
+  // ...JWT 검증...
+  client.data.userId = payload.sub;
+  await client.join(`user:${payload.sub}`);  // 개인 룸 입장
+}
+
+// 이후 순회 없이 바로 전송
+emitMemberKicked(roomId: string, targetUserId: string) {
+  this.server.to(`user:${targetUserId}`).emit('room:kicked', { roomId });
+}
+```
+
+```txt
+순회 vs 유저 룸:
+  sockets.values() 순회  추가 설정 없이 바로 사용 가능, 접속자 많으면 느림
+  user:userId 룸         handleConnection에 join 한 줄 추가 필요,
+                         이후 server.to() 한 줄로 끝 → 성능 유리
+
+  알림이 자주 발생하거나 동시 접속자가 많다면 유저 룸 패턴 권장
+```
+---
 
 # verifyAsync vs verify ⭐️⭐️
 
