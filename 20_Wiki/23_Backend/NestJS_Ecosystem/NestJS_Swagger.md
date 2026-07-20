@@ -81,6 +81,42 @@ export class CreatePostDto {
 }
 ```
 
+## nullable 옵션 ⭐️⭐️⭐️
+
+```typescript
+@ApiProperty({
+  description: 'Top 3 순위, null이면 미순위',
+  nullable:    true,   // null 값이 올 수 있음을 Swagger에 명시
+  example:     1,
+})
+@IsOptional()
+@IsInt()
+rank: number | null;
+```
+
+
+```txt
+nullable: true 가 하는 일:
+  Swagger UI에서 이 필드의 타입을 number | null 처럼 표시
+  "이 필드에 null이 올 수 있다"는 것을 API 문서에 명시
+
+nullable vs @ApiPropertyOptional:
+  @ApiPropertyOptional   → required: false — 필드 자체가 없어도 됨 (undefined)
+  nullable: true         → 필드는 있지만 값이 null일 수 있음
+  둘 다 쓰면 — required: false + null 가능
+
+  예:
+  patch 요청에서 null로 보내서 "값을 지운다"는 의미로 쓸 때
+  → @ApiPropertyOptional({ nullable: true })
+  → @IsOptional()
+  → type: number | null
+
+class-validator와 세트:
+  @IsOptional()     → undefined 허용
+  @IsInt()          → number 검증
+  → null은 @IsOptional()이 통과시켜줌 (null도 empty로 취급)
+```
+
 |데코레이터|Swagger 표시|언제|
 |---|---|---|
 |`@ApiProperty()`|required: true (필수)|항상 있어야 하는 필드|
