@@ -12,6 +12,7 @@ related:
   - "[[NestJS_JwtGuard]]"
   - "[[NestJS_Auth]]"
   - "[[NextJS_WebSocket]]"
+  - "[[JS_WebStorage]]"
 ---
 # NestJS_WebSocket — 실시간 통신 & Socket.IO Gateway
 

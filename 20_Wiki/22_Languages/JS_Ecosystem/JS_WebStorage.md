@@ -11,6 +11,7 @@ related:
   - "[[TS_Type_Guards]]"
   - "[[JS_Array_Methods]]"
   - "[[React_useSyncExternalStore]]"
+  - "[[NextJS_WebSocket]]"
 ---
 # JS_WebStorage — localStorage & sessionStorage
 
@@ -247,6 +248,165 @@ Set.has() vs Array.includes():
 key 상수화 (SEEN_KEY):
   문자열 오타 방지
   나중에 key 이름 바꿀 때 한 곳만 수정
+```
+
+---
+# 읽음 처리 패턴 — "마지막으로 본 내용" ⭐️⭐️⭐️⭐️
+
+```txt
+공지·알림·메시지가 바뀌었을 때 "새로운 것이 있다"는 dot(점)을 표시하는 패턴
+→ "마지막으로 본 내용"을 localStorage에 저장
+→ 현재 내용과 다르면 unread로 판단
+
+계정별로 분리해야 하는 이유:
+  같은 브라우저에서 여러 계정으로 테스트하는 경우
+  userId 없이 resourceId만 key로 쓰면 계정이 바뀌어도 읽음 상태가 공유됨
+  → key에 userId를 포함해서 계정별로 독립 관리
+```
+
+## 유틸 모듈 패턴 (범용)
+
+```typescript
+// lib/seenStorage.ts — 어떤 "본 내용" 추적에도 재사용 가능
+
+const PREFIX = 'seen:';  // 충돌 방지용 prefix
+
+function storageKey(namespace: string, userId: string, resourceId: string) {
+  return `${PREFIX}${namespace}:${userId}:${resourceId}`;
+  // 예: 'seen:notice:user123:room456'
+  //     'seen:message:user123:channel789'
+}
+
+/** 마지막으로 본 내용 텍스트 */
+export function getSeenText(
+  namespace: string,
+  userId: string,
+  resourceId: string,
+): string | null {
+  if (typeof window === 'undefined') return null;  // SSR 가드
+  return localStorage.getItem(storageKey(namespace, userId, resourceId));
+}
+
+/** 본 것으로 표시 */
+export function markSeen(
+  namespace: string,
+  userId: string,
+  resourceId: string,
+  content: string | null,
+) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(
+    storageKey(namespace, userId, resourceId),
+    content?.trim() ?? '',  // null이면 빈 문자열 저장
+  );
+}
+
+/** 내용이 바뀌었으면 true (unread) */
+export function hasUnread(
+  namespace: string,
+  userId: string,
+  resourceId: string,
+  currentContent: string | null,
+): boolean {
+  const body = currentContent?.trim() ?? '';
+  if (!body) return false;  // 내용 자체가 없으면 unread 아님
+  return getSeenText(namespace, userId, resourceId) !== body;
+}
+```
+
+```txt
+어떻게 "내용이 바뀌었는지" 아는가:
+
+  ┌─────────────────────────────────────────────────┐
+  │ localStorage                                    │
+  │ seen:notice:user123:room456 = "공지 내용 v1"    │
+  └─────────────────────────────────────────────────┘
+          ↓ getSeenText()로 읽어옴
+  "공지 내용 v1"  ←  저장된 값 (마지막으로 본 것)
+
+  currentContent = "공지 내용 v2"  ←  지금 서버/상태의 값
+
+  "공지 내용 v1" !== "공지 내용 v2"  →  true (unread)
+
+즉, "내용이 바뀌었는지 감지하는 것"이 아니라
+"마지막으로 본 내용"과 "지금 내용"을 문자열로 직접 비교하는 것
+
+흐름:
+  처음 접속  → localStorage 없음 → getSeenText = null
+              null !== '공지 내용' → true (unread, 아직 안 봄)
+
+  공지 읽음  → markSeen() → localStorage에 '공지 내용' 저장
+
+  다음 접속  → getSeenText = '공지 내용'
+              '공지 내용' === '공지 내용' → false (unread 아님)
+
+  방장이 공지 수정 → currentContent = '바뀐 공지'
+                    '공지 내용' !== '바뀐 공지' → true (unread, 새로 바뀜)
+
+  다시 읽음  → markSeen() → localStorage에 '바뀐 공지' 저장
+              '바뀐 공지' === '바뀐 공지' → false
+```
+
+## 공지 읽음 처리 실전
+
+```typescript
+// 공지 전용 — namespace를 고정한 래퍼 함수
+const NOTICE_NS = 'room-notice';
+
+export const getSeenNoticeText = (userId: string, roomId: string) =>
+  getSeenText(NOTICE_NS, userId, roomId);
+
+export const markNoticeSeen = (
+  userId: string, roomId: string, description: string | null
+) => markSeen(NOTICE_NS, userId, roomId, description);
+
+export const hasUnreadNotice = (
+  userId: string, roomId: string, description: string | null
+) => hasUnread(NOTICE_NS, userId, roomId, description);
+```
+
+```typescript
+// 사용
+const { user } = useAuth();
+const [noticeUnread, setNoticeUnread] = useState(false);
+
+// 방 정보 로드 or WS 업데이트 시
+useEffect(() => {
+  if (user && room?.description !== undefined) {
+    setNoticeUnread(hasUnreadNotice(user.id, room.id, room.description));
+  }
+}, [user, room?.description, room?.id]);
+
+// 공지 시트 닫을 때
+function handleCloseNotice() {
+  if (user) markNoticeSeen(user.id, room.id, room.description);
+  setNoticeUnread(false);
+}
+
+// 방장이 공지 저장할 때 — 본인에게는 dot 표시 안 함
+function handleSaveNotice(description: string) {
+  await updateRoom(room.id, { description });
+  if (user) markNoticeSeen(user.id, room.id, description);  // 저장 직후 읽음 처리
+}
+```
+
+
+```txt
+content?.trim() ?? '' 저장:
+  앞뒤 공백은 의미 없는 변화로 취급 — trim 후 비교
+  null은 ''(빈 문자열)로 저장 → null과 ''을 동일하게 취급
+
+!body 에서 return false:
+  내용이 비어있으면 읽을 것도 없음 → unread로 보지 않음
+
+WS + localStorage 조합:
+  room:updated 이벤트로 description이 바뀌면
+  hasUnreadNotice(userId, roomId, newDescription)으로 즉시 dot 업데이트
+  localStorage에 저장된 "마지막으로 본 내용"과 비교하므로 서버 요청 없음
+
+다른 용도로 확장:
+  hasUnread('announcement', userId, channelId, announcementText)
+  hasUnread('changelog', userId, 'app', latestVersion)
 ```
 
 ---

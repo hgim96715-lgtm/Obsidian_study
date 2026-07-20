@@ -56,22 +56,25 @@ flowchart TD
 
 ---
 
-# 한눈에 — 언제 뭘 쓰는가 ⭐️⭐️⭐️⭐️
+# 한눈에 — 언제 뭘 쓰는가 ⭐️⭐️⭐️⭐️️
 
 |메서드|하는 일|반환|언제|
 |---|---|---|---|
 |`some`|하나라도 조건 맞는 게 있나?|`boolean`|존재 여부 확인|
 |`every`|전부 다 조건에 맞나?|`boolean`|전체 검증|
-|`find`|조건 맞는 첫 번째 요소|요소 or `undefined`|특정 항목 꺼내기|
-|`findIndex`|조건 맞는 첫 번째 인덱스|`number` (-1이면 없음)|위치 찾기|
+|`find`|앞에서 첫 번째 일치 항목|요소 or `undefined`|특정 항목 꺼내기|
+|`findLast`|뒤에서 첫 번째 일치 항목 (ES2023)|요소 or `undefined`|마지막 일치 항목|
+|`findIndex`|앞에서 첫 번째 일치 인덱스|`number` (-1이면 없음)|위치 찾기|
+|`findLastIndex`|뒤에서 첫 번째 일치 인덱스 (ES2023)|`number` (-1이면 없음)|마지막 위치|
 |`filter`|조건 맞는 것만 골라내|새 배열|목록 필터링·제거|
 |`map`|각 요소를 변환|새 배열 (같은 길이)|형태 변환|
 |`reduce`|배열 → 값 하나로 축약|누적값|합계·그룹핑|
 |`includes`|이 값이 배열에 있나?|`boolean`|원시값 존재 확인|
 |`indexOf`|이 값의 인덱스|`number` (-1이면 없음)|원시값 위치|
-|`flat`|중첩 배열 펼치기|새 배열|2차원 → 1차원|
+|`sort`|비교 함수로 정렬 (원본 변경)|원본 배열|정렬 (복사 후 사용 권장)|
 |`flatMap`|map 후 flat|새 배열|1:N 변환|
 |`forEach`|각 요소에 부수효과|`undefined`|반복 실행|
+
 
 ---
 # 조건 함수 (Predicate) — return true/false의 의미 ⭐️⭐️⭐️⭐️
@@ -280,6 +283,67 @@ find vs filter:
   "조건 맞는 항목들 모두" → filter
 ```
 
+---
+# find / findIndex / findLast / findLastIndex ⭐️⭐️
+
+```typescript
+const users = [
+  { id: 1, name: '홍길동' },
+  { id: 2, name: '김철수' },
+  { id: 3, name: '홍길순' },
+];
+
+// find — 앞에서부터 첫 번째 일치
+users.find((u) => u.name.startsWith('홍'))       // { id: 1, name: '홍길동' }
+users.find((u) => u.id === 99)                    // undefined
+
+// findIndex — 앞에서부터 첫 번째 인덱스
+users.findIndex((u) => u.name.startsWith('홍'))  // 0
+users.findIndex((u) => u.id === 99)              // -1
+
+// findLast — 뒤에서부터 첫 번째 일치 (ES2023)
+users.findLast((u) => u.name.startsWith('홍'))   // { id: 3, name: '홍길순' }
+
+// findLastIndex — 뒤에서부터 첫 번째 인덱스 (ES2023)
+users.findLastIndex((u) => u.name.startsWith('홍')) // 2
+```
+
+
+```txt
+find vs findLast:
+  find      앞(인덱스 0)에서 시작 → 첫 번째 일치 항목
+  findLast  뒤(마지막 인덱스)에서 시작 → 마지막 일치 항목
+
+언제 findLast가 필요한가:
+  배열이 시간순으로 정렬돼 있을 때 "가장 최근에 조건을 만족한 항목"
+  메시지 목록에서 "마지막 추천 메시지"
+  이벤트 로그에서 "가장 마지막 실패 이벤트"
+```
+
+## 실전 — 메시지 목록에서 마지막 항목 찾기
+
+```typescript
+// 채팅 메시지 중 가장 최근 추천 메시지 꺼내기
+const lastRec = messages.findLast(
+  (m) => m.type === 'recommendation' && m.recommendation,
+)?.recommendation;
+
+// 옵셔널 체이닝: findLast가 undefined를 반환하면 .recommendation 접근 안 함
+const nowPlaying = lastRec
+  ? { title: lastRec.title, artist: lastRec.artist }
+  : null;
+```
+
+```txt
+findLast 브라우저/Node 지원:
+  ES2023 — Node.js 20+, Chrome 97+, Safari 15.4+
+  (구형 환경이라면 [...arr].reverse().find(...) 으로 대체 가능)
+
+  대안:
+  messages.slice().reverse().find((m) => m.type === 'recommendation')
+  → slice()로 복사 후 reverse() (원본 보존) → find
+  → findLast가 없는 환경에서 동일한 동작
+```
 ---
 
 # filter ⭐️⭐️⭐️⭐️

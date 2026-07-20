@@ -10,49 +10,13 @@ related:
   - "[[NestJS_WebSocket]]"
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[JS_Promise]]"
+  - "[[JS_WebStorage]]"
 ---
 # NextJS_WebSocket — Socket.IO 클라이언트 패턴
 
 > [!info] 
-> 서버 Gateway 구현 → [[NestJS_WebSocket]]. 
-> 이 노트는 Next.js/React에서 socket.io-client를 쓰는 클라이언트 패턴만 다룬다.
-
----
-# 흐름도
-
-```mermaid
-flowchart TD
-  A[페이지/훅 마운트] --> B["io url/namespace · options"]
-  B --> C{인증 필요?}
-  C -->|예| D["auth: token 등"]
-  C -->|아니오| E[connect]
-  D --> E
-
-  E --> F{연결 성공?}
-  F -->|실패| G[connect_error · 재시도/안내]
-  F -->|성공| H[socket.connected]
-
-  H --> I{무엇을?}
-  I -->|서버에 보내기| J["socket.emit event, payload, 응답확인?"]
-  I -->|서버 듣기| K["socket.on event, handler"]
-  I -->|구독 해제| L["socket.off · 또는 cleanup 반환"]
-
-  J --> M[서버 처리]
-  M --> N{응답 형태}
-  N -->|같은 이벤트 브로드캐스트| K
-  N -->|응답확인 콜백| O[emit 마지막 인자 함수]
-
-  P[언마운트 / 페이지 이탈] --> Q[off 핸들러]
-  Q --> R{연결 유지?}
-  R -->|싱글톤 유지| S[disconnect 안 함]
-  R -->|떠남| T[socket.disconnect]
-```
-
-```txt
-한 줄:
-  io로 연결 → on으로 듣고 emit으로 보냄 → 언마운트 때 off (필요하면 disconnect)
-  React에서는 useEffect cleanup에 off/leave를 두는 게 기본
-```
+> 서버 Gateway 구현 → [[NestJS_WebSocket]].
+>  이 노트는 Next.js/React에서 socket.io-client를 쓰는 클라이언트 패턴만 다룬다.
 
 ---
 
@@ -288,40 +252,82 @@ withCredentials: true:
 # emit — Promise 래핑 (acknowledgement) ⭐️⭐️⭐️⭐️
 
 ```typescript
-export function socketJoinRoom(roomId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();
-  return new Promise((resolve) => {
-    s.emit('join', { roomId }, (res: { ok: boolean }) => resolve(res));
-  });
-}
-
+// 기본 — 이미 연결된 경우
 export function socketLeaveRoom(roomId: string): Promise<{ ok: boolean }> {
   const s = getRoomSocket();
   return new Promise((resolve) => {
     s.emit('leave', { roomId }, (res: { ok: boolean }) => resolve(res));
   });
 }
+
+// 개선 — 연결 중이면 연결 완료 후 emit ⭐️⭐️⭐️⭐️
+export function socketJoinRoom(roomId: string): Promise<{ ok: boolean }> {
+  const s = getRoomSocket();
+  return new Promise((resolve) => {
+    const doJoin = () => {
+      s.emit('join', { roomId }, (res: { ok: boolean }) =>
+        resolve(res ?? { ok: false }),
+      );
+    };
+    if (s.connected) doJoin();       // 이미 연결됨 → 즉시 emit
+    else s.once('connect', doJoin);  // 연결 중 → 연결되면 한 번만 실행
+  });
+}
 ```
 
 ```txt
-s.emit('join', data, callback):
-  세 번째 인자 = acknowledgement 콜백
+s.once('connect', doJoin) 가 필요한 이유:
+  getRoomSocket()이 connect()를 호출하지만
+  연결이 완료되기 전(비동기)에 emit을 호출하면 서버가 못 받음
+  → connected 여부를 확인하고, 안 됐으면 'connect' 이벤트 한 번만 기다림
+
+s.once vs s.on:
+  s.on    → 이벤트마다 계속 실행
+  s.once  → 딱 한 번만 실행 후 자동 제거
+  → 연결 대기용으로는 once가 적합
+
+Promise 패턴:
+  s.emit('join', data, callback) — 세 번째 인자가 acknowledgement 콜백
   서버 @SubscribeMessage 핸들러가 return { ok: true } 하면 이 콜백이 호출됨
-
-Promise로 감싸는 이유:
-  콜백 방식 → async/await로 변환
-
-  // 콜백
-  s.emit('join', { roomId }, (res) => { if (res.ok) ... });
-
-  // Promise
-  const res = await socketJoinRoom(roomId);
-  if (res.ok) ...
+  콜백을 Promise로 감싸면 async/await로 사용 가능
 ```
 
 ---
 
-# on/off — 클린업 함수 반환 패턴 ⭐️⭐️⭐️⭐️
+# on/off — 이벤트 구독 패턴 ⭐️⭐️⭐️⭐️
+
+## 연결 이벤트 — 재연결 시 재입장 처리
+
+```typescript
+export function onSocketConnect(handler: () => void): () => void {
+  const s = getRoomSocket();
+  s.on('connect', handler);
+  return () => s.off('connect', handler);
+}
+```
+
+```typescript
+// 사용 — 재연결 시 룸 재입장
+useEffect(() => {
+  const offConnect = onSocketConnect(() => {
+    void socketJoinRoom(roomId);  // 재연결 시 자동 재입장
+  });
+  return offConnect;
+}, [roomId]);
+```
+
+```txt
+왜 재연결 처리가 필요한가:
+  네트워크가 잠깐 끊겼다 다시 연결되면 소켓이 재연결됨
+  재연결 시 서버는 이 소켓이 어느 룸에 있었는지 모름 (룸 정보 초기화)
+  → onSocketConnect에서 다시 join을 보내야 이벤트를 정상 수신
+
+  이 처리를 안 하면:
+  재연결 후 새 메시지가 와도 이 소켓에 전달 안 됨 (룸에서 나간 상태)
+  → WS 이벤트 누락 발생
+```
+
+## 메시지 · 삭제 · 강퇴
 
 ```typescript
 export function onRoomMessage(
@@ -329,7 +335,7 @@ export function onRoomMessage(
 ): () => void {
   const s = getRoomSocket();
   s.on('message', handler);
-  return () => s.off('message', handler);   // 구독 해제 함수 반환
+  return () => s.off('message', handler);
 }
 
 export function onRoomMessageDeleted(
@@ -339,20 +345,73 @@ export function onRoomMessageDeleted(
   s.on('message:deleted', handler);
   return () => s.off('message:deleted', handler);
 }
+
+export function onRoomKicked(
+  handler: (payload: { roomId: string }) => void,
+): () => void {
+  const s = getRoomSocket();
+  s.on('room:kicked', handler);
+  return () => s.off('room:kicked', handler);
+}
+```
+
+## 타입이 있는 payload 이벤트 ⭐️⭐️⭐️
+
+```typescript
+// payload 타입을 export → 사용하는 쪽에서 타입 자동완성 활용
+export type RoomUpdatedPayload = {
+  roomId:      string;
+  description: string | null;
+  name:        string;
+  topicTags:   string[];
+  updatedAt:   string;
+};
+
+export function onRoomUpdated(
+  handler: (payload: RoomUpdatedPayload) => void,
+): () => void {
+  const s = getRoomSocket();
+  s.on('room:updated', handler);
+  return () => s.off('room:updated', handler);
+}
 ```
 
 ```txt
-() => void 클린업 함수를 반환하는 이유:
-  React useEffect의 cleanup 함수와 그대로 연결됨
+payload 타입을 별도 export하는 이유:
+  서버 Gateway의 emit과 클라이언트 handler 타입을 일치시킬 수 있음
+  사용하는 쪽에서 RoomUpdatedPayload를 import해 타입 자동완성 활용
+
+클린업 함수 반환 패턴:
+  모든 onXxx 함수가 () => void 를 반환
+  useEffect return에 그대로 사용 → 언마운트 시 자동 off
 
   useEffect(() => {
-    const cleanup = onRoomMessage((msg) => setMessages(p => [...p, msg]));
-    return cleanup;   // 언마운트 시 s.off() 자동 호출
+    const off = onRoomUpdated((payload) => setRoom(payload));
+    return off;
   }, []);
+```
 
-리스너를 off 안 하면:
-  컴포넌트가 사라진 후에도 이벤트가 계속 들어옴
-  → 이미 unmount된 state를 업데이트하려다 에러 또는 메모리 누수
+---
+
+## WS 이벤트 목록 — 룸별 용도 분리
+
+|이벤트|룸|용도|
+|---|---|---|
+|`message`|`room:{roomId}`|새 채팅 메시지|
+|`message:deleted`|`room:{roomId}`|채팅 메시지 삭제|
+|`room:updated`|`room:{roomId}`|방 정보 변경 (이름·공지·태그 등)|
+|`room:kicked`|`user:{userId}`|특정 유저 강퇴 (방 전체 브로드캐스트 ❌)|
+
+```txt
+이벤트 이름 관행:
+  단순 동사         message, join, leave
+  리소스:동작       room:updated, room:kicked, message:deleted
+  → 이벤트가 많아져도 어떤 리소스에 관한 이벤트인지 명확
+
+room:kicked를 user:{userId} 룸으로 보내는 이유:
+  강퇴는 방 전체가 아닌 강퇴 당한 본인에게만 전달
+  → 서버에서 sockets.values() 순회 또는 user: 룸으로 개인 전송
+  → [[NestJS_WebSocket]] 참고
 ```
 
 ---
@@ -363,10 +422,9 @@ export function onRoomMessageDeleted(
 'use client';
 import { useEffect, useState } from 'react';
 import {
-  socketJoinRoom,
-  socketLeaveRoom,
-  onRoomMessage,
-  onRoomMessageDeleted,
+  socketJoinRoom, socketLeaveRoom,
+  onRoomMessage, onRoomMessageDeleted,
+  onSocketConnect,
 } from '@/lib/roomSocket';
 
 function ChatRoom({ roomId }: { roomId: string }) {
@@ -375,20 +433,28 @@ function ChatRoom({ roomId }: { roomId: string }) {
   useEffect(() => {
     let joined = false;
 
-    // 룸 입장
     void socketJoinRoom(roomId).then((res) => {
       if (res.ok) joined = true;
     });
 
-    // 이벤트 구독 — 클린업 함수 받기
-    const offMessage = onRoomMessage((msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-    const offDeleted = onRoomMessageDeleted(({ messageId }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    // 재연결 시 재입장
+    const offConnect = onSocketConnect(() => {
+      void socketJoinRoom(roomId);
     });
 
+    const offMessage = onRoomMessage((msg) =>
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;  // 중복 방지
+        return [...prev, msg];
+      })
+    );
+
+    const offDeleted = onRoomMessageDeleted(({ messageId }) =>
+      setMessages((prev) => prev.filter((m) => m.id !== messageId))
+    );
+
     return () => {
+      offConnect();
       offMessage();
       offDeleted();
       if (joined) void socketLeaveRoom(roomId);
@@ -396,8 +462,6 @@ function ChatRoom({ roomId }: { roomId: string }) {
   }, [roomId]);
 }
 ```
-
----
 
 # 로그아웃 시 완전 해제 ⭐️⭐️
 
