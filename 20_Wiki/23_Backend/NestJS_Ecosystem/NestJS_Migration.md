@@ -1,21 +1,13 @@
 ---
-aliases:
-  - Prisma
-  - Migration
-  - PostgreSQL
-  - Database
-  - DataGrip
-tags:
-  - NestJS
-  - PostgreSQL
-  - SQL
+aliases: [Database, DataGrip, Migration, PostgreSQL, Prisma]
+tags: [NestJS, PostgreSQL, SQL]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Prisma]]"
-  - "[[NestJS_Prisma_Monorepo]]"
-  - "[[NestJS_PostgreSQL]]"
-  - "[[Deploy_CloudMVP]]"
   - "[[DB_MigrationPattern]]"
+  - "[[Deploy_CloudMVP]]"
+  - "[[NestJS_PostgreSQL]]"
+  - "[[NestJS_Prisma_Monorepo]]"
+  - "[[NestJS_Prisma]]"
 ---
 # NestJS_Migration — Prisma 마이그레이션
 
@@ -66,7 +58,7 @@ schema.prisma만 고치면 DB는 안 바뀜 → migrate dev 필수
 
 # migrate dev vs db push — 언제 뭘 쓰나 ⭐️⭐️⭐️⭐️
 
-||`migrate dev`|`db push`|
+| |`migrate dev`|`db push`|
 |---|---|---|
 |마이그레이션 파일|생성됨 (`prisma/migrations/`)|생성 안 됨|
 |이력 추적|`_prisma_migrations` 테이블에 기록|기록 안 됨|

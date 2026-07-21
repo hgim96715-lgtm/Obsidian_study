@@ -284,7 +284,6 @@ String(42)            // '42'
 ```
 
 ---
-
 # Number — 검증 ⭐️
 
 ```javascript
@@ -303,11 +302,115 @@ Number.isSafeInteger(9007199254740991)   // true  (MAX_SAFE_INTEGER)
 Number.isSafeInteger(9007199254740992)   // false
 ```
 
+## Number.isNaN vs 전역 isNaN ⭐️⭐️⭐️⭐️
+
+```typescript
+// 전역 isNaN — 인자를 Number로 변환한 뒤 확인
+isNaN('hello')   // true  ← '문자열'을 Number('hello') = NaN 으로 변환 후 체크
+isNaN('')        // false ← Number('')  = 0 으로 변환 → NaN 아님
+isNaN(null)      // false ← Number(null) = 0
+isNaN(undefined) // true  ← Number(undefined) = NaN
+
+// Number.isNaN — 변환 없이 NaN 그 자체인지만 확인
+Number.isNaN('hello')   // false ← 문자열은 NaN이 아님
+Number.isNaN('')        // false
+Number.isNaN(null)      // false
+Number.isNaN(undefined) // false
+Number.isNaN(NaN)       // true  ← NaN만 true
+```
+
 ```txt
-Number.isNaN vs isNaN ⭐️:
-  isNaN('abc')        → true  (문자열을 Number 변환 후 확인)
-  Number.isNaN('abc') → false (변환 없이 NaN 그 자체인지만 확인)
-  → Number.isNaN이 더 안전 / 예측 가능
+어떤 것을 써야 하는가:
+  Number.isNaN  → 정확히 NaN인지 확인할 때 (권장)
+  isNaN         → "숫자로 변환했을 때 유효한 숫자인가" 를 확인할 때
+                  (의도를 잘못 파악할 수 있어서 Number.isNaN + Number() 조합이 더 명확)
+```
+
+## NaN의 특이한 성질 ⭐️⭐️⭐️
+
+```typescript
+typeof NaN          // 'number'  ← NaN은 숫자 타입이지만 숫자가 아님
+NaN === NaN         // false     ← NaN은 자기 자신과도 같지 않은 유일한 값
+NaN !== NaN         // true
+Number.isNaN(NaN)   // true      ← NaN 여부를 확인하는 올바른 방법
+
+// === 로 NaN을 확인하면 안 되는 이유
+const n = NaN;
+n === NaN           // false  ← 항상 false (직접 비교 불가)
+Number.isNaN(n)     // true   ← 이렇게 해야 함
+```
+
+```txt
+NaN이 자기 자신과 같지 않은 이유:
+  IEEE 754 부동소수점 표준에서 NaN은 "Not a Number"
+  "알 수 없는 값"이므로 두 개의 "알 수 없음"이 같다고 할 수 없음
+  → NaN을 감지하려면 반드시 Number.isNaN() 사용
+```
+
+## 실전 — 폼 입력 파싱 후 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+// mm:ss 또는 초(seconds) 입력값을 숫자로 파싱
+function parseMmSs(input: string): number {
+  const parts = input.split(':');
+  if (parts.length === 2) {
+    const [mm, ss] = parts.map(Number);
+    return mm * 60 + ss;
+  }
+  return Number(input);
+}
+
+// 파싱 후 NaN 검증
+const start = parseMmSs(startInput);
+const end   = parseMmSs(endInput);
+
+if (Number.isNaN(start) || Number.isNaN(end)) {
+  setFormError('구간은 초 또는 mm:ss 로 적어 주세요.');
+  return;
+}
+```
+
+```txt
+파싱 → 검증 패턴:
+  문자열 입력 → Number() / parseInt() / parseFloat() 로 변환 → Number.isNaN()으로 실패 체크
+  변환 결과가 NaN이면 → 잘못된 입력 → 에러 메시지 표시
+
+Number('1:30')   // NaN ← 콜론이 있으면 변환 안 됨 → 직접 파싱 필요
+Number('90')     // 90
+Number('')       // 0   ← 빈 문자열은 0으로 변환 (주의)
+Number('abc')    // NaN
+```
+
+## Number() vs parseInt() vs parseFloat()
+
+```typescript
+Number('42.5')      // 42.5   문자열 전체를 숫자로 (엄격)
+Number('42abc')     // NaN    숫자가 아닌 문자 포함 → 실패
+Number('')          // 0      빈 문자열 → 0
+Number(null)        // 0
+Number(undefined)   // NaN
+Number(true)        // 1
+Number(false)       // 0
+
+parseInt('42.5')    // 42     정수 부분만 (소수점 무시)
+parseInt('42abc')   // 42     앞부분 숫자만 읽음
+parseInt('abc42')   // NaN    앞이 숫자가 아니면 NaN
+parseInt('0xFF', 16) // 255   진수 지정 가능
+
+parseFloat('42.5')  // 42.5  소수점 포함
+parseFloat('42abc') // 42    앞부분 숫자만 읽음
+```
+
+
+```txt
+선택 기준:
+  Number()      입력이 순수 숫자 문자열이어야 할 때 (폼 검증 등)
+  parseInt()    정수만 필요하고 뒤에 단위가 붙을 수 있을 때 ('42px' → 42)
+  parseFloat()  소수점이 있는 숫자, 뒤에 단위가 붙을 수 있을 때
+
+  parseInt/parseFloat는 앞부분 숫자만 읽기 때문에
+  '42abc' → 42 처럼 "오염된 입력"도 통과시킴
+  → 폼 검증에서 엄격하게 쓰려면 Number() + isNaN 조합이 더 안전
 ```
 
 ---

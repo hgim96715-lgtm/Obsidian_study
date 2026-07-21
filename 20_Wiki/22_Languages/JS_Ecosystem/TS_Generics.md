@@ -12,6 +12,7 @@ related:
   - "[[TS_TypeAssertion]]"
   - "[[React_Context]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[TS_ImportType]]"
 ---
 # TS_Generics — `<T>`는 호출할 때 정해지는 타입 변수
 
@@ -235,6 +236,78 @@ T extends { id: string } — "T가 뭐든 상관없지만, 최소한 id: string 
 이 제약이 없으면 item.id를 쓸 수 없음 (T가 아무 타입이나 될 수 있어서)
 ```
 
+---
+# 스프레드 → 타입 느슨해짐 → 콜백 추론 실패 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 스프레드가 섞이면 타입이 넓어짐
+const playerOptions = {
+  ...defaultOptions,          // 스프레드
+  playerVars: { autoplay: 1 },
+  events: {
+    onError: (e) => {         // e의 타입 추론 실패 → 'any'
+      console.log(e.data);
+    },
+  },
+};
+
+// ✅ 콜백 파라미터를 직접 명시
+const playerOptions = {
+  ...defaultOptions,
+  playerVars: { autoplay: 1 },
+  events: {
+    onError: (e: { data: number }) => {  // 직접 타입 지정
+      console.log(e.data);
+    },
+  },
+};
+```
+
+```txt
+왜 스프레드가 타입을 느슨하게 만드는가:
+
+  TS가 객체 리터럴을 볼 때:
+    { autoplay: 1, rel: 0 }         → 키가 딱 보임 → 정확한 타입으로 연결
+    { ...뭔가, autoplay: 1, rel: 0 } → "이 객체에 뭐가 더 붙을지 모름"
+                                       → 넓은 타입(index signature)으로 잡힘
+
+  스프레드가 섞이면:
+    new YT.Player(..., { playerVars, events }) 쪽에서
+    옵션이 정확한 PlayerOptions로 좁혀지지 않음
+    → events.onError의 (e) 타입이 비어서 → strict 모드에서:
+      "Parameter 'e' implicitly has an 'any' type" 에러
+
+  즉 스프레드 자체가 에러가 아니라,
+  스프레드 때문에 콜백 인자 타입이 비어서 에러
+
+해결:
+  1. 콜백 파라미터에 직접 타입 명시 → (e: { data: number }) => ...
+  2. 옵션 객체 전체를 satisfies로 강제 → satisfies PlayerOptions
+  3. 스프레드 없이 직접 객체 리터럴로 작성
+```
+
+## satisfies — 타입 강제 + 추론 유지 ⭐️⭐️⭐️
+
+```typescript
+// satisfies: 이 객체가 PlayerOptions를 만족하는지 체크 + 타입은 리터럴로 유지
+const playerOptions = {
+  ...defaultOptions,
+  playerVars: { autoplay: 1 },
+  events: {
+    onError: (e) => { ... },  // PlayerOptions를 satisfies로 연결하면 e 타입 추론됨
+  },
+} satisfies YT.PlayerOptions;
+```
+
+```txt
+satisfies vs as (타입 단언):
+  as PlayerOptions  → TS에 "이거 PlayerOptions야"라고 강요 (검증 없음)
+  satisfies         → "이거 PlayerOptions를 만족하는지 검증해" (안 맞으면 에러)
+                      + 추론은 리터럴 타입 그대로 유지
+
+스프레드로 타입이 느슨해질 때 satisfies로 연결하면
+콜백 파라미터 타입이 다시 연결됨
+```
 ---
 
 # `readonly T[]` — 읽기 전용 배열 파라미터 ⭐️⭐️⭐️⭐️

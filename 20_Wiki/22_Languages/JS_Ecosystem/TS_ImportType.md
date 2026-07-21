@@ -62,6 +62,72 @@ flowchart TD
 > `export {}` — declare global이 동작하려면 파일을 모듈로 만들기
 
 ---
+## @types/* 자동 인식 안 될 때 ⭐️⭐️⭐️
+
+```txt
+Next.js + moduleResolution: "bundler" 환경에서
+@types/* 패키지가 자동으로 인식 안 되는 경우가 있음
+
+증상:
+  YT, google, kakao 같은 전역 ambient 타입이 갑자기 빨간 줄
+  또는 타입 에러가 난 뒤 연쇄적으로 멀쩡한 코드도 빨간 줄이 퍼짐
+```
+
+**원인 1 — 다른 타입 에러가 파일 전체를 "깨짐"으로 만들 때:**
+
+```typescript
+// e: any 에러가 나면 IDE가 파일을 "타입 깨짐"으로 다시 그림
+// → 원래 잘 되던 YT, google 같은 전역 타입도 못 찾는 것처럼 보임
+// → 먼저 e: any 에러를 고치면 빨간 줄이 같이 사라지는 경우가 많음
+```
+
+**원인 2 — tsconfig include 범위 밖:**
+
+```json
+// tsconfig.json
+{
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ]
+}
+```
+
+```txt
+@types/youtube 같은 ambient 타입은 타입스크립트가 자동으로 로드함
+하지만 types 또는 typeRoots 옵션이 명시되면 그것만 로드함
+
+// tsconfig.json에 아래처럼 특정 패키지만 명시하면
+"compilerOptions": {
+  "types": ["node"]  // node만 로드 → youtube, google 등 누락
+}
+
+→ 해결: 필요한 @types 패키지를 추가하거나 types 옵션 제거
+```
+
+**원인 3 — 설치 자체가 안 된 경우:**
+
+```bash
+pnpm add -D @types/youtube
+pnpm add -D @types/google.maps
+```
+
+```txt
+@types/* 패키지가 아예 설치 안 됐으면 당연히 인식 안 됨
+→ node_modules/@types 폴더에 해당 패키지 있는지 확인
+```
+
+**원인 4 — IDE 캐시 문제:**
+
+```txt
+패키지를 설치했는데 여전히 빨간 줄이면:
+  VSCode: Cmd+Shift+P → "TypeScript: Restart TS Server"
+  또는 VSCode 재시작
+  → TS 서버가 캐시된 타입 정보를 다시 읽음
+```
+---
 # 경로 별칭 (Path Alias) — `@/lib/redirect` ⭐️⭐️⭐️⭐️
 
 ```typescript
