@@ -7,6 +7,7 @@ aliases:
   - 타입 확장
   - .d.ts
   - TypeScript Declaration File
+  - 트리플 슬래시 reference types
 tags:
   - TypeScript
 related:
@@ -126,6 +127,57 @@ pnpm add -D @types/google.maps
   VSCode: Cmd+Shift+P → "TypeScript: Restart TS Server"
   또는 VSCode 재시작
   → TS 서버가 캐시된 타입 정보를 다시 읽음
+```
+
+## 해결 — 트리플 슬래시 reference types ⭐️⭐️⭐️⭐️
+
+```typescript
+/// <reference types="youtube" />
+```
+
+```txt
+트리플 슬래시 지시어(triple-slash directive):
+  파일 최상단에 두는 특수 주석
+  TypeScript 컴파일러에게 "이 파일에서 @types/youtube 타입을 포함해라"를 직접 명령
+
+언제 쓰는가:
+  tsconfig의 include/typeRoots 설정으로 @types/*가 자동 인식이 안 될 때
+  Next.js + moduleResolution: "bundler" 환경에서 파일 단위로 타입이 안 잡힐 때
+  전역 ambient 타입(YT, kakao, google 등)이 특정 파일에서만 빨간 줄일 때
+
+파일 전역에 영향:
+  이 한 줄이 있는 파일에서는 @types/youtube의 모든 타입(YT.Player 등)이 인식됨
+```
+
+## ⚠️ declare global YT stub을 컴포넌트에 넣으면 안 되는 이유
+
+```typescript
+// ❌ 이렇게 하면 안 됨 — @types/youtube의 YT.Player와 중복 선언 충돌
+declare global {
+  namespace YT {
+    class Player {
+      // ...
+    }
+  }
+}
+
+// ✅ 이렇게 해야 함 — 파일 최상단에 reference 지시어
+/// <reference types="youtube" />
+```
+
+```txt
+왜 중복이 문제인가:
+  @types/youtube에 이미 namespace YT { class Player { ... } } 가 선언돼 있음
+  컴포넌트 파일에 또 선언하면 → "중복 식별자" 에러
+
+  declare global stub을 쓰는 경우:
+  @types/* 패키지가 아예 없을 때 직접 타입을 만드는 방법
+  → @types/youtube가 설치돼 있으면 stub 대신 reference 지시어 사용
+
+/// <reference types="youtube" /> 의 동작:
+  컴파일러에 "이 파일은 node_modules/@types/youtube 를 직접 참조한다"고 알림
+  → 전역 설정 없이도 이 파일에서 YT 네임스페이스 사용 가능
+  → declare global 없이 깔끔하게 해결
 ```
 ---
 # 경로 별칭 (Path Alias) — `@/lib/redirect` ⭐️⭐️⭐️⭐️
