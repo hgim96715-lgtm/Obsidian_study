@@ -83,6 +83,7 @@ flowchart TB
 ```txt
 ① schema.prisma 수정
 ② npx prisma migrate dev --name 설명용_이름
+예시:pnpm prisma migrate dev --name user_withdraw_soft
 ③ (보통 자동) npx prisma generate
 ④ 서버 재시작
 ⑤ this.prisma.모델명.메서드() — 타입 자동완성 즉시 적용

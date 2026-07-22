@@ -1,7 +1,6 @@
 ---
 aliases: [Auth, Guard, JWT, JwtAuthGuard, request.user, RolesGuard]
-tags:
-  - NestJS
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
@@ -190,7 +189,6 @@ JwtPayload의 role은 이 표준 클레임 목록에 없음
    "내가 로그인 처리 시 뭘 넣기로 정했나"가 그대로 결과 타입(JwtPayload)이 되는 것
 ```
 
----
 ---
 
 # Guard 기초 — CanActivate / ExecutionContext ⭐️⭐️
@@ -431,11 +429,11 @@ SetMetadata('roles', ['admin'])가 하는 일:
 
 ## Reflector의 조회 방법 — get / getAllAndOverride / getAllAndMerge
 
-|메서드|동작|
-|---|---|
-|`reflector.get(key, target)`|target(메서드 또는 클래스) 딱 하나에서만 메타데이터를 읽음|
-|`reflector.getAllAndOverride(key, [target1, target2, ...])`|여러 target을 순서대로 확인하고, 값이 있는 "첫 번째" target의 값만 사용함 (나머지는 버림) — 더 구체적인 쪽이 이김|
-|`reflector.getAllAndMerge(key, [target1, target2, ...])`|여러 target의 값들을 합쳐서(배열이면 이어붙여서) 반환|
+| 메서드                                                         | 동작                                                                         |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `reflector.get(key, target)`                                | target(메서드 또는 클래스) 딱 하나에서만 메타데이터를 읽음                                       |
+| `reflector.getAllAndOverride(key, [target1, target2, ...])` | 여러 target을 순서대로 확인하고, 값이 있는 "첫 번째" target의 값만 사용함 (나머지는 버림) — 더 구체적인 쪽이 이김 |
+| `reflector.getAllAndMerge(key, [target1, target2, ...])`    | 여러 target의 값들을 합쳐서(배열이면 이어붙여서) 반환                                          |
 
 
 ```typescript
@@ -490,7 +488,7 @@ adminOnly() { /* ... */ }
 ```typescript
 // roles.decorator.ts
 export const ROLES_KEY = 'roles';
-export type Role = 'user' | 'admin'; // JwtPayload의 role과 같은 타입을 쓰는 게 좋음 (중복 정의 방지)
+export type Role = 'user' | 'admin';  // JwtPayload의 role과 같은 타입을 쓰는 게 좋음 (중복 정의 방지)
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
 
 // roles.guard.ts
@@ -503,13 +501,13 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!requiredRoles?.length) return true; // 데코레이터가 없는 라우트는 role 제한 없음
+    if (!requiredRoles?.length) return true;  // 데코레이터가 없는 라우트는 role 제한 없음
 
-    const request = context.switchToHttp().getRequest<Request>();
+    const request  = context.switchToHttp().getRequest<Request>();
     const userRole = request.user?.role;
 
     if (!userRole || !requiredRoles.includes(userRole)) {
-      throw new ForbiddenException('권한이 없습니다.'); // false 반환 대신 명확한 메시지로 throw
+      throw new ForbiddenException('권한이 없습니다.');  // false 반환 대신 명확한 메시지로 throw
     }
     return true;
   }
@@ -631,6 +629,98 @@ login(@Body() dto: LoginDto) { /* ... */ }
 → 정리하면 "같은 도구(SetMetadata+Reflector)로 만든 서로 다른 두 개의 라벨"임
   @Public 라벨은 JwtAuthGuard가 읽고, @Roles 라벨은 RolesGuard가 읽음
   둘이 충돌하거나 겹치는 게 아니라, 인증→인가 순서로 나란히 적용되는 별개의 체크임
+```
+
+---
+# 커스텀 조건 Guard — @AllowWithdrawing() 패턴 ⭐️⭐️⭐️⭐️
+
+
+```txt
+같은 SetMetadata + Reflector 메커니즘을 "역할"이나 "공개 여부"가 아닌
+"특정 사용자 상태(탈퇴 유예 중)"에도 적용할 수 있음
+
+탈퇴 유예 중인 사용자는 대부분의 기능이 차단되지만,
+일부 라우트(내 정보 조회, 탈퇴 취소, 차단 상태 확인)는 허용해야 함
+→ 허용할 라우트에 @AllowWithdrawing()을 붙이고,
+   Guard 안에서 이 메타데이터를 읽어서 분기
+```
+
+
+```typescript
+// common/allow-withdrawing.decorator.ts
+export const ALLOW_WITHDRAWING_KEY = 'allowWithdrawing';
+export const AllowWithdrawing = () => SetMetadata(ALLOW_WITHDRAWING_KEY, true);
+```
+
+
+```typescript
+// auth/withdrawing.guard.ts
+@Injectable()
+export class WithdrawingGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    // @AllowWithdrawing()이 있으면 탈퇴 유예 중에도 통과
+    const allow = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_WITHDRAWING_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (allow) return true;
+
+    const request = context.switchToHttp().getRequest<Request>();
+    const user    = request.user as JwtPayload;
+
+    if (user?.status === 'withdrawing') {
+      throw new ForbiddenException('탈퇴 처리 중인 계정입니다.');
+    }
+    return true;
+  }
+}
+```
+
+```typescript
+// 컨트롤러 사용 예시
+@Controller('me')
+export class MeController {
+
+  @AllowWithdrawing()   // 탈퇴 유예 중에도 내 정보 조회 가능
+  @Get()
+  getMe() {}
+
+  @AllowWithdrawing()   // 탈퇴 신청 (이미 유예 중이어도 재신청 허용)
+  @Post('withdraw')
+  withdraw() {}
+
+  @AllowWithdrawing()   // 탈퇴 취소
+  @Post('withdraw/cancel')
+  cancelWithdraw() {}
+
+  @AllowWithdrawing()   // 차단 상태 확인
+  @Get('block-status')
+  getBlockStatus() {}
+
+  @Get('profile')
+  // @AllowWithdrawing() 없음 → 탈퇴 유예 중이면 403
+  getProfile() {}
+}
+```
+
+
+```txt
+@Public() / @Roles() / @AllowWithdrawing() 비교:
+
+  @Public()          JwtAuthGuard가 읽음  — 인증 자체를 건너뜀
+  @Roles()           RolesGuard가 읽음   — 역할 기반 인가
+  @AllowWithdrawing() WithdrawingGuard가 읽음 — 사용자 상태 기반 예외 허용
+
+  세 가지 모두 SetMetadata + Reflector.getAllAndOverride라는 동일한 메커니즘
+  "무엇을 라벨로 달고", "어떤 Guard가 그 라벨을 읽는가"만 다름
+
+Guard 실행 순서 (전역 등록 시):
+  JwtAuthGuard → req.user 설정
+  WithdrawingGuard → 탈퇴 유예 체크 (req.user 필요)
+  RolesGuard → 역할 체크 (req.user 필요)
+  순서가 중요 — JwtAuthGuard가 먼저 req.user를 채워야 이후 Guard들이 읽을 수 있음
 ```
 
 ---
