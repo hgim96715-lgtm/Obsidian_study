@@ -1,17 +1,19 @@
 ---
 aliases:
+  - "mailto:"
+  - Browser
   - decodeURIComponent
   - encodeURI
   - encodeURIComponent
   - URLSearchParams
-  - Browser
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_Routing]]"
-  - "[[NestJS_Auth]]"
   - "[[JS_BrowserAPI]]"
+  - "[[NestJS_Auth]]"
+  - "[[NextJS_Routing]]"
+  - "[[Web_Email]]"
 ---
 # JS_URL_Encoding — URL 조작 & 인코딩
 

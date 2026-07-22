@@ -159,6 +159,142 @@ export class CreateUserDto {
 |`@ValidateNested()`|중첩 객체 검증|
 |`@IsString({ each: true })`|배열 각 요소가 string인지|
 
+---
+# 커스텀 유효성 메시지 ⭐️⭐️⭐️⭐️
+
+```txt
+class-validator의 기본 에러 메시지:
+  "email must be an email" → 사용자에게 보여주기 부적합
+
+커스터마이징 방법 두 가지:
+  ① 데코레이터에 직접 message 넣기  → 필드 수가 많으면 반복이 많아짐
+  ② ValidationError를 변환하는 유틸  → 한 파일에서 모든 메시지를 관리
+```
+
+## 방법 ① — 데코레이터에 직접 (간단)
+
+```typescript
+@IsEmail({}, { message: '올바른 이메일을 입력해주세요.' })
+email: string;
+
+@MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
+password: string;
+```
+
+## 방법 ② — 메시지 테이블 + ValidationPipe 훅 (중앙 관리) ⭐️⭐️⭐️⭐️
+
+```typescript
+// common/validation-messages.ts
+
+import { ValidationError } from 'class-validator';
+
+// 우선순위 1: 필드 + 제약 조합 (가장 구체적)
+const FIELD_MESSAGES: Record<string, Partial<Record<string, string>>> = {
+  email:    { isEmail:    '올바른 이메일을 입력해주세요.' },
+  password: { minLength:  '비밀번호는 8자 이상이어야 합니다.',
+              matches:    '영문 + 특수문자(!@#$%^&*)를 포함해야 합니다.' },
+  nickname: { isNotEmpty: '닉네임을 입력해주세요.' },
+  embedUrl: { isUrl:      'http(s):// 를 포함한 전체 주소를 입력해주세요.',
+              isNotEmpty:  '재생 URL을 입력해주세요.' },
+  subject:  { isNotEmpty: '제목을 입력해주세요.',
+              maxLength:   '제목은 120자 이하여야 합니다.' },
+  body:     { isNotEmpty: '문의 내용을 입력해주세요.',
+              maxLength:   '문의 내용은 2000자 이하여야 합니다.' },
+};
+
+// 우선순위 2: 제약 공통 fallback
+const CONSTRAINT_MESSAGES: Record<string, string> = {
+  isEmail:            '올바른 이메일을 입력해주세요.',
+  isNotEmpty:         '필수 항목입니다.',
+  isString:           '문자열로 입력해주세요.',
+  minLength:          '입력 길이가 부족합니다.',
+  maxLength:          '입력 길이가 초과되었습니다.',
+  isUrl:              'http(s):// 를 포함한 전체 주소를 입력해주세요.',
+  isArray:            '배열 형식이 올바르지 않습니다.',
+  arrayMinSize:       '선택 개수가 부족합니다.',
+  arrayMaxSize:       '선택 개수가 초과되었습니다.',
+  isIn:               '허용되지 않은 값입니다.',
+  matches:            '형식이 올바르지 않습니다.',
+  isInt:              '정수로 입력해주세요.',
+  isUUID:             '올바른 ID 형식이 아닙니다.',
+  isEnum:             '허용되지 않은 값입니다.',
+  min:                '최소값보다 작습니다.',
+  whitelistValidation:'허용되지 않은 필드가 포함되어 있습니다.',
+};
+
+// 우선순위: FIELD_MESSAGES → CONSTRAINT_MESSAGES → 기본값
+export function getValidationMessage(property: string, constraint: string): string {
+  return (
+    FIELD_MESSAGES[property]?.[constraint] ??
+    CONSTRAINT_MESSAGES[constraint] ??
+    '입력값을 확인해주세요.'
+  );
+}
+
+// ValidationError 배열을 재귀 순회해서 메시지 수집
+function collectMessages(errors: ValidationError[]): string[] {
+  const messages: string[] = [];
+  for (const error of errors) {
+    if (error.constraints) {
+      for (const key of Object.keys(error.constraints)) {
+        messages.push(getValidationMessage(error.property, key));
+      }
+    }
+    if (error.children?.length) {
+      // @ValidateNested() 중첩 객체도 재귀 처리
+      messages.push(...collectMessages(error.children));
+    }
+  }
+  return messages;
+}
+
+export function formatValidationMessages(errors: ValidationError[]): string[] {
+  return collectMessages(errors);
+}
+```
+
+## ValidationPipe에 연결 (main.ts) ⭐️⭐️⭐️
+
+```typescript
+// main.ts
+import { formatValidationMessages } from './common/validation-messages';
+import { BadRequestException } from '@nestjs/common';
+
+app.useGlobalPipes(
+  new ValidationPipe({
+    transform:            true,
+    whitelist:            true,
+    forbidNonWhitelisted: true,
+    exceptionFactory: (errors) => {
+      // 기본 에러 대신 커스텀 메시지 배열로 교체
+      const messages = formatValidationMessages(errors);
+      return new BadRequestException(messages);
+    },
+  }),
+);
+```
+
+```txt
+exceptionFactory:
+  ValidationPipe가 에러를 던지기 직전에 호출되는 함수
+  ValidationError[] 를 받아서 원하는 형태의 예외로 변환
+  → 응답 형태: { statusCode: 400, message: ['올바른 이메일을 입력해주세요.', ...] }
+
+ValidationError 구조:
+  error.property    필드 이름 ('email', 'password' 등)
+  error.constraints 제약 이름 → 기본 메시지 맵 ({ isEmail: 'email must be an email' })
+  error.children    중첩 객체의 에러 (@ValidateNested 사용 시)
+
+우선순위 체인:
+  FIELD_MESSAGES[property][constraint]  → 가장 구체적 (필드 + 제약)
+  CONSTRAINT_MESSAGES[constraint]       → 제약 공통 fallback
+  '입력값을 확인해주세요.'               → 최후 fallback
+
+새 DTO에 필드를 추가할 때:
+  데코레이터에 message를 붙일 필요 없음
+  FIELD_MESSAGES에 해당 필드 + 제약 메시지를 추가하거나
+  CONSTRAINT_MESSAGES에 이미 있으면 자동으로 적용됨
+```
 ----
 # @ValidateIf — 조건부 유효성 검사 ⭐️⭐️⭐️⭐️
 

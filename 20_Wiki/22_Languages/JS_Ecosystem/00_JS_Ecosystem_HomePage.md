@@ -90,15 +90,16 @@ flowchart TB
 ---
 # 보안 기초 — 프레임워크 무관 ⭐️⭐️
 
-```
+```txt
 JS/TS/React/Next.js 중 어느 트랙에도 속하지 않는, 웹 자체의 보안 개념
 인증/토큰 클러스터(NextJS_TokenStorage 등)에서 "XSS 노출"/"CSRF 노출"이라고만 언급되던 것의 실제 내용
 ```
 
-|개념|노트|
-|---|---|
-|XSS / CSRF / SameSite|[[Web_XSS_CSRF]]|
-|쿠키 / HttpOnly / 서드파티 / ITP / 프록시|[[Web_Cookie]]|
+| 개념                                   | 노트               |
+| ------------------------------------ | ---------------- |
+| XSS / CSRF / SameSite                | [[Web_XSS_CSRF]] |
+| 쿠키 / HttpOnly / 서드파티 / ITP / 프록시     | [[Web_Cookie]]   |
+| 이메일 전송 (mailto · Resend · Formspree) | [[Web_Email]]    |
 
 
 ---
