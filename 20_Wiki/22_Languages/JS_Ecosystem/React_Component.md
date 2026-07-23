@@ -463,6 +463,99 @@ function App() {
 ```
 
 ---
+# 재사용 컴포넌트 실전 — ColorSwatches ⭐️⭐️⭐️⭐️
+
+```tsx
+// 범용 색상 선택기 — presets와 value만 넘기면 어느 프로젝트에서나 사용 가능
+function ColorSwatches({
+  value,
+  presets,
+  onChange,
+  size = 'md',
+}: {
+  value:    string;
+  presets:  string[];
+  onChange: (hex: string) => void;
+  size?:    'sm' | 'md';
+}) {
+  const swatch = size === 'sm' ? 'size-7' : 'size-9';
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+
+      {/* 프리셋 색상 버튼들 */}
+      {presets.map((color) => (
+        <button
+          key={color}
+          type="button"
+          aria-label={color}
+          aria-pressed={value === color}      // 현재 선택 상태를 스크린리더에 알림
+          onClick={() => onChange(color)}
+          className={`${swatch} rounded-full border-2 transition-transform hover:scale-105 ${
+            value === color
+              ? 'border-brand-primary ring-2 ring-brand-primary/30'
+              : 'border-white shadow-sm'
+          }`}
+          style={{ backgroundColor: color }}  // hex 값을 배경색으로
+        />
+      ))}
+
+      {/* 직접 색상 선택 — 네이티브 input type="color" 숨기기 패턴 */}
+      <label
+        className={`${swatch} relative cursor-pointer overflow-hidden rounded-full border-2 border-neutral-200 bg-white shadow-sm`}
+        aria-label="색 직접 선택">
+        <Palette
+          className="absolute inset-0 m-auto size-3.5 text-neutral-400"
+          aria-hidden                          // 아이콘은 스크린리더에서 숨김
+        />
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 size-full cursor-pointer opacity-0"
+          // opacity-0: 보이지 않지만 클릭은 됨 → 커스텀 UI 뒤에 깔아두는 패턴
+        />
+      </label>
+    </div>
+  );
+}
+```
+
+## 사용
+
+```tsx
+<ColorSwatches
+  value={penColor}
+  presets={['#000000', '#ffffff', '#ff5733', '#33aaff']}
+  onChange={(hex) => setPenColor(hex)}
+  size="sm"
+/>
+```
+
+## 패턴 포인트
+
+```txt
+범용인 이유:
+  string[]로 presets 받음 — 어떤 색상 목록이든 가능
+  onChange: (hex: string) => void — 어떤 상태 관리와도 연결 가능
+  프로젝트 특정 타입 없음
+
+opacity-0 패턴 (input type="color"):
+  display:none → 클릭 안 됨
+  opacity:0    → 보이지 않지만 클릭 됨
+  → label이 클릭되면 내부 input type="color"가 열림
+  → [[JS_DOM]] 참고
+
+aria-pressed={value === color}:
+  선택된 색상 버튼임을 스크린리더에 알림
+  → [[JS_DOM]] aria-pressed 참고
+
+size?: 'sm' | 'md' + 기본값:
+  리터럴 유니온으로 허용 값 제한
+  Record로 매핑하거나 삼항으로 처리
+  → [[TS_Generics]] size variant 패턴 참고
+```
+---
 
 # 한눈에
 

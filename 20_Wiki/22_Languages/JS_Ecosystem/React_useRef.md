@@ -10,13 +10,14 @@ related:
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[TS_DOM_Events]]"
   - "[[JS_DOM]]"
+  - "[[TS_Utility_Types]]"
 ---
 # React_useRef — DOM 접근 & 렌더링 무관 값 보관
 
-> [!info] 
-> `useRef`는 "렌더링에 영향을 주지 않으면서 값을 유지하는 상자."
->  `useState`와 달리 `.current`를 바꿔도 리렌더가 일어나지 않는다. 
->  주된 용도: ① DOM 요소에 직접 접근 ② 타이머 ID·이전 값처럼 렌더링과 무관한 값 보관.
+> [!info]
+>  useRef 는 "렌더링에 영향을 주지 않으면서 값을 유지하는 상자." 
+>  useState 와 달리 `.current` 를 바꿔도 리렌더가 일어나지 않는다.
+>   주된 용도: ① DOM 요소에 직접 접근 ② 타이머 ID·이전 값처럼 렌더링과 무관한 값 보관.
 
 ---
 
@@ -27,12 +28,12 @@ const [count, setCount] = useState(0);  // 바뀌면 리렌더 O
 const countRef = useRef(0);             // 바뀌어도 리렌더 X
 ```
 
-| Array.sort |`useState`|`useRef`|
+| |`useState`|`useRef`|
 |---|---|---|
-| 값 변경 시 리렌더 |✅ 리렌더 발생|❌ 리렌더 없음|
-| 값 읽기       |`count`|`countRef.current`|
-| 값 쓰기       |`setCount(n)`|`countRef.current = n`|
-| 렌더링 결과에 반영 |✅ JSX에 표시됨|❌ `.current`를 JSX에 써도 업데이트 안 됨|
+|값 변경 시 리렌더|✅ 리렌더 발생|❌ 리렌더 없음|
+|값 읽기|`count`|`countRef.current`|
+|값 쓰기|`setCount(n)`|`countRef.current = n`|
+|렌더링 결과에 반영|✅ JSX에 표시됨|❌ `.current` 를 JSX에 써도 업데이트 안 됨|
 
 ```txt
 "화면에 보여야 하는 값" → useState
@@ -68,8 +69,8 @@ const divRef   = useRef<HTMLDivElement>(null);
 
 ```txt
 React가 요소를 렌더링한 뒤에 ref.current에 그 DOM 요소를 자동으로 넣어줌
-마운트 전: ref.current = null
-마운트 후: ref.current = 실제 DOM 요소 (HTMLInputElement 등)
+마운트 전:  ref.current = null
+마운트 후:  ref.current = 실제 DOM 요소 (HTMLInputElement 등)
 언마운트 후: ref.current = null 으로 되돌아감
 ```
 
@@ -117,13 +118,13 @@ ref.current?.scrollIntoView:
 ## 타입 — 요소별 타입
 
 ```typescript
-useRef<HTMLInputElement>(null)      // <input>
-useRef<HTMLTextAreaElement>(null)   // <textarea>
-useRef<HTMLDivElement>(null)        // <div>
-useRef<HTMLButtonElement>(null)     // <button>
-useRef<HTMLFormElement>(null)       // <form>
-useRef<HTMLVideoElement>(null)      // <video>
-useRef<HTMLCanvasElement>(null)     // <canvas>
+useRef<HTMLInputElement>(null)       // <input>
+useRef<HTMLTextAreaElement>(null)    // <textarea>
+useRef<HTMLDivElement>(null)         // <div>
+useRef<HTMLButtonElement>(null)      // <button>
+useRef<HTMLFormElement>(null)        // <form>
+useRef<HTMLVideoElement>(null)       // <video>
+useRef<HTMLCanvasElement>(null)      // <canvas>
 
 // 모르면 → HTMLElement (공통 타입)
 useRef<HTMLElement>(null)
@@ -163,12 +164,60 @@ useEffect(() => {
 왜 useState가 아니라 useRef인가:
   timerRef.current = setTimeout(...)  → 상태 변경이 아님, 리렌더 필요 없음
   useState로 하면 clearTimeout 직전에 불필요한 리렌더 발생
+
+ReturnType<typeof setTimeout>:
+  환경(브라우저/Node)에 따라 반환 타입이 다름 → 직접 적지 않고 추출
+  → [[TS_Utility_Types]] 참고
+```
+
+## 진행 중인 작업 임시 보관 — 드래그 / 그리기 ⭐️⭐️⭐️⭐️
+
+```typescript
+const stageRef = useRef<HTMLDivElement>(null);    // DOM ref — 이벤트 대상
+const drawing  = useRef<LyricStroke | null>(null); // 현재 그리는 중인 스트로크
+
+const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+  e.currentTarget.setPointerCapture(e.pointerId);
+  const p = toNorm(e.clientX, e.clientY);
+  drawing.current = {           // 그리기 시작 — ref에 저장 (리렌더 없음)
+    id:     `${uid}-stroke-${Date.now()}`,
+    color:  penColor,
+    width:  penWidth,
+    points: [p],
+  };
+};
+
+const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+  if (!drawing.current) return;
+  const p = toNorm(e.clientX, e.clientY);
+  drawing.current.points.push(p);  // ref에 직접 추가 (리렌더 없음)
+};
+
+const onPointerUp = () => {
+  if (!drawing.current) return;
+  setStrokes(prev => [...prev, drawing.current!]);  // 완성된 획 → state로
+  drawing.current = null;                            // ref 리셋
+};
+```
+
+```txt
+drawing.current를 ref로 보관하는 이유:
+  pointermove는 초당 수십~수백 번 발생
+  매 이벤트마다 setState를 호출하면 → 초당 수백 번 리렌더 → 성능 문제
+
+  ref에 쌓다가 pointerup 때 state에 한 번만 옮기는 패턴:
+    pointermove  → ref에 점 추가 (리렌더 없음, 빠름)
+    pointerup    → 완성된 획을 state에 추가 (리렌더 1번)
+
+  stageRef(DOM)와 drawing(데이터) 둘 다 useRef — 목적이 다름:
+    stageRef   → DOM 요소 참조 (이벤트 등록, 포인터 캡처 등)
+    drawing    → 그리기 진행 중 임시 데이터 (리렌더 없이 업데이트)
 ```
 
 ## 이전 값 기억
 
 ```typescript
-function usePrevsious<T>(value: T): T | undefined {
+function usePrevious<T>(value: T): T | undefined {
   const prevRef = useRef<T | undefined>(undefined);
 
   // 렌더링 후 현재 값을 저장 (다음 렌더에서 "이전 값"이 됨)
@@ -180,7 +229,7 @@ function usePrevsious<T>(value: T): T | undefined {
 }
 
 // 사용
-const prevCount = usePrevsious(count);
+const prevCount = usePrevious(count);
 console.log(`이전: ${prevCount}, 현재: ${count}`);
 ```
 
@@ -197,7 +246,7 @@ function useIsFirstRender(): boolean {
   return isFirstRef.current;
 }
 
-// 사용 — 마운트 시에만 실행하거나 건너뛸 때
+// 사용 — 마운트 직후는 건너뜀
 const isFirst = useIsFirstRender();
 
 useEffect(() => {
@@ -301,6 +350,7 @@ DOM 접근:
   타이머 ID    clearTimeout(timerRef.current)
   이전 값      prevRef.current = value (useEffect 안에서)
   마운트 여부  isFirstRef.current = false
+  드래그/그리기 drawing.current = { points: [...] }  (매 이벤트마다 ref에 쌓다가 완료 시 state로)
 
 useState와 차이:
   화면에 보여야 함 → useState

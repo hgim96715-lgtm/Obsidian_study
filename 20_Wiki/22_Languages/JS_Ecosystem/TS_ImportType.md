@@ -63,7 +63,57 @@ flowchart TD
 > `export {}` — declare global이 동작하려면 파일을 모듈로 만들기
 
 ---
-## @types/* 자동 인식 안 될 때 ⭐️⭐️⭐️
+# import type — 타입 전용 import ⭐️⭐️⭐️⭐️
+
+```typescript
+// 값이 아닌 타입만 import — JS 출력에서 완전히 사라짐
+import type { User } from './user';
+import { type User } from './user';  // 인라인 type (일부만 타입으로)
+```
+
+## type X as Y — 이름 충돌 방지 ⭐️⭐️⭐️⭐️
+
+```typescript
+import {
+  useId,
+  type PointerEvent as ReactPointerEvent,  // 별칭으로 이름 변경
+  type ReactNode,
+} from 'react';
+```
+
+```txt
+왜 as 로 이름을 바꾸는가:
+  브라우저 전역에 PointerEvent 타입이 이미 존재 (Web API)
+  React도 자체 PointerEvent 타입을 export함
+  둘을 같은 파일에서 쓰면 이름 충돌 → 컴파일 에러 또는 혼란
+
+  as ReactPointerEvent 로 별칭을 붙이면:
+    PointerEvent       → 브라우저 전역 타입
+    ReactPointerEvent  → React의 합성 이벤트 타입
+  → 같은 파일에서 둘 다 명확하게 구분해서 사용 가능
+
+문법:
+  import { type 원래이름 as 새이름 } from 'module'
+  값 import도 가능: import { original as alias } from 'module'
+```
+
+```typescript
+// 사용
+const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+  e.currentTarget.setPointerCapture(e.pointerId);
+};
+```
+
+---
+
+
+
+
+
+
+
+---
+# @types/* 자동 인식 안 될 때 ⭐️⭐️⭐️
 
 ```txt
 Next.js + moduleResolution: "bundler" 환경에서

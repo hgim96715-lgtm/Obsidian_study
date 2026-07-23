@@ -12,6 +12,9 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
   - "[[TS_DOM_Events]]"
+  - "[[TS_ImportType]]"
+  - "[[JS_Canvas]]"
+  - "[[React_useId]]"
 ---
 # JS_DOM — DOM 조작
 
@@ -256,6 +259,217 @@ script.async = true:
 Promise 래핑과 prev?.() 콜백 보존 패턴 → [[JS_Promise]] / [[JS_OptionalChaining]] 참고
 ```
 
+---
+# input type="color" — 네이티브 색상 선택기 ⭐️⭐️⭐️
+
+```typescript
+// 기본 — 기본 UI 그대로
+<input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+```
+
+## label로 커스텀 스타일 적용 — opacity-0 패턴 ⭐️⭐️⭐️⭐️
+
+
+```tsx
+// 네이티브 input을 숨기고 label로 클릭 영역 만들기
+<label
+  className="relative size-9 cursor-pointer overflow-hidden rounded-full"
+  aria-label="색 직접 선택">
+
+  {/* 보이는 아이콘 */}
+  <Palette className="absolute inset-0 m-auto size-4 text-neutral-400" aria-hidden />
+
+  {/* 실제 input — 완전히 투명하게, 클릭 영역은 유지 */}
+  <input
+    type="color"
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    className="absolute inset-0 size-full cursor-pointer opacity-0"
+  />
+</label>
+```
+
+```txt
+opacity-0 패턴:
+  display:none 또는 visibility:hidden 하면 클릭도 안 됨
+  opacity:0 은 보이지 않지만 클릭은 됨 → 커스텀 UI 뒤에 깔아두는 패턴
+
+  적용 예시:
+    <input type="file">   — 파일 선택 버튼을 커스텀 버튼으로
+    <input type="color">  — 색 선택기를 커스텀 아이콘으로
+    <input type="range">  — 슬라이더를 커스텀 슬라이더로
+
+  구조:
+    label(상대 위치, overflow-hidden)
+      ↑ 커스텀 UI (아이콘, 텍스트 등) — absolute, inset-0
+      ↑ input (absolute, inset-0, size-full, opacity-0) — 클릭 영역 전체 커버
+
+aria-hidden on 아이콘:
+  스크린리더가 <Palette> 아이콘을 읽지 않도록
+  label의 aria-label="색 직접 선택"으로 대신 설명
+```
+---
+# aria-pressed — 선택 상태 접근성 ⭐️⭐️⭐️
+
+```tsx
+// 현재 선택된 항목을 접근성으로 알리기
+<button
+  aria-pressed={value === color}  // true면 "눌린 상태", false면 "눌리지 않은 상태"
+  onClick={() => onChange(color)}
+>
+  {color}
+</button>
+```
+
+```txt
+aria-pressed:
+  토글 버튼에서 현재 "선택됨/선택 안 됨" 상태를 스크린리더에 알림
+  true  → "눌림" — 현재 선택된 상태
+  false → "눌리지 않음" — 선택 안 된 상태
+
+  언제 쓰는가:
+    색상 팔레트에서 현재 선택된 색상 버튼
+    탭/필터 버튼에서 현재 활성 탭
+    좋아요/즐겨찾기 토글 버튼
+
+  aria-selected와 차이:
+    aria-pressed  → 버튼(button role)에서 on/off 상태
+    aria-selected → 목록/탭(listbox, tablist)에서 선택된 항목
+```
+
+---
+
+# Pointer Events — 마우스 · 터치 · 펜 통합 ⭐️⭐️⭐️⭐️
+
+```typescript
+// Pointer Events = 마우스 / 터치 / 펜을 하나의 API로 처리
+// onMouseDown/onTouchStart를 따로 쓰지 않아도 됨
+
+element.addEventListener('pointerdown', (e: PointerEvent) => {
+  e.pointerId   // 이 포인터의 고유 ID (멀티터치 구분)
+  e.clientX     // 뷰포트 기준 X
+  e.clientY     // 뷰포트 기준 Y
+  e.pressure    // 펜 압력 (0~1, 마우스는 0 또는 0.5)
+  e.pointerType // 'mouse' | 'touch' | 'pen'
+});
+```
+
+## setPointerCapture — 포인터 캡처 ⭐️⭐️⭐️⭐️
+
+```typescript
+element.addEventListener('pointerdown', (e: PointerEvent) => {
+  element.setPointerCapture(e.pointerId);
+  // 이 시점부터 포인터가 element 밖으로 나가도
+  // pointermove / pointerup 이벤트가 계속 element에 전달됨
+});
+```
+
+
+```txt
+setPointerCapture가 필요한 이유:
+  드래그 중 마우스가 element 밖으로 나가면
+  pointermove 이벤트가 다른 element로 넘어가서 추적이 끊김
+  → setPointerCapture(pointerId) 로 "이 포인터를 내가 잡겠다" 선언
+  → pointerup/pointercancel 이 올 때까지 이 element가 이벤트를 독점 수신
+
+해제:
+  pointerup 이나 pointercancel 이 오면 자동 해제됨
+  또는 element.releasePointerCapture(e.pointerId) 수동 해제
+```
+
+## React에서 Pointer Events
+
+
+```typescript
+import { type PointerEvent as ReactPointerEvent } from 'react';
+//              ↑ as 로 이름 변경 — 전역 PointerEvent (Web API)와 이름 충돌 방지
+
+function DrawingCanvas() {
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    // 그리기 시작
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.buttons !== 1) return;  // 마우스 버튼 안 눌렸으면 무시
+    // 그리기 중
+  };
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    // 그리기 완료
+  };
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{ touchAction: 'none' }}  // 모바일에서 스크롤 방지
+    />
+  );
+}
+```
+
+
+```txt
+type PointerEvent as ReactPointerEvent:
+  React의 PointerEvent 타입과 브라우저 전역 PointerEvent 타입 이름 충돌
+  as 로 별칭을 붙여서 구분 → [[TS_ImportType]] 참고
+
+touchAction: 'none':
+  모바일에서 pointer 이벤트와 스크롤이 충돌
+  none으로 설정하면 브라우저 기본 터치 동작 비활성화
+  → 드래그/그리기가 의도대로 동작
+
+e.buttons:
+  현재 눌린 마우스 버튼 비트마스크
+  0   버튼 없음
+  1   좌클릭
+  2   우클릭
+  → onPointerMove에서 if (e.buttons !== 1) return 으로 좌클릭 드래그만 처리
+```
+
+---
+
+# getBoundingClientRect — 요소의 화면 위치 ⭐️⭐️⭐️
+
+```typescript
+const el = document.querySelector('.my-element')!;
+const rect = el.getBoundingClientRect();
+
+rect.left    // 뷰포트 왼쪽 기준 X 시작
+rect.top     // 뷰포트 위쪽 기준 Y 시작
+rect.right   // left + width
+rect.bottom  // top + height
+rect.width   // 요소 너비
+rect.height  // 요소 높이
+rect.x       // left와 동일
+rect.y       // top과 동일
+```
+
+```typescript
+// 실전 — 클릭 위치를 요소 내부 좌표로 변환
+function getRelativePosition(e: PointerEvent, el: HTMLElement) {
+  const rect = el.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) / rect.width,   // 0~1 정규화
+    y: (e.clientY - rect.top)  / rect.height,
+  };
+}
+```
+ReactNode
+
+```txt
+getBoundingClientRect():
+  뷰포트(현재 보이는 화면) 기준 위치를 반환
+  스크롤하면 값이 달라짐 → 클릭할 때마다 새로 호출해야 함
+
+clientX/Y vs pageX/Y:
+  clientX/Y   뷰포트 기준 (스크롤과 무관)
+  pageX/Y     문서 기준 (스크롤 포함)
+  → getBoundingClientRect()도 뷰포트 기준 → clientX/Y와 함께 쓸 것
+```
 ---
 
 # 스크롤 — scrollIntoView ⭐️⭐️⭐️⭐️

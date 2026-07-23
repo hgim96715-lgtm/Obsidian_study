@@ -2,6 +2,9 @@
 aliases:
   - generics
   - T
+  - "children: ReactNode"
+  - ReactNode
+  - satisfies
 tags:
   - TypeScript
 related:
@@ -159,22 +162,6 @@ const post = await runActionWithResult<Post>(() => fetchPost(id));  // T = Post
 const list = await runActionWithResult<Post[]>(() => fetchPosts()); // T = Post[]
 ```
 
-## React Props에서 함수 타입 ⭐️⭐️⭐️
-
-```typescript
-type ButtonProps = {
-  label:    string;
-  onClick:  () => void;                   // 동기 핸들러
-  onSubmit: (value: string) => void;      // 인자 있는 핸들러
-  onLoad?:  () => Promise<void>;          // optional async 핸들러
-};
-
-// 컴포넌트에서 사용
-function Button({ label, onClick }: ButtonProps) {
-  return <button onClick={onClick}>{label}</button>;
-}
-```
-
 ## 함수 타입 별칭 — 반복될 때 ⭐️
 
 ```typescript
@@ -308,6 +295,320 @@ satisfies vs as (타입 단언):
 스프레드로 타입이 느슨해질 때 satisfies로 연결하면
 콜백 파라미터 타입이 다시 연결됨
 ```
+---
+# 함수 타입 — (param: T) => void ⭐️⭐️⭐️⭐️
+
+```typescript
+// 함수를 타입으로 표현하는 문법
+type Handler  = () => void;                              // 파라미터 없음
+type OnChange = (value: string) => void;                 // 파라미터 있음
+type Fetcher  = (id: string) => Promise<User>;           // 비동기 반환
+type Transform<T, U> = (input: T) => U;                  // 제네릭
+```
+
+```txt
+type Fetcher = (id: string) => Promise<User> 읽는 법:
+  "string 타입의 id를 받아서,
+   User를 돌려주는 Promise를 반환하는 함수"
+
+  → 즉, await했을 때 User가 나오는 async 함수
+
+  실제 함수로 쓰면:
+    const fetchUser: Fetcher = async (id) => {
+      const res = await fetch(`/users/${id}`);
+      return res.json();   // User 타입
+    };
+
+  왜 Promise<User>인가:
+    async 함수는 항상 Promise를 반환 (await 가능한 것)
+    (id: string) => User     → 동기 함수 (즉시 값 반환)
+    (id: string) => Promise<User> → 비동기 함수 (나중에 값이 옴)
+```
+
+## React Props에서 콜백 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+type Props = {
+  // 필수 — 없으면 컴파일 에러
+  lyricsText: string;
+  value:      ApiLyricCardCustomization;
+  onChange:   (value: ApiLyricCardCustomization) => void;
+
+  // 선택 — 없어도 됨 (?:)
+  trackTitle?:  string;
+  trackArtist?: string;
+  note?:        string | null;   // null 허용 (없음 vs 명시적 비움 구분)
+  onSave?:      () => void;
+  onClear?:     () => void;
+  saving?:      boolean;
+};
+```
+
+
+```txt
+(value: ApiLyricCardCustomization) => void:
+  "ApiLyricCardCustomization 타입의 값을 받아서 아무것도 반환하지 않는 함수"
+  void = 반환값을 쓰지 않겠다는 의미 (undefined와 비슷하지만 더 넓음)
+  → return 자체는 해도 되지만, 호출한 쪽에서 반환값을 사용하지 않음
+
+?  (선택 props):
+  trackTitle?: string  → 없으면 undefined
+  전달 안 하면 에러 없음
+
+string | null:
+  string | undefined  → 그 prop 자체를 아예 안 넘긴 것
+  string | null       → 명시적으로 "없음"을 전달하는 것
+  실전: note?:string | null = "노트가 있을 수도, 명시적으로 null(삭제됨)일 수도, 아예 안 올 수도"
+
+onXxx 명명 관행:
+  onSave / onClear / onChange / onClose / onSubmit
+  "어떤 이벤트가 발생했을 때 호출할 함수"라는 의미
+  부모가 "뭘 할지" 결정하고, 자식은 그냥 "이 일이 일어났다"고 알림
+```
+
+## void vs undefined vs never
+
+```typescript
+type A = () => void;       // 반환은 하지만 호출한 쪽이 사용 안 함
+type B = () => undefined;  // 반드시 undefined를 return해야 함
+type C = () => never;      // 절대 정상 반환 안 됨 (throw or infinite loop)
+
+// void는 실제로 값을 return해도 됨 — 타입 검사에서만 무시
+const fn: () => void = () => 42;  // 에러 없음 — void는 "무시"
+```
+
+## 콜백 Props 사용 패턴
+
+```typescript
+// 자식 컴포넌트
+function LyricCardEditor({ onChange, onSave, saving }: Props) {
+  const handleChange = (newValue: ApiLyricCardCustomization) => {
+    onChange(newValue);   // 부모에게 변경 알림
+  };
+
+  return (
+    <div>
+      {/* ... */}
+      {onSave && (   // onSave가 있을 때만 버튼 표시
+        <button onClick={onSave} disabled={saving}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 부모 컴포넌트
+<LyricCardEditor
+  value={customization}
+  lyricsText={lyrics}
+  onChange={(v) => setCustomization(v)}
+  onSave={handleSave}           // 선택 — 안 넘겨도 됨
+  // onClear 생략 가능
+/>
+```
+
+```txt
+onSave && 패턴:
+  onSave?:() => void 이므로 undefined일 수 있음
+  onSave && <button onClick={onSave}>  → undefined면 아무것도 렌더링 안 함
+  이렇게 선택 prop으로 UI의 일부를 show/hide 제어하는 패턴이 흔함
+```
+---
+## size variant — 크기 변형 prop ⭐️⭐️⭐️
+
+```typescript
+// size를 리터럴 유니온으로 제한 + 기본값 설정
+function ColorSwatches({
+  size = 'md',   // ← 기본값
+}: {
+  size?: 'sm' | 'md';  // 허용 값을 타입으로 제한
+}) {
+  const swatch = size === 'sm' ? 'size-7' : 'size-9';  // 크기별 클래스
+  // ...
+}
+```
+
+```txt
+size?: 'sm' | 'md' 패턴:
+  string 으로 하면 'xxl', 'huge' 같은 임의 값도 다 통과됨
+  리터럴 유니온으로 제한하면 허용된 값만 받고, 자동완성도 됨
+
+  variant prop 에서도 같은 패턴:
+    variant?: 'primary' | 'secondary' | 'ghost'
+    intent?:  'default' | 'danger' | 'success'
+
+기본값 = 'md':
+  함수 파라미터 구조분해에서 직접 지정
+  { size = 'md' } = 프롭을 안 넘기면 'md'
+  타입은 ?:로 optional이어도 내부에서는 항상 string으로 처리됨
+
+크기 → 클래스 매핑:
+  const swatch = size === 'sm' ? 'size-7' : 'size-9'
+
+  또는 Record로 정리:
+  const SIZE_CLASS: Record<'sm' | 'md', string> = {
+    sm: 'size-7',
+    md: 'size-9',
+  };
+  const swatch = SIZE_CLASS[size];
+```
+
+
+---
+# ReactNode — 렌더링 가능한 모든 것 ⭐️⭐️⭐️⭐️
+
+```typescript
+import { type ReactNode } from 'react';
+
+// children prop에 가장 자주 쓰임
+type Props = {
+  children: ReactNode;
+  label?:   ReactNode;  // 텍스트뿐 아니라 JSX도 받을 수 있게
+};
+```
+
+```txt
+ReactNode = React가 렌더링할 수 있는 모든 것의 유니온
+  JSX.Element  — React 엘리먼트 (<div />, <MyComponent /> 등)
+  string
+  number
+  boolean
+  null
+  undefined
+  ReactNode[]  — 위의 배열
+
+→ "어떤 값이 와도 렌더링할 수 있다"는 가장 넓은 타입
+```
+
+## ReactNode vs JSX.Element vs ReactElement ⭐️⭐️⭐️
+
+```typescript
+// JSX.Element — JSX 표현식 하나 (가장 좁음)
+const a: JSX.Element = <div />;      // ✅
+const b: JSX.Element = 'hello';      // ❌ 문자열 안 됨
+const c: JSX.Element = null;         // ❌ null 안 됨
+
+// ReactNode — JSX + string, number, null, undefined 전부 포함 (가장 넓음)
+const d: ReactNode = <div />;        // ✅
+const e: ReactNode = 'hello';        // ✅
+const f: ReactNode = null;           // ✅
+const g: ReactNode = 42;             // ✅
+```
+
+```txt
+언제 뭘 쓰는가:
+
+  children?: ReactNode
+    가장 흔한 사용 — 문자열·숫자·null·JSX 뭐든 받을 수 있게
+
+  renderHeader?: () => JSX.Element
+    "반드시 하나의 JSX 엘리먼트를 반환하는 함수"로 제한할 때
+
+  icon?: React.ReactElement
+    JSX 엘리먼트만 받되, 문자열·null은 안 받을 때
+    (예: 아이콘 prop — 문자열이 오면 의도와 다름)
+
+children?: ReactNode가 children?: JSX.Element보다 유연한 이유:
+  <MyComp>텍스트</MyComp>  → children = string → ReactNode ✅, JSX.Element ❌
+  <MyComp>{cond && <Icon />}</MyComp>
+                           → cond = false면 children = false
+                           → ReactNode ✅ (false는 렌더링 안 됨), JSX.Element ❌
+```
+
+## 실전 패턴
+
+```typescript
+// Provider — 항상 children: ReactNode
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
+}
+
+// slot prop — 없어도 되고 뭐든 올 수 있음
+type CardProps = {
+  title:    string;
+  children: ReactNode;
+  footer?:  ReactNode;
+};
+
+// label이 텍스트일 수도 아이콘+텍스트일 수도 있을 때
+type ButtonProps = {
+  label: ReactNode;  // "저장" 또는 <><SaveIcon /> 저장</>
+};
+```
+---
+# keyof — 타입의 키를 유니온으로 추출 ⭐️⭐️⭐️⭐️
+
+```typescript
+type LyricDecorDisplay = {
+  lyrics: boolean;
+  track:  boolean;
+  note:   boolean;
+  mood:   boolean;
+  date:   boolean;
+  cover:  boolean;
+};
+
+type DisplayKey = keyof LyricDecorDisplay;
+// → 'lyrics' | 'track' | 'note' | 'mood' | 'date' | 'cover'
+```
+
+```typescript
+// 실전 — 타입 안전한 상수 배열
+const DISPLAY_CHIPS: { key: keyof LyricDecorDisplay; label: string }[] = [
+  { key: 'lyrics', label: '가사' },
+  { key: 'track',  label: '곡' },
+  { key: 'note',   label: '메모' },
+  { key: 'mood',   label: '감정' },
+  { key: 'date',   label: '날짜' },
+  { key: 'cover',  label: '커버' },
+];
+```
+
+```txt
+{ key: keyof LyricDecorDisplay; label: string }[]:
+  key 필드가 LyricDecorDisplay의 키 중 하나임을 보장
+  'lyric' 같은 오타를 넣으면 컴파일 에러 → 런타임 버그 방지
+
+활용:
+  DISPLAY_CHIPS.map(({ key, label }) => (
+    <Toggle key={key} label={label} on={display[key]} />
+  ))
+  → display[key] 접근도 타입 안전 (key가 keyof 이므로)
+```
+
+---
+# `Partial<T>` + 스프레드 패치 패턴 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+// 전체 객체 중 일부 필드만 업데이트하는 패치 함수
+const patch = (partial: Partial<ApiLyricCardCustomization>) => {
+  onChange({ ...normalizeDecor(value), ...partial });
+  //         ↑ 현재 값 전체                ↑ 바꿀 필드만 덮어씀
+};
+
+// 사용
+patch({ display: { ...d, [key]: on } });
+//     ↑ display 필드만 바꾸고 나머지는 유지
+```
+
+```txt
+Partial<T>:
+  T의 모든 필드를 optional로 만듦
+  { a: string; b: number } → { a?: string; b?: number }
+  "일부 필드만 보내면 되는" 패치 함수의 파라미터로 자주 씀
+
+스프레드 패치 패턴:
+  { ...기존값, ...partial }
+  partial의 필드가 기존값의 필드를 덮어씀
+  나머지 필드는 그대로 유지
+
+  주의: 중첩 객체는 스프레드로 합쳐지지 않음 (얕은 병합)
+  → display 같은 중첩 객체도 바꾸려면 명시적으로 펼쳐야 함
+  patch({ display: { ...d, [key]: on } })  ← display를 따로 펼침
+```
+
 ---
 
 # `readonly T[]` — 읽기 전용 배열 파라미터 ⭐️⭐️⭐️⭐️
