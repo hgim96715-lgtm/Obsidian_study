@@ -508,6 +508,200 @@ Prisma User → Response DTO:
 ```
 
 ---
+# ValidateBy — 커스텀 검증 데코레이터 ⭐️⭐️⭐️⭐️
+
+```txt
+class-validator의 기본 데코레이터(@IsEmail, @IsUUID 등)로 표현이 안 되는 검증이 필요할 때
+ValidateBy로 직접 만든다
+```
+
+## 기본 구조
+
+```typescript
+import {
+  ValidateBy,
+  ValidationOptions,
+  buildMessage,
+} from 'class-validator';
+
+export function IsHexColor(validationOptions?: ValidationOptions) {
+  return ValidateBy(
+    {
+      name: 'isHexColor',           // 고유 이름 (에러 객체의 constraints 키로 쓰임)
+      validator: {
+        validate(value: unknown): boolean {
+          // true → 통과 / false → 검증 실패
+          return typeof value === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value);
+        },
+        defaultMessage: buildMessage(
+          (each) => each + '$property은(는) #RRGGBB 형식이어야 합니다.',
+          validationOptions,
+        ),
+      },
+    },
+    validationOptions,
+  );
+}
+```
+
+```typescript
+// 사용
+export class CreateCardDto {
+  @IsHexColor()
+  color: string;   // '#ff5733' ✅  'red' ❌  '#xyz' ❌
+}
+```
+
+```txt
+ValidateBy(options, validationOptions):
+  options.name      고유 식별자 — constraints 객체의 키로 사용됨
+  options.validator.validate(value) → boolean
+    값이 조건을 만족하면 true, 아니면 false
+  options.validator.defaultMessage
+    에러 메시지 — validationOptions.message로 오버라이드 가능
+
+buildMessage((each) => each + '메시지', validationOptions):
+  배열 검증(@IsArray + { each: true }) 시 each에 "each value in " 접두사가 붙음
+  단일 값이면 each = '' (빈 문자열)
+  validationOptions.message가 있으면 그걸 우선 사용
+
+$property:
+  buildMessage에서 쓸 수 있는 템플릿 변수
+  DTO 필드 이름으로 치환됨 (예: color → "color은(는) #RRGGBB...")
+```
+
+## 실전 예시 — 여러 커스텀 데코레이터
+
+```typescript
+// 비어있지 않은 hex 색상
+export function IsHexColor(opts?: ValidationOptions) {
+  return ValidateBy({
+    name: 'isHexColor',
+    validator: {
+      validate: (v: unknown) =>
+        typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v),
+      defaultMessage: buildMessage(
+        (each) => each + '$property must be a valid hex color (#RRGGBB)',
+        opts,
+      ),
+    },
+  }, opts);
+}
+
+// 양수인지 확인 (IsPositive와 달리 0 제외 커스텀 메시지)
+export function IsPositiveNumber(opts?: ValidationOptions) {
+  return ValidateBy({
+    name: 'isPositiveNumber',
+    validator: {
+      validate: (v: unknown) => typeof v === 'number' && v > 0,
+      defaultMessage: buildMessage(
+        (each) => each + '$property는 0보다 커야 합니다.',
+        opts,
+      ),
+    },
+  }, opts);
+}
+```
+
+```typescript
+// 사용
+export class CreateRoomDto {
+  @IsHexColor()
+  themeColor: string;
+
+  @IsPositiveNumber()
+  @Type(() => Number)
+  maxMembers: number;
+}
+```
+
+## 기존 데코레이터에 constraints 추가
+
+```typescript
+// ValidationOptions.message로 메시지만 오버라이드
+export class CreateCardDto {
+  @IsHexColor({ message: '올바른 색상 코드를 입력해주세요.' })
+  color: string;
+}
+```
+
+## { each: true } — 배열 요소 하나하나 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+// moods 배열의 각 요소에 대해 isMood 검증을 실행
+@ValidateBy(
+  {
+    name: 'isMood',
+    validator: {
+      validate: (v: unknown) => typeof v === 'string' && isValidMood(v),
+      defaultMessage: () => '분위기는 1~8자로 입력해주세요.',
+    },
+  },
+  { each: true },   // ← 배열의 각 요소에 개별 실행
+)
+moods: string[];
+```
+
+```txt
+{ each: true }:
+  ValidationOptions의 옵션 — 배열 필드에서 요소 하나하나에 validate()를 실행
+  없으면: moods 배열 전체를 하나의 값으로 validate()에 넘김 (typeof [] === 'string' → false)
+  있으면: moods[0], moods[1], ... 각각 validate()에 넘김
+
+  ValidateBy 두 번째 인자가 ValidationOptions:
+  @ValidateBy(
+    { name, validator },   // 첫 번째 인자: 커스텀 로직
+    { each: true },        // 두 번째 인자: ValidationOptions (each, message 등)
+  )
+
+defaultMessage: () => '메시지':
+  buildMessage() 없이 단순 함수로도 가능
+  배열 each 상황에서 buildMessage를 쓰면 자동으로 "each value in moods..." 접두사 붙음
+  단순 고정 메시지면 () => '...' 로 충분
+
+@IsString({ each: true }) 와의 차이:
+  @IsString({ each: true })  → 요소가 string인지만 확인 (기본 데코레이터)
+  @ValidateBy(..., { each: true }) → string인지 + 추가 조건(isValidMood)까지 한 번에
+```
+
+## 배열 + 커스텀 검증 전체 패턴
+
+```typescript
+function isValidMood(v: string): boolean {
+  return v.trim().length >= 1 && v.trim().length <= 8;
+}
+
+export class CreateRoomDto {
+  @IsArray()
+  @ArrayMinSize(1,  { message: '분위기를 1개 이상 선택해주세요.' })
+  @ArrayMaxSize(3,  { message: '분위기는 최대 3개까지 선택할 수 있어요.' })
+  @ValidateBy(
+    {
+      name: 'isMood',
+      validator: {
+        validate: (v: unknown) => typeof v === 'string' && isValidMood(v),
+        defaultMessage: () => '분위기는 1~8자로 입력해주세요.',
+      },
+    },
+    { each: true },
+  )
+  moods: string[];
+}
+```
+
+```txt
+배열 검증 데코레이터 순서:
+  @IsArray()               배열인지 먼저 확인 (이게 없으면 each가 의미 없음)
+  @ArrayMinSize()          배열 길이 최소
+  @ArrayMaxSize()          배열 길이 최대
+  @ValidateBy({ each: true })  요소 하나하나 커스텀 검증
+
+  @IsArray() 없이 { each: true }만 있으면:
+  값이 배열이 아닐 때 validate()가 값 자체에 실행되어 예상치 못한 동작 가능
+  → 배열 필드에는 항상 @IsArray() 먼저
+```
+
+---
 
 # 한눈에
 

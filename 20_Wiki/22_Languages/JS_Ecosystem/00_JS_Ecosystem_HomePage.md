@@ -48,18 +48,20 @@ flowchart TB
 
 # 빠른 찾기
 
-```txt
-인증/토큰      → 🔐 인증 · 토큰 흐름
-브라우저/DOM   → 🌐 브라우저 · DOM · Canvas
-스타일        → 🎨 스타일링 · CSS
-React 훅      → ⚛️ React 훅
-폼           → 📝 폼 처리
-API 통신      → 📡 API 통신 · 타입 매핑
-라우팅/메타   → 🗺️ 라우팅 · 메타데이터
-날짜/문자열   → 📅 날짜 · 문자열 · 유틸
-기초 문법     → 🔤 범용 문법 기초
-보안          → 🛡️ 보안 기초
-```
+| 찾을 때 | 섹션 |
+| --- | --- |
+| 인증/토큰 | [[#🔐 인증 · 토큰 흐름]] |
+| 브라우저/DOM | [[#🌐 브라우저 · DOM · Canvas]] |
+| 스타일 | [[#🎨 스타일링 · CSS]] |
+| React 훅 | [[#⚛️ React 훅]] |
+| 폼 | [[#📝 폼 처리]] |
+| API 통신 | [[#📡 API 통신 · 타입 매핑]] |
+| 임베드/미디어 | [[#📺 임베드 · 미디어 재생]] |
+| 라우팅/메타 | [[#🗺️ 라우팅 · 메타데이터]] |
+| 날짜/문자열 | [[#📅 날짜 · 문자열 · 유틸]] |
+| 기초 문법 | [[#🔤 범용 문법 기초 — 전 트랙에 깔림]] |
+| 보안 | [[#🛡️ 보안 기초]] |
+| 독립 노트 | [[#📦 독립 노트]] |
 
 ---
 
@@ -82,8 +84,6 @@ API 통신      → 📡 API 통신 · 타입 매핑
 |**React**|[[React_useRef]]|
 |**Next.js**|[[NextJS_ServerClient]]|
 
-txt
-
 ```txt
 JS_DOM      요소 조작 · Pointer Events · getBoundingClientRect · scrollIntoView
 JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
@@ -97,6 +97,7 @@ JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
 |---|---|
 |**JS**|[[JS_BrowserAPI]] (style 섹션) · [[JS_DOM]] (classList)|
 |**React**|[[React_CSSProperties]] · [[React_Styling]]|
+|**Next.js**|[[NextJS_Font]] (next/font · @import · 한글 폰트 · 커스텀 클래스)|
 
 ---
 
@@ -153,9 +154,9 @@ NextJS_UI_Types ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
 
 ## 🗺️ 라우팅 · 메타데이터
 
-| |노트|
-|---|---|
-|**Next.js**|[[NextJS_Routing]] · [[NextJS_Metadata]] · [[NextJS_OGImage]] · [[NextJS_WebSocket]]|
+|             | 노트                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------- |
+| **Next.js** | [[NextJS_Routing]] · [[NextJS_Metadata]] · [[NextJS_OGImage]] · [[NextJS_WebSocket]]  |
 
 
 ```txt
@@ -178,7 +179,7 @@ NextJS_WebSocket  socket.io-client · 싱글턴 · 클린업 패턴
 
 ---
 
-##  범용 문법 기초 — 전 트랙에 깔림
+## 🔤 범용 문법 기초 — 전 트랙에 깔림
 
 ### TypeScript
 

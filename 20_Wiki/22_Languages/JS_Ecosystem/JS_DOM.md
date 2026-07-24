@@ -260,6 +260,95 @@ Promise 래핑과 prev?.() 콜백 보존 패턴 → [[JS_Promise]] / [[JS_Option
 ```
 
 ---
+# 키보드 이벤트 — onKeyDown / isComposing ⭐️⭐️⭐️⭐️
+
+```typescript
+// 기본 키보드 이벤트
+<input
+  onKeyDown={(e) => {
+    if (e.key === 'Enter') submitForm();
+    if (e.key === 'Escape') closeModal();
+  }}
+/>
+```
+
+## isComposing — 한글/일본어/중국어 입력 중 Enter 문제 ⭐️⭐️⭐️⭐️
+
+```typescript
+onKeyDown={(e) => {
+  // 조합 중 Enter는 "글자 확정"용 — commit 하지 말 것
+  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+    e.preventDefault();
+    commitCustomMood();
+  }
+}}
+```
+
+```txt
+isComposing이 필요한 이유:
+
+  한글은 자음+모음을 조합해서 한 글자를 만듦 (IME: Input Method Editor)
+  예: '분'을 입력할 때 → 'ㅂ' → '부' → '분' 순서로 조합 중
+
+  조합 중에 Enter를 누르면 두 가지 이벤트가 발생:
+    1. IME가 조합 중인 글자를 "확정"하는 Enter
+    2. 우리가 처리하려는 "제출/추가"용 Enter
+
+  isComposing = true  → IME 조합 중 (확정 Enter)
+  isComposing = false → 조합이 끝난 뒤의 Enter (우리가 처리할 Enter)
+
+  isComposing 체크 없이 Enter만 보면:
+  '분' 입력 완료 → Enter(조합확정) 발생 → commitCustomMood() 실행
+  → 의도하지 않은 제출이 일어남
+```
+
+## e.nativeEvent란 ⭐️⭐️⭐️
+
+```typescript
+// React의 이벤트 객체 (SyntheticEvent)
+(e: React.KeyboardEvent<HTMLInputElement>) => {
+  e.key            // React SyntheticEvent 속성 ✅
+  e.preventDefault()  // React SyntheticEvent 메서드 ✅
+
+  e.nativeEvent    // 브라우저 원본 DOM 이벤트 (KeyboardEvent)
+  e.nativeEvent.isComposing  // 원본 DOM 이벤트에만 있는 속성 ✅
+}
+```
+
+```txt
+React는 브라우저 이벤트를 SyntheticEvent로 감싸서 제공
+  장점: 브라우저 간 일관성
+  단점: 원본 DOM 이벤트에만 있는 속성은 접근 불가
+
+isComposing은 SyntheticEvent에 없음 → e.nativeEvent.isComposing으로 접근
+
+React 17+에서는 e.nativeEvent 없이 e.isComposing으로도 접근 가능한 경우가 있지만
+e.nativeEvent.isComposing이 더 안정적이고 명시적
+```
+
+## 자주 쓰는 키 이름
+
+|키|`e.key` 값|
+|---|---|
+|Enter|`'Enter'`|
+|Escape|`'Escape'`|
+|Tab|`'Tab'`|
+|백스페이스|`'Backspace'`|
+|방향키|`'ArrowUp'` / `'ArrowDown'` / `'ArrowLeft'` / `'ArrowRight'`|
+|Shift/Ctrl/Alt|`'Shift'` / `'Control'` / `'Alt'`|
+
+
+```typescript
+// 조합 키
+if (e.key === 'Enter' && e.shiftKey)  // Shift+Enter
+if (e.key === 'k' && (e.metaKey || e.ctrlKey))  // Cmd+K (Mac) / Ctrl+K (Windows)
+
+// e.preventDefault() — 기본 동작 막기
+// Enter → 폼 제출 방지
+// Tab   → 포커스 이동 방지 (코드 에디터에서 들여쓰기로 쓸 때)
+// Escape → 기본 동작은 없지만 명시적으로 쓰는 경우 있음
+```
+---
 # input type="color" — 네이티브 색상 선택기 ⭐️⭐️⭐️
 
 ```typescript

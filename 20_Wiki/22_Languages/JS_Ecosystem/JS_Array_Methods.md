@@ -77,6 +77,100 @@ flowchart TD
 
 
 ---
+# setState 안에서 early return — return prev ⭐️⭐️⭐️⭐️
+
+```typescript
+setSelectedMoods((prev) => {
+  if (prev.includes(t))      return prev;  // ① 이미 있으면 그대로
+  if (prev.length >= MAX_MOODS) return prev;  // ② 최대 개수면 그대로
+  return [...prev, t];                        // ③ 추가
+});
+```
+
+
+```txt
+prev = 지금 state에 들어있는 배열 (React가 현재 값을 넘겨줌)
+return prev = "아무것도 바꾸지 말고 그대로 둬"
+
+왜 return prev가 의미 있는가:
+  React는 setState(fn)에서 반환된 값과 이전 값을 Object.is()로 비교
+  return prev  → 같은 참조 → 변경 없음으로 판단 → 리렌더 없음
+  return [...prev, t]  → 새 배열 → 다른 참조 → 변경 있음 → 리렌더 발생
+
+  return [...prev]  ← 내용이 같아도 새 배열 → 리렌더 O
+  return prev       ← 참조가 같으면 리렌더 X
+```
+
+## 읽는 법 — 함수 안에서 early return
+
+```typescript
+setSelectedMoods((prev) => {
+  if (prev.includes(t))         return prev;  // 조건1: 이미 있으면 → 탈출
+  if (prev.length >= MAX_MOODS) return prev;  // 조건2: 꽉 찼으면 → 탈출
+  return [...prev, t];  // 여기까지 왔으면 둘 다 아님 → 추가
+});
+```
+
+```txt
+"여기까지 왔으면" 패턴:
+  위의 두 return prev가 걸리지 않은 것 = 두 조건 모두 아닌 상황
+  → 추가해도 안전하다는 뜻
+
+  else 없이 평평하게 읽히는 게 핵심 — [[JS_Array_Methods]] "early return" 참고
+
+흔한 setState 안 early return 패턴:
+  중복 방지   prev.includes(item) → return prev
+  최대 개수   prev.length >= MAX → return prev
+  이미 없는거 삭제   !prev.includes(item) → return prev
+```
+
+## 자주 쓰는 배열 state 패턴
+
+```typescript
+// 추가 (중복 방지)
+setState((prev) => {
+  if (prev.includes(item)) return prev;
+  return [...prev, item];
+});
+
+// 삭제
+setState((prev) => prev.filter((x) => x !== item));
+
+// 토글 (있으면 삭제, 없으면 추가)
+setState((prev) =>
+  prev.includes(item)
+    ? prev.filter((x) => x !== item)
+    : [...prev, item]
+);
+
+// 특정 요소 수정
+setState((prev) =>
+  prev.map((x) => x.id === targetId ? { ...x, ...changes } : x)
+);
+
+// 순서 변경
+setState((prev) => {
+  const next = [...prev];  // 원본 복사 (sort는 원본 변경)
+  next.sort((a, b) => a.name.localeCompare(b.name));
+  return next;
+});
+```
+
+
+```txt
+불변성 규칙:
+  push / splice / sort 는 원본을 직접 바꿈 → React가 변경 감지 못함
+  setState 안에서는 항상 새 배열 반환
+  [...prev, item]  추가
+  prev.filter(...) 삭제
+  prev.map(...)    수정
+  [...prev].sort() 정렬 (복사 후)
+
+return prev 쓸 때:
+  조건이 맞지 않아 아무 변경도 안 할 때
+  새 배열을 만들지 않아서 불필요한 리렌더 방지
+```
+---
 # 조건 함수 (Predicate) — return true/false의 의미 ⭐️⭐️⭐️⭐️
 
 ```txt
