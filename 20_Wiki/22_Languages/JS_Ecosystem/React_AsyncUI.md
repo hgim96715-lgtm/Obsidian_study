@@ -4,6 +4,8 @@ aliases:
   - Async
   - UI
   - 비동기
+  - fetch하는 패턴 + cancelled 플래그
+  - cancelled 플래그
 tags:
   - React
 related:
@@ -11,6 +13,7 @@ related:
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[JS_Promise]]"
   - "[[NestJS_Idempotency]]"
+  - "[[TS_Type_Guards]]"
 ---
 # React_AsyncUI — 비동기 UI 안정화 패턴
 
@@ -18,6 +21,191 @@ related:
 >  API 호출이 포함된 UI에서 반드시 다뤄야 하는 패턴 모음. 
 >  핵심 형태 하나: `setPending(id) → try { await api; setState } catch { showHint } finally { clearPending(id) }`
 
+---
+# 흐름도
+
+```mermaid
+flowchart TD
+  Start([화면에 서버 데이터가 필요함]) --> Q1{어디서 그릴 수 있나?}
+
+  Q1 -->|Next App Router<br/>서버에서 HTML 가능| SC[Server Component에서 fetch]
+  SC --> SCNote[useEffect 불필요 · SEO·초기 로딩 유리]
+
+  Q1 -->|클라이언트만<br/>로그인 후·개인화| Q2{캐시·재시도·갱신이 중요한가?}
+
+  Q2 -->|예 · 목록/피드/폴링| RQ[React Query / SWR]
+  RQ --> RQNote[useEffect 직접 fetch ❌<br/>훅이 캐시·취소·재시도 담당]
+
+  Q2 -->|아니오 · 단발 로드<br/>방 정보·설정 페이지| Q3{deps가 바뀔 때마다<br/>다시 가져와야 하나?}
+
+  Q3 -->|예 user·roomId 등| Eff[useEffect + fetch]
+  Eff --> Guard{준비됐나?<br/>!user / !id}
+  Guard -->|아니오| Skip[return — fetch 안 함]
+  Guard -->|예| Flag[cancelled = false]
+  Flag --> Call[fetch / api 호출]
+  Call --> Clean{cleanup?<br/>언마운트 or deps 변경}
+  Clean -->|예| Cancel[cancelled = true]
+  Cancel --> Ignore[응답 와도 setState 스킵]
+  Clean -->|아니오| Ok{응답}
+  Ok -->|성공| Set[if !cancelled → setState]
+  Ok -->|실패| Err[if !cancelled → setError]
+  Set --> Done([로딩 false])
+  Err --> Done
+
+  Q3 -->|아니오 · 버튼/제출 때만| Evt[이벤트 핸들러에서 fetch]
+  Evt --> EvtNote[useEffect ❌<br/>pending / try·catch·finally]
+
+  classDef good fill:#1a3d2e,stroke:#3d8f6a,color:#e8fff3
+  classDef bad fill:#3d1a1a,stroke:#8f3d3d,color:#ffe8e8
+  classDef ask fill:#1a2a3d,stroke:#3d6a8f,color:#e8f3ff
+  class SC,RQ,Eff,Evt,Set,Done,SCNote,RQNote,EvtNote good
+  class Skip,Ignore bad
+  class Q1,Q2,Q3,Guard,Clean,Ok ask
+```
+
+| 결론 | |
+| --- | --- |
+| **Server Component** | 공개·초기 데이터 · useEffect fetch 안 씀 |
+| **React Query / SWR** | 캐시·재시도 · useEffect에 fetch 직접 안 씀 |
+| **useEffect + fetch** | deps 따라 **한 번/다시** 로드 · `cancelled` 필수 |
+| **이벤트 핸들러** | 클릭·제출 · effect에 넣지 말 것 |
+
+---
+# useEffect 안에서 fetch — 언제, 어떻게 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+useEffect(() => {
+  if (!user || !roomId) return;   // ① 조건 가드 — 준비 안 됐으면 실행 안 함
+
+  let cancelled = false;           // ② 취소 플래그
+  setLoading(true);
+  setError('');
+
+  fetchRoom(roomId)
+    .then((data) => {
+      if (!cancelled) setRoom(data);        // ③ 취소됐으면 setState 안 함
+    })
+    .catch((err: unknown) => {
+      if (!cancelled) {
+        setError(
+          err instanceof Error ? err.message : '방을 불러오지 못했어요.',
+        );
+      }
+    })
+    .finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+  return () => {
+    cancelled = true;              // ④ 언마운트 or deps 바뀌면 취소 표시
+  };
+}, [user, roomId]);
+```
+
+## cancelled 플래그가 필요한 이유 ⭐️⭐️⭐️⭐️
+
+```txt
+문제 상황:
+  1. 컴포넌트 마운트 → fetchRoom() 시작
+  2. 응답 오기 전에 컴포넌트 언마운트 (다른 페이지로 이동)
+  3. 응답이 옴 → setRoom(data) 실행
+  → "Can't perform a React state update on an unmounted component" 에러
+
+  또는:
+  4. roomId = 'A' → fetchRoom('A') 시작
+  5. 빠르게 roomId = 'B' 로 바뀜 → fetchRoom('B') 시작
+  6. 먼저 시작한 'A' 응답이 나중에 옴
+  → 'B' 페이지인데 'A' 데이터가 표시되는 버그 (경쟁 조건)
+
+cancelled = true 로 해결:
+  useEffect cleanup 함수(return () => {...})가
+  언마운트 시 또는 deps가 바뀌어 effect가 재실행되기 직전에 실행됨
+  → cancelled = true 설정
+  → 이미 진행 중인 fetch 응답이 와도 if (!cancelled) 에서 setState를 건너뜀
+```
+
+## 언제 useEffect fetch를 쓰는가
+
+```txt
+✅ useEffect fetch가 적합한 경우:
+  deps(user, roomId)가 바뀔 때마다 데이터를 다시 가져와야 할 때
+  클라이언트에서만 필요한 데이터 (로그인 후 개인화 데이터)
+  Next.js Server Component나 SWR을 못 쓰는 환경
+
+❌ 더 나은 대안이 있는 경우:
+  Next.js App Router → Server Component에서 fetch (더 간단, SEO 유리)
+  React Query / SWR → 캐싱, 재시도, 백그라운드 갱신이 필요할 때
+  → useEffect fetch는 캐싱/재시도를 직접 구현해야 함
+```
+
+## Promise 체인 vs async/await
+
+```typescript
+// ❌ useEffect에 직접 async 안 됨 — async 함수는 Promise를 반환하는데
+//    useEffect의 cleanup은 함수여야 함 (Promise 반환 안 됨)
+useEffect(async () => {  // ← 에러는 안 나지만 cleanup이 동작 안 함
+  const data = await fetchRoom(roomId);
+  setRoom(data);
+}, [roomId]);
+
+// ✅ 방법 1 — Promise 체인 (.then.catch.finally)
+useEffect(() => {
+  let cancelled = false;
+  fetchRoom(roomId)
+    .then((data) => { if (!cancelled) setRoom(data); })
+    .catch((err) => { if (!cancelled) setError(...); })
+    .finally(() => { if (!cancelled) setLoading(false); });
+  return () => { cancelled = true; };
+}, [roomId]);
+
+// ✅ 방법 2 — 내부에 async 함수 선언 후 즉시 호출
+useEffect(() => {
+  let cancelled = false;
+  async function load() {
+    try {
+      const data = await fetchRoom(roomId);
+      if (!cancelled) setRoom(data);
+    } catch (err) {
+      if (!cancelled) setError(err instanceof Error ? err.message : '오류');
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  }
+  void load();
+  return () => { cancelled = true; };
+}, [roomId]);
+```
+
+
+```txt
+둘 다 결과는 같음 — 팀 스타일에 따라 선택
+.then().catch()   → 체인이 간결, async/await보다 중첩이 적음
+async 내부 함수   → try/catch 구조가 익숙하면 더 읽기 쉬움
+
+void load():
+  async 함수의 반환값(Promise)을 무시 → floating promise 경고 방지
+  → [[JS_Promise]] 참고
+```
+
+## err instanceof Error 패턴
+
+```typescript
+.catch((err: unknown) => {
+  setError(err instanceof Error ? err.message : '방을 불러오지 못했어요.');
+})
+```
+
+```txt
+catch의 err 타입:
+  TypeScript의 catch 블록에서 err 타입은 unknown (TS 4.0+)
+  any로 쓰면 err.message 접근이 타입 체크 없이 통과 → 위험
+  unknown으로 받고 instanceof Error로 좁혀야 .message 접근 가능
+
+  err instanceof Error → true  → 에러 메시지 표시
+  그 외 (문자열 throw 등) → 기본 메시지 표시
+  → [[TS_Type_Guards]] 참고
+```
 ---
 
 # 기본 골격 ⭐️⭐️⭐️⭐️

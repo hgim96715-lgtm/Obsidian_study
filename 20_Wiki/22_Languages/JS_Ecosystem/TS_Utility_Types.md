@@ -7,6 +7,7 @@ aliases:
   - ReturnType
   - utility types
   - Required
+  - NonNullable
 tags:
   - TypeScript
 related:
@@ -340,6 +341,103 @@ Parameters<T>가 있으면:
   타입 안전성 유지
 ```
 
+---
+# `NonNullable<T>` — null / undefined 제거 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+type A = NonNullable<string | null | undefined>;  // string
+type B = NonNullable<number | null>;              // number
+type C = NonNullable<null | undefined>;           // never (전부 제거하면 남는 게 없음)
+```
+
+```typescript
+// 실전 — 배열 요소의 특정 필드에서 null 제거
+const [previewJacket, setPreviewJacket] = useState<
+  NonNullable<typeof messages[number]['savedCard']> | null
+>(null);
+```
+
+```txt
+분해해서 읽기:
+
+① typeof messages
+   messages 변수의 타입을 추출
+   예: { id: string; savedCard: ApiCard | null }[]
+
+② typeof messages[number]
+   배열을 number 인덱스로 접근했을 때의 타입 = 배열 요소 타입
+   → { id: string; savedCard: ApiCard | null }
+   [number] = "숫자로 인덱싱하면 나오는 타입" (배열 요소 타입 추출 관용구)
+
+③ typeof messages[number]['savedCard']
+   배열 요소에서 savedCard 필드의 타입
+   → ApiCard | null
+
+④ NonNullable<typeof messages[number]['savedCard']>
+   ApiCard | null 에서 null 제거
+   → ApiCard
+
+⑤ 전체: NonNullable<...> | null
+   useState 초기값(null)을 허용하면서
+   set할 때는 반드시 ApiCard 타입이어야 함
+   → "null(미선택) 또는 ApiCard(선택됨)"
+```
+
+---
+
+# `T[number] `— 배열 요소 타입 추출 ⭐️⭐️⭐️⭐️
+
+```typescript
+type Items = { id: string; name: string }[];
+
+type Item = Items[number];
+// → { id: string; name: string }
+
+// typeof와 조합
+const messages = [{ id: '1', savedCard: null as ApiCard | null }];
+
+type Message    = typeof messages[number];
+// → { id: string; savedCard: ApiCard | null }
+
+type SavedCard  = typeof messages[number]['savedCard'];
+// → ApiCard | null
+
+type SafeCard   = NonNullable<typeof messages[number]['savedCard']>;
+// → ApiCard
+```
+
+```txt
+T[K] — 인덱스 접근 타입 (Indexed Access Type):
+  T['key']     → 객체 타입 T에서 'key' 필드의 타입
+  T[number]    → 배열 타입 T에서 요소 타입 (number 인덱스로 접근)
+  T[keyof T]   → T의 모든 값 타입의 유니온
+
+  typeof와 조합:
+  typeof arr[number]           → 배열 변수의 요소 타입
+  typeof obj['field']          → 객체 변수의 필드 타입
+  typeof arr[number]['field']  → 배열 요소의 특정 필드 타입
+
+왜 유용한가:
+  타입을 직접 import하지 않아도 변수에서 타입을 추출 가능
+  API 응답 타입처럼 깊이 중첩된 타입을 꺼낼 때 간결함
+```
+
+## 자주 쓰는 조합
+
+```typescript
+// 배열 요소 타입
+type Item = typeof list[number];
+
+// 객체의 values 타입 (유니온)
+type Status = typeof STATUS_MAP[keyof typeof STATUS_MAP];
+
+// null/undefined 제거
+type SafeItem = NonNullable<typeof list[number]['optionalField']>;
+
+// 함수 반환값의 배열 요소 타입
+type ResultItem = Awaited<ReturnType<typeof fetchList>>[number];
+```
 ---
 
 # `Required<T>` / `Readonly<T>` — 짧게 ⭐️
