@@ -251,6 +251,109 @@ key 상수화 (SEEN_KEY):
 ```
 
 ---
+# localStorage 값이 단순 문자열 → 객체로 진화할 때 ⭐️⭐️⭐️⭐️
+
+```txt
+예전: localStorage에 단순 문자열 하나만 저장
+  "lp-bar"
+
+지금: 같은 키에 여러 필드가 필요해짐
+  presetId + backgroundUrl → 두 값을 함께 관리
+
+선택지:
+  키를 두 개로 쪼갬  theme:preset / theme:bg  → 읽을 때 두 번 읽어야 함
+  JSON.stringify    하나의 키에 객체로         → 관련 데이터가 한 곳에 모임 (권장)
+```
+
+## JSON.stringify를 쓰는 이유
+
+```typescript
+// localStorage는 문자열만 저장 가능
+// → 여러 필드를 한 키에 저장하려면 JSON.stringify 필수
+localStorage.setItem('room-theme:123', JSON.stringify({
+  presetId:      'cream-paper',
+  backgroundUrl: 'https://example.com/bg.jpg',
+}));
+```
+
+
+```txt
+JSON.stringify 가 필요한 상황:
+  두 개 이상의 필드를 하나의 키에 묶어서 저장하고 싶을 때
+  관련 데이터를 원자적으로 읽고 쓰고 싶을 때 (한 키 → 한 번의 getItem)
+  → [[JS_JSON]] / [[JS_WebStorage]] "객체 저장" 참고
+```
+
+## 하위 호환 읽기 패턴 — 예전 형식 + 새 형식 모두 처리 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+export type RoomThemePrefs = {
+  presetId:      RoomThemePresetId;
+  backgroundUrl: string | null;  // 없으면 프리셋만
+};
+
+function readRoomThemePrefs(roomId: string): RoomThemePrefs | null {
+  const raw = localStorage.getItem(`room-theme:${roomId}`);
+  if (!raw) return null;
+
+  // ① 예전 형식: 단순 문자열 "lp-bar" → 그대로 읽어서 마이그레이션
+  if (isPresetId(raw)) {
+    return { presetId: raw, backgroundUrl: null };
+  }
+
+  // ② 새 형식: JSON 객체
+  try {
+    const parsed = JSON.parse(raw) as Partial<RoomThemePrefs>;
+
+    if (!isPresetId(parsed.presetId ?? '')) return null;  // presetId 검증
+
+    return {
+      presetId:      parsed.presetId!,
+      backgroundUrl: parsed.backgroundUrl ?? null,
+    };
+  } catch {
+    return null;  // JSON 파싱 실패 → null로 fallback
+  }
+}
+```
+
+
+```txt
+isPresetId(raw) 분기가 있는 이유:
+  예전에 저장해둔 값 → 단순 문자열 "lp-bar"
+  JSON.parse("lp-bar") → SyntaxError 또는 유효하지 않은 결과
+
+  isPresetId(raw) = true → 예전 포맷 → 바로 파싱
+  isPresetId(raw) = false → JSON 시도 → 파싱 실패 시 null
+
+  이렇게 하면 예전 사용자도 데이터 손실 없이 새 형식으로 자연스럽게 전환됨
+
+as Partial<RoomThemePrefs>:
+  JSON.parse 반환값은 any → unknown으로 좁히는 게 가장 안전하지만
+  구조가 명확할 때 Partial<T>로 캐스팅 + 각 필드 검증
+  Partial = 모든 필드가 있을 수도 없을 수도 있음을 명시
+  → [[TS_Utility_Types]] 참고
+```
+
+## 쓰기 패턴
+
+```typescript
+function writeRoomThemePrefs(roomId: string, prefs: RoomThemePrefs) {
+  localStorage.setItem(
+    `room-theme:${roomId}`,
+    JSON.stringify(prefs),
+  );
+}
+```
+
+
+```txt
+저장 시 항상 새 형식(JSON)으로 저장
+읽을 때만 예전 형식을 처리 — 자연스럽게 마이그레이션됨
+(읽고 → 저장하면 예전 포맷이 새 포맷으로 덮어써짐)
+```
+---
 # 읽음 처리 패턴 — "마지막으로 본 내용" ⭐️⭐️⭐️⭐️
 
 ```txt

@@ -540,6 +540,107 @@ useEffect는 "리액트 바깥 세계와 진짜로 동기화해야 하는 것"(�
 ```
 
 ---
+# Rules of Hooks — 훅 규칙 ⭐️⭐️⭐️⭐️
+
+```txt
+두 가지 규칙:
+  1. 최상위 레벨에서만 호출 — if / for / map 콜백 / 중첩 함수 안에서 호출 금지
+  2. React 함수 컴포넌트 또는 커스텀 훅 안에서만 호출 — 일반 함수에서 호출 금지
+```
+
+## ❌ map 안에서 훅 호출 — 절대 금지 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 훅 규칙 위반
+function MemberList({ members }: { members: Member[] }) {
+  return (
+    <ul>
+      {members.map((m) => {
+        const isFriend = useIsFriend(m.userId);  // ← 훅을 map 안에서 호출
+        return <MemberItem key={m.id} isFriend={isFriend} />;
+      })}
+    </ul>
+  );
+}
+```
+
+
+```txt
+왜 안 되는가:
+  React는 훅이 "항상 같은 순서로, 같은 개수로" 호출된다고 가정하고
+  각 훅 호출을 내부 슬롯(순서 기반)에 연결함
+
+  members.length = 3 → useIsFriend 3번 호출 (훅 슬롯 3개)
+  members.length = 5 → useIsFriend 5번 호출 (훅 슬롯 5개)
+
+  렌더링마다 훅 개수가 달라짐 → React가 어떤 state가 어떤 훅인지 추적 불가
+  → "Rendered more/fewer hooks than expected" 에러
+```
+
+## ✅ 올바른 패턴 — Set으로 한 번만 ⭐️⭐️⭐️⭐️
+
+```typescript
+/** 목록에서 .has(userId) — map 안에서 useIsFriend 금지용 */
+export function useFriendIdSet(): ReadonlySet<string> {
+  const { ids } = useFriendIds();  // Context에서 한 번만
+  return ids;
+}
+
+// 컴포넌트
+function MemberList({ members }: { members: Member[] }) {
+  const friendIds = useFriendIdSet();  // ← 훅을 최상위에서 한 번만
+
+  return (
+    <ul>
+      {members.map((m) => {
+        const isFriend = friendIds.has(m.userId);  // ← 일반 메서드 호출 (훅 아님)
+        return <MemberItem key={m.id} isFriend={isFriend} />;
+      })}
+    </ul>
+  );
+}
+```
+
+```txt
+핵심 아이디어:
+  훅은 최상위에서 한 번만 → 결과(Set)를 변수에 담음
+  map 안에서는 Set.has() — 일반 메서드 호출 (훅 아님, 개수 달라져도 OK)
+
+  useFriendIdSet()을 별도 커스텀 훅으로 만드는 이유:
+    "map 안에서 useIsFriend 쓰면 안 됨, 대신 이걸 써라"는 의도를 이름으로 명시
+    JSDoc 주석으로 용도와 금지 사항을 같이 문서화
+
+ReadonlySet:
+  외부에서 Set을 직접 수정하지 못하게 제한
+  → [[TS_Generics]] 참고
+```
+
+## 다른 금지 패턴들
+
+```typescript
+// ❌ if 안
+if (condition) {
+  const [state, setState] = useState(0);  // 조건에 따라 훅 개수 달라짐
+}
+
+// ❌ 중첩 함수 안
+function outer() {
+  function inner() {
+    const value = useContext(MyContext);  // React 컴포넌트가 아님
+  }
+}
+
+// ✅ 올바른 — 항상 최상위에서 조건 없이
+function MyComponent() {
+  const [state, setState] = useState(0);  // 항상 첫 번째 훅
+  const value = useContext(MyContext);    // 항상 두 번째 훅
+
+  if (condition) {
+    // 훅 호출 없이 state 사용만
+  }
+}
+```
+---
 
 # 한눈에
 

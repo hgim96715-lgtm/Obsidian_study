@@ -77,12 +77,12 @@ flowchart TB
 
 ## 🌐 브라우저 · DOM · Canvas
 
-| |노트|
-|---|---|
-|**JS**|[[JS_BrowserAPI]] · [[JS_CustomEvent]] · [[JS_DOM]] · [[JS_Canvas]]|
-|**TS**|[[TS_DOM_Events]]|
-|**React**|[[React_useRef]]|
-|**Next.js**|[[NextJS_ServerClient]]|
+|             | 노트                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------ |
+| **JS**      | [[JS_BrowserAPI]] · [[JS_CustomEvent]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] |
+| **TS**      | [[TS_DOM_Events]]                                                                    |
+| **React**   | [[React_useRef]]                                                                     |
+| **Next.js** | [[NextJS_ServerClient]]                                                              |
 
 ```txt
 JS_DOM      요소 조작 · Pointer Events · getBoundingClientRect · scrollIntoView

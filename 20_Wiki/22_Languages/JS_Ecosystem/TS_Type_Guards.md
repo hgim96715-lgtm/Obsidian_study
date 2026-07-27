@@ -245,6 +245,68 @@ function isNotNull<T>(value: T | null | undefined): value is T {
 const filtered = items.filter(isNotNull); // string[]
 ```
 
+## includes 기반 타입 서술어 — as readonly string[] ⭐️⭐️⭐️⭐️
+
+
+```typescript
+const ROOM_THEME_PRESET_IDS = ['modern', 'retro', 'minimal'] as const;
+type RoomThemePresetId = typeof ROOM_THEME_PRESET_IDS[number];
+// → 'modern' | 'retro' | 'minimal'
+
+function isPresetId(value: string): value is RoomThemePresetId {
+  return (ROOM_THEME_PRESET_IDS as readonly string[]).includes(value);
+}
+```
+
+```typescript
+// 사용
+const input = 'modern';  // string (어디서 온 값)
+
+if (isPresetId(input)) {
+  input; // ✅ 여기서는 'modern' | 'retro' | 'minimal' 로 좁혀짐
+}
+```
+
+
+```txt
+왜 as readonly string[] 가 필요한가:
+
+  ROOM_THEME_PRESET_IDS 의 타입:
+    as const → readonly ['modern', 'retro', 'minimal']  (리터럴 튜플)
+
+  이 튜플의 .includes() 시그니처:
+    includes(searchElement: 'modern' | 'retro' | 'minimal'): boolean
+    → 인자가 반드시 세 값 중 하나여야 함
+
+  여기서 value: string 을 넣으면:
+    string은 'modern' | 'retro' | 'minimal' 보다 넓음 → TS 에러
+
+  as readonly string[] 로 캐스팅하면:
+    .includes(searchElement: string): boolean
+    → 어떤 string이든 인자로 받음 → 에러 없음
+
+  정리:
+    ROOM_THEME_PRESET_IDS.includes(value)  ← TS 에러 (value가 string이라 너무 넓음)
+    (ROOM_THEME_PRESET_IDS as readonly string[]).includes(value)  ← OK
+```
+
+
+```txt
+이 방식이 좋은 이유:
+  if (value === 'modern' || value === 'retro' || value === 'minimal') 대신
+  isPresetId(value) 한 줄로 표현 가능
+
+  ROOM_THEME_PRESET_IDS 에 프리셋을 추가하면
+  isPresetId 함수와 RoomThemePresetId 타입이 자동으로 따라옴
+  → 수동으로 유니온 타입과 조건을 동기화할 필요 없음
+
+  as const 배열 → T[number] → 타입 서술어 조합:
+  const IDS = [...] as const
+  type Id = typeof IDS[number]
+  function isId(v: string): v is Id { return (IDS as readonly string[]).includes(v) }
+  → 이 패턴 자체가 범용적으로 재사용 가능
+```
+
 ---
 
 # 판별 유니온 (Discriminated Union) ⭐️⭐️⭐️⭐️
