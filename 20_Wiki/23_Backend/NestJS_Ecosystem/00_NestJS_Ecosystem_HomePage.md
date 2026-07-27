@@ -155,14 +155,14 @@ NestJS_Swagger  @ApiProperty · type:[String] 배열 · nullable · 응답 타�
 
 ## ⚙️ 패턴 · 기법
 
-| |노트|
-|---|---|
-|**이메일**|[[NestJS_Email]]|
-|**스케줄링**|[[NestJS_Scheduling]]|
-|**스로틀링**|[[NestJS_Throttle]]|
-|**로깅**|[[NestJS_Logger]]|
-|**페이지네이션**|[[NestJS_Pagination]]|
-|**멱등성**|[[NestJS_Idempotency]]|
+|            | 노트                     |
+| ---------- | ---------------------- |
+| **이메일**    | [[NestJS_Email]]       |
+| **스케줄링**   | [[NestJS_Scheduling]]  |
+| **스로틀링**   | [[NestJS_Throttle]]    |
+| **로깅**     | [[NestJS_Logger]]      |
+| **페이지네이션** | [[NestJS_Pagination]]  |
+| **멱등성**    | [[NestJS_Idempotency]] |
 
 
 ```txt
