@@ -6,6 +6,8 @@ aliases:
   - 비동기
   - fetch하는 패턴 + cancelled 플래그
   - cancelled 플래그
+  - reqIdRef
+  - debounce
 tags:
   - React
 related:
@@ -14,6 +16,7 @@ related:
   - "[[JS_Promise]]"
   - "[[NestJS_Idempotency]]"
   - "[[TS_Type_Guards]]"
+  - "[[JS_URL_Encoding]]"
 ---
 # React_AsyncUI — 비동기 UI 안정화 패턴
 
@@ -38,39 +41,214 @@ flowchart TD
 
   Q2 -->|아니오 · 단발 로드<br/>방 정보·설정 페이지| Q3{deps가 바뀔 때마다<br/>다시 가져와야 하나?}
 
-  Q3 -->|예 user·roomId 등| Eff[useEffect + fetch]
-  Eff --> Guard{준비됐나?<br/>!user / !id}
-  Guard -->|아니오| Skip[return — fetch 안 함]
-  Guard -->|예| Flag[cancelled = false]
-  Flag --> Call[fetch / api 호출]
-  Call --> Clean{cleanup?<br/>언마운트 or deps 변경}
-  Clean -->|예| Cancel[cancelled = true]
-  Cancel --> Ignore[응답 와도 setState 스킵]
-  Clean -->|아니오| Ok{응답}
-  Ok -->|성공| Set[if !cancelled → setState]
-  Ok -->|실패| Err[if !cancelled → setError]
+  Q3 -->|예 user·roomId·query 등| Eff[useEffect + fetch]
+  Eff --> Guard{준비됐나?<br/>!user / !id / !open}
+  Guard -->|아니오| Skip[return — fetch 안 함<br/>필요하면 상태 초기화]
+  Guard -->|예| Q4{타이핑·검색처럼<br/>요청을 늦춰야 하나?}
+
+  Q4 -->|예 · debounce| Deb[setTimeout 뒤 fetch<br/>cleanup에서 clearTimeout]
+  Q4 -->|아니오 · 즉시| Imm[바로 fetch]
+
+  Deb --> Race
+  Imm --> Race
+
+  Race[시작: cancelled=false<br/>reqId = ++reqIdRef]
+  Race --> Call[fetch / api 호출<br/>URLSearchParams로 qs 조립]
+
+  Call --> Wait[응답 대기 중…]
+  Wait -.->|도중에 언마운트·deps 변경| Side[cleanup:<br/>cancelled=true<br/>clearTimeout]
+  Wait --> Res{응답 도착}
+
+  Res --> Check{이 응답을 반영해도 되나?<br/>cancelled? / reqId 최신?}
+  Check -->|cancelled 또는<br/>옛 reqId| Ignore[setState 하지 않음]
+  Check -->|살아 있고 최신| Ok{성공인가?}
+  Ok -->|성공| Set[setState]
+  Ok -->|실패| Err[setError]
   Set --> Done([로딩 false])
   Err --> Done
 
   Q3 -->|아니오 · 버튼/제출 때만| Evt[이벤트 핸들러에서 fetch]
-  Evt --> EvtNote[useEffect ❌<br/>pending / try·catch·finally]
+  Evt --> EvtNote[useEffect ❌<br/>setPending → try/await<br/>catch showHint → finally clearPending]
 
   classDef good fill:#1a3d2e,stroke:#3d8f6a,color:#e8fff3
   classDef bad fill:#3d1a1a,stroke:#8f3d3d,color:#ffe8e8
   classDef ask fill:#1a2a3d,stroke:#3d6a8f,color:#e8f3ff
-  class SC,RQ,Eff,Evt,Set,Done,SCNote,RQNote,EvtNote good
+  classDef side fill:#2a2a1a,stroke:#8f8f3d,color:#fffde8
+  class SC,RQ,Eff,Evt,Set,Done,SCNote,RQNote,EvtNote,Deb,Imm,Race,Call good
   class Skip,Ignore bad
-  class Q1,Q2,Q3,Guard,Clean,Ok ask
+  class Q1,Q2,Q3,Q4,Guard,Res,Check,Ok ask
+  class Wait,Side side
 ```
 
-| 결론 | |
-| --- | --- |
-| **Server Component** | 공개·초기 데이터 · useEffect fetch 안 씀 |
-| **React Query / SWR** | 캐시·재시도 · useEffect에 fetch 직접 안 씀 |
-| **useEffect + fetch** | deps 따라 **한 번/다시** 로드 · `cancelled` 필수 |
-| **이벤트 핸들러** | 클릭·제출 · effect에 넣지 말 것 |
+| 결론                    |                                                |
+| --------------------- | ---------------------------------------------- |
+| **Server Component**  | 공개·초기 데이터 · useEffect fetch 안 씀                |
+| **React Query / SWR** | 캐시·재시도 · useEffect에 fetch 직접 안 씀               |
+| **useEffect + fetch** | deps 따라 로드 · `cancelled` + `reqIdRef`          |
+| **debounce**          | 타이핑·검색 · `setTimeout` + cleanup `clearTimeout` |
+| **URLSearchParams**   | 선택적 쿼리 조립 · 빈 값이면 `?` 안 붙임                     |
+| **이벤트 핸들러**           | 클릭·제출 · pending / try·catch·finally            |
 
 ---
+# reqIdRef — 더 강력한 경쟁 조건 방지 ⭐️⭐️⭐️⭐️
+
+```typescript
+const reqIdRef = useRef(0);  // 요청 일련번호 — 컴포넌트 마운트 내내 유지
+
+useEffect(() => {
+  const reqId = ++reqIdRef.current;  // 이 effect 실행 시 번호 증가 + 캡처
+  let cancelled = false;
+
+  fetch(url)
+    .then((data) => {
+      if (cancelled || reqId !== reqIdRef.current) return;  // 두 가지 체크
+      setData(data);
+    })
+    .finally(() => {
+      if (!cancelled && reqId === reqIdRef.current) setLoading(false);
+    });
+
+  return () => { cancelled = true; };
+}, [deps]);
+```
+
+```txt
+cancelled vs reqId 체크가 각각 다른 문제를 막음:
+
+  cancelled = true:
+    이 effect의 cleanup이 실행됐을 때 (언마운트 or deps 변경으로 effect 재실행)
+    "이 effect 자체가 무효화됐다"
+
+  reqId !== reqIdRef.current:
+    더 최신 요청이 이미 시작됐을 때
+    "더 새로운 reqId가 있으니 이 응답은 버려라"
+
+  왜 둘 다 필요한가:
+    cancelled만 있으면:
+      query='a' → effect1 실행 → reqId=1, cancelled=false
+      query='ab' → effect1 cleanup(cancelled=true) → effect2 실행 → reqId=2
+      effect1 응답 도착 → cancelled=true → 막힘 ✅ (이 경우는 OK)
+
+    reqId만 있으면:
+      언마운트 시 cancelled 체크 없어서 null setState 위험
+
+    둘 다 있으면:
+      cancelled  → 언마운트 / effect 재실행 시 안전하게 중단
+      reqIdRef   → 빠른 연속 요청에서 오래된 응답이 나중에 도착해도 무시
+      → 완벽한 경쟁 조건 방지
+```
+
+---
+
+# useEffect 디바운스 — 타이핑 중 요청 지연 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+const reqIdRef = useRef(0);
+
+useEffect(() => {
+  if (!open) {
+    // 시트 닫히면 상태 초기화
+    setQuery('');
+    setMembers([]);
+    setNextCursor(null);
+    return;
+  }
+
+  const reqId = ++reqIdRef.current;
+  let cancelled = false;
+
+  // 250ms 디바운스 — 타이핑 멈춘 뒤에만 실제 요청
+  const t = window.setTimeout(() => {
+    setLoading(true);
+    setMembers([]);
+
+    fetchMembers(roomId, { q: query.trim() || undefined, limit: 30 })
+      .then((page) => {
+        if (cancelled || reqId !== reqIdRef.current) return;
+        setMembers(page.items);
+        setNextCursor(page.nextCursor);
+      })
+      .catch((err) => {
+        if (cancelled || reqId !== reqIdRef.current) return;
+        setError(err instanceof Error ? err.message : '목록을 불러오지 못했어요.');
+      })
+      .finally(() => {
+        if (!cancelled && reqId === reqIdRef.current) setLoading(false);
+      });
+  }, 250);
+
+  return () => {
+    cancelled = true;
+    window.clearTimeout(t);  // 타이머도 취소
+  };
+}, [open, roomId, query]);
+```
+
+
+```txt
+디바운스 흐름:
+  query = 'a'   → setTimeout(250ms) 시작
+  query = 'ab'  → 이전 setTimeout 취소(clearTimeout) + 새 setTimeout 시작
+  query = 'abc' → 이전 취소 + 새 setTimeout 시작
+  250ms 동안 타이핑 멈춤 → 실제 요청 한 번만 발생
+
+  clearTimeout(t):
+    effect cleanup에서 타이머 취소
+    deps가 바뀌면 (query 변경) 이전 타이머를 먼저 취소
+    → 타이핑마다 요청이 날아가는 것 방지
+
+window.setTimeout vs setTimeout:
+  브라우저 환경에서는 동일
+  Node/테스트 환경에서 헷갈림을 막으려고 window.를 명시하는 경우 있음
+
+setMembers([]) 을 setTimeout 안에 두는 이유:
+  250ms 내에 취소되면 초기화도 안 함 → 이전 결과가 잠깐 유지됨
+  타이핑 중에 목록이 깜빡이지 않음
+
+open 상태로 초기화:
+  시트가 닫힐 때 (open = false) 상태를 초기화
+  다음에 열면 빈 상태로 시작
+```
+
+---
+
+# URLSearchParams로 쿼리스트링 조립 ⭐️⭐️⭐️
+
+```typescript
+export function fetchMembers(
+  id: string,
+  params: { q?: string; cursor?: string; limit?: number } = {},
+): Promise<ApiMembersPage> {
+  const sp = new URLSearchParams();
+
+  if (params.q?.trim())    sp.set('q',      params.q.trim());
+  if (params.cursor)       sp.set('cursor', params.cursor);
+  if (params.limit != null) sp.set('limit', params.limit.toString());
+
+  const qs = sp.toString();
+  return authFetchApi<ApiMembersPage>(`/rooms/${id}/members${qs ? `?${qs}` : ''}`);
+}
+```
+
+```txt
+URLSearchParams 사용 이유:
+  ?q=검색어&cursor=abc 같은 쿼리스트링을 직접 조합하면 인코딩 문제 발생
+  URLSearchParams.set() 이 자동으로 encodeURIComponent 처리
+
+falsy 조건으로 선택적 파라미터 처리:
+  params.q?.trim()   → undefined 또는 빈 문자열이면 추가 안 함
+  params.cursor      → undefined이면 추가 안 함
+  params.limit != null → 0도 포함하려면 !== undefined 대신 != null 사용
+
+qs ? `?${qs}` : '':
+  파라미터가 하나도 없으면 ? 자체를 붙이지 않음
+  → /rooms/123/members (파라미터 없음)
+  → /rooms/123/members?q=검색어&limit=30 (파라미터 있음)
+  → [[NextJS_API_Client]] / [[JS_URL_Encoding]] 참고
+```
+
+----
 # useEffect 안에서 fetch — 언제, 어떻게 ⭐️⭐️⭐️⭐️
 
 

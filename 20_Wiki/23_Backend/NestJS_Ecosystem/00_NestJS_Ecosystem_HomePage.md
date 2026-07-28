@@ -155,14 +155,15 @@ NestJS_Swagger  @ApiProperty · type:[String] 배열 · nullable · 응답 타�
 
 ## ⚙️ 패턴 · 기법
 
-|            | 노트                     |
-| ---------- | ---------------------- |
-| **이메일**    | [[NestJS_Email]]       |
-| **스케줄링**   | [[NestJS_Scheduling]]  |
-| **스로틀링**   | [[NestJS_Throttle]]    |
-| **로깅**     | [[NestJS_Logger]]      |
-| **페이지네이션** | [[NestJS_Pagination]]  |
-| **멱등성**    | [[NestJS_Idempotency]] |
+| |노트|
+|---|---|
+|**이메일**|[[NestJS_Email]]|
+|**스케줄링**|[[NestJS_Scheduling]]|
+|**스로틀링**|[[NestJS_Throttle]]|
+|**로깅**|[[NestJS_Logger]]|
+|**페이지네이션**|[[NestJS_Pagination]]|
+|**멱등성**|[[NestJS_Idempotency]]|
+|**시드**|[[NestJS_Seed]]|
 
 
 ```txt
@@ -170,6 +171,7 @@ NestJS_Email       Resend · Nodemailer · Amazon SES · SMTP 설정 · MailServ
 NestJS_Scheduling  @Cron · CronExpression · @Interval · @Timeout · 타임존 · SchedulerRegistry
 NestJS_Throttle    스로틀링 · 서비스 레벨 force 패턴
 NestJS_Idempotency 중복 요청 방어 · 멱등키 · 낙관적/비관적 잠금
+NestJS_Seed        테스트 데이터 생성 · @seed.local · DRY_RUN · cleanup · $transaction
 ```
 
 ---
