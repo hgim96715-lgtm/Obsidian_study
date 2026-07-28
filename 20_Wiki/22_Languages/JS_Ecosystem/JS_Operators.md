@@ -482,6 +482,122 @@ fn?.()               // 함수 존재할 때만 호출
 ```
 
 ---
+# !! — 불린 강제 변환 ⭐️⭐️⭐️⭐️
+
+```typescript
+!!actionMsg    // actionMsg가 truthy면 true, falsy면 false
+!!user         // null/undefined → false, 객체 → true
+!!''           // false
+!!'hello'      // true
+!!0            // false
+!!1            // true
+```
+
+```txt
+! 하나:
+  !value → 논리 부정
+  !null    → true
+  !'hello' → false
+
+!! 둘:
+  !!value → 두 번 부정 → 원래 truthy/falsy를 boolean 타입으로 변환
+  !!null    → !null → true → !true → false
+  !!'hello' → !'hello' → false → !false → true
+
+왜 쓰는가 — 타입이 boolean이 되어야 할 때:
+  const canDelete = actionMsg && user && room;
+  // 타입: Message | User | Room | undefined | null (마지막 truthy 값)
+  // boolean이 아님 → TS에서 boolean 자리에 넣으면 타입 에러 가능
+
+  const canDelete = !!actionMsg && !!user && !!room;
+  // 타입: boolean ✅
+```
+
+## 실전 코드 분해
+
+```typescript
+const canDeleteEveryone =
+  !!actionMsg &&                              // 1. 대상 메시지가 있고
+  !!user &&                                   // 2. 내가 로그인됐고
+  !!room &&                                   // 3. 방 정보가 있고
+  (actionMsg.senderId === user.id ||          // 4a. 내가 보낸 메시지거나
+   room.ownerId === user.id);                 // 4b. 내가 방장이면
+
+// → 전부 만족하면 true (삭제 버튼 표시)
+// → 하나라도 falsy면 false (버튼 숨김)
+```
+
+```txt
+!!가 필요한 이유:
+  actionMsg의 타입: Message | undefined
+  user의 타입: User | null
+
+  !!actionMsg: Message | undefined → boolean
+  !!user:      User | null         → boolean
+
+  !! 없이 쓰면:
+    actionMsg && user && room && (조건)
+    타입이 boolean이 아니라 마지막으로 평가된 값의 타입이 됨
+    → canDeleteEveryone: boolean | User | Room | undefined 처럼 복잡해짐
+
+Boolean(value) 와 동일:
+  !!value === Boolean(value)
+  !!null === false
+  !!undefined === false
+  !!'' === false
+  !!0 === false
+  !!NaN === false
+  나머지(객체, 비어있지 않은 문자열, 0이 아닌 숫자) → true
+  → [[JS_Truthy_Falsy]] 참고
+```
+
+---
+
+# 계산된 속성명 — [key]: value ⭐️⭐️⭐️⭐️
+
+```typescript
+// 변수를 객체의 키로 사용
+const key = 'name';
+const obj = { [key]: '홍길동' };
+// → { name: '홍길동' }
+
+// 함수 파라미터를 키로
+function setField<T>(obj: T, key: keyof T, value: T[typeof key]) {
+  return { ...obj, [key]: value };
+}
+```
+
+
+```typescript
+// 실전 — display 객체의 특정 키만 토글
+const setDisplay = (key: keyof LyricDecorDisplay, on: boolean) => {
+  patch({ display: { ...d, [key]: on } });
+  //                     ↑ key 변수가 속성 이름으로 사용됨
+};
+
+// key = 'mood', on = true 면 → { ...d, mood: true }
+// key = 'date', on = false 면 → { ...d, date: false }
+```
+
+
+```txt
+[key]: value 동작:
+  대괄호 안의 표현식을 평가해서 그 결과를 속성 이름으로 사용
+  key가 'mood'면 → { mood: value }
+  key가 'date'면 → { date: value }
+
+일반 표현식도 가능:
+  const prefix = 'get';
+  const obj = {
+    [`${prefix}Name`]: () => 'Tom',  // → { getName: () => 'Tom' }
+  };
+
+TypeScript에서:
+  keyof 타입과 조합하면 타입 안전한 동적 키 접근이 됨
+  { ...d, [key]: on } 에서 key가 keyof LyricDecorDisplay이면
+  TS가 on의 타입도 해당 필드 타입으로 검증
+```
+---
 
 # 한눈에
 

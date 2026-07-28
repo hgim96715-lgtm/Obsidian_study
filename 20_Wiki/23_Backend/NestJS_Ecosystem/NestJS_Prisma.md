@@ -774,6 +774,43 @@ post.findMany({
     reports: { none: {} },  // 신고가 하나도 없는 게시글
   },
 });
+
+// none + 조건 — "내가 숨긴 것 제외"
+message.findMany({
+  where: {
+    roomId,
+    deletedAt: null,
+    hides: { none: { userId } },
+  },
+});
+```
+
+```txt
+hides: { none: { userId } } 읽는 법:
+
+  모델 관계:
+    Message  →  MessageHide (1:N)
+    MessageHide.userId = 숨긴 유저 ID
+
+  none: { userId }:
+    "hides 중에서 userId = 나인 레코드가 하나도 없는 메시지"
+    = "나는 이 메시지를 숨기지 않았다"
+    = 내가 숨긴 메시지는 결과에서 제외
+
+  SQL로 표현하면:
+    WHERE NOT EXISTS (
+      SELECT 1 FROM message_hide
+      WHERE message_hide.message_id = message.id
+        AND message_hide.user_id = ?
+    )
+
+some vs none 비교:
+  hides: { some: { userId } }  → 내가 숨긴 메시지만
+  hides: { none: { userId } }  → 내가 숨기지 않은 메시지만
+
+  패턴 응용:
+  likes: { none: { userId } }  → 내가 좋아요 안 한 게시글
+  reads: { none: { userId } }  → 내가 읽지 않은 메시지
 ```
 
 ```txt
