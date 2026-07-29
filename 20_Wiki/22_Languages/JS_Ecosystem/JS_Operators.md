@@ -7,6 +7,8 @@ aliases:
   - operators
   - rest
   - spread
+  - "[,,,]"
+  - 쉼표로 꺼내오기
 tags:
   - JavaScript
 related:
@@ -21,6 +23,7 @@ related:
   - "[[NextJS_API_Client]]"
   - "[[React_Context]]"
   - "[[NestJS_Throttle]]"
+  - "[[NestJS_Prisma]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
@@ -311,6 +314,44 @@ const [friends, requests] = await Promise.all([
   fetchFriendRequests(),
 ]);
 // 순서대로 배열 구조분해 — 인덱스 0 → friends, 1 → requests
+```
+
+## 필요한 것만 꺼내기 — 쉼표로 건너뛰기 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 앞 세 개는 필요 없고 네 번째만 필요할 때
+const [, , , systemMessage] = await this.prisma.$transaction([
+  this.prisma.roomBan.upsert({ ... }),      // [0] — 필요 없음 → 쉼표로 건너뜀
+  this.prisma.roomMember.delete({ ... }),   // [1] — 필요 없음 → 건너뜀
+  this.prisma.room.update({ ... }),         // [2] — 필요 없음 → 건너뜀
+  this.prisma.roomMessage.create({ ... }),  // [3] — 이것만 필요 → 변수로 받음
+]);
+
+return systemMessage;  // roomMessage.create의 결과
+```
+
+
+```txt
+[, , , systemMessage] 읽는 법:
+  ,       → 이 위치의 값을 건너뜀 (변수 없이 쉼표만)
+  ,,,     → 3개 건너뜀 (쉼표 3개)
+  systemMessage → 4번째 값을 이 이름으로 받음
+
+  $transaction([...]) 은 각 쿼리 결과를 순서대로 배열로 반환
+  → [banResult, deletedMember, updatedRoom, createdMessage]
+  → 앞 세 개 결과는 필요 없으니 변수명 없이 쉼표로 건너뜀
+
+주의 — 쉼표 개수:
+  const [, b]       → 0번 건너뜀, 1번이 b  (쉼표 1개)
+  const [, , b]     → 0,1 건너뜀, 2번이 b  (쉼표 2개)
+  const [, , , b]   → 0,1,2 건너뜀, 3번이 b (쉼표 3개)
+  
+  헷갈리면: 쉼표 개수 = 건너뛰는 개수
+
+$transaction 배열 형태:
+  $transaction([op1, op2, op3])    → 배열로 전달, 결과 배열로 반환
+  $transaction(async tx => {...})  → 콜백 형태, tx로 원자적 실행
+  → [[NestJS_Prisma]] $transaction 참고
 ```
 
 ---

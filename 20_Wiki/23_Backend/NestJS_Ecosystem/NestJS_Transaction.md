@@ -322,29 +322,99 @@ P2034 재시도 패턴:
 |사용 예|여러 테이블 동시 INSERT|읽고 검증하고 쓰기|
 
 ---
+# $transaction — 트랜잭션
 
-# 한눈에
+| 방식    | 특징                                     |
+| ----- | -------------------------------------- |
+| 인터랙티브 | 콜백 + tx 사용 · 분기 가능 · include 안전        |
+| 배치    | 배열로 단순 묶음 · 분기 불가 · include 시 경고 발생 가능 |
+
+## ⚠️ 배치 + include → pg client.query 중첩 경고
+
+```typescript
+// ❌ 배치 형태 + include — PostgreSQL 어댑터에서 client.query 중첩 경고 발생 가능
+const [, , , systemMessage] = await this.prisma.$transaction([
+  this.prisma.roomBan.upsert({ ... }),
+  this.prisma.roomMember.delete({ ... }),
+  this.prisma.room.update({ ... }),
+  this.prisma.roomMessage.create({
+    data: { ... },
+    include: roomMessageInclude,   // ← include가 내부 쿼리를 추가로 실행
+  }),
+]);
+```
 
 ```txt
-두 가지 방식:
-  배치   $transaction([op1, op2, op3])
-         → 독립적인 작업 묶음, 결과는 배열로 반환
-  인터랙티브  $transaction(async (tx) => { ... })
-         → 콜백 안에서 자유롭게 읽기·분기·쓰기
-         → throw하면 자동 롤백
-         → 반드시 tx 사용 (prisma 직접 쓰면 트랜잭션 밖)
-
-격리 수준 변경:
-  $transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
-
-비관적 잠금 (FOR UPDATE):
-  $queryRaw`SELECT ... FOR UPDATE` → Prisma ORM이 직접 지원 안 해서 raw 필요
-  충돌이 빈번할 때 사용 ([[NestJS_Idempotency]] 참고)
-
-에러:
-  P2002 Unique 위반 → ConflictException
-  P2025 대상 없음   → NotFoundException
-  P2034 트랜잭션 충돌 (Serializable) → 재시도
-
-DB 트랜잭션 개념 (ACID · 격리 수준 · 데드락) → [[DB_Transaction]]
+왜 경고가 나는가:
+  배치 $transaction([...])은 단일 연결(connection)을 공유하지 않고
+  각 쿼리를 독립적으로 실행하면서 묶는 방식
+  include가 붙으면 Prisma가 내부적으로 추가 쿼리를 실행 (JOIN 대신 별도 SELECT)
+  → pg 어댑터에서 "client.query 중첩" 경고 발생
+  
+  증상: 기능은 작동하지만 콘솔에 경고 로그가 남음
 ```
+
+## ✅ 인터랙티브 형태로 해결
+
+```typescript
+// ✅ include + 복잡한 쿼리는 인터랙티브 $transaction으로
+return this.prisma.$transaction(async (tx) => {
+  await tx.roomBan.upsert({
+    where:  { roomId_userId: { roomId, userId: targetUserId } },
+    create: { roomId, userId: targetUserId, kickedBy: actorId },
+    update: { kickedBy: actorId },
+  });
+  await tx.roomMember.delete({ where: { id: target.id } });
+  await tx.room.update({
+    where: { id: roomId },
+    data:  { memberCount: { decrement: 1 } },
+  });
+  return tx.roomMessage.create({
+    data:    { roomId, senderId: actorId, type: RoomMessageType.system, body },
+    include: roomMessageInclude,   // include 안전하게 사용 가능
+  });
+});
+```
+
+```txt
+인터랙티브 형태의 차이:
+  tx는 하나의 트랜잭션 연결을 공유 → include 추가 쿼리도 같은 tx 안에서 실행
+  → pg client.query 중첩 경고 없음
+
+  마지막 return 값이 $transaction 전체의 반환값
+  → 배치의 [, , , systemMessage] 구조분해 없이 바로 return
+
+  await 순서대로 실행, 하나라도 throw 하면 전체 롤백
+```
+
+## 배치 vs 인터랙티브 선택 기준 ⭐️⭐️⭐️
+
+```txt
+배치 $transaction([...]):
+  ✅ include 없는 단순 update/delete/create 묶음
+  ✅ 중간 분기 불필요
+  ❌ include 사용 시 pg client.query 중첩 경고 가능
+  ❌ 중간 결과를 다음 쿼리에 활용 불가
+
+인터랙티브 $transaction(async tx => {...}):
+  ✅ include 포함 모든 쿼리 안전
+  ✅ 중간에 조건 분기 가능 (findUnique → 없으면 throw)
+  ✅ 중간 결과를 다음 쿼리에서 활용 가능
+  ✅ 하나라도 throw하면 전체 자동 롤백
+
+  → include가 하나라도 있으면 인터랙티브 사용 권장
+```
+
+## 배치 형태 — 필요한 결과만 구조분해 ⭐️⭐️⭐️
+
+```typescript
+// include 없는 단순 배치는 배열 구조분해로 결과 받기 가능
+const [, , updatedRoom] = await this.prisma.$transaction([
+  this.prisma.roomMember.delete({ ... }),   // [0] 필요 없음
+  this.prisma.log.create({ ... }),          // [1] 필요 없음
+  this.prisma.room.update({ ... }),         // [2] 이 결과만 필요
+]);
+// → [[JS_Operators]] 배열 구조분해 skip 패턴 참고
+```
+
+---

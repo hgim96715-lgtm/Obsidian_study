@@ -3,6 +3,8 @@ aliases:
   - NestJS Prisma
   - Prisma
   - Prisma ORM
+  - transaction
+  - 쉼표로 꺼내오기
 tags:
   - NestJS
 related:
@@ -15,6 +17,7 @@ related:
   - "[[PG_Types]]"
   - "[[NestJS_Migration]]"
   - "[[NestJS_Idempotency]]"
+  - "[[NestJS_Transaction]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
@@ -783,7 +786,6 @@ $transaction 배치 방식 + 원자적 업데이트 조합:
 배치 트랜잭션 상세 → [[NestJS_Transaction]]
 ```
 
----
 
 ---
 
@@ -1293,24 +1295,9 @@ Json 필드를 명시적으로 "비워달라"고 할 때는 이 전용 상수를
 
 # $transaction — 트랜잭션
 
-|방식|특징|
-|---|---|
-|인터랙티브 (권장)|콜백 안에서 조건 분기, 실패 시 throw로 자동 롤백|
-|배치|배열로 단순 묶음만, 분기 불가|
-
-```typescript
-// 인터랙티브 — 콜백 안에서는 this.prisma 대신 매개변수 prisma 사용
-return this.prisma.$transaction(async (prisma) => {
-  const movie = await prisma.movie.findUnique({ where: { id } });
-  if (!movie) throw new NotFoundException('없음');
-  return prisma.movie.update({ where: { id }, data: dto });
-});
-
-// 배치
-await this.prisma.$transaction([
-  this.prisma.movie.update({ where: { id }, data: dto }),
-  this.prisma.movieLog.create({ data: { movieId: id } }),
-]);
+```txt
+배치 형태 / 인터랙티브 형태 / include 경고 / 선택 기준
+→ [[NestJS_Transaction]]
 ```
 
 ---
