@@ -1,18 +1,15 @@
 ---
-aliases:
-  - WebSocket
-  - SocketIO
-  - Gateway
-  - Realtime
-tags:
-  - NestJS
+aliases: [Gateway, payload, Realtime, SocketIO, WebSocket]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Module]]"
-  - "[[NestJS_JwtGuard]]"
-  - "[[NestJS_Auth]]"
-  - "[[NextJS_WebSocket]]"
   - "[[JS_WebStorage]]"
+  - "[[NestJS_Auth]]"
+  - "[[NestJS_JwtGuard]]"
+  - "[[NestJS_Module]]"
+  - "[[NestJS_Prisma]]"
+  - "[[NextJS_WebSocket]]"
+  - "[[React_AsyncUI]]"
 ---
 # NestJS_WebSocket — 실시간 통신 & Socket.IO Gateway
 
@@ -515,6 +512,46 @@ this.server.to(socketId).emit('event', data);
 
 // 모든 클라이언트에게 (전체 브로드캐스트)
 this.server.emit('event', data);
+```
+
+## payload — emit의 두 번째 인자 ⭐️⭐️⭐️⭐️
+
+```typescript
+// payload = socket.emit(이벤트명, payload) 의 두 번째 인자
+// → 클라이언트에 전달되는 실제 데이터
+
+/** 반응 추가/삭제 — 방 전체에 전파 */
+emitMessageReaction(
+  roomId: string,
+  payload: {
+    messageId: string;
+    userId:    string;
+    emoji:     string;
+    removed:   boolean;  // true=삭제됨, false=추가됨
+  },
+) {
+  this.server.to(`room:${roomId}`).emit('message:reaction', payload);
+  //                                     ↑ 이벤트명          ↑ payload
+}
+```
+
+```txt
+payload 란:
+  emit()의 두 번째 인자 — WebSocket으로 클라이언트에 전달되는 데이터
+  REST 응답 body와 같은 역할이지만 소켓 채널로 전달됨
+
+REST → WS 반응 토글 전체 흐름:
+  ① 클라이언트 → REST POST /reaction
+  ② 서버 → DB 토글 → { messageId, userId, emoji, removed } 반환
+  ③ Controller → gateway.emitMessageReaction(roomId, result)
+  ④ Gateway → server.to('room:xxx').emit('message:reaction', payload)
+  ⑤ 방 안의 모든 클라이언트 → 'message:reaction' 수신
+  ⑥ 클라이언트 → applyReactionLocal(payload) 로 state 업데이트
+
+  REST 응답을 payload로 그대로 사용 → 구조 일치
+  removed 필드: 클라이언트가 이모지를 추가할지/제거할지 알 수 있도록
+  → [[React_AsyncUI]] applyLocal 패턴
+  → [[NestJS_Prisma]] 토글 패턴
 ```
 
 ---

@@ -1,15 +1,11 @@
 ---
-aliases:
-  - current
-  - ref
-  - useRef
-tags:
-  - React
+aliases: [current, ref, useRef]
+tags: [React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[JS_DOM]]"
   - "[[React_useMemo_useCallback_useEffect]]"
   - "[[TS_DOM_Events]]"
-  - "[[JS_DOM]]"
   - "[[TS_Utility_Types]]"
 ---
 # React_useRef — DOM 접근 & 렌더링 무관 값 보관
@@ -18,6 +14,42 @@ related:
 >  useRef 는 "렌더링에 영향을 주지 않으면서 값을 유지하는 상자." 
 >  useState 와 달리 `.current` 를 바꿔도 리렌더가 일어나지 않는다.
 >   주된 용도: ① DOM 요소에 직접 접근 ② 타이머 ID·이전 값처럼 렌더링과 무관한 값 보관.
+
+---
+# 흐름도
+
+```mermaid
+flowchart TB
+  U["useRef = 렌더와 무관한 상자<br/>.current 로 읽고 씀 · 바꿔도 리렌더 ❌"]
+
+  U --> Q{"이 값이 화면에 보여야 하나?"}
+  Q -->|예| S["useState<br/>바꾸면 리렌더 O · JSX에 반영"]
+  Q -->|아니오| R["useRef<br/>바꾸면 리렌더 X · JSX에 써도 안 갱신"]
+
+  R --> A["① DOM 접근"]
+  R --> B["② 내부 값 보관"]
+
+  A --> A1["JSX: ref={입력창Ref}"]
+  A1 --> A2["마운트 전 null → 후 실제 DOM → 언마운트 null"]
+  A2 --> A3["포커스 · 스크롤 · style.height 등<br/>이벤트 밖에서도 요소 만지기"]
+
+  B --> B1["타이머 ID · 이전 값 · 첫 렌더 여부"]
+  B --> B2["드래그/그리기 중 임시 데이터<br/>자주 바뀌면 ref에 쌓고 · 끝날 때 state로"]
+
+  R --> W["주의"]
+  W --> W1["렌더 중 .current 읽기/쓰기 ❌<br/>→ useEffect · 이벤트 핸들러에서"]
+  W --> W2["화면에 보일 값에 ref ❌<br/>→ 그건 useState"]
+
+  classDef core fill:#1e3a5f,stroke:#7dd3fc,color:#e0f2fe
+  classDef yes fill:#14532d,stroke:#86efac,color:#dcfce7
+  classDef no fill:#3b1f0a,stroke:#fdba74,color:#ffedd5
+  classDef tip fill:#312e81,stroke:#a5b4fc,color:#e0e7ff
+  classDef warn fill:#450a0a,stroke:#fca5a5,color:#fecaca
+  class U,R core
+  class S,Q yes
+  class A,B,A1,A2,A3,B1,B2 tip
+  class W,W1,W2 warn
+```
 
 ---
 
@@ -130,6 +162,59 @@ useRef<HTMLCanvasElement>(null)      // <canvas>
 useRef<HTMLElement>(null)
 ```
 
+---
+## 채팅 입력창 — 전송 후 포커스 & 높이 초기화 ⭐️⭐️⭐️⭐️
+
+```typescript
+const inputRef = useRef<HTMLTextAreaElement>(null);
+
+// 전송 처리
+async function handleSubmit() {
+  await sendMessage(body);
+  setBody('');                              // state 초기화 → textarea 비워짐
+
+  // state만 초기화하면 height는 그대로 남아있음 → ref로 직접 초기화
+  if (inputRef.current) {
+    inputRef.current.style.height = 'auto';  // 높이 초기화
+    inputRef.current.focus();                // 포커스 복귀
+  }
+}
+
+<textarea
+  ref={inputRef}
+  value={body}
+  onChange={(e) => {
+    setBody(e.target.value);               // e.target으로 height 조절
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+  }}
+/>
+```
+
+
+```txt
+이 경우 왜 ref가 필요한가:
+
+  onChange 안에서는 e.target으로 textarea에 직접 접근 가능
+  → ref 없어도 됨
+
+  BUT 전송(submit) 핸들러에서는:
+    이벤트가 없음 → e.target이 없음
+    → ref 없이는 textarea에 접근 불가
+
+  ref가 필요한 두 가지:
+  ① 포커스 복귀  inputRef.current?.focus()
+     전송 후 입력창에 커서가 사라짐 → 다음 메시지 바로 입력하려면 focus() 필요
+
+  ② 높이 초기화  inputRef.current.style.height = 'auto'
+     setBody('') 하면 textarea 내용은 비워지지만
+     style.height는 React state가 아니라 DOM 속성 → state 초기화로는 안 바뀜
+     → ref로 직접 style.height = 'auto' 해야 1줄 높이로 돌아감
+
+e.target vs ref:
+  이벤트 핸들러 안  → e.target 사용 (해당 이벤트의 대상 요소)
+  이벤트 밖         → ref 사용 (비동기 이후, 다른 핸들러에서 접근 등)
+```
 ---
 
 # 용도 2 — 렌더링과 무관한 값 보관 ⭐️⭐️⭐️⭐️

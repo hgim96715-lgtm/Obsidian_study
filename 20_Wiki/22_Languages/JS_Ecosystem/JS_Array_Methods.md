@@ -75,7 +75,40 @@ flowchart TD
 |`flatMap`|map 후 flat|새 배열|1:N 변환|
 |`forEach`|각 요소에 부수효과|`undefined`|반복 실행|
 
+---
+# 중첩 배열 수정 — map + filter 조합 ⭐️⭐️⭐️⭐️
 
+```typescript
+// 메시지 목록에서 특정 메시지의 reactions 배열을 수정
+setMessages((prev) =>
+  prev.map((msg) => {
+    if (msg.id !== targetId) return msg;  // 관계없으면 그대로
+
+    // reactions 안에서 특정 userId 제거 후 새 항목 추가
+    const filtered = msg.reactions.filter((r) => r.userId !== userId);
+    return {
+      ...msg,
+      reactions: [...filtered, newReaction],  // 새 배열로 교체
+    };
+  }),
+);
+```
+
+```txt
+이 패턴의 핵심:
+  1. 외부 배열(messages): map → 대상만 바꾸고 나머지는 그대로
+  2. 내부 배열(reactions): filter → 기존 항목 제거 후 새 항목 추가
+
+  "기존 것 먼저 지우고 새 것 추가"하는 이유:
+  이모지 교체 케이스에서 같은 userId의 반응이 두 개 생기는 것 방지
+  항상 filter → 추가 순서를 지키면 중복 없음
+
+  return msg (참조 유지):
+  관계없는 메시지는 같은 참조 반환 → React가 변경 없음으로 판단 → 불필요한 리렌더 없음
+
+  return { ...msg, reactions: [...filtered, newReaction] }:
+  새 객체 + 새 배열 → React가 변경 감지 → 이 메시지만 리렌더
+```
 ---
 # setState 안에서 early return — return prev ⭐️⭐️⭐️⭐️
 

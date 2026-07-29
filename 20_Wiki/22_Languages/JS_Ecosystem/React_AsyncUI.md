@@ -384,6 +384,102 @@ catch의 err 타입:
   그 외 (문자열 throw 등) → 기본 메시지 표시
   → [[TS_Type_Guards]] 참고
 ```
+
+---
+# 서버 응답으로 로컬 상태 동기화 — 리패치 없이 ⭐️⭐️⭐️⭐️
+
+```txt
+일반적인 방법:
+  API 호출 → 성공 → 전체 데이터 다시 fetch → setState
+  단점: 네트워크 왕복이 두 번 발생, 화면이 깜빡힘
+
+더 나은 방법:
+  API 호출 → 성공 → 반환값으로 현재 state를 직접 수정
+  장점: 추가 fetch 없음, 빠름, 깜빡임 없음
+```
+
+## applyLocal 패턴 — 반환값으로 state 직접 패치
+
+```typescript
+// API 반환값으로 메시지 목록의 reactions만 수정
+function applyReactionLocal(payload: ToggleReactionResult) {
+  setMessages((prev) =>
+    prev.map((m) => {
+      if (m.id !== payload.messageId) return m;  // 관계없는 메시지는 그대로
+
+      // 이 유저의 기존 반응 제거 (이모지 교체 대비)
+      const without = (m.reactions ?? []).filter(
+        (r) => r.userId !== payload.userId,
+      );
+
+      // removed: true → 삭제된 것, 반응 없이 반환
+      if (payload.removed) return { ...m, reactions: without };
+
+      // removed: false → 새 반응 추가
+      return {
+        ...m,
+        reactions: [
+          ...without,
+          {
+            emoji:     payload.emoji,
+            userId:    payload.userId,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+    }),
+  );
+}
+
+async function onTapback(emoji: string) {
+  if (!messageId || !roomId) return;
+
+  try {
+    const result = await toggleReaction(roomId, messageId, emoji);
+    applyReactionLocal(result);   // 리패치 없이 로컬 반영
+  } catch (err) {
+    setError(err instanceof Error ? err.message : '반응에 실패했습니다.');
+  }
+}
+```
+
+```txt
+흐름:
+  1. toggleReaction() 호출 (서버에서 추가 or 삭제)
+  2. 서버 응답(payload)에 messageId, userId, emoji, removed 포함
+  3. applyReactionLocal(payload)로 로컬 state 직접 수정
+  4. 추가 fetch 없음
+
+prev.map 안에서 중첩 배열 수정:
+  관계없는 메시지 → return m (참조 유지, 리렌더 없음)
+  대상 메시지    → { ...m, reactions: 새배열 } 반환
+
+filter로 기존 반응 먼저 제거하는 이유:
+  이모지 교체 케이스 (기존 👍 → 새로 ❤️) 에서
+  filter 없이 추가만 하면 같은 유저의 반응이 두 개가 됨
+  → 항상 이 유저의 기존 반응을 먼저 지우고 새 반응을 추가
+
+payload.removed 구분자:
+  true  → 삭제 케이스 → filter한 배열 그대로
+  false → 추가 케이스 → filter + 새 반응 push
+  → [[NestJS_Prisma]] 토글 패턴 참고
+  → [[TS_Type_Guards]] removed as const 참고
+```
+
+## 언제 로컬 동기화 vs 리패치
+
+```txt
+로컬 동기화 (applyLocal):
+  반환값이 충분히 구체적일 때 (어떤 항목이 어떻게 바뀌었는지)
+  단건 추가/삭제/수정
+  리얼타임 피드, 채팅처럼 빠른 반응이 중요할 때
+
+리패치:
+  반환값만으로 state를 정확히 계산하기 어려울 때
+  서버 집계/정렬이 복잡해서 클라이언트 재계산이 부정확할 때
+  데이터 정합성이 매우 중요할 때
+```
+
 ---
 
 # 기본 골격 ⭐️⭐️⭐️⭐️

@@ -6,6 +6,7 @@ aliases:
   - instanceof
   - in
   - is
+  - as const
 tags:
   - TypeScript
 related:
@@ -199,6 +200,106 @@ as unknown vs as any:
 
 filter + 타입 서술어 패턴 → [[JS_Array_Methods]] 참고
 JSON.stringify / JSON.parse 전체 → [[JS_JSON]] 참고
+```
+---
+# as const — 리터럴 타입으로 고정 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 1. 값 하나에 as const — boolean → true 리터럴
+return { removed: true as const };
+//                ↑ 타입: true  (boolean이 아님)
+
+// 비교
+return { removed: true };
+//  타입 추론: { removed: boolean }
+
+return { removed: true as const };
+//  타입 추론: { removed: true }  ← 리터럴 타입
+```
+
+
+```txt
+왜 true as const 가 필요한가:
+
+  removed: true 만 쓰면:
+    TypeScript가 "나중에 false가 될 수도 있다"고 가정
+    → { removed: boolean } 으로 넓게 추론
+
+  removed: true as const 쓰면:
+    "이 값은 항상 true다, 절대 바뀌지 않는다" 고 TypeScript에 알림
+    → { removed: true } 리터럴 타입
+
+실전 — 분기 처리에서 유용:
+  if (result.removed) → result.removed 타입이 true 인 분기에서
+  TypeScript가 정확히 "removed 반환 케이스"임을 알 수 있음
+```
+
+## 적용 범위별 as const
+
+```typescript
+// 1. 값 하나 — 그 값만 리터럴로
+{ removed: true as const }     // { removed: true }
+{ count:   0 as const }        // { count: 0 }
+{ status: 'done' as const }    // { status: 'done' }
+
+// 2. 객체 전체 — 모든 필드가 리터럴, readonly
+{ removed: true, count: 0 } as const
+// { readonly removed: true; readonly count: 0 }
+
+// 3. 배열 — readonly 튜플, 요소가 리터럴
+['a', 'b', 'c'] as const
+// readonly ['a', 'b', 'c']
+```
+
+```txt
+값 하나 vs 객체 전체 as const:
+
+  값 하나:  특정 필드만 리터럴로 좁힐 때
+            나머지 필드는 일반 타입 유지
+
+  객체 전체: 모든 필드가 readonly + 리터럴
+             → [[NestJS_Prisma]] mode: 'insensitive' as const 패턴과 동일 원리
+             → 배열의 T[number] 타입 추출 패턴과 연결
+```
+
+## 반환 타입 분기 패턴
+
+
+```typescript
+// 같은 함수에서 상황에 따라 다른 "형태"를 반환할 때
+async function toggleReaction(messageId: string, emoji: string) {
+  if (existing?.emoji === emoji) {
+    // 제거 케이스
+    await this.prisma.reaction.delete({ ... });
+    return { messageId, emoji, removed: true as const };
+    //                                  ↑ 타입: true
+  }
+  // 추가 케이스
+  const reaction = await this.prisma.reaction.create({ ... });
+  return { messageId, emoji, removed: false as const };
+  //                                   ↑ 타입: false
+}
+
+// 호출하는 쪽에서 분기
+const result = await toggleReaction(id, emoji);
+
+if (result.removed) {
+  // result.removed 타입: true — "제거됐다"는 게 타입으로 보장됨
+} else {
+  // result.removed 타입: false — "추가됐다"는 게 타입으로 보장됨
+}
+```
+
+txt
+
+```txt
+removed: true as const vs removed: true:
+  boolean이면: if (result.removed) 에서 TS가 "true일 수도 false일 수도 있음"
+  true 리터럴이면: TS가 "이 분기에서는 반드시 true"임을 정확히 앎
+
+판별 유니온(Discriminated Union)과 비슷한 효과:
+  removed 필드의 리터럴 타입으로 두 케이스를 구분
+  → [[TS_Type_Guards]] 판별 유니온 참고
 ```
 
 ---

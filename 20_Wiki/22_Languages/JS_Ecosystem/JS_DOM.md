@@ -6,6 +6,10 @@ aliases:
   - appendChild
   - querySelector
   - scrollIntoView
+  - whitespace-pre-wrap
+  - textarea
+  - height:auto
+  - enter
 tags:
   - JavaScript
 related:
@@ -15,6 +19,7 @@ related:
   - "[[TS_ImportType]]"
   - "[[JS_Canvas]]"
   - "[[React_useId]]"
+  - "[[React_useRef]]"
 ---
 # JS_DOM — DOM 조작
 
@@ -258,7 +263,98 @@ script.async = true:
 
 Promise 래핑과 prev?.() 콜백 보존 패턴 → [[JS_Promise]] / [[JS_OptionalChaining]] 참고
 ```
+## textarea 자동 높이 조절 + Enter 전송 ⭐️⭐️⭐️⭐️
 
+```tsx
+// 채팅 입력창 — 1줄로 시작, 입력할수록 늘어남, 최대 120px
+const inputRef = useRef<HTMLTextAreaElement>(null);
+
+<textarea
+  ref={inputRef}
+  value={body}
+  rows={1}                  // 초기 높이 1줄
+  maxLength={2000}
+  placeholder="메시지"
+  onChange={(e) => {
+    setBody(e.target.value);
+
+    // 자동 높이 조절
+    e.target.style.height = 'auto';                              // ① 먼저 초기화
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;  // ② 콘텐츠 높이로
+  }}
+  onKeyDown={(e) => {
+    if (
+      e.key === 'Enter' &&
+      !e.shiftKey &&                      // Shift 안 눌림 → 전송
+      !e.nativeEvent.isComposing          // 한글 조합 중 아님
+    ) {
+      e.preventDefault();                 // 기본 줄바꿈 막기
+      e.currentTarget.form?.requestSubmit();  // 폼 제출
+    }
+    // Shift+Enter → e.preventDefault() 없음 → 기본 줄바꿈 동작
+  }}
+  className="resize-none overflow-y-auto"  // 수동 리사이즈 막기
+/>
+```
+
+```txt
+자동 높이 조절 — height = 'auto' 먼저 하는 이유:
+  내용을 지웠을 때 (줄 감소) scrollHeight가 줄어야 함
+  그냥 scrollHeight로 바로 바꾸면 이전 height를 기준으로 계산해서 줄어들지 않음
+  → style.height = 'auto' 로 먼저 초기화 → scrollHeight가 실제 콘텐츠 높이를 반환
+
+  e.target.style.height = 'auto'
+  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
+
+  Math.min(..., 120):
+  120px (7.5rem) 이상은 늘어나지 않고 스크롤
+  CSS max-h-[7.5rem] overflow-y-auto 와 함께 사용
+
+e.shiftKey:
+  true  → Shift 키가 눌린 상태 → 줄바꿈 허용 (기본 동작)
+  false → Shift 없음 → Enter = 전송
+
+세 가지 조건이 모두 맞을 때만 전송:
+  e.key === 'Enter'            Enter 키
+  !e.shiftKey                  Shift 없음
+  !e.nativeEvent.isComposing   한글 조합 중 아님 → [[JS_DOM]] isComposing 참고
+
+e.currentTarget.form?.requestSubmit():
+  <textarea>를 감싼 <form>을 찾아서 제출
+  .submit()과 달리 requestSubmit()은 HTML 유효성 검사도 실행
+  form이 없으면 ?. 로 조용히 무시
+
+input vs textarea 차이:
+  <input type="text">  → 한 줄, Shift+Enter 개념 없음
+  <textarea>           → 여러 줄, rows={1}로 1줄처럼 시작 가능
+  채팅 입력창 → textarea 권장
+```
+
+## 말풍선에 줄바꿈 표시 — whitespace-pre-wrap ⭐️⭐️⭐️
+
+```tsx
+// \n이 포함된 텍스트를 HTML에서 보여주려면 CSS 필요
+<span className="whitespace-pre-wrap break-words">
+  {m.body}
+</span>
+```
+
+```txt
+whitespace-pre-wrap 가 없으면:
+  "안녕\n반가워" → HTML에서 줄바꿈 없이 "안녕반가워"로 표시
+  HTML은 기본적으로 줄바꿈 문자(\n)를 공백 하나로 처리
+
+whitespace-pre-wrap 적용하면:
+  \n → 실제 줄바꿈으로 표시
+  공백 여러 개도 유지
+
+break-words:
+  긴 단어(URL 등)가 컨테이너를 벗어나지 않도록 줄바꿈
+
+  whitespace-pre-wrap: 줄바꿈 문자 → 시각적 줄바꿈
+  break-words:         긴 텍스트 → 컨테이너 안에서 강제 줄바꿈
+  둘 다 채팅 말풍선에 필요
+```
 ---
 # 키보드 이벤트 — onKeyDown / isComposing ⭐️⭐️⭐️⭐️
 

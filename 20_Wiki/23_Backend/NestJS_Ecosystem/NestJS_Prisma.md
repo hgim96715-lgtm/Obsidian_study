@@ -18,7 +18,9 @@ related:
 ---
 # NestJS_Prisma — Prisma ORM
 
-> [!info] Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일이다.
+> [!info] 
+> Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 
+> 반복 루프는 schema 수정 → migrate dev → Client 사용이고, 나머지(Model 문법, Relations, CRUD, where...)는 이 루프 안의 디테일이다.
 
 ---
 
@@ -640,6 +642,67 @@ await this.prisma.user.upsert({ where: { email }, create: { email, passwordHash 
 // DELETE
 await this.prisma.user.delete({ where: { id } });
 await this.prisma.movie.deleteMany({ where: { isVisible: false } });
+```
+
+---
+# 토글 패턴 — 있으면 삭제, 없으면 생성 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 이모지 반응 토글 — 같은 이모지면 취소, 다르면 교체
+async toggleReaction(messageId: string, userId: string, emoji: string) {
+  const existing = await this.prisma.reaction.findUnique({
+    where: { messageId_userId: { messageId, userId } },
+  });
+
+  // 같은 이모지 → 삭제 (토글 off)
+  if (existing?.emoji === emoji) {
+    await this.prisma.reaction.delete({
+      where: { messageId_userId: { messageId, userId } },
+    });
+    return { messageId, userId, emoji, removed: true as const };
+  }
+
+  // 없거나 다른 이모지 → upsert (생성 or 교체)
+  const reaction = await this.prisma.reaction.upsert({
+    where:  { messageId_userId: { messageId, userId } },
+    create: { messageId, userId, emoji },
+    update: { emoji },                    // 다른 이모지면 교체
+  });
+  return { ...reaction, removed: false as const };
+}
+```
+
+```txt
+existing?.emoji === emoji 분기:
+  null/undefined (없음)  → 새로 생성
+  같은 이모지            → 삭제 (토글 off)
+  다른 이모지            → 교체 (upsert)
+
+removed 필드의 역할 — 작업 구분자 ⭐️:
+  서비스가 삭제를 했는지, 생성을 했는지 호출한 쪽이 알아야 함
+  반환값에 removed 필드를 넣어서 알려줌
+
+  removed: true  → 삭제됐음 → 클라이언트에서 이모지 제거
+  removed: false → 추가됐음 → 클라이언트에서 이모지 추가
+
+  // 컨트롤러/소켓에서 분기
+  const result = await reactionService.toggle(messageId, userId, emoji);
+  if (result.removed) {
+    this.gateway.emitReactionRemoved(result);  // WS 브로드캐스트
+  } else {
+    this.gateway.emitReactionAdded(result);
+  }
+
+removed: true as const / false as const:
+  boolean이 아닌 리터럴 타입 true / false 로 반환
+  호출하는 쪽에서 if (result.removed) 분기 시 TypeScript가 정확히 알 수 있음
+  → [[TS_Type_Guards]] as const 참고
+
+upsert (없으면 create, 있으면 update):
+  where  → 고유 조건 (이미 있는지 확인)
+  create → 없을 때 만들 데이터
+  update → 있을 때 바꿀 데이터
+  → [[NestJS_Prisma]] upsert 섹션 참고
 ```
 
 ---
