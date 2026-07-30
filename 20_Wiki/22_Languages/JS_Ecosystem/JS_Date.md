@@ -100,6 +100,100 @@ d.getUTCHours()   // KST 기준이면 9 - 9 = 0
 
 ---
 
+# 타임존 기준 날짜 처리 — KST 예시 ⭐️⭐️⭐️⭐️
+
+```txt
+문제:
+  Date 객체는 UTC 기준 — getHours()는 서버/로컬 시스템 시각
+  배포 서버(UTC)에서 getHours() → 한국 시각과 9시간 차이
+
+해결:
+  Intl.DateTimeFormat에 timeZone 지정 → 해당 타임존의 시각을 문자열로 추출
+  → 타임존에 관계없이 어떤 환경에서도 KST 기준 날짜 계산 가능
+```
+
+## KST 유틸 함수
+
+```typescript
+const KST = 'Asia/Seoul';
+
+/** KST 기준 날짜 키 YYYY-MM-DD */
+export function toKstDateKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {  // en-CA → YYYY-MM-DD 포맷
+    timeZone: KST,
+    year:     'numeric',
+    month:    '2-digit',
+    day:      '2-digit',
+  }).format(date);
+  // 예: new Date('2024-06-15T03:00:00Z') → '2024-06-15' (KST 12:00)
+}
+
+/** KST 그날 00:00:00.000 — DB timestamptz 비교용 */
+export function startOfKstDay(reference = new Date()): Date {
+  const key = toKstDateKey(reference);        // 'YYYY-MM-DD'
+  return new Date(`${key}T00:00:00+09:00`);  // KST 자정
+}
+
+/** KST 시각 (0-23) */
+export function getKstHour(date: Date): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: KST,
+      hour:     'numeric',
+      hour12:   false,
+    }).format(date),
+  );
+}
+
+/** KST 기준 월 키 YYYY-MM */
+export function getKstMonthKey(date: Date): string {
+  return toKstDateKey(date).slice(0, 7);
+}
+```
+
+```txt
+en-CA 로케일을 쓰는 이유:
+  Intl.DateTimeFormat 출력 포맷은 로케일마다 다름
+  ko-KR → '2024. 6. 15.' (한국 표기)
+  en-US → '6/15/2024'
+  en-CA → '2024-06-15' ← ISO 8601 순서 (YYYY-MM-DD), 파싱하기 쉬움
+  → 날짜 문자열을 DB 키나 비교에 쓸 때 en-CA가 편함
+
+`${key}T00:00:00+09:00`:
+  key = 'YYYY-MM-DD'
+  T00:00:00   → 자정 (시:분:초)
+  +09:00      → KST 오프셋 명시
+  → new Date()가 정확히 KST 그날 자정을 UTC로 변환해서 생성
+
+왜 시스템 시각을 안 쓰는가:
+  date.setHours(0, 0, 0, 0)        → 서버 시스템 시각 기준 자정
+  startOfKstDay()                   → 항상 KST 기준 자정
+  UTC 서버에서 실행해도 한국 날짜 경계가 정확함
+
+Intl.DateTimeFormat 상세 → [[JS_Intl]]
+```
+
+## 실전 사용
+
+```typescript
+const now = new Date();
+
+// DB 쿼리: 오늘(KST) 이후 데이터
+const startOfToday = startOfKstDay(now);
+where: { createdAt: { gte: startOfToday } }
+
+// 이번 주(오늘 포함 7일) 시작
+const startOfWeek = new Date(startOfToday.getTime() - 6 * 86_400_000);
+where: { createdAt: { gte: startOfWeek } }
+
+// 시간대별 통계 키
+const hour = getKstHour(new Date());  // 현재 KST 시각 (0-23)
+const dateKey = toKstDateKey(new Date());  // '2024-06-15'
+const monthKey = getKstMonthKey(new Date()); // '2024-06'
+```
+
+---
+
 # 날짜 계산 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -133,9 +227,24 @@ function daysBetween(a: Date, b: Date): number {
   → 시간·분·초 단위 계산은 타임스탬프(ms) 산술이 명확함
 ```
 
-## 단위별 ms 상수
+## 단위별 ms 상수 ⭐️⭐️⭐️⭐️
 
 ```typescript
+// 어떻게 계산하는가
+1_000           // 1초    = 1,000ms
+60_000          // 1분    = 60 * 1,000
+3_600_000       // 1시간  = 60 * 60 * 1,000
+86_400_000      // 1일    = 24 * 60 * 60 * 1,000
+604_800_000     // 1주    = 7 * 24 * 60 * 60 * 1,000
+
+// 상수로 정의해서 사용
+const MS_PER_SECOND = 1_000;
+const MS_PER_MINUTE = 60 * 1_000;
+const MS_PER_HOUR   = 60 * 60 * 1_000;
+const MS_PER_DAY    = 24 * 60 * 60 * 1_000;   // = 86_400_000
+const MS_PER_WEEK   = 7 * MS_PER_DAY;          // = 604_800_000
+
+// 또는 객체로 묶기
 const MS = {
   SECOND: 1_000,
   MINUTE: 60_000,
@@ -143,12 +252,60 @@ const MS = {
   DAY:    86_400_000,
   WEEK:   604_800_000,
 };
+```
 
-// 7일 뒤
-new Date(Date.now() + 7 * MS.DAY);
+```txt
+_ (숫자 구분자):
+  86400000 보다 86_400_000 이 읽기 쉬움
+  JavaScript/TypeScript 문법 — 실행에는 영향 없음
+  천 단위 또는 의미 있는 단위로 끊어서 표기
 
-// 30분 후 만료
-const expiresAt = new Date(Date.now() + 30 * MS.MINUTE);
+86_400_000 검산:
+  하루 = 24시간 × 60분 × 60초 × 1,000ms
+  24 × 60 = 1,440분
+  1,440 × 60 = 86,400초
+  86,400 × 1,000 = 86,400,000ms = 86_400_000
+```
+
+## 실전 계산 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+const now = Date.now();  // 현재 타임스탬프 (ms)
+
+// N일 전
+const startOfWeek = new Date(startOfToday.getTime() - 6 * MS_PER_DAY);
+// 오늘 포함 7일 = 6일 전 자정부터
+
+// N일 뒤 (만료 시각)
+const expiresAt = new Date(now + 7 * MS_PER_DAY);    // 7일 후
+const tokenExp  = new Date(now + 15 * MS_PER_MINUTE); // 15분 후 토큰 만료
+
+// 두 날짜 사이 일수
+const diffMs   = Math.abs(b.getTime() - a.getTime());
+const diffDays = Math.floor(diffMs / MS_PER_DAY);
+
+// 1시간 이내인지 확인
+const isRecent = (Date.now() - createdAt.getTime()) < MS_PER_HOUR;
+
+// 30분 내 중복 요청 방지 (스로틀링)
+const lastSentAt = new Date(stored);
+if (Date.now() - lastSentAt.getTime() < 30 * MS_PER_MINUTE) {
+  throw new Error('잠시 후 다시 시도해주세요.');
+}
+```
+
+```txt
+타임스탬프(ms) 산술이 안전한 이유:
+  addDays처럼 setDate() 쓰면 월말, 일광절약시간(DST) 경계에서 엣지케이스 발생
+  ms 단위 덧셈은 항상 정확한 시간 차이를 보장
+
+  6 * 86_400_000:
+  6일을 ms로 표현 = 6 * 하루ms
+  → 타임스탬프에서 빼면 "6일 전 그 시각"의 타임스탬프
+
+  startOfToday.getTime() - 6 * 86_400_000:
+  오늘 자정 타임스탬프 - 6일ms = 6일 전 자정 타임스탬프
+  → "오늘 포함 7일치 데이터 조회" 시작점
 ```
 
 ---
