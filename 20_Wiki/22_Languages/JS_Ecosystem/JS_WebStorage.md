@@ -1,7 +1,7 @@
 ---
 aliases:
   - localStorage
-  - sessionStrage
+  - sessionStorage
 tags:
   - JavaScript
 related:
@@ -16,553 +16,293 @@ related:
 # JS_WebStorage — localStorage & sessionStorage
 
 > [!info] 
-> Web Storage = 브라우저에 데이터를 문자열로 저장하는 API.
->  `localStorage`는 브라우저를 닫아도 유지, `sessionStorage`는 탭을 닫으면 삭제. 
->  값은 반드시 문자열 — 객체·배열·Set은 JSON 직렬화 필요.
-
----
-# 흐름도
-
-```mermaid-beautiful
-flowchart TB
-  APP["앱 (React / JS)"] -->|setItem · getItem| WS{"어느 Storage?"}
-
-  WS -->|오래 유지| LS["localStorage<br/>탭 공유 · 브라우저 닫아도 유지"]
-  WS -->|이번 탭만| SS["sessionStorage<br/>탭 닫으면 삭제"]
-
-  APP -->|값은 문자열만| JSON["JSON.stringify / parse<br/>[[JS_JSON]]"]
-  JSON --> SET["객체 · 배열"]
-  JSON --> SET2["Set → [...set] 후 stringify"]
-
-  LS --> GET["getItem → string | null"]
-  SS --> GET
-  GET --> PARSE["JSON.parse(raw ?? 기본값)<br/>as unknown + 가드"]
-
-  subgraph EVENT["storage 이벤트"]
-    direction TB
-    E1["다른 탭의 localStorage 변경만"]
-    E2["같은 탭 · sessionStorage → 안 옴"]
-    E3["같은 탭 반영 필요 → custom event<br/>또는 그냥 state로 닫기"]
-  end
-
-  LS -.-> E1
-  SS -.-> E2
-
-  subgraph REACT["React에서 읽을 때"]
-    direction TB
-    R1["일회성 헬퍼<br/>get / mark — friendRequestPrompt"]
-    R2["구독 · 리렌더 필요<br/>useSyncExternalStore + localStorage"]
-  end
-```
-
-```txt
-선택:
-  다음에 와도 유지 (토큰 · 테마 · 최근 로그인) → localStorage
-  이번 세션만 (친구 요청 모달 seen ids) → sessionStorage
-
-왕복:
-  값 → stringify → setItem
-  getItem → parse → 가드 → 값
-
-storage 이벤트 오해:
-  "쓰면 무조건 통지" ❌
-  다른 탭 localStorage만 ✅ · 같은 탭 / session ❌
-  → UI 구독은 useSyncExternalStore (local) 또는 Host state (session seen)
-```
+> localStorage = 브라우저에 **영구** 저장 (탭/창 닫아도 유지).
+>  sessionStorage = 탭이 살아있는 동안만 유지. 
+>  둘 다 **문자열만** 저장 가능 — 객체/배열은 JSON.stringify 필요.
 
 ---
 
-# localStorage vs sessionStorage ⭐️⭐️⭐️⭐️
-
-| |`localStorage`|`sessionStorage`|
-|---|---|---|
-|유지 기간|브라우저를 완전히 닫아도 유지|탭을 닫는 순간 삭제|
-|공유 범위|같은 도메인이면 모든 탭에서 공유|그 탭 안에서만|
-|용량|약 5~10MB|약 5~10MB|
-|언제 쓰는가|로그인 토큰, 테마, 언어 설정|폼 임시 저장, 세션 중 이미 본 항목|
-
-```txt
-선택 기준:
-  "다음에 다시 와도 유지" → localStorage
-  "이번 탭에서만, 새로고침은 OK" → sessionStorage
-
-  예: 받은 친구 요청 알림을 이번 세션 동안 다시 안 띄우기
-  → 탭 닫으면 리셋이 자연스러운 동작 → sessionStorage
-```
-
----
-
-# 기본 API — 둘 다 동일 ⭐️⭐️⭐️⭐️
+# 기본 API ⭐️⭐️⭐️
 
 ```typescript
-// 저장 — 값은 반드시 문자열
-localStorage.setItem('theme', 'dark');
-sessionStorage.setItem('draft', '임시 내용');
+// 저장
+localStorage.setItem('key', 'value');
 
 // 읽기 — 없으면 null
-const theme = localStorage.getItem('theme');   // 'dark' 또는 null
+const value = localStorage.getItem('key');
 
-// 삭제 (1개)
-localStorage.removeItem('theme');
+// 삭제
+localStorage.removeItem('key');
 
-// 전체 삭제 (같은 도메인의 전체 storage)
+// 전체 삭제
 localStorage.clear();
-```
 
-| 메서드                   | 역할              | 반환값                         |
-| --------------------- | --------------- | --------------------------- |
-| `setItem(key, value)` | 저장 (이미 있으면 덮어씀) | void                        |
-| `getItem(key)`        | 읽기              | <code>string \| null</code> |
-| `removeItem(key)`     | 해당 key 삭제       | void                        |
-| `clear()`             | 전체 삭제           | void                        |
-| `key(index)`          | index 번째 key 반환 | <code>string \| null</code> |
-| `length`              | 저장된 항목 수        | `number`                    |
+// 키 개수
+localStorage.length;
+```
 
 ---
 
-# 객체·배열 저장 — JSON 직렬화 ⭐️⭐️⭐️⭐️
+# SSR 가드 — typeof window ⭐️⭐️⭐️⭐️
 
 ```typescript
-// ❌ 객체를 그냥 넣으면 "[object Object]"
-localStorage.setItem('user', { id: 1 });
+// Next.js 등 SSR 환경에서 localStorage는 서버에 없음 → 에러 방지
+if (typeof window === 'undefined') return null;
 
-// ✅ JSON.stringify → JSON.parse
-localStorage.setItem('user', JSON.stringify({ id: 1, name: '홍길동' }));
-const user = JSON.parse(localStorage.getItem('user') ?? 'null');
+// 또는 함수 초반에
+function getItem(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(key);
+}
 ```
 
 ```txt
-이유: Web Storage는 문자열만 저장 가능
-  문자열이 아닌 값을 넣으면 .toString() 이 자동 호출됨
-  객체의 .toString() = "[object Object]" (의미 없음)
-  → JSON.stringify로 문자열화, JSON.parse로 복원
-
-JSON.stringify / JSON.parse 상세 → [[JS_JSON]]
+왜 필요한가:
+  Next.js는 서버(Node.js)에서도 컴포넌트를 실행
+  서버에는 window, localStorage가 없음 → ReferenceError
+  → typeof window === 'undefined' 체크로 서버 실행 시 안전하게 건너뜀
 ```
 
 ---
 
-# Set 저장 — 배열 경유 필수 ⭐️⭐️⭐️⭐️
+# 키 설계 — prefix 패턴 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// ❌ Set은 JSON.stringify 직접 안 됨 → '{}'
-JSON.stringify(new Set(['a', 'b']));  // '{}'
+// 1. 단순 키
+const KEY = 'theme';
 
-// ✅ 배열로 변환 후 저장
-sessionStorage.setItem('seen_ids', JSON.stringify([...ids]));
+// 2. prefix로 네임스페이스 구분
+const PREFIX = 'app:';
+const THEME_KEY = `${PREFIX}theme`;          // 'app:theme'
+const LANG_KEY  = `${PREFIX}lang`;           // 'app:lang'
 
-// 꺼낼 때: 배열 → Set 복원
-const raw = sessionStorage.getItem('seen_ids');
-const arr = JSON.parse(raw ?? '[]') as string[];
-const set = new Set(arr);
+// 3. 유저별 키 — 같은 브라우저에서 계정 전환 시 분리
+function userKey(prefix: string, userId: string) {
+  return `${prefix}${userId}`;
+}
+userKey('chat-font:', 'user123')             // 'chat-font:user123'
+userKey('support-notice-seen:', 'user123')   // 'support-notice-seen:user123'
+
+// 4. 유저 + 리소스 조합
+function resourceKey(prefix: string, userId: string, resourceId: string) {
+  return `${prefix}${userId}:${resourceId}`;
+}
+resourceKey('room-notice-seen:', 'user1', 'room99')
+// 'room-notice-seen:user1:room99'
 ```
 
 ```txt
-Set이 {}로 직렬화되는 이유:
-  JSON.stringify는 객체의 열거 가능한(enumerable) 속성을 직렬화
-  Set/Map은 값을 내부 슬롯에 저장 → 일반 속성 없음 → JSON이 못 읽음
-  → [...set] 또는 Array.from(set)으로 배열 변환 후 직렬화
+prefix를 쓰는 이유:
+  여러 기능의 키가 localStorage에 섞임 → prefix로 용도 구분
+  cleanup 시 특정 prefix만 골라서 삭제 가능
 
-Map도 같은 이유로 JSON 직접 안 됨:
-  JSON.stringify(new Map([['a', 1]]))  // '{}'
-  → [...map.entries()]나 Object.fromEntries(map)으로 변환 필요
+유저별 키가 필요한 경우:
+  같은 브라우저에서 계정 A → 계정 B로 전환
+  userId 없이 저장하면 계정 B가 계정 A의 설정/읽음 상태를 공유
+  → key에 userId 포함으로 계정별 독립 유지
 ```
 
 ---
 
-# JSON.parse — unknown 타입 안전 패턴 ⭐️⭐️⭐️⭐️
+# 문자열만 저장 가능 — JSON 직렬화 ⭐️⭐️⭐️⭐️
 
 ```typescript
-function readSeenIds(): Set<string> {
-  if (typeof window === 'undefined') return new Set();  // SSR 가드
+// ❌ 객체를 그대로 저장하면 '[object Object]' 문자열이 저장됨
+localStorage.setItem('user', { id: 1, name: 'Tom' });   // '[object Object]'
+
+// ✅ JSON.stringify로 직렬화
+localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Tom' }));
+
+// 읽을 때 JSON.parse로 복원
+const raw  = localStorage.getItem('user');
+const user = raw ? JSON.parse(raw) : null;
+```
+
+## 안전하게 읽기 — unknown + 타입 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+export type FontPrefs = { fontId: string; scale: string };
+
+function getFontPrefs(userId: string): FontPrefs | null {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(`chat-font:${userId}`);
+  if (!raw) return null;
+
   try {
-    const raw = sessionStorage.getItem('seen_ids');
-    if (!raw) return new Set();
-
-    const parsed = JSON.parse(raw) as unknown;                  // ① unknown으로
-
-    if (!Array.isArray(parsed)) return new Set();               // ② 배열 검증
-
-    return new Set(                                             // ③ 요소 검증
-      parsed.filter((id): id is string => typeof id === 'string')
-    );
+    const parsed = JSON.parse(raw) as Partial<FontPrefs>;
+    // 필드별 검증 후 반환
+    if (typeof parsed.fontId !== 'string') return null;
+    if (typeof parsed.scale  !== 'string') return null;
+    return { fontId: parsed.fontId, scale: parsed.scale };
   } catch {
-    return new Set();                                           // ④ fallback
+    return null;   // JSON 파싱 실패 → null로 안전하게
   }
 }
 ```
 
 ```txt
-각 단계가 필요한 이유:
+Partial<T>로 캐스팅하는 이유:
+  JSON.parse 결과는 any → Partial<T>로 캐스팅
+  Partial = 모든 필드가 있을 수도 없을 수도 있음을 명시
+  → 필드별로 검증 후 사용
 
-① as unknown
-  JSON.parse 반환 타입은 any — 뭔지 모름
-  as unknown으로 "모른다"고 명시 → 좁히기 전까지 못 씀
-
-② Array.isArray
-  저장된 값이 배열이 아닐 수 있음 (외부 조작, 버전 불일치)
-  배열인지 먼저 확인해야 .filter() 호출 가능
-
-③ filter((id): id is string => typeof id === 'string')
-  배열 요소 하나하나를 string으로 좁히는 타입 서술어
-  결과가 string[]로 확정 → new Set<string>() 가능
-  filter + 타입 서술어 패턴 → [[TS_Type_Guards]] / [[JS_Array_Methods]]
-
-④ try-catch
-  JSON.parse는 유효하지 않은 JSON에서 SyntaxError를 던짐
-  catch {}로 에러 변수 없이 빈 Set 반환 (안전한 fallback)
+try-catch가 필요한 이유:
+  저장값이 깨진 JSON이면 JSON.parse가 SyntaxError를 던짐
+  → catch에서 null 반환으로 안전하게 처리
 ```
 
 ---
 
-# sessionStorage 실전 — 세션 동안 본 항목 기억하기 ⭐️⭐️⭐️
+# 구조 진화 — 하위 호환 읽기 ⭐️⭐️⭐️⭐️
 
 ```typescript
-const SEEN_KEY = 'app_seen_request_ids';  // 상수로 오타 방지
+// 예전: 단순 문자열 'lp-bar' 저장
+// 지금: JSON 객체 { presetId, backgroundUrl } 저장
 
-function readSeenIds(): Set<string> { /* 위 패턴 */ }
-
-function writeSeenIds(ids: Set<string>) {
-  if (typeof window === 'undefined') return;
-  sessionStorage.setItem(SEEN_KEY, JSON.stringify([...ids]));
-}
-
-export function getUnseenIds(allIds: string[]): string[] {
-  const seen = readSeenIds();
-  return allIds.filter((id) => !seen.has(id));  // Set.has() = O(1)
-}
-
-export function markAsSeen(ids: string[]) {
-  if (ids.length === 0) return;
-  const seen = readSeenIds();
-  for (const id of ids) seen.add(id);
-  writeSeenIds(seen);
-}
-```
-
-```txt
-Set.has() vs Array.includes():
-  Set.has()        O(1) — 크기에 무관하게 빠름
-  Array.includes() O(n) — 배열 길이에 비례
-
-key 상수화 (SEEN_KEY):
-  문자열 오타 방지
-  나중에 key 이름 바꿀 때 한 곳만 수정
-```
-
----
-# localStorage 값이 단순 문자열 → 객체로 진화할 때 ⭐️⭐️⭐️⭐️
-
-```txt
-예전: localStorage에 단순 문자열 하나만 저장
-  "lp-bar"
-
-지금: 같은 키에 여러 필드가 필요해짐
-  presetId + backgroundUrl → 두 값을 함께 관리
-
-선택지:
-  키를 두 개로 쪼갬  theme:preset / theme:bg  → 읽을 때 두 번 읽어야 함
-  JSON.stringify    하나의 키에 객체로         → 관련 데이터가 한 곳에 모임 (권장)
-```
-
-## JSON.stringify를 쓰는 이유
-
-```typescript
-// localStorage는 문자열만 저장 가능
-// → 여러 필드를 한 키에 저장하려면 JSON.stringify 필수
-localStorage.setItem('room-theme:123', JSON.stringify({
-  presetId:      'cream-paper',
-  backgroundUrl: 'https://example.com/bg.jpg',
-}));
-```
-
-
-```txt
-JSON.stringify 가 필요한 상황:
-  두 개 이상의 필드를 하나의 키에 묶어서 저장하고 싶을 때
-  관련 데이터를 원자적으로 읽고 쓰고 싶을 때 (한 키 → 한 번의 getItem)
-  → [[JS_JSON]] / [[JS_WebStorage]] "객체 저장" 참고
-```
-
-## 하위 호환 읽기 패턴 — 예전 형식 + 새 형식 모두 처리 ⭐️⭐️⭐️⭐️
-
-
-```typescript
-export type RoomThemePrefs = {
-  presetId:      RoomThemePresetId;
-  backgroundUrl: string | null;  // 없으면 프리셋만
-};
-
-function readRoomThemePrefs(roomId: string): RoomThemePrefs | null {
+function readPrefs(roomId: string): RoomThemePrefs | null {
   const raw = localStorage.getItem(`room-theme:${roomId}`);
   if (!raw) return null;
 
-  // ① 예전 형식: 단순 문자열 "lp-bar" → 그대로 읽어서 마이그레이션
+  // ① 예전 포맷 — 단순 문자열
   if (isPresetId(raw)) {
     return { presetId: raw, backgroundUrl: null };
   }
 
-  // ② 새 형식: JSON 객체
+  // ② 새 포맷 — JSON
   try {
     const parsed = JSON.parse(raw) as Partial<RoomThemePrefs>;
-
-    if (!isPresetId(parsed.presetId ?? '')) return null;  // presetId 검증
-
+    if (!isPresetId(parsed.presetId ?? '')) return null;
     return {
       presetId:      parsed.presetId!,
       backgroundUrl: parsed.backgroundUrl ?? null,
     };
   } catch {
-    return null;  // JSON 파싱 실패 → null로 fallback
+    return null;
   }
 }
 ```
 
-
 ```txt
-isPresetId(raw) 분기가 있는 이유:
-  예전에 저장해둔 값 → 단순 문자열 "lp-bar"
-  JSON.parse("lp-bar") → SyntaxError 또는 유효하지 않은 결과
-
-  isPresetId(raw) = true → 예전 포맷 → 바로 파싱
-  isPresetId(raw) = false → JSON 시도 → 파싱 실패 시 null
-
-  이렇게 하면 예전 사용자도 데이터 손실 없이 새 형식으로 자연스럽게 전환됨
-
-as Partial<RoomThemePrefs>:
-  JSON.parse 반환값은 any → unknown으로 좁히는 게 가장 안전하지만
-  구조가 명확할 때 Partial<T>로 캐스팅 + 각 필드 검증
-  Partial = 모든 필드가 있을 수도 없을 수도 있음을 명시
-  → [[TS_Utility_Types]] 참고
+단순 문자열 → JSON 객체로 구조가 바뀔 때:
+  기존 사용자 데이터를 잃지 않으려면 구 포맷도 처리해야 함
+  isPresetId(raw)로 구 포맷 여부 먼저 확인
+  → 새 저장은 항상 JSON으로 → 다음 방문에 구 포맷이 자동으로 덮어써짐
 ```
 
-## 쓰기 패턴
-
-```typescript
-function writeRoomThemePrefs(roomId: string, prefs: RoomThemePrefs) {
-  localStorage.setItem(
-    `room-theme:${roomId}`,
-    JSON.stringify(prefs),
-  );
-}
-```
-
-
-```txt
-저장 시 항상 새 형식(JSON)으로 저장
-읽을 때만 예전 형식을 처리 — 자연스럽게 마이그레이션됨
-(읽고 → 저장하면 예전 포맷이 새 포맷으로 덮어써짐)
-```
 ---
-# 읽음 처리 패턴 — "마지막으로 본 내용" ⭐️⭐️⭐️⭐️
 
-```txt
-공지·알림·메시지가 바뀌었을 때 "새로운 것이 있다"는 dot(점)을 표시하는 패턴
-→ "마지막으로 본 내용"을 localStorage에 저장
-→ 현재 내용과 다르면 unread로 판단
-
-계정별로 분리해야 하는 이유:
-  같은 브라우저에서 여러 계정으로 테스트하는 경우
-  userId 없이 resourceId만 key로 쓰면 계정이 바뀌어도 읽음 상태가 공유됨
-  → key에 userId를 포함해서 계정별로 독립 관리
-```
-
-## 유틸 모듈 패턴 (범용)
+# 읽음 처리 — 내용 기준 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// lib/seenStorage.ts — 어떤 "본 내용" 추적에도 재사용 가능
+// "마지막으로 본 내용"과 현재 내용을 비교
+const SEEN_KEY = 'notice-seen:';
 
-const PREFIX = 'seen:';  // 충돌 방지용 prefix
-
-function storageKey(namespace: string, userId: string, resourceId: string) {
-  return `${PREFIX}${namespace}:${userId}:${resourceId}`;
-  // 예: 'seen:notice:user123:room456'
-  //     'seen:message:user123:channel789'
+export function getSeenContent(userId: string, resourceId: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(`${SEEN_KEY}${userId}:${resourceId}`);
 }
 
-/** 마지막으로 본 내용 텍스트 */
-export function getSeenText(
-  namespace: string,
-  userId: string,
-  resourceId: string,
-): string | null {
-  if (typeof window === 'undefined') return null;  // SSR 가드
-  return localStorage.getItem(storageKey(namespace, userId, resourceId));
-}
-
-/** 본 것으로 표시 */
-export function markSeen(
-  namespace: string,
-  userId: string,
-  resourceId: string,
-  content: string | null,
-) {
+export function markSeen(userId: string, resourceId: string, content: string | null) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(
-    storageKey(namespace, userId, resourceId),
-    content?.trim() ?? '',  // null이면 빈 문자열 저장
+    `${SEEN_KEY}${userId}:${resourceId}`,
+    content?.trim() ?? '',
   );
 }
 
-/** 내용이 바뀌었으면 true (unread) */
 export function hasUnread(
-  namespace: string,
   userId: string,
   resourceId: string,
   currentContent: string | null,
 ): boolean {
   const body = currentContent?.trim() ?? '';
-  if (!body) return false;  // 내용 자체가 없으면 unread 아님
-  return getSeenText(namespace, userId, resourceId) !== body;
+  if (!body) return false;
+  return getSeenContent(userId, resourceId) !== body;
 }
 ```
 
 ```txt
-어떻게 "내용이 바뀌었는지" 아는가:
+동작 원리:
+  처음 방문  → getSeenContent = null → null !== '공지내용' → true (unread)
+  읽음 처리  → markSeen() → localStorage에 현재 내용 저장
+  다음 방문  → '공지내용' === '공지내용' → false (read)
+  내용 변경  → '공지내용' !== '새공지내용' → true (unread)
 
-  ┌─────────────────────────────────────────────────┐
-  │ localStorage                                    │
-  │ seen:notice:user123:room456 = "공지 내용 v1"    │
-  └─────────────────────────────────────────────────┘
-          ↓ getSeenText()로 읽어옴
-  "공지 내용 v1"  ←  저장된 값 (마지막으로 본 것)
-
-  currentContent = "공지 내용 v2"  ←  지금 서버/상태의 값
-
-  "공지 내용 v1" !== "공지 내용 v2"  →  true (unread)
-
-즉, "내용이 바뀌었는지 감지하는 것"이 아니라
-"마지막으로 본 내용"과 "지금 내용"을 문자열로 직접 비교하는 것
-
-흐름:
-  처음 접속  → localStorage 없음 → getSeenText = null
-              null !== '공지 내용' → true (unread, 아직 안 봄)
-
-  공지 읽음  → markSeen() → localStorage에 '공지 내용' 저장
-
-  다음 접속  → getSeenText = '공지 내용'
-              '공지 내용' === '공지 내용' → false (unread 아님)
-
-  방장이 공지 수정 → currentContent = '바뀐 공지'
-                    '공지 내용' !== '바뀐 공지' → true (unread, 새로 바뀜)
-
-  다시 읽음  → markSeen() → localStorage에 '바뀐 공지' 저장
-              '바뀐 공지' === '바뀐 공지' → false
-```
-
-## 공지 읽음 처리 실전
-
-```typescript
-// 공지 전용 — namespace를 고정한 래퍼 함수
-const NOTICE_NS = 'room-notice';
-
-export const getSeenNoticeText = (userId: string, roomId: string) =>
-  getSeenText(NOTICE_NS, userId, roomId);
-
-export const markNoticeSeen = (
-  userId: string, roomId: string, description: string | null
-) => markSeen(NOTICE_NS, userId, roomId, description);
-
-export const hasUnreadNotice = (
-  userId: string, roomId: string, description: string | null
-) => hasUnread(NOTICE_NS, userId, roomId, description);
-```
-
-```typescript
-// 사용
-const { user } = useAuth();
-const [noticeUnread, setNoticeUnread] = useState(false);
-
-// 방 정보 로드 or WS 업데이트 시
-useEffect(() => {
-  if (user && room?.description !== undefined) {
-    setNoticeUnread(hasUnreadNotice(user.id, room.id, room.description));
-  }
-}, [user, room?.description, room?.id]);
-
-// 공지 시트 닫을 때
-function handleCloseNotice() {
-  if (user) markNoticeSeen(user.id, room.id, room.description);
-  setNoticeUnread(false);
-}
-
-// 방장이 공지 저장할 때 — 본인에게는 dot 표시 안 함
-function handleSaveNotice(description: string) {
-  await updateRoom(room.id, { description });
-  if (user) markNoticeSeen(user.id, room.id, description);  // 저장 직후 읽음 처리
-}
-```
-
-
-```txt
-content?.trim() ?? '' 저장:
-  앞뒤 공백은 의미 없는 변화로 취급 — trim 후 비교
-  null은 ''(빈 문자열)로 저장 → null과 ''을 동일하게 취급
-
-!body 에서 return false:
-  내용이 비어있으면 읽을 것도 없음 → unread로 보지 않음
-
-WS + localStorage 조합:
-  room:updated 이벤트로 description이 바뀌면
-  hasUnreadNotice(userId, roomId, newDescription)으로 즉시 dot 업데이트
-  localStorage에 저장된 "마지막으로 본 내용"과 비교하므로 서버 요청 없음
-
-다른 용도로 확장:
-  hasUnread('announcement', userId, channelId, announcementText)
-  hasUnread('changelog', userId, 'app', latestVersion)
+언제 쓰는가:
+  내용이 편집될 수 있는 단일 공지 (방 공지, 서비스 공지)
+  "이 내용을 봤는가"를 내용 자체로 판단
 ```
 
 ---
 
-# SSR 가드 패턴 ⭐️⭐️⭐️
+# 읽음 처리 — publishedAt 타임스탬프 기준 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// localStorage / sessionStorage는 브라우저 전용 → 서버에서 에러
-if (typeof window === 'undefined') return null;
+// "마지막으로 본 항목의 날짜"와 목록 항목들을 비교
+const SEEN_AT_KEY = 'support-notice-seen:';
 
-// 함수 안에서
-function getToken(): string | null {
+export function getSeenAt(userId: string): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
+  return localStorage.getItem(`${SEEN_AT_KEY}${userId}`);
+}
+
+export function markSeenAt(userId: string, publishedAt: string) {
+  if (typeof window === 'undefined') return;
+  const at = publishedAt.trim();
+  if (!at) return;
+
+  const prev   = getSeenAt(userId);
+  const prevMs = prev ? new Date(prev).getTime() : 0;
+  const nextMs = new Date(at).getTime();
+
+  if (prevMs >= nextMs) return;   // 더 오래된 날짜로 퇴행 방지
+  localStorage.setItem(`${SEEN_AT_KEY}${userId}`, at);
+}
+
+export function hasUnseenByDate(
+  userId: string,
+  notices: { publishedAt: string | null }[],
+): boolean {
+  if (typeof window === 'undefined') return false;
+  const seen   = getSeenAt(userId);
+  const seenMs = seen ? new Date(seen).getTime() : 0;
+  // seen이 없으면 seenMs = 0 → 모든 항목이 unseen
+
+  return notices.some((n) => {
+    const at = n.publishedAt?.trim();
+    if (!at) return false;
+    return new Date(at).getTime() > seenMs;
+  });
 }
 ```
 
 ```txt
-typeof window === 'undefined':
-  서버(Node.js)에는 window 전역 객체가 없음
-  Next.js App Router에서 Server Component나 SSR 중에 localStorage를 쓰면 에러
-  → typeof로 window 존재 여부 확인 후 접근
+동작 원리:
+  처음 방문  → seenMs = 0 → 모든 항목 > 0 → true (전부 unseen)
+  읽음 처리  → markSeenAt(최신 publishedAt) 저장
+  다음 방문  → 새 항목 없으면 false / 더 최신 항목 있으면 true
 
-typeof를 쓰는 이유:
-  window !== undefined  → window가 선언 안 됐으면 ReferenceError
-  typeof window         → 선언 안 됐어도 에러 없이 'undefined' 문자열 반환
-  → typeof가 더 안전한 이유 → [[JS_BrowserAPI]] 참고
+prevMs >= nextMs 이면 갱신 안 하는 이유:
+  최신 목록(2025-06) → markSeenAt 후 오래된 상세(2025-01) 진입
+  → 오래된 날짜로 퇴행하면 이미 본 NEW가 다시 표시됨
 
-React에서 localStorage를 안전하게 읽는 방법:
-  useSyncExternalStore + getServerSnapshot → [[React_useSyncExternalStore]]
+내용 기준 vs 타임스탬프 기준:
+  내용 기준     단일 공지, 내용이 편집될 때 감지
+  날짜 기준     목록 중 새 항목 추가 감지, 공지 개수와 무관
 ```
 
 ---
 
-# 주의사항
+# Set 직렬화 ⭐️⭐️
 
-```txt
-보안:
-  httpOnly 쿠키와 달리 JS로 직접 접근 가능 → XSS 공격 시 탈취 위험
-  인증 토큰을 localStorage에 저장하는 것의 트레이드오프 → [[NextJS_TokenStorage]]
+```typescript
+// Set은 JSON 직렬화 안 됨 → 배열로 변환
+const ids = new Set(['a', 'b', 'c']);
+localStorage.setItem('ids', JSON.stringify([...ids]));
 
-용량:
-  약 5~10MB (브라우저마다 다름) — 큰 데이터는 IndexedDB 사용
-  용량 초과 시 QuotaExceededError 던짐 → try-catch 권장
-
-직렬화:
-  저장: JSON.stringify (객체·배열·Set 등)
-  읽기: JSON.parse + 타입 검증 (always)
-  → [[JS_JSON]] 참고
-
-컴포넌트 동기화:
-  같은 탭에서 localStorage를 바꿔도 storage 이벤트 안 발생
-  → 여러 컴포넌트가 동기화되려면 [[React_useSyncExternalStore]] 또는 [[JS_CustomEvent]]
+// 복원
+const raw = localStorage.getItem('ids');
+const set = new Set<string>(raw ? JSON.parse(raw) : []);
 ```
 
 ---
@@ -570,21 +310,28 @@ React에서 localStorage를 안전하게 읽는 방법:
 # 한눈에
 
 ```txt
-localStorage   탭 닫아도 유지, 같은 도메인 모든 탭 공유
-sessionStorage 탭 닫으면 삭제, 그 탭 안에서만
+기본:
+  setItem(key, value)   문자열 저장
+  getItem(key)          읽기 (없으면 null)
+  removeItem(key)       삭제
 
-기본 API: setItem / getItem(null 가능) / removeItem / clear
+키 설계:
+  'prefix:userId'       유저별 분리
+  'prefix:userId:id'    유저 + 리소스 분리
 
-저장 시 직렬화:
-  문자열만 → 그대로
-  객체·배열 → JSON.stringify
-  Set/Map → [...set] 배열로 변환 후 JSON.stringify
+문자열만 저장:
+  객체/배열 → JSON.stringify / JSON.parse
+  try-catch 필수 (파싱 실패 대비)
+  Partial<T>로 캐스팅 후 필드별 검증
 
-읽기 시 검증 패턴:
-  JSON.parse → as unknown → Array.isArray → filter(타입 서술어) → new Set
-  try-catch로 깨진 JSON 방어
+SSR 가드:
+  typeof window === 'undefined' → return null
 
-SSR 가드: if (typeof window === 'undefined') return null/new Set()
+읽음 처리 (내용 기준):
+  markSeen(userId, id, content) → 현재 내용 저장
+  hasUnread() → stored !== current
 
-보안: JS 접근 가능 → XSS 주의 → 토큰은 httpOnly 쿠키 고려
+읽음 처리 (날짜 기준):
+  markSeenAt(userId, publishedAt) → 최신 날짜만 갱신 (퇴행 방지)
+  hasUnseenByDate() → notices.some(n => n.publishedAt > seenAt)
 ```

@@ -1,260 +1,295 @@
 ---
-aliases:
-  - callbackUrl
-  - redirect
-  - usePathname
-  - useRouter
-tags:
-  - React
-  - NextJS
+aliases: [callbackUrl, redirect, usePathname, useRouter]
+tags: [React, NextJS]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_URL_Encoding]]"
-  - "[[NextJS_TokenStorage]]"
+  - "[[NestJS_JwtGuard]]"
+  - "[[NextJS_API_Client]]"
+  - "[[NextJS_ServerClient]]"
   - "[[NextJS_TokenStorage]]"
 ---
-# NextJS_Routing — 페이지 이동과 경로 다루기
+# NextJS_Routing — 라우팅 & 이동
 
 > [!info]
->  화면에서 클릭으로 이동하면 `<Link>`, 코드 로직 안에서 이동시켜야 하면 `useRouter()`. 
->  지금 경로 문자열이 필요하면 `usePathname()`, 쿼리스트링이 필요하면 `useSearchParams()`. 
->  `redirect()`는 서버 전용 함수이고, `redirectTo`/`callbackUrl`은 함수가 아니라 "어디로 돌아갈지"를 기억해두는 관습적인 파라미터 이름일 뿐이다.
-
-> **한 줄:** 클릭 → `Link` · 로직 끝 이동 → `useRouter` · 서버 → `redirect` · 토큰은 `pathname` 바뀔 때 다시 읽기.
-
----
-# 흐름도
-
-```mermaid-beautiful
-flowchart TB
-  NAV{이동 주체}
-  NAV -->|사용자 클릭| LINK["Link<br/>프리페치 자동"]
-  NAV -->|코드 로직 끝| ROUTER["useRouter"]
-  NAV -->|서버 컴포넌트| REDIRECT["redirect<br/>렌더 중단 후 이동"]
-  ROUTER --> HIST{히스토리}
-  HIST -->|쌓기| PUSH["push"]
-  HIST -->|덮기| REPLACE["replace"]
-  READ["경로 읽기"]
-  READ --> PATH["usePathname<br/>경로만"]
-  READ --> QUERY["useSearchParams<br/>쿼리스트링"]
-  PATH --> SYNC["useEffect pathname<br/>경로 바뀔 때 재확인"]
-  GUARD["로그인 필요"] --> SAVE["callbackUrl에<br/>현재 경로 저장"]
-  SAVE --> LOGIN["로그인 페이지"]
-  LOGIN --> BACK["성공 후 replace<br/>저장 경로로 복귀"]
-```
-```txt
-클릭은 Link · 로직 끝 이동은 useRouter · 서버는 redirect
-callbackUrl은 Next API가 아니라 돌아갈 경로를 담는 관습적 파라미터 이름
-```
+>  Next.js에서 페이지를 이동하는 방법은 세 가지 — `<Link>`, `router.push()`, `redirect()`. 
+>  어디서 실행하는가(서버 vs 클라이언트)에 따라 선택이 달라진다.
 
 ---
 
-# Link vs useRouter() — 언제 뭘 쓰나 ⭐️⭐️⭐️
+# 세 가지 이동 수단 ⭐️⭐️⭐️⭐️
 
-|   |   |   |
-|---|---|---|
-|구분|`<Link>`|`useRouter()`|
-|형태|JSX 엘리먼트|훅(함수 호출) — `.push()` 등 메서드를 직접 호출|
-|쓰는 곳|사용자가 클릭하는 자리 (메뉴, 카드, 버튼 등)|어떤 로직(폼 제출 성공, 조건 체크 등) 끝에 "이동시켜야 할 때"|
-|프리페치|자동으로 됨 (뷰포트에 보이면 미리 받아둠)|없음 — push 호출 시점에 그제서야 이동|
-|예시|`<Link href="/posts/1">제목</Link>`|`router.push('/posts/1')`|
+| |`<Link>`|`router.push()`|`redirect()`|
+|---|---|---|---|
+|실행 위치|JSX (렌더링)|클라이언트 이벤트 핸들러|서버 컴포넌트 / 서버 액션|
+|언제|메뉴, 카드, 버튼|조건부 이동, 폼 제출 후|접근 제어, 경로 변경|
+|HTTP 상태|—|—|307 (기본) / 308 (permanent)|
+
+---
+
+# `<Link>` — 기본 이동 ⭐️⭐️⭐️
+
+```tsx
+import Link from 'next/link';
+
+// 정적 경로
+<Link href="/about">소개</Link>
+
+// 동적 경로
+<Link href={`/users/${userId}`}>프로필</Link>
+
+// 쿼리스트링
+<Link href={{ pathname: '/search', query: { q: 'keyword' } }}>검색</Link>
+
+// 새 탭
+<Link href="/docs" target="_blank">문서</Link>
+```
 
 ```txt
-헷갈리지 않는 기준 한 줄: "사용자가 직접 클릭하는 링크"면 Link, "내 코드가 판단해서 보내는 거"면 useRouter
+Link가 기본인 이유:
+  Next.js가 자동으로 prefetch — 링크 위에 hover 하면 미리 로드
+  SPA 방식으로 이동 — 전체 페이지 새로고침 없음
+  <a> 태그로 렌더링 — 접근성 자동 처리
+
+<a> 대신 Link를 쓰는 이유:
+  <a href="..."> 는 전체 페이지 reload → 느림
+  Link는 SPA 방식으로 클라이언트 사이드 이동 → 빠름
 ```
 
 ---
 
-# useRouter() — 메서드 표 ⭐️⭐️⭐️
+# router.push() — 이벤트 후 이동 ⭐️⭐️⭐️⭐️
 
 ```typescript
 'use client';
 import { useRouter } from 'next/navigation';
 
-const router = useRouter();
-```
+function LoginForm() {
+  const router = useRouter();
 
-|   |   |
-|---|---|
-|메서드|동작|
-|`router.push(href)`|새 경로로 이동, 히스토리에 새 항목 추가 (뒤로가기 하면 이전 페이지로 돌아옴)|
-|`router.replace(href)`|새 경로로 이동하지만 현재 히스토리 항목을 덮어씀 (뒤로가기 해도 이 페이지로 안 돌아옴)|
-|`router.back()`|브라우저 뒤로가기와 동일 — 히스토리에서 한 단계 뒤로|
-|`router.forward()`|히스토리에서 한 단계 앞으로|
-|`router.refresh()`|클라이언트 상태는 유지한 채, 현재 경로의 서버 데이터만 다시 받아옴|
+  async function handleSubmit() {
+    await login(credentials);
+    router.push('/dashboard');     // 로그인 성공 → 이동
+  }
 
-```txt
-push vs replace 고르는 기준:
-  로그인 성공 후 메인으로 보낼 때 → replace (로그인 페이지로 다시 뒤로가기 되면 이상함)
-  글 목록 → 글 상세처럼 자연스러운 탐색 흐름 → push (뒤로가기로 목록에 돌아가는 게 자연스러움)
-```
-
----
-
-# usePathname() — 지금 경로를 문자열로 ⭐️⭐️⭐️
-
-```typescript
-'use client';
-import { usePathname } from 'next/navigation';
-
-const pathname = usePathname(); // 예: '/posts/1' — 쿼리스트링은 안 포함됨
-```
-
-```txt
-usePathname()이 반환하는 값이 바뀌면(=경로가 바뀌면) 그 컴포넌트는 다시 렌더링됨
-→ "경로가 바뀔 때마다 뭔가 다시 해야 한다"는 로직을 만들 때 핵심이 되는 훅
-```
-
----
-
-# useSearchParams() — 쿼리스트링 읽기 ⭐️⭐️
-
-```typescript
-'use client';
-import { useSearchParams } from 'next/navigation';
-
-const searchParams = useSearchParams();
-const callbackUrl = searchParams.get('callbackUrl'); // 없으면 null
-```
-
-```txt
-usePathname()은 경로(/login)만, useSearchParams()는 그 뒤의 ?key=value 부분만 다룸
-  '/login?callbackUrl=/posts' 라면 pathname = '/login', searchParams.get('callbackUrl') = '/posts'
-```
-
----
-
-# useEffect + pathname — 경로 바뀔 때마다 다시 확인하기 ⭐️⭐️⭐️
-
-```typescript
-'use client';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getApiAccessToken } from './authToken';
-
-const pathname = usePathname();
-const [loggedIn, setLoggedIn] = useState(false);
-
-useEffect(() => {
-  setLoggedIn(!!getApiAccessToken());
-}, [pathname]);
-```
-
-```txt
-이 패턴이 필요한 이유:
-  로그인 토큰은 localStorage에 있음 — React state가 아니라서, 토큰이 바뀌어도
-  컴포넌트가 자동으로 다시 렌더링되지 않음 (자세한 토큰 저장 방식은 [[NextJS_TokenStorage]] 참고)
-
-  그런데 "로그인 페이지에서 로그인 성공 → 메인으로 이동" 처럼, 토큰이 바뀌는 시점과
-  "경로가 바뀌는 시점"이 거의 항상 같이 일어남 → pathname을 의존성으로 넣으면
-  "경로가 바뀔 때마다 다시 확인해라"는 신호로 활용할 수 있음
-
-  → 정확한 방법은 아니지만(우연히 같이 일어나는 일을 이용하는 트릭), 간단해서 자주 쓰임
-  더 정확하게 하려면: 로그인/로그아웃 시점에 직접 커스텀 이벤트를 쏘거나,
-  토큰 상태를 Context로 끌어올려서 set 함수로 직접 갱신하는 방법도 있음
-```
-
----
-
-# redirect() — 서버에서 쓰는 이동 ⭐️⭐️⭐️
-
-```typescript
-// Server Component / Server Action / Route Handler 안에서만
-import { redirect } from 'next/navigation';
-
-export default async function Page() {
-  const isLoggedIn = await checkAuthOnServer();
-  if (!isLoggedIn) redirect('/login'); // 여기서 렌더링이 멈추고 바로 이동
-  // ...
+  function handleCancel() {
+    router.back();                 // 이전 페이지로
+  }
 }
 ```
 
-|   |   |   |
-|---|---|---|
-|구분|`redirect()` (next/navigation)|`router.push()` (useRouter)|
-|실행 위치|서버 (Server Component, Server Action, Route Handler)|클라이언트 ('use client' 컴포넌트)|
-|동작 방식|렌더링을 멈추고 즉시 이동시킴|이미 렌더링된 화면에서 이동을 "요청"함|
-|"use client" 컴포넌트에서 직접 쓸 수 있나|아니요|예 (원래 그 자리)|
+|메서드|동작|
+|---|---|
+|`router.push(href)`|히스토리에 추가하며 이동|
+|`router.replace(href)`|현재 히스토리를 교체하며 이동 (뒤로가기 불가)|
+|`router.back()`|이전 페이지|
+|`router.forward()`|다음 페이지|
+|`router.refresh()`|서버 데이터 재요청 (SPA 유지)|
 
 ```txt
-헷갈리지 않는 기준: 지금 이 코드가 서버에서 도는가(컴포넌트 자체가 async 서버 컴포넌트, 또는
-"use server" 함수) → redirect() / 지금 이 코드가 브라우저에서 도는가('use client', 이벤트 핸들러) → router.push()
+push vs replace:
+  push     히스토리 스택에 추가 → 뒤로가기로 이전 페이지 돌아올 수 있음
+  replace  현재 항목을 교체 → 뒤로가기로 못 돌아옴
+
+  로그인 완료 후 이동: replace 권장 (로그인 페이지로 뒤로가기 방지)
+  일반 탐색: push
+
+router는 'use client' 컴포넌트에서만 사용 가능
 ```
 
 ---
 
-# ⚠️ useCallback은 라우팅과 무관 — 헷갈리기 쉬운 이름
-
-```txt
-useCallback은 React의 일반 훅임 — "함수를 매 렌더마다 새로 만들지 않고 재사용"하는
-성능 최적화용 훅일 뿐, 경로 이동이나 페이지 전환과는 아무 관련이 없음
-
-const handleClick = useCallback(() => { ... }, [의존성]);
-
-→ "되돌아가는 경로"와 관련해서 떠올리신 건 아마 useCallback이 아니라
-  아래에서 다룰 callbackUrl(또는 redirectTo) — 이름이 비슷해서 헷갈리기 쉬움
-```
-
----
-
-# callbackUrl / redirectTo / next — "돌아갈 경로"를 기억해두는 패턴 ⭐️⭐️⭐️
-
-```txt
-redirect()나 router.push() 같은 "지금 당장 이동시키는 함수"와는 다른 층위의 개념임
-callbackUrl / redirectTo / next 는 Next.js가 제공하는 API가 아니라,
-"로그인 같은 중간 단계가 끝나면 어디로 돌려보낼지"를 기억해두기 위한 관습적인 파라미터 이름일 뿐임
-(라이브러리/프로젝트마다 이름이 다름 — Auth.js v5는 redirectTo, 흔히 보이는 이름은 callbackUrl, next 등
- → 셋 다 같은 개념, 그냥 이름만 다른 변형임)
-```
+# redirect() — 서버에서 이동 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 1. 로그인이 필요한 페이지 → 로그인 페이지로 보낼 때, 지금 있던 경로를 같이 실어 보냄
-const pathname = usePathname();
-router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+import { redirect } from 'next/navigation';
+```
 
-// 2. 로그인 페이지 → 그 경로를 다시 꺼내서, 로그인 성공 후 거기로 보냄
-const searchParams = useSearchParams();
-const callbackUrl = searchParams.get('callbackUrl') ?? '/';
-// 로그인 성공 처리 안에서:
-router.replace(callbackUrl);
+## 언제 쓰는가
+
+```txt
+redirect()가 필요한 상황:
+
+  1. 로그인 필요 → 로그인 페이지로
+     Server Component에서 session 확인 → 없으면 redirect('/login')
+
+  2. 권한 없음 → 접근 거부
+     역할 확인 → 관리자 아니면 redirect('/403')
+
+  3. 폐기된 경로 → 새 경로로
+     예전 /archive → 새 /recommendations 로 통합
+
+  4. 조건에 따른 랜딩 분기
+     이미 로그인 → /dashboard (로그인 페이지에 접근 시)
+     첫 방문 → /onboarding
+
+  5. 데이터 없음 → 404 대신 다른 경로로
+     존재하지 않는 roomId → /rooms (목록으로)
+```
+
+## 사용 패턴
+
+```typescript
+// 1. Server Component — 렌더링 전에 이동
+export default async function ArchivePage() {
+  redirect('/recommendations');   // 이 컴포넌트는 렌더링 안 됨
+}
+
+// 2. 로그인 확인 후 이동
+export default async function DashboardPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  return <Dashboard />;
+}
+
+// 3. 데이터 없으면 이동
+export default async function RoomPage({ params }: { params: { id: string } }) {
+  const room = await fetchRoom(params.id);
+  if (!room) redirect('/rooms');  // 존재하지 않는 방 → 목록으로
+
+  return <RoomView room={room} />;
+}
+
+// 4. Server Action — 폼 제출 후 이동
+async function createPost(formData: FormData) {
+  'use server';
+  const post = await savePost(formData);
+  redirect(`/posts/${post.id}`);  // 생성된 게시글로
+}
 ```
 
 ```txt
-encodeURIComponent(pathname)을 같이 쓰는 이유는 Next.js 라우팅 자체와는 무관한 순수 JS 주제라
-[[JS_URL_Encoding]] 참고 — 이 노트는 "왜 경로를 쿼리스트링에 실어 보내는가"에만 집중
+redirect()의 동작:
+  NEXT_REDIRECT 에러를 throw해서 렌더링을 중단하고 이동
+  → redirect() 이후 코드는 실행 안 됨 (return 불필요)
+  → try-catch 안에서 쓰면 catch가 잡아버림 → try 밖에서 사용
+
+  // ❌ try 안에서 redirect
+  try {
+    const data = await fetch(...);
+    redirect('/next');   // catch가 잡아서 이동 안 됨
+  } catch { ... }
+
+  // ✅ try 밖에서 redirect
+  const data = await fetch(...).catch(() => null);
+  if (!data) redirect('/error');
+
+HTTP 상태 코드:
+  redirect()           → 307 Temporary Redirect
+  permanentRedirect()  → 308 Permanent Redirect (SEO: 구 URL → 신 URL 영구 이동)
 ```
 
-## router.back() 과 뭐가 다른가
-
-
-| 방법                            | 동작                              | 한계                                                     |
-| ----------------------------- | ------------------------------- | ------------------------------------------------------ |
-| `router.back()`               | 브라우저 히스토리에서 그냥 한 단계 뒤로          | "어디로" 가는지 모름 — 새로고침했거나 직접 링크로 들어온 경우 의도와 다른 곳으로 갈 수 있음 |
-| `callbackUrl`/`redirectTo` 패턴 | "정확히 이 경로로 돌아가라"를 문자열로 명시적으로 기억 | 쿼리스트링에 경로가 노출됨, 직접 코드로 구현해야 함                          |
+## redirect vs router.push 선택
 
 ```txt
-"로그인 끝나고 원래 보려던 페이지로" 처럼 목적지가 명확해야 하는 경우엔
-router.back()보다 callbackUrl 패턴이 훨씬 안정적임
+redirect():
+  서버 컴포넌트, Server Action에서만 가능
+  렌더링 전에 이동 → 보안 체크, 접근 제어에 적합
+  클라이언트 코드가 아예 실행 안 됨
+
+router.push():
+  'use client' 컴포넌트에서만 가능
+  이벤트(클릭, 폼 제출) 후 이동
+  이동 전에 추가 처리 가능 (상태 정리, 알림 등)
+
+  서버에서 접근 제어 → redirect()
+  클라이언트 이벤트 후 이동 → router.push()
+```
+
+---
+
+# notFound() — 404 처리 ⭐️⭐️⭐️
+
+```typescript
+import { notFound } from 'next/navigation';
+
+export default async function PostPage({ params }: { params: { id: string } }) {
+  const post = await fetchPost(params.id);
+  if (!post) notFound();   // → app/not-found.tsx 렌더링
+
+  return <PostView post={post} />;
+}
+```
+
+```txt
+redirect vs notFound:
+  redirect('/목록')   → "이 경로는 저쪽으로 가세요"
+  notFound()         → "이 경로는 존재하지 않습니다" (404)
+
+  존재하지 않는 콘텐츠: notFound() (SEO에서 404가 정확)
+  이동시키고 싶을 때:   redirect()
+```
+
+---
+
+# usePathname / useSearchParams ⭐️⭐️⭐️
+
+```typescript
+'use client';
+import { usePathname, useSearchParams } from 'next/navigation';
+
+function NavItem({ href }: { href: string }) {
+  const pathname = usePathname();
+  const isActive = pathname === href || pathname.startsWith(`${href}/`);
+
+  return (
+    <Link href={href} className={isActive ? 'font-bold' : ''}>
+      ...
+    </Link>
+  );
+}
+
+function SearchPage() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+}
+```
+
+---
+
+# 동적 경로 — [id], [...slug] ⭐️⭐️⭐️
+
+```typescript
+// app/rooms/[id]/page.tsx
+export default function RoomPage({
+  params,
+  searchParams,
+}: {
+  params:       { id: string };
+  searchParams: { tab?: string };
+}) {
+  const { id } = params;
+  const tab = searchParams.tab ?? 'chat';
+}
+
+// app/docs/[...slug]/page.tsx — 여러 세그먼트
+// /docs/a/b/c → params.slug = ['a', 'b', 'c']
+export default function DocsPage({ params }: { params: { slug: string[] } }) {}
+
+// app/docs/[[...slug]]/page.tsx — 선택적
+// /docs 도, /docs/a/b 도 매칭
 ```
 
 ---
 
 # 한눈에
 
-| 키워드                                   | 한 줄 정리                                                   |
-| ------------------------------------- | -------------------------------------------------------- |
-| `<Link>`                              | 사용자가 클릭하는 이동 — 자동 프리페치                                   |
-| `useRouter()`                         | 코드 로직으로 이동 — `push`/`replace`/`back`/`forward`/`refresh` |
-| `push` vs `replace`                   | 히스토리에 쌓을지(push) 덮어쓸지(replace)                            |
-| `usePathname()`                       | 지금 경로 문자열 (쿼리스트링 미포함), 경로 바뀌면 리렌더                        |
-| `useSearchParams()`                   | `?key=value` 쿼리스트링 읽기                                    |
-| `useEffect(..., [pathname])`          | 경로 바뀔 때마다 다시 확인하는 트릭 (localStorage처럼 React가 모르는 상태 동기화용) |
-| `redirect()`                          | 서버 전용 — 렌더링을 멈추고 즉시 이동시키는 실제 함수                          |
-| `useCallback`                         | 라우팅과 무관한 일반 React 훅 (함수 메모이제이션) — `callbackUrl`과 이름만 비슷  |
-| `callbackUrl` / `redirectTo` / `next` | 함수가 아니라 "돌아갈 경로"를 담아두는 관습적인 파라미터 이름 (셋 다 같은 개념)          |
-| `router.back()` vs `callbackUrl`      | 히스토리 기반(부정확할 수 있음) vs 명시적 경로 기억(안정적)                     || `useSearchParams()`                   | `?key=value` 쿼리스트링 읽기                                    |
-| `useEffect(..., [pathname])`          | 경로 바뀔 때마다 다시 확인하는 트릭 (localStorage처럼 React가 모르는 상태 동기화용) |
-| `redirect()`                          | 서버 전용 — 렌더링을 멈추고 즉시 이동시키는 실제 함수                          |
-| `useCallback`                         | 라우팅과 무관한 일반 React 훅 (함수 메모이제이션) — `callbackUrl`과 이름만 비슷  |
-| `callbackUrl` / `redirectTo` / `next` | 함수가 아니라 "돌아갈 경로"를 담아두는 관습적인 파라미터 이름 (셋 다 같은 개념)          |
-| `router.back()` vs `callbackUrl`      | 히스토리 기반(부정확할 수 있음) vs 명시적 경로 기억(안정적)                     |
+```txt
+<Link href="...">     JSX에서 정적/동적 이동 — 기본 이동 수단
+router.push(href)     클라이언트 이벤트 후 이동 ('use client' 필요)
+router.replace(href)  이동 + 뒤로가기 차단
+redirect(href)        서버에서 이동 — 렌더링 전 접근 제어/경로 변경
+notFound()            404 처리
+
+redirect() 주요 용도:
+  미인증 → /login
+  권한 없음 → /403
+  폐기 경로 → 새 경로
+  데이터 없음 → 목록
+
+redirect() 주의:
+  try-catch 밖에서 사용
+  이후 코드 실행 안 됨 (return 불필요)
+  서버 컴포넌트 / Server Action 전용
+```
