@@ -12,6 +12,7 @@ related:
   - "[[NextJS_UI_Types]]"
   - "[[NextJS_API_Client]]"
   - "[[JS_Loops_Conditionals]]"
+  - "[[React_LucideIcons]]"
 ---
 # React_Component — 함수형 컴포넌트 & JSX
 
@@ -462,6 +463,117 @@ function App() {
   "재사용되는가" 또는 "독립적인 의미 단위인가"를 기준으로 판단
 ```
 
+---
+# 타입 안전한 Nav 컴포넌트 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+import { Home, Settings } from 'lucide-react';
+
+// 1. 유니온 타입으로 nav 키 제한
+export type NavKey = 'home' | 'stats' | 'profile' | 'settings';
+
+// 2. 아이콘 컴포넌트 타입 — typeof로 추출
+type NavItem = {
+  key:   NavKey;
+  href:  string;
+  label: string;
+  icon:LucideIcon;
+};
+
+// 3. 설정 배열로 분리 — map으로 렌더링
+const ITEMS: NavItem[] = [
+  { key: 'home',     href: '/me',          label: '홈',  icon: Home     },
+  { key: 'settings', href: '/me/settings', label: '설정', icon: Settings },
+];
+```
+
+```typescript
+// Props 타입
+type NavProps = {
+  active?:       NavKey | null;  // undefined=하이라이트 없음, null도 없음
+  requestCount?: number;
+};
+
+export function MyHomeNav({ active = null, requestCount = 0 }: NavProps) {
+  return (
+    <nav aria-label="메뉴">
+      {ITEMS.map(({ key, href, label, icon: Icon }) => {
+        //                              ↑ icon → Icon 으로 rename
+        //                                대문자여야 JSX에서 <Icon />로 사용 가능
+        const isActive  = active === key;
+        const showBadge = key === 'friends' && requestCount > 0;
+
+        return (
+          <Link
+            key={key}
+            href={href}
+            aria-current={isActive ? 'page' : undefined}>
+            <Icon aria-hidden />        {/* ← 변수명이 대문자라 JSX로 사용 가능 */}
+            <span>{label}</span>
+            {showBadge && <span>{requestCount}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+```
+
+## 패턴 설명
+
+```txt
+icon: typeof Home:
+  lucide-react 아이콘은 함수 컴포넌트 — 그 타입을 typeof로 추출
+  typeof Home = React.FC<LucideProps>
+  → icon 필드에 어떤 lucide 아이콘이든 넣을 수 있음
+
+icon: Icon (구조분해 rename):
+  { icon: Icon } = item
+  → item.icon을 꺼내서 Icon 이라는 이름으로 받음
+
+  이름을 Icon(대문자)으로 바꾸는 이유:
+    JSX에서 소문자로 시작하는 변수는 HTML 태그로 해석
+    const icon = Home; → <icon /> → ❌ (HTML 태그로 해석)
+    const Icon = Home; → <Icon /> → ✅ (컴포넌트로 해석)
+
+aria-current={isActive ? 'page' : undefined}:
+  현재 페이지임을 스크린리더에 알리는 접근성 속성
+  undefined면 속성 자체가 렌더링 안 됨 (false는 'false' 문자열로 남음)
+  → false 대신 undefined 사용
+
+active?: NavKey | null:
+  undefined → prop을 안 넘긴 것 (기본값 null로 처리)
+  null      → "현재 활성 탭 없음"을 명시적으로 전달
+  NavKey    → 이 탭이 활성
+
+설정을 ITEMS 배열로 분리하는 이유:
+  항목 추가 시 JSX가 아닌 배열만 수정
+  새 항목의 key가 NavKey에 없으면 TypeScript 에러 → 누락 방지
+  map으로 일관된 구조 렌더링 → 조건 중복 없음
+```
+
+## 아이콘 prop으로 받기
+
+```typescript
+// 컴포넌트가 아이콘을 prop으로 받을 때도 같은 패턴
+type ButtonProps = {
+  icon?: typeof Home;   // 어떤 lucide 아이콘이든
+  label: string;
+};
+
+function IconButton({ icon: Icon, label }: ButtonProps) {
+  return (
+    <button>
+      {Icon && <Icon className="size-4" aria-hidden />}
+      {label}
+    </button>
+  );
+}
+
+// 사용
+<IconButton icon={Settings} label="설정" />
+<IconButton icon={Home} label="홈" />
+```
 ---
 # 재사용 컴포넌트 실전 — ColorSwatches ⭐️⭐️⭐️⭐️
 

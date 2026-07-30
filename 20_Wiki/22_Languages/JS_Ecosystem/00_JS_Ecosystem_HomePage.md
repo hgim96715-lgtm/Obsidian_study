@@ -93,11 +93,11 @@ JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
 
 ## 🎨 스타일링 · CSS
 
-| |노트|
-|---|---|
-|**JS**|[[JS_BrowserAPI]] (style 섹션) · [[JS_DOM]] (classList)|
-|**React**|[[React_CSSProperties]] · [[React_Styling]]|
-|**Next.js**|[[NextJS_Font]] (next/font · @import · 한글 폰트 · 커스텀 클래스)|
+|             | 노트                                                                  |
+| ----------- | ------------------------------------------------------------------- |
+| **JS**      | [[JS_BrowserAPI]] (style 섹션) · [[JS_DOM]] (classList)               |
+| **React**   | [[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] |
+| **Next.js** | [[NextJS_Font]] (next/font · @import · 한글 폰트 · 커스텀 클래스)             |
 
 ---
 
