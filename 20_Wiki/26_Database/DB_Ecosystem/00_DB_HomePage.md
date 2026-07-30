@@ -85,12 +85,12 @@ PostgreSQL이든 MySQL이든 Redis든 공통으로 알아야 하는 개념들
 "NestJS에서 PostgreSQL을 어떻게 쓰는가"에 초점 — 순수 SQL 원리는 아래 PG_xxx 노트에 분리
 ```
 
-|노트|핵심 내용|
-|---|---|
-|[[NestJS_PostgreSQL]]|Docker Compose · DataGrip 연결 · timestamp vs timestamptz · KST 집계|
-|[[NestJS_Prisma]]|Prisma ORM · migrate dev/deploy · select/include/omit · as const|
-|[[NestJS_StatsBucket]]|GROUP BY 빈 구간 누락 문제 · 버킷 생성 → DB 집계 → 배열 변환|
-|[[NestJS_Prisma_Monorepo]]|pnpm 모노레포 환경에서 prisma 명령 위치 · generate 경로|
+| 노트                         | 핵심 내용                                                            |
+| -------------------------- | ---------------------------------------------------------------- |
+| [[NestJS_PostgreSQL]]      | Docker Compose · DataGrip 연결 · timestamp vs timestamptz · KST 집계 |
+| [[NestJS_Prisma]]          | Prisma ORM · migrate dev/deploy · select/include/omit · as const |
+| [[NestJS_StatsBucket]]     | GROUP BY 빈 구간 누락 문제 · 버킷 생성 → DB 집계 → 배열 변환                      |
+
 
 ## 순수 PostgreSQL 개념 — 이 폴더 (DB_Ecosystem)
 

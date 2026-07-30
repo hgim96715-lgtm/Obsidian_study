@@ -13,6 +13,7 @@ related:
   - "[[PG_DDL]]"
   - "[[DB_MigrationPattern]]"
   - "[[NestJS_Idempotency]]"
+  - "[[PG_Transaction]]"
 ---
 # DB_Transaction — 트랜잭션
 

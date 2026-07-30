@@ -6,98 +6,30 @@ tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[DB_Transaction]]"
-  - "[[NestJS_Idempotency]]"
-  - "[[NestJS_Prisma]]"
-  - "[[NestJS_Auth]]"
-  - "[[NestJS_DTO]]"
+  - "[[NestJS_Prisma_Patterns]]"
+  - "[[PG_Transaction]]"
 ---
 # NestJS_Transaction — Prisma 트랜잭션
 
 > [!info] 
-> Prisma에서 트랜잭션을 쓰는 방법은 두 가지 — 배치 방식(`$transaction([...])`)과 인터랙티브 방식(`$transaction(async (tx) => {})`)
-> DB 트랜잭션 개념(ACID, 격리 수준) → [[DB_Transaction]]
-
----
-# 흐름도
-
-```mermaid-beautiful
-flowchart TB
-  subgraph WHY["① 왜 필요한가"]
-    direction TB
-    W1["여러 DB 작업이 한 묶음"]
-    W2["하나 실패 → 전부 롤백"]
-    W3["주문 생성 + 재고 차감 예"]
-    W1 --> W2 --> W3
-  end
-
-  subgraph HOW["② Prisma 두 가지"]
-    direction TB
-    H1{"앞 결과로\n뒤를 결정?"}
-    H2["배치 $transaction 배열"]
-    H3["인터랙티브 async tx"]
-    H1 -->|아니오| H2
-    H1 -->|예| H3
-  end
-
-  subgraph BATCH["③ 배치"]
-    direction TB
-    B1["op1 op2 op3 미리 정의"]
-    B2["결과 배열로 반환"]
-    B1 --> B2
-  end
-
-  subgraph INTER["④ 인터랙티브"]
-    direction TB
-    I1["읽기 → 검증 → 쓰기"]
-    I2["반드시 tx 사용"]
-    I3["prisma 직접 쓰면 트랜잭션 밖"]
-    I4["throw → 자동 롤백"]
-    I1 --> I2 --> I3
-    I2 --> I4
-  end
-
-  subgraph LOCK["⑤ 동시 접근"]
-    direction TB
-    L1["FOR UPDATE in tx"]
-    L2["행 잠금 · 순서 보장"]
-    L1 --> L2
-  end
-
-  subgraph ERR["⑥ 에러"]
-    direction TB
-    E1["P2002 Unique"]
-    E2["P2025 not found"]
-    E3["P2034 Serializable 충돌"]
-    E1 --- E2 --- E3
-  end
-
-  W3 --> H1
-  H2 --> B1
-  H3 --> I1
-  I1 --> L1
-  I4 --> ERR
-```
-
-```txt
-배치 = 독립 작업 묶음 · 인터랙티브 = 읽고 분기 후 쓰기 · 콜백 안은 tx만
-동시 재고 차감은 tx + FOR UPDATE · 중복 방어는 [[NestJS_Idempotency]] · ACID는 [[DB_Transaction]]
-```
+> 트랜잭션 = 여러 DB 쿼리를 하나의 작업 단위로 묶는 것. 하나라도 실패하면 전부 롤백된다. 
+> Prisma에서 쓰는 방법은 배치(`$transaction([...])`)와 인터랙티브(`$transaction(async tx => {})`) 두 가지. 
+> SQL 레벨 트랜잭션(BEGIN · SAVEPOINT · Isolation Level · DEADLOCK) → [[PG_Transaction]]
 
 ---
 
-# 왜 트랜잭션이 필요한가 ⭐️⭐️⭐️
+# 트랜잭션이 필요한 이유 ⭐️⭐️⭐️
 
 ```typescript
-// ❌ 트랜잭션 없음 — 주문 생성 후 재고 차감 실패하면 데이터 불일치
+// ❌ 트랜잭션 없음 — 두 번째 쿼리에서 에러나면 데이터 불일치
 await prisma.order.create({ data: { userId, productId } });
 await prisma.product.update({
   where: { id: productId },
   data:  { stock: { decrement: 1 } },
 });
-// 첫 번째는 성공, 두 번째에서 에러 → 주문은 있는데 재고는 안 줄어든 상태
+// 주문은 생성됐는데 재고는 안 줄어든 상태가 될 수 있음
 
-// ✅ 트랜잭션 — 둘 다 성공 or 둘 다 롤백
+// ✅ 트랜잭션 — 둘 다 성공하거나 둘 다 롤백
 await prisma.$transaction(async (tx) => {
   await tx.order.create({ data: { userId, productId } });
   await tx.product.update({
@@ -107,12 +39,64 @@ await prisma.$transaction(async (tx) => {
 });
 ```
 
+```txt
+트랜잭션의 핵심 성질 — All or Nothing:
+  여러 쿼리가 하나의 논리적 단위로 묶임
+  중간에 하나라도 실패(throw)하면 이미 실행된 쿼리들까지 전부 되돌아감
+  성공하면 COMMIT, 실패하면 ROLLBACK
+
+ACID 개념(원자성 · 일관성 · 격리성 · 지속성) → [[DB_Transaction]]
+```
+
 ---
 
-# 방식 1 — 배치 트랜잭션 `$transaction([...])` ⭐️⭐️⭐️
+# Connection과 트랜잭션의 관계 — tx를 반드시 써야 하는 이유 ⭐️⭐️⭐️⭐️
+
+```txt
+DB 트랜잭션은 하나의 Connection 위에서 동작한다
+
+일반 prisma 쿼리의 흐름:
+  Connection Pool에서 쿼리마다 Connection을 빌림
+  → 쿼리 실행
+  → Connection 반납
+  쿼리가 각자 다른 Connection을 쓸 수 있음
+
+트랜잭션의 흐름:
+  Connection Pool에서 Connection 하나를 "점유"
+  → 이 Connection 위에서 BEGIN 실행
+  → 모든 쿼리를 이 Connection 위에서 실행
+  → COMMIT 또는 ROLLBACK
+  → Connection 반납
+
+핵심: 트랜잭션 안의 모든 쿼리가 같은 Connection을 공유해야
+      DB가 "이것들이 한 묶음"이라고 인식하고 함께 롤백할 수 있음
+```
 
 ```typescript
-// 미리 정의한 Prisma 작업들을 배열로 넘김 → 한 트랜잭션으로 실행
+await prisma.$transaction(async (tx) => {
+  // tx = 트랜잭션 전용 Connection을 래핑한 Prisma 클라이언트
+  await tx.order.create(...);    // ✅ 같은 Connection
+  await tx.product.update(...);  // ✅ 같은 Connection
+
+  await prisma.log.create(...);  // ❌ prisma = 다른 Connection에서 실행
+                                 //    트랜잭션 밖 → 롤백되지 않음
+});
+```
+
+```txt
+prisma vs tx:
+  prisma  — Connection Pool에서 임의의 Connection을 빌려 실행
+  tx      — 트랜잭션을 위해 점유한 특정 Connection 위에서 실행
+
+  콜백 안에서 prisma를 쓰면 다른 Connection에서 실행되어
+  트랜잭션이 롤백될 때 함께 되돌아가지 않음
+```
+
+---
+
+# 방식 1 — 배치 `$transaction([...])` ⭐️⭐️⭐️
+
+```typescript
 const [order, updatedProduct] = await prisma.$transaction([
   prisma.order.create({ data: { userId, productId } }),
   prisma.product.update({
@@ -120,34 +104,70 @@ const [order, updatedProduct] = await prisma.$transaction([
     data:  { stock: { decrement: 1 } },
   }),
 ]);
+// 반환값은 배열 — 넘긴 순서대로 구조분해로 받음
 ```
 
 ```txt
-특징:
-  반환값은 배열 — 넘긴 순서대로 결과를 구조분해로 받음
-  작업 간에 데이터 의존성이 없을 때 적합 (앞 작업의 결과를 다음 작업에 못 씀)
-  작업들이 모두 미리 정의되어 있어야 함 (런타임 분기 불가)
+동작 방식:
+  Prisma 작업들을 배열로 미리 정의해서 넘김
+  내부적으로 하나의 Connection에서 BEGIN → 순서대로 실행 → COMMIT
+  하나라도 실패하면 ROLLBACK
 
-언제 쓰는가:
-  독립적인 여러 INSERT/UPDATE를 한 번에 묶을 때
-  작업 순서나 조건이 고정돼 있을 때
+특징:
+  작업들이 실행 전에 전부 정의되어 있어야 함 (런타임 분기 불가)
+  앞 작업의 결과를 다음 작업에 활용하는 것도 불가
+  불필요한 결과는 쉼표로 건너뜀 → [[JS_Operators]] 배열 구조분해 skip 참고
+```
+
+```typescript
+// 필요한 결과만 구조분해
+const [, , updatedRoom] = await this.prisma.$transaction([
+  this.prisma.roomMember.delete({ ... }),  // [0] 필요 없음
+  this.prisma.log.create({ ... }),         // [1] 필요 없음
+  this.prisma.room.update({ ... }),        // [2] 이 결과만 필요
+]);
+```
+
+## ⚠️ 배치 + include → pg client 경고
+
+```typescript
+// ❌ 배치 형태 + include — PostgreSQL 어댑터에서 경고 발생 가능
+const [, , , message] = await this.prisma.$transaction([
+  this.prisma.roomBan.upsert({ ... }),
+  this.prisma.roomMember.delete({ ... }),
+  this.prisma.room.update({ ... }),
+  this.prisma.roomMessage.create({
+    data:    { ... },
+    include: messageInclude,  // ← include 있으면 Prisma가 추가 쿼리를 내부적으로 실행
+  }),
+]);
+```
+
+```txt
+왜 경고가 나는가:
+  배치 $transaction은 각 쿼리를 독립적으로 보내면서 트랜잭션으로 묶는 방식
+  include가 붙으면 Prisma가 내부적으로 추가 SELECT를 실행 (JOIN 대신 별도 쿼리)
+  → pg 어댑터에서 "중첩 client.query" 경고 발생
+
+  기능은 작동하지만 콘솔에 경고 로그가 쌓임
+  → include가 하나라도 있으면 인터랙티브 형태 사용 권장
 ```
 
 ---
 
-# 방식 2 — 인터랙티브 트랜잭션 `$transaction(async tx => {})` ⭐️⭐️⭐️⭐️
+# 방식 2 — 인터랙티브 `$transaction(async tx => {})` ⭐️⭐️⭐️⭐️
 
 ```typescript
 await prisma.$transaction(async (tx) => {
-  // tx = 트랜잭션용 Prisma 클라이언트 (prisma 대신 이걸 써야 같은 트랜잭션)
-
-  // 먼저 읽고
+  // 읽고
   const product = await tx.product.findUnique({ where: { id: productId } });
+
+  // 검증하고 (실패 시 throw → 자동 롤백)
   if (!product || product.stock <= 0) {
-    throw new Error('재고 없음');  // throw하면 자동 롤백
+    throw new BadRequestException('재고 없음');
   }
 
-  // 읽은 결과로 조건 분기 후 쓰기
+  // 쓰기
   await tx.order.create({ data: { userId, productId } });
   await tx.product.update({
     where: { id: productId },
@@ -157,19 +177,16 @@ await prisma.$transaction(async (tx) => {
 ```
 
 ```txt
+throw → 자동 롤백의 원리:
+  Prisma가 콜백을 try/catch로 감싸고 있음
+  throw가 발생하면 Prisma가 ROLLBACK을 실행한 뒤 예외를 다시 던짐
+  → 명시적으로 ROLLBACK을 작성하지 않아도 됨
+  → NestJS HTTP 예외(NotFoundException 등)를 그대로 throw해도 롤백됨
+
 특징:
-  콜백 안에서 자유롭게 조건 분기, 읽기 → 계산 → 쓰기 가능
-  throw하면 자동 롤백 (try/catch 없이도)
-  tx를 통해 실행한 쿼리들이 모두 같은 트랜잭션 연결을 공유
-
-⚠️ 반드시 tx를 사용해야 함
-  콜백 안에서 prisma를 쓰면 → 트랜잭션 밖에서 실행됨 → 트랜잭션 보장 없음
-
-  ❌ 콜백 안에서 prisma 사용 (트랜잭션 외부)
-  await prisma.$transaction(async (tx) => {
-    await prisma.order.create(...)   // ← prisma (❌ 트랜잭션 밖)
-    await tx.product.update(...)     // ← tx (✅ 트랜잭션 안)
-  });
+  읽기 → 조건 분기 → 쓰기가 모두 같은 Connection 안에서 이루어짐
+  include 포함 모든 쿼리 안전하게 사용 가능
+  마지막 return 값이 $transaction 전체의 반환값
 ```
 
 ## NestJS Service에서 사용 패턴
@@ -181,21 +198,18 @@ export class OrderService {
 
   async createOrder(userId: number, productId: number) {
     return this.prisma.$transaction(async (tx) => {
-      // 재고 확인
       const product = await tx.product.findUnique({
-        where: { id: productId },
+        where:  { id: productId },
         select: { id: true, stock: true, price: true },
       });
 
-      if (!product) throw new NotFoundException('상품을 찾을 수 없습니다.');
+      if (!product)          throw new NotFoundException('상품을 찾을 수 없습니다.');
       if (product.stock <= 0) throw new BadRequestException('재고가 없습니다.');
 
-      // 주문 생성
       const order = await tx.order.create({
         data: { userId, productId, amount: product.price },
       });
 
-      // 재고 차감
       await tx.product.update({
         where: { id: productId },
         data:  { stock: { decrement: 1 } },
@@ -207,40 +221,127 @@ export class OrderService {
 }
 ```
 
+## include와 함께 — 인터랙티브가 필요한 이유
+
+```typescript
+// ✅ include + 복잡한 쿼리는 인터랙티브로
+return this.prisma.$transaction(async (tx) => {
+  await tx.roomBan.upsert({ ... });
+  await tx.roomMember.delete({ ... });
+  await tx.room.update({
+    where: { id: roomId },
+    data:  { memberCount: { decrement: 1 } },
+  });
+  return tx.roomMessage.create({
+    data:    { ... },
+    include: messageInclude,  // ✅ tx 안에서 include 사용해도 경고 없음
+  });
+});
+```
+
+---
+
+# 배치 vs 인터랙티브 — 선택 기준 ⭐️⭐️⭐️
+
+||배치 `$transaction([...])`|인터랙티브 `$transaction(async tx => {})`|
+|---|---|---|
+|작업 간 의존성|없음|있음 (앞 결과로 뒤를 결정)|
+|조건 분기|불가|가능|
+|include 사용|경고 발생 가능|안전|
+|코드 복잡도|낮음|높음|
+|결과 받는 방법|배열 구조분해|마지막 return 값|
+
+```txt
+include가 하나라도 있으면 → 인터랙티브
+중간에 조건 분기가 필요하면 → 인터랙티브
+단순 INSERT/UPDATE/DELETE 묶음 + include 없으면 → 배치도 가능
+```
+
+---
+
+# 주의사항 — Connection 점유 ⭐️⭐️
+
+```txt
+인터랙티브 트랜잭션은 실행 중에 Connection을 점유한다
+콜백이 끝날 때까지 해당 Connection은 다른 쿼리에 쓰일 수 없음
+
+Connection Pool 고갈 위험:
+  트랜잭션 안에서 시간이 오래 걸리는 작업을 하면
+  → Connection을 그 시간만큼 점유
+  → 동시 요청이 많을 때 Pool의 모든 Connection이 트랜잭션에 묶일 수 있음
+
+⚠️ 트랜잭션 안에서 하면 안 되는 것:
+  - 외부 API 호출 (HTTP 요청, 이메일 전송 등)
+  - 무거운 계산 작업
+  - 파일 I/O
+
+올바른 패턴:
+  필요한 DB 작업만 트랜잭션 안에 넣고
+  외부 연동(이메일, 이벤트 발행 등)은 트랜잭션 성공 후 바깥에서 실행
+```
+
+```typescript
+// ✅ 외부 연동은 트랜잭션 바깥에서
+async createOrder(userId: number, productId: number) {
+  const order = await this.prisma.$transaction(async (tx) => {
+    // DB 작업만
+    const result = await tx.order.create({ ... });
+    await tx.product.update({ ... });
+    return result;
+  });
+
+  // 트랜잭션 완료 후 이메일 발송
+  await this.emailService.sendOrderConfirmation(order);
+
+  return order;
+}
+```
+
 ---
 
 # 격리 수준 / 타임아웃 옵션 ⭐️⭐️
 
 ```typescript
-// 격리 수준 변경 (기본: READ COMMITTED)
 await prisma.$transaction(async (tx) => {
   // ...
 }, {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   timeout:        5000,   // ms — 트랜잭션 최대 실행 시간 (초과 시 롤백)
-  maxWait:        2000,   // ms — 트랜잭션 연결 풀에서 기다리는 최대 시간
+  maxWait:        2000,   // ms — Connection Pool에서 대기하는 최대 시간
 });
 ```
 
 ```txt
 Prisma.TransactionIsolationLevel:
-  ReadUncommitted  / ReadCommitted (기본) / RepeatableRead / Serializable
+  ReadUncommitted  /  ReadCommitted (기본)  /  RepeatableRead  /  Serializable
 
 언제 격리 수준을 올리는가:
-  RepeatableRead  같은 데이터를 트랜잭션 안에서 두 번 읽는데 일관성이 필요할 때
-  Serializable    완벽한 직렬화가 필요한 금융 계산 등 (성능 트레이드오프 있음)
+  RepeatableRead   트랜잭션 안에서 같은 행을 두 번 읽는데 일관성이 필요할 때
+  Serializable     완벽한 직렬화가 필요한 금융 계산 등 (성능 트레이드오프 있음)
 
-격리 수준 개념 → [[DB_Transaction]]
+격리 수준 이상 현상(Dirty Read · Non-Repeatable Read · Phantom Read) → [[PG_Transaction]]
 ```
 
 ---
 
 # 비관적 잠금 — FOR UPDATE ⭐️⭐️⭐️
 
+```txt
+인터랙티브 트랜잭션만으로는 동시 요청 방어에 한계가 있다:
+  요청 A, 요청 B가 거의 동시에 도착
+  A가 product 읽음 → stock: 1 → 통과
+  B가 product 읽음 → stock: 1 → 통과  (A가 아직 update 안 했을 때)
+  A, B 모두 update → stock이 -1이 됨
+
+FOR UPDATE를 추가하면:
+  A가 SELECT ... FOR UPDATE → 해당 행을 잠금
+  B가 같은 행에 SELECT ... FOR UPDATE 시도 → A가 끝날 때까지 대기
+  A가 update + COMMIT → B가 잠금 획득 → stock 다시 확인 → 0이면 에러
+```
+
 ```typescript
-// Prisma ORM으로 직접 지원 안 함 → $queryRaw 사용
+// Prisma ORM은 FOR UPDATE를 직접 지원하지 않음 → $queryRaw 사용
 await prisma.$transaction(async (tx) => {
-  // 행 잠금 — 다른 트랜잭션의 수정 차단
   const [product] = await tx.$queryRaw<{ id: number; stock: number }[]>`
     SELECT id, stock FROM "Product"
     WHERE id = ${productId}
@@ -257,14 +358,12 @@ await prisma.$transaction(async (tx) => {
 ```
 
 ```txt
-FOR UPDATE가 필요한 경우:
-  "읽고 → 검증하고 → 쓰기"를 원자적으로 보장해야 할 때
-  (인터랙티브 트랜잭션만으로는 동시에 여러 요청이 같은 값을 읽고 통과할 수 있음)
-
 비관적 잠금 vs 낙관적 잠금 선택 기준:
   충돌이 드물다  → 낙관적 잠금 (version 필드, 충돌 시 재시도)
   충돌이 빈번하다 → 비관적 잠금 (FOR UPDATE, 순서 보장)
   → [[NestJS_Idempotency]] 참고
+
+FOR UPDATE의 DEADLOCK 위험 → [[PG_Transaction]] DEADLOCK 섹션
 ```
 
 ---
@@ -277,144 +376,50 @@ async createOrder(userId: number, productId: number) {
     return await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.findUnique({ where: { id: productId } });
       if (!product) throw new NotFoundException('상품 없음');
-
-      // ... 나머지 로직
+      // ...
     });
   } catch (e) {
-    // Prisma 에러 분류
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e.code === 'P2002') throw new ConflictException('중복 요청입니다.');
       if (e.code === 'P2025') throw new NotFoundException('데이터를 찾을 수 없습니다.');
+      if (e.code === 'P2034') {
+        // Serializable 충돌 → 재시도 필요
+        throw new ConflictException('동시 요청 충돌. 다시 시도해 주세요.');
+      }
     }
-
-    // 직접 throw한 NestJS HTTP 예외는 그대로 올려보냄
-    if (e instanceof HttpException) throw e;
-
-    // 예상 못 한 에러
-    throw new InternalServerErrorException('주문 처리 중 오류가 발생했습니다.');
+    if (e instanceof HttpException) throw e;  // 직접 throw한 NestJS 예외는 그대로
+    throw new InternalServerErrorException('처리 중 오류가 발생했습니다.');
   }
 }
 ```
 
-```txt
-$transaction 안에서 throw하면:
-  → 자동으로 ROLLBACK → 예외가 $transaction 밖으로 전파
-
-Prisma 에러 코드:
-  P2002  Unique constraint 위반
-  P2025  Record not found (update/delete 대상 없음)
-  P2034  트랜잭션 충돌 (Serializable에서 발생 → 재시도 필요)
-
-P2034 재시도 패턴:
-  Serializable 격리 수준에서는 충돌 감지 후 에러를 던짐
-  → catch에서 P2034 확인 후 재시도 로직 구현
-```
-
----
-
-# 배치 vs 인터랙티브 — 언제 뭘 쓰는가
-
-| |배치 `$transaction([...])`|인터랙티브 `$transaction(async tx => {})`|
+|코드|의미|보통 던지는 예외|
 |---|---|---|
-|작업 간 의존성|없음|있음 (앞 결과로 뒤를 결정)|
-|조건 분기|불가|가능|
-|코드 복잡도|낮음|높음|
-|사용 예|여러 테이블 동시 INSERT|읽고 검증하고 쓰기|
-
----
-# $transaction — 트랜잭션
-
-| 방식    | 특징                                     |
-| ----- | -------------------------------------- |
-| 인터랙티브 | 콜백 + tx 사용 · 분기 가능 · include 안전        |
-| 배치    | 배열로 단순 묶음 · 분기 불가 · include 시 경고 발생 가능 |
-
-## ⚠️ 배치 + include → pg client.query 중첩 경고
-
-```typescript
-// ❌ 배치 형태 + include — PostgreSQL 어댑터에서 client.query 중첩 경고 발생 가능
-const [, , , systemMessage] = await this.prisma.$transaction([
-  this.prisma.roomBan.upsert({ ... }),
-  this.prisma.roomMember.delete({ ... }),
-  this.prisma.room.update({ ... }),
-  this.prisma.roomMessage.create({
-    data: { ... },
-    include: roomMessageInclude,   // ← include가 내부 쿼리를 추가로 실행
-  }),
-]);
-```
+|`P2002`|Unique constraint 위반|`ConflictException`|
+|`P2025`|대상 없음 (update/delete할 행이 없음)|`NotFoundException`|
+|`P2034`|Serializable 격리 수준에서 트랜잭션 충돌|`ConflictException` + 재시도 안내|
 
 ```txt
-왜 경고가 나는가:
-  배치 $transaction([...])은 단일 연결(connection)을 공유하지 않고
-  각 쿼리를 독립적으로 실행하면서 묶는 방식
-  include가 붙으면 Prisma가 내부적으로 추가 쿼리를 실행 (JOIN 대신 별도 SELECT)
-  → pg 어댑터에서 "client.query 중첩" 경고 발생
-  
-  증상: 기능은 작동하지만 콘솔에 경고 로그가 남음
-```
+P2034가 발생하는 이유:
+  Serializable 격리 수준은 직렬화 가능성을 보장하기 위해
+  "이 트랜잭션을 직렬로 실행했을 때와 결과가 다를 것 같다"고 판단하면 에러를 던짐
+  → catch에서 P2034를 잡아 재시도 로직 구현 또는 클라이언트에 재시도 안내
 
-## ✅ 인터랙티브 형태로 해결
-
-```typescript
-// ✅ include + 복잡한 쿼리는 인터랙티브 $transaction으로
-return this.prisma.$transaction(async (tx) => {
-  await tx.roomBan.upsert({
-    where:  { roomId_userId: { roomId, userId: targetUserId } },
-    create: { roomId, userId: targetUserId, kickedBy: actorId },
-    update: { kickedBy: actorId },
-  });
-  await tx.roomMember.delete({ where: { id: target.id } });
-  await tx.room.update({
-    where: { id: roomId },
-    data:  { memberCount: { decrement: 1 } },
-  });
-  return tx.roomMessage.create({
-    data:    { roomId, senderId: actorId, type: RoomMessageType.system, body },
-    include: roomMessageInclude,   // include 안전하게 사용 가능
-  });
-});
-```
-
-```txt
-인터랙티브 형태의 차이:
-  tx는 하나의 트랜잭션 연결을 공유 → include 추가 쿼리도 같은 tx 안에서 실행
-  → pg client.query 중첩 경고 없음
-
-  마지막 return 값이 $transaction 전체의 반환값
-  → 배치의 [, , , systemMessage] 구조분해 없이 바로 return
-
-  await 순서대로 실행, 하나라도 throw 하면 전체 롤백
-```
-
-## 배치 vs 인터랙티브 선택 기준 ⭐️⭐️⭐️
-
-```txt
-배치 $transaction([...]):
-  ✅ include 없는 단순 update/delete/create 묶음
-  ✅ 중간 분기 불필요
-  ❌ include 사용 시 pg client.query 중첩 경고 가능
-  ❌ 중간 결과를 다음 쿼리에 활용 불가
-
-인터랙티브 $transaction(async tx => {...}):
-  ✅ include 포함 모든 쿼리 안전
-  ✅ 중간에 조건 분기 가능 (findUnique → 없으면 throw)
-  ✅ 중간 결과를 다음 쿼리에서 활용 가능
-  ✅ 하나라도 throw하면 전체 자동 롤백
-
-  → include가 하나라도 있으면 인터랙티브 사용 권장
-```
-
-## 배치 형태 — 필요한 결과만 구조분해 ⭐️⭐️⭐️
-
-```typescript
-// include 없는 단순 배치는 배열 구조분해로 결과 받기 가능
-const [, , updatedRoom] = await this.prisma.$transaction([
-  this.prisma.roomMember.delete({ ... }),   // [0] 필요 없음
-  this.prisma.log.create({ ... }),          // [1] 필요 없음
-  this.prisma.room.update({ ... }),         // [2] 이 결과만 필요
-]);
-// → [[JS_Operators]] 배열 구조분해 skip 패턴 참고
+throw → 자동 롤백 흐름:
+  콜백 안에서 throw
+  → Prisma가 ROLLBACK 실행
+  → 예외가 $transaction 밖으로 전파
+  → 바깥 try/catch에서 잡힘
 ```
 
 ---
+
+# 자주 만나는 에러
+
+| 증상              | 원인                         | 해결                      |
+| --------------- | -------------------------- | ----------------------- |
+| 롤백이 안 됨         | 콜백 안에서 `prisma` 사용 (tx 아님) | `prisma` → `tx` 로 교체    |
+| include 시 콘솔 경고 | 배치 형태에서 include 사용         | 인터랙티브 형태로 전환            |
+| P2034 에러        | Serializable 격리 수준 충돌      | catch에서 P2034 잡아 재시도 처리 |
+| Connection 고갈   | 트랜잭션 안에서 외부 API 호출         | 외부 연동은 트랜잭션 바깥으로 이동     |
+| 트랜잭션 타임아웃       | 콜백 안에 무거운 작업               | timeout 옵션 조정 또는 작업 분리  |
