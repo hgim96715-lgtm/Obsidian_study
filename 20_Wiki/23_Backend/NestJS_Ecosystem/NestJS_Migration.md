@@ -13,6 +13,7 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Prisma_Patterns]]"
+  - "[[Monorepo_PNPM]]"
 ---
 # NestJS_Migration — Prisma 마이그레이션
 
