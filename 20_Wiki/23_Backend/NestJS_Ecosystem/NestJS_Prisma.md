@@ -3,6 +3,7 @@ aliases:
   - NestJS Prisma
   - Prisma
   - Prisma ORM
+  - Model
 tags:
   - NestJS
 related:
@@ -464,6 +465,83 @@ this.prisma.user.findFirst({ where: { name, NOT: { id } } });  // 자기 자신 
 this.prisma.post.findMany({ where: { isVisible: true } });
 ```
 
+---
+# OrThrow 변형 — findUniqueOrThrow · findFirstOrThrow ⭐️⭐️⭐️⭐️
+
+```typescript
+// findUnique   → User | null  (null 체크 필요)
+// findUniqueOrThrow → User   (없으면 throw, null 체크 불필요)
+
+const me = await this.prisma.user.findUniqueOrThrow({
+  where:  { id: userId },
+  select: { role: true },
+});
+// me.role 바로 사용 가능 — null 가능성 없음
+```
+
+```txt
+OrThrow가 없는 버전과의 차이:
+
+  findUnique       → 결과 타입: User | null
+  findUniqueOrThrow → 결과 타입: User
+    없으면 Prisma.PrismaClientKnownRequestError (code: P2025) 던짐
+
+  null 체크 없이 바로 쓸 수 있다는 게 핵심
+    findUnique:       const user = await ...; if (!user) throw new NotFoundException();
+    findUniqueOrThrow: const user = await ...;  // 이게 끝, null 체크 불필요
+```
+
+```txt
+언제 OrThrow를 쓰는가 — "없으면 버그"인 상황:
+
+  ✅ 쓰기 좋은 경우:
+    JWT 토큰에서 온 userId로 유저 조회
+    → 토큰이 유효하다면 유저가 반드시 존재해야 함
+    → 없으면 데이터 불일치 (서버 오류) → throw가 맞음
+
+    이미 존재를 검증한 뒤의 상세 조회
+    → 이전 단계에서 존재 확인이 끝났으므로 없으면 서버 버그
+
+    외래키(FK)가 보장하는 관계 조회
+    → DB 제약이 있으므로 정상 흐름에서 없을 수 없음
+
+  ❌ 쓰면 안 되는 경우:
+    사용자 입력 ID로 조회 (없을 수 있는 정상 케이스)
+    → 없으면 NotFoundException을 직접 던지는 게 더 명확한 에러 메시지 가능
+
+    목록에서 특정 조건으로 찾기 (없을 수 있음이 정상)
+    → findFirst + null 체크
+```
+
+```typescript
+// ✅ OrThrow가 적합한 패턴 — userId는 JWT에서 왔으므로 반드시 존재
+private async resolveStatus(userId: string, otherRole: UserRole): Promise<DmStatus> {
+  const me = await this.prisma.user.findUniqueOrThrow({
+    where:  { id: userId },
+    select: { role: true },
+  });
+  if (me.role === UserRole.admin || otherRole === UserRole.admin) {
+    return DmStatus.open;
+  }
+  // ...
+}
+
+// ❌ 사용자 입력 ID → 없으면 명확한 메시지와 함께 404
+async getPost(postId: string) {
+  const post = await this.prisma.post.findUnique({ where: { id: postId } });
+  if (!post) throw new NotFoundException('게시글을 찾을 수 없습니다.');
+  return post;
+}
+```
+
+```txt
+OrThrow가 던지는 에러:
+  Prisma.PrismaClientKnownRequestError (code: P2025)
+  NestJS 기본 동작: 에러 필터가 잡지 못하면 500 InternalServerError로 올라감
+
+  → 사용자에게 노출되면 안 되는 내부 오류 (서버 버그 신호)로 다루는 게 적절
+  → 사용자 입력 ID 조회처럼 "없으면 404"가 명확히 필요한 경우는 findUnique + 수동 throw
+```
 ---
 
 # CRUD 기본

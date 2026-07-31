@@ -1,11 +1,17 @@
 ---
-aliases: [KeyboardEvent, MouseEvent, preventDefault vs stopPropagation, SyntheticEvent, target vs currentTarget]
+aliases:
+  - KeyboardEvent
+  - MouseEvent
+  - preventDefault vs stopPropagation
+  - SyntheticEvent
+  - target vs currentTarget
 tags:
   - TypeScript
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_useRef]]"
+  - "[[JS_DOM]]"
 ---
 # TS_DOM_Events — MouseEvent 같은 이벤트 타입
 

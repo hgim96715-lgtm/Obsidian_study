@@ -2,6 +2,7 @@
 aliases:
   - Prisma
   - Patterns
+  - 정규화 페어키 패턴
 tags:
   - NestJS
 related:
@@ -264,6 +265,98 @@ upsert (없으면 create, 있으면 update):
   update → 있을 때 바꿀 데이터
 ```
 
+----
+# 정규화 페어키 패턴 — 두 사용자 간 유일한 DM ⭐️⭐️⭐️⭐️
+
+```txt
+문제: A → B 대화와 B → A 대화가 같은 방이어야 함
+      단순히 (senderId, receiverId) 복합키로 @@unique를 걸면
+      A→B와 B→A가 다른 조합으로 인식되어 대화방이 두 개 생김
+
+해결: 두 UUID를 항상 같은 순서로 정렬해서 하나의 키를 만들면
+      어느 방향으로 만들어도 항상 같은 키 → @@unique로 중복 방지
+```
+
+## 유틸 함수
+
+```typescript
+// utils/dm.ts
+export function dmPairKey(a: string, b: string): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
+}
+// a < b → "a:b"
+// b < a → 그래도 "a:b"  ← 항상 같은 결과
+```
+
+
+```txt
+문자열 비교(a < b)로 UUID를 정렬:
+  UUID는 하이픈 포함 36자 문자열 → < 비교로 사전순 정렬 가능
+  어느 쪽에서 호출해도 (A, B)든 (B, A)든 항상 작은 UUID가 앞에 옴
+  → 같은 두 사람 사이의 키는 항상 동일하게 고정됨
+```
+
+## Schema
+
+```prisma
+model DirectMessageRoom {
+  id      String @id @default(uuid()) @db.Uuid
+  pairKey String @unique              // "uuid1:uuid2" 형태, 작은 값이 항상 앞
+  //
+  messages DirectMessage[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+```
+
+```txt
+@unique를 pairKey 하나에 걸면 충분 — 복합 @@unique([a, b]) 쓰면 순서 문제가 그대로 남음
+pairKey는 단순 String이지만 DB가 중복 생성을 원천 차단
+```
+
+## 서비스 — findOrCreate 패턴
+
+```typescript
+async findOrCreateDmRoom(userAId: string, userBId: string) {
+  const pairKey = dmPairKey(userAId, userBId);
+
+  return this.prisma.directMessageRoom.upsert({
+    where:  { pairKey },
+    create: { pairKey },
+    update: {},          // 이미 있으면 그대로 — 덮어쓸 것 없음
+  });
+}
+```
+
+
+```txt
+upsert를 쓰는 이유:
+  findUnique → null이면 create 패턴은 두 요청이 동시에 null을 받으면
+  둘 다 create를 시도 → P2002(unique 위반) 발생 가능
+
+  upsert는 DB 레벨에서 "없으면 create, 있으면 update"를 원자적으로 처리
+  → 동시 요청에서도 안전
+
+  update: {} 는 "있으면 아무것도 바꾸지 않음"
+  → pairKey가 이미 있으면 그 행을 그대로 반환
+```
+
+## 조회 — 기존 DM 방 찾기
+
+```typescript
+async getDmRoom(userAId: string, userBId: string) {
+  const pairKey = dmPairKey(userAId, userBId);
+
+  return this.prisma.directMessageRoom.findUnique({
+    where: { pairKey },
+  });
+}
+```
+
+
+```txt
+pairKey가 @unique이므로 findUnique 사용 가능
+어느 방향(A→B, B→A)으로 호출해도 같은 방을 찾음
+```
 ---
 
 # $transaction — 트랜잭션

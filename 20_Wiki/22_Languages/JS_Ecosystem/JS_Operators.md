@@ -15,6 +15,7 @@ aliases:
   - 불린 강제 변환
   - "[key]: value"
   - void
+  - 불린 변환
 tags:
   - JavaScript
 related:
@@ -22,6 +23,7 @@ related:
   - "[[JS_Promise]]"
   - "[[JS_FunctionPatterns]]"
   - "[[React_AsyncUI]]"
+  - "[[JS_Array_Methods]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
@@ -314,33 +316,104 @@ fn?.()               // 함수 존재할 때만 호출
 
 ---
 
-# !! — 불린 강제 변환 ⭐️⭐️⭐️⭐️
+# ! — NOT 연산 (논리 부정) ⭐️⭐️⭐️⭐️
 
 ```typescript
-!!user   // null/undefined → false, 객체 → true
-!!''     // false
-!!'hi'   // true
-!!0      // false
+!true           // false
+!false          // true
+!isRoomMuted()  // isRoomMuted()가 true면 false, false면 true
+!user           // user가 null/undefined/''/''/0 이면 true
 ```
 
 ```txt
-! 하나:  논리 부정
-!! 둘:   truthy/falsy를 boolean 타입으로 변환
+! 는 "아닌" — 조건을 반대로 뒤집음
 
-왜 쓰는가 — 타입이 boolean이 되어야 할 때:
+  !isRoomMuted(userId, roomId)
+  → "뮤트가 아닌" — 뮤트 안 된 방
+
+  !e.shiftKey
+  → "Shift 키 안 눌림"
+
+  !e.nativeEvent.isComposing
+  → "한글 조합 중 아님"
+```
+
+---
+
+# !! vs Boolean() — 불린 변환 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 셋 다 완전히 동일한 동작
+!!room.unread           // false → false, 0 → false, "abc" → true
+Boolean(room.unread)    // 동일
+room.unread ? true : false  // 동일 (비권장 — 길기만 하고 같음)
+```
+
+```txt
+!! vs Boolean() — 동작은 같고 스타일 차이:
+  !!          짧고 자주 쓰임, 코드 안에서 인라인으로
+  Boolean()   읽을 때 "불린으로 변환한다"는 의도가 더 명확
+              특히 setState나 함수 인자에 단독으로 쓸 때 가독성 좋음
+
+왜 변환이 필요한가 — 타입이 boolean이 아닌 경우:
+  room.unread 가 number | undefined 타입이라면
+  setRoomsUnread(room.unread)  → TS 에러 (boolean 자리에 number 올 수 없음)
+  setRoomsUnread(!!room.unread)      → ✅ boolean
+  setRoomsUnread(Boolean(room.unread)) → ✅ boolean
+
+  && 체이닝 결과:
   const canDelete = actionMsg && user && room;
-  // 타입: Message | User | Room | undefined (마지막 truthy 값)
+  // 타입: Message | User | Room | undefined (마지막 truthy 값, boolean 아님)
 
   const canDelete = !!actionMsg && !!user && !!room;
   // 타입: boolean ✅
 ```
 
+## 복합 조건 패턴 — &&, ||, ! 조합 ⭐️⭐️⭐️⭐️
+
 ```typescript
-const canDeleteEveryone =
-  !!actionMsg &&
-  !!user &&
-  !!room &&
-  (actionMsg.senderId === user.id || room.ownerId === user.id);
+// 실전 예시
+setRoomsUnread(
+  mine.some(
+    (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
+  ),
+);
+setDmsUnread(dms.some((dm) => dm.unread) || requests.length > 0);
+```
+
+```txt
+위 코드 읽는 법:
+
+  mine.some((room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id))
+  → "방 목록(mine) 중에서 하나라도 (읽지 않았고 && 뮤트가 아닌) 방이 있는가?"
+  → .some() = "하나라도" → boolean 반환 → setRoomsUnread(boolean)에 딱 맞음
+
+  dms.some((dm) => dm.unread) || requests.length > 0
+  → "DM 중 읽지 않은 게 하나라도 있거나 || 친구 요청이 하나라도 있으면"
+  → 둘 중 하나라도 true면 전체 true
+
+&& 조건 연결:
+  A && B    A가 true이고 B도 true일 때 → 둘 다 만족
+  A && !B   A가 true이고 B는 false일 때 → "A인데 B는 아닌"
+
+|| 조건 연결:
+  A || B    A가 true이거나 B가 true일 때 → 하나라도 만족
+
+! 단독:
+  !fn()     fn()의 반환값을 반대로 — "이 함수가 false를 반환할 때"
+```
+
+```typescript
+// 복합 조건을 변수로 분리해서 읽기 쉽게
+const hasUnreadRoom = mine.some(
+  (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
+);
+const hasUnreadDm = dms.some((dm) => dm.unread);
+const hasPendingRequest = requests.length > 0;
+
+setRoomsUnread(hasUnreadRoom);
+setDmsUnread(hasUnreadDm || hasPendingRequest);
+// 각각 변수 이름이 의도를 설명해줌 → 한 줄이 너무 복잡하면 이 방식 권장
 ```
 
 ---
