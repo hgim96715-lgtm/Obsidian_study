@@ -1,73 +1,32 @@
 ---
 aliases:
   - 구조분해
-  - destructuring
-  - instanceof
-  - logical NOT
-  - operators
+  - deps 배열
   - rest
-  - spread
-  - "[,,,]"
-  - 쉼표로 꺼내오기
+  - Promise.all
+  - 쉼표로 건너뛰기
+  - 스프레드
+  - 논리 연산자
+  - 삼항 연산자
+  - 비교 연산자
+  - typeof
+  - instanceof
+  - 옵셔널 체이닝
+  - 불린 강제 변환
+  - "[key]: value"
+  - void
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Array_Methods]]"
-  - "[[JS_BrowserAPI]]"
-  - "[[JS_Loops_Conditionals]]"
-  - "[[JS_OptionalChaining]]"
   - "[[JS_Promise]]"
-  - "[[JS_Truthy_Falsy]]"
-  - "[[NestJS_Controller]]"
-  - "[[NextJS_API_Client]]"
-  - "[[React_Context]]"
-  - "[[NestJS_Throttle]]"
-  - "[[NestJS_Prisma]]"
+  - "[[JS_FunctionPatterns]]"
+  - "[[React_AsyncUI]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
 > [!info] 
 > 구조분해 · 스프레드 · 논리 연산자처럼 매일 쓰는 문법이지만 `{ user: me }` 같은 이름 바꾸기나 `??=` 같은 할당 단축형은 처음 보면 헷갈린다.
-
----
-# 흐름도
-
-```mermaid
-flowchart TD
-    W1["왜 · 객체/배열에서 값 꺼내기·복사"]
-    W2["왜 · null·falsy·이름 충돌 다루기"]
-
-    Q{"언제 · 무엇을 하나?"}
-
-    W1 --> Q
-    W2 --> Q
-
-    Q -->|꺼내기| A
-    Q -->|복사·합치기| B
-    Q -->|조건·기본값| C
-    Q -->|안전한 접근| D
-
-    A["구조분해"]
-    A1["{ user: me } 이름 바꾸기"]
-    A2["{ force = false } 옵션 기본값"]
-    A --> A1 --> A2
-
-    B["스프레드 · rest"]
-    B1["{ ...obj, key } · const { a, ...rest }"]
-    B --> B1
-
-    C["&& · || · ?? · ??="]
-    C1["?? — null/undefined만 · || — falsy 전부"]
-    C --> C1
-
-    D["?. · typeof · instanceof"]
-    D1["상세 ?. → JS_OptionalChaining"]
-    D --> D1
-```
-
-> `==` / `!=` 피하기 — `===` / `!==`  
-> truthy/falsy — [[JS_Truthy_Falsy]]
 
 ---
 
@@ -79,7 +38,6 @@ flowchart TD
 const person = { name: '홍길동', age: 30, city: '서울' };
 
 const { name, age } = person;
-// person.name → name, person.age → age
 ```
 
 ## 이름 바꾸기 (Alias) ⭐️⭐️⭐️⭐️
@@ -90,8 +48,7 @@ const { name: displayName } = person;
 // name 변수는 생기지 않음 — displayName만 생김
 
 const { user: me } = useAuth();
-// useAuth()가 반환한 객체의 user 필드를
-// me라는 이름의 변수로 받음
+// useAuth()가 반환한 객체의 user 필드를 me라는 이름으로 받음
 ```
 
 ```txt
@@ -99,14 +56,13 @@ const { user: me } = useAuth();
 
 왜 이름을 바꾸는가 — 이름 충돌(Naming Collision) 해결:
 
-  // props로 받은 user = 프로필 대상 (피드/댓글에서 탭한 사람)
   function ProfileSheet({ user }: { user: User }) {
-
+    // props의 user = 프로필 대상 (다른 사람)
     // useAuth()도 user를 반환하는데 이건 "로그인한 나"
     // 같은 스코프에서 user가 두 개 → 하나를 me로 이름 바꾸기
+
     const { user: me } = useAuth();
 
-    // 이제 두 개가 명확히 구분됨
     // user = 보고 있는 상대방
     // me   = 로그인한 나
   }
@@ -128,13 +84,10 @@ deps에 user와 me가 둘 다 있는 이유:
   user  → 어떤 프로필을 보고 있는가 (props에서 온 변수)
   me    → 내가 누구인가 (useAuth에서 온 변수)
 
-  "이름을 me로 바꿨으니 같은 거 아냐?" 라고 느낄 수 있지만
-  const { user: me } = useAuth() 는
+  const { user: me } = useAuth()는
   useAuth()의 user를 "me라는 새 변수명으로 꺼낸 것"일 뿐
   props의 user와는 출처부터 완전히 다른 별개의 값
-
-  → 둘 다 바뀔 수 있고, 둘 다 바뀌면 effect를 다시 실행해야 하므로
-    deps 배열에 둘 다 있어야 함
+  → 둘 다 deps 배열에 있어야 함
 ```
 
 ## 기본값 설정
@@ -156,8 +109,6 @@ const { user: me = null } = useAuth();
 
 ```typescript
 const { address: { city, zip } } = person;
-// person.address.city → city
-// person.address.zip  → zip
 
 // 실전 — API 응답
 const { data: { user, token } } = await login(email, password);
@@ -172,138 +123,24 @@ const { name, ...rest } = person;
 ```
 
 ---
-# 함수 옵션 객체 패턴 — `{ force = false }` ⭐️⭐️⭐️⭐️
-
-```txt
-함수 인자가 많아지거나, 일부가 선택적일 때
-boolean 인자를 여러 개 나열하는 대신 객체 하나로 묶는 패턴
-```
-
-```typescript
-// ❌ 인자가 많아지면 순서 기억이 어려움
-touchLastActiveAt(userId, role, true, false, 'admin');
-
-// ✅ 옵션 객체 — 이름으로 의미가 명확
-touchLastActiveAt(userId, role, { force: true });
-```
-
-## TypeScript 타입 정의
-
-```typescript
-interface TouchOptions {
-  force?:  boolean;  // ? = 선택적 — 안 넘겨도 됨
-  silent?: boolean;
-}
-
-async function touchLastActiveAt(
-  userId: number,
-  role:   string,
-  options: TouchOptions = {},  // 통째로 안 넘겨도 됨 (기본값 빈 객체)
-): Promise<void> {
-  const { force = false, silent = false } = options;
-  //       ↑ 안 넘기면 false가 기본값
-  
-  if (!force && /* 최근에 업데이트했으면 */) return;
-  // force: true면 이 early return을 건너뛰고 강제 업데이트
-}
-```
-
-## 호출 방법
-
-```typescript
-// 기본값으로 호출 — 세 번째 인자 생략
-await touchLastActiveAt(userId, role);
-
-// 옵션 일부만 전달 — 나머지는 기본값
-await touchLastActiveAt(userId, role, { force: true });
-
-// 여러 옵션 전달
-await touchLastActiveAt(userId, role, { force: true, silent: true });
-```
-
-
-```txt
-options = {} 기본값의 의미:
-  호출하는 쪽이 세 번째 인자를 아예 안 넘겨도
-  내부에서 {}(빈 객체)를 받은 것처럼 동작
-  → { force = false, silent = false }가 모두 기본값으로 처리됨
-
-  options: TouchOptions = {} 없이 options?: TouchOptions로 선언하면:
-  → options가 undefined일 수 있어서 const { force } = options 에서 에러
-  → 구조분해 전에 options ?? {} 처리 필요 → 번거로움
-  → = {} 기본값이 더 깔끔
-```
-
-## force 플래그가 자주 쓰이는 패턴
-
-```typescript
-// 파라미터에서 바로 구조분해 — 변수명 없이 더 짧게
-async function touchLastActiveAt(
-  userId: number,
-  role:   string,
-  { force = false }: TouchOptions = {},
-) {
-  if (!force && checkRecentlyUpdated()) return;  // 최근에 했으면 스킵
-  await update();                                 // force: true면 무조건 실행
-}
-```
-
-```txt
-force 플래그가 쓰이는 상황:
-  "보통은 스킵하지만 이 경우엔 반드시 실행해야 해"
-  → 서비스 레벨 쓰로틀 건너뛰기 패턴 → [[NestJS_Throttle]] 참고
-```
-
-## `Partial<T>`— 옵션 객체 타입 유틸리티 ⭐️⭐️
-
-
-```typescript
-interface UserUpdateData {
-  name:  string;
-  email: string;
-  image: string;
-}
-
-// Partial<T> = 모든 필드를 optional로 만듦
-async function updateUser(userId: number, data: Partial<UserUpdateData>) {
-  // name만, email만, 셋 다, 아무것도 안 넘겨도 타입 통과
-}
-
-updateUser(1, { name: '새이름' });  // ✅
-```
-
-
-```txt
-옵션 객체는 보통 모든 필드가 선택적
-→ interface에 ?를 전부 붙이거나 Partial<T>를 쓰거나
-→ Partial<T> 상세는 [[TS_Utility_Types]] 참고
-```
-
----
 
 # 배열 구조분해 ⭐️⭐️⭐️
 
 ```typescript
 const [first, second, ...others] = [1, 2, 3, 4, 5];
-// first = 1, second = 2, others = [3, 4, 5]
 
 // 건너뛰기
 const [, second, , fourth] = [1, 2, 3, 4];
-// second = 2, fourth = 4
 
 // useState — 배열 구조분해의 대표 사례
 const [count, setCount] = useState(0);
-// 반환 배열의 [0] → count, [1] → setCount
 ```
 
 ```txt
 useState가 배열을 반환하는 이유:
   객체를 반환하면 { value, setValue }처럼 이름이 고정됨
-  배열을 반환하면 [count, setCount]처럼 원하는 이름으로 자유롭게 받을 수 있음
+  배열을 반환하면 원하는 이름으로 자유롭게 받을 수 있음
   → 같은 훅을 여러 번 써도 이름 충돌 없음
-
-  const [count, setCount] = useState(0);
-  const [name, setName]   = useState('');
 ```
 
 ## Promise.all 결과 구조분해
@@ -313,45 +150,25 @@ const [friends, requests] = await Promise.all([
   fetchFriends(),
   fetchFriendRequests(),
 ]);
-// 순서대로 배열 구조분해 — 인덱스 0 → friends, 1 → requests
 ```
 
 ## 필요한 것만 꺼내기 — 쉼표로 건너뛰기 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 앞 세 개는 필요 없고 네 번째만 필요할 때
 const [, , , systemMessage] = await this.prisma.$transaction([
-  this.prisma.roomBan.upsert({ ... }),      // [0] — 필요 없음 → 쉼표로 건너뜀
-  this.prisma.roomMember.delete({ ... }),   // [1] — 필요 없음 → 건너뜀
-  this.prisma.room.update({ ... }),         // [2] — 필요 없음 → 건너뜀
-  this.prisma.roomMessage.create({ ... }),  // [3] — 이것만 필요 → 변수로 받음
+  this.prisma.roomBan.upsert({ ... }),      // [0] — 필요 없음
+  this.prisma.roomMember.delete({ ... }),   // [1] — 필요 없음
+  this.prisma.room.update({ ... }),         // [2] — 필요 없음
+  this.prisma.roomMessage.create({ ... }),  // [3] — 이것만 필요
 ]);
-
-return systemMessage;  // roomMessage.create의 결과
 ```
-
 
 ```txt
 [, , , systemMessage] 읽는 법:
-  ,       → 이 위치의 값을 건너뜀 (변수 없이 쉼표만)
-  ,,,     → 3개 건너뜀 (쉼표 3개)
-  systemMessage → 4번째 값을 이 이름으로 받음
-
-  $transaction([...]) 은 각 쿼리 결과를 순서대로 배열로 반환
-  → [banResult, deletedMember, updatedRoom, createdMessage]
-  → 앞 세 개 결과는 필요 없으니 변수명 없이 쉼표로 건너뜀
-
-주의 — 쉼표 개수:
-  const [, b]       → 0번 건너뜀, 1번이 b  (쉼표 1개)
-  const [, , b]     → 0,1 건너뜀, 2번이 b  (쉼표 2개)
-  const [, , , b]   → 0,1,2 건너뜀, 3번이 b (쉼표 3개)
-  
-  헷갈리면: 쉼표 개수 = 건너뛰는 개수
-
-$transaction 배열 형태:
-  $transaction([op1, op2, op3])    → 배열로 전달, 결과 배열로 반환
-  $transaction(async tx => {...})  → 콜백 형태, tx로 원자적 실행
-  → [[NestJS_Prisma]] $transaction 참고
+  쉼표 개수 = 건너뛰는 개수
+  const [, b]     → 0번 건너뜀, 1번이 b
+  const [, , b]   → 0,1 건너뜀, 2번이 b
+  const [, , , b] → 0,1,2 건너뜀, 3번이 b
 ```
 
 ---
@@ -361,28 +178,19 @@ $transaction 배열 형태:
 ## 배열 스프레드
 
 ```typescript
-const a = [1, 2, 3];
-const b = [4, 5, 6];
-
-const merged = [...a, ...b];          // [1, 2, 3, 4, 5, 6]
+const merged = [...a, ...b];
 const copy   = [...a];                // 얕은 복사
-const added  = [...a, 7];            // [1, 2, 3, 7]
 const sorted = [...items].sort(...);  // 원본 안 건드리고 정렬
 ```
 
 ## 객체 스프레드
 
 ```typescript
-const defaults = { theme: 'light', lang: 'ko' };
-const overrides = { theme: 'dark' };
-
 const config = { ...defaults, ...overrides };
-// { theme: 'dark', lang: 'ko' }
 // 같은 키는 나중에 오는 것이 이김 ⭐️
 
 // state 업데이트 패턴
 setState(prev => ({ ...prev, name: '새이름' }));
-// 기존 state 유지하면서 name만 바꿈
 ```
 
 ```txt
@@ -394,10 +202,7 @@ setState(prev => ({ ...prev, name: '새이름' }));
 
 ```typescript
 const nums = [1, 5, 3, 2, 4];
-Math.max(...nums);    // Math.max(1, 5, 3, 2, 4)
-Math.min(...nums);    // Math.min(1, 5, 3, 2, 4)
-
-// 배열을 개별 인자로 펼쳐서 넘김
+Math.max(...nums);  // Math.max(1, 5, 3, 2, 4)
 ```
 
 ---
@@ -407,23 +212,22 @@ Math.min(...nums);    // Math.min(1, 5, 3, 2, 4)
 ## && — 앞이 truthy일 때만 뒤를 반환
 
 ```typescript
-user && user.name           // user 있으면 user.name, 없으면 user(falsy) 반환
-isLoggedIn && <UserMenu />  // 조건부 렌더링 — React에서 자주 쓰임
-a && b && c                 // a, b 둘 다 truthy여야 c 반환
+user && user.name           // user 있으면 user.name
+isLoggedIn && <UserMenu />  // 조건부 렌더링
 ```
 
 ## || — 앞이 falsy면 뒤를 반환
 
 ```typescript
-name || '익명'     // name이 falsy(undefined, null, '', 0 등)면 '익명'
-port || 3000      // port가 없으면 3000 — ⚠️ port가 0이면 0도 falsy로 처리됨
+name || '익명'  // name이 falsy(undefined, null, '', 0 등)면 '익명'
+port || 3000   // ⚠️ port가 0이면 0도 falsy로 처리됨
 ```
 
 ## ?? — null/undefined일 때만 뒤를 반환 ⭐️⭐️⭐️
 
 ```typescript
-name ?? '익명'    // name이 null 또는 undefined일 때만 '익명'
-port ?? 3000     // port가 null/undefined일 때만 3000 (0은 그대로 0)
+name ?? '익명'  // null 또는 undefined일 때만 '익명'
+port ?? 3000   // 0은 그대로 0 (유효한 값 보존)
 ```
 
 ```txt
@@ -431,25 +235,20 @@ port ?? 3000     // port가 null/undefined일 때만 3000 (0은 그대로 0)
   || = falsy 전부 (0, '', false, null, undefined, NaN)
   ?? = null/undefined만
 
-  포트 번호, 카운터, 빈 문자열처럼 0이나 ''도 유효한 값이라면 반드시 ??
+  포트 번호, 카운터처럼 0도 유효한 값이라면 반드시 ??
   → [[JS_OptionalChaining]] 참고
 ```
 
 ## &&= · ||= · ??= — 논리 할당 단축형 ⭐️⭐️
 
 ```typescript
-// &&= — 왼쪽이 truthy일 때만 오른쪽 할당
-a &&= b  // if (a) a = b; 와 동일
-
-// ||= — 왼쪽이 falsy일 때만 오른쪽 할당
-a ||= b  // if (!a) a = b; 와 동일
-
-// ??= — 왼쪽이 null/undefined일 때만 오른쪽 할당
-a ??= b  // if (a == null) a = b; 와 동일
+a &&= b   // if (a) a = b
+a ||= b   // if (!a) a = b
+a ??= b   // if (a == null) a = b
 
 // 실전 패턴
-cache ??= await fetchData();  // 캐시가 없을 때만 fetch
-user.nickname ||= '익명';      // 닉네임 없으면 기본값 설정
+cache ??= await fetchData();    // 캐시가 없을 때만 fetch
+user.nickname ||= '익명';        // 닉네임 없으면 기본값 설정
 ```
 
 ---
@@ -458,9 +257,8 @@ user.nickname ||= '익명';      // 닉네임 없으면 기본값 설정
 
 ```typescript
 const label = isLoggedIn ? '로그아웃' : '로그인';
-const value = items.length > 0 ? items[0] : null;
 
-// JSX — 조건부 렌더링
+// JSX 조건부 렌더링
 {isLoading ? <Spinner /> : <Content />}
 ```
 
@@ -475,16 +273,9 @@ const value = items.length > 0 ? items[0] : null;
 ```typescript
 ===  // 값 + 타입이 같음 (항상 이걸 쓸 것)
 !==  // 값 또는 타입이 다름
-==   // 타입 변환 후 비교 → 예측 불가 ('0' == 0 → true) — 피할 것
-!=   // 마찬가지로 피할 것
-```
+==   // 타입 변환 후 비교 → '0' == 0 → true — 피할 것
 
-```typescript
-// 숫자 비교
-<, >, <=, >=
-
-// 특수 케이스
-NaN === NaN  // false — NaN은 자기 자신과도 같지 않음
+NaN === NaN          // false — NaN은 자기 자신과도 같지 않음
 Number.isNaN(value)  // NaN 확인은 이걸 쓸 것
 ```
 
@@ -493,14 +284,13 @@ Number.isNaN(value)  // NaN 확인은 이걸 쓸 것
 # typeof · instanceof ⭐️⭐️⭐️
 
 ```typescript
-typeof 'hello'       // 'string'
-typeof 42            // 'number'
-typeof null          // 'object' ← 버그, null이 아님
-typeof undefined     // 'undefined'
-typeof (() => {})    // 'function'
+typeof 'hello'      // 'string'
+typeof 42           // 'number'
+typeof null         // 'object' ← 버그, null이 아님
+typeof undefined    // 'undefined'
 
-[] instanceof Array   // true
-err instanceof Error  // true
+[] instanceof Array  // true
+err instanceof Error // true
 ```
 
 ```txt
@@ -519,77 +309,38 @@ fn?.()               // 함수 존재할 때만 호출
 ```
 
 ```txt
-자세한 내용 (prev?.() 콜백 보존 패턴 등) → [[JS_OptionalChaining]]
+자세한 내용 → [[JS_OptionalChaining]]
 ```
 
 ---
+
 # !! — 불린 강제 변환 ⭐️⭐️⭐️⭐️
 
 ```typescript
-!!actionMsg    // actionMsg가 truthy면 true, falsy면 false
-!!user         // null/undefined → false, 객체 → true
-!!''           // false
-!!'hello'      // true
-!!0            // false
-!!1            // true
+!!user   // null/undefined → false, 객체 → true
+!!''     // false
+!!'hi'   // true
+!!0      // false
 ```
 
 ```txt
-! 하나:
-  !value → 논리 부정
-  !null    → true
-  !'hello' → false
-
-!! 둘:
-  !!value → 두 번 부정 → 원래 truthy/falsy를 boolean 타입으로 변환
-  !!null    → !null → true → !true → false
-  !!'hello' → !'hello' → false → !false → true
+! 하나:  논리 부정
+!! 둘:   truthy/falsy를 boolean 타입으로 변환
 
 왜 쓰는가 — 타입이 boolean이 되어야 할 때:
   const canDelete = actionMsg && user && room;
-  // 타입: Message | User | Room | undefined | null (마지막 truthy 값)
-  // boolean이 아님 → TS에서 boolean 자리에 넣으면 타입 에러 가능
+  // 타입: Message | User | Room | undefined (마지막 truthy 값)
 
   const canDelete = !!actionMsg && !!user && !!room;
   // 타입: boolean ✅
 ```
 
-## 실전 코드 분해
-
 ```typescript
 const canDeleteEveryone =
-  !!actionMsg &&                              // 1. 대상 메시지가 있고
-  !!user &&                                   // 2. 내가 로그인됐고
-  !!room &&                                   // 3. 방 정보가 있고
-  (actionMsg.senderId === user.id ||          // 4a. 내가 보낸 메시지거나
-   room.ownerId === user.id);                 // 4b. 내가 방장이면
-
-// → 전부 만족하면 true (삭제 버튼 표시)
-// → 하나라도 falsy면 false (버튼 숨김)
-```
-
-```txt
-!!가 필요한 이유:
-  actionMsg의 타입: Message | undefined
-  user의 타입: User | null
-
-  !!actionMsg: Message | undefined → boolean
-  !!user:      User | null         → boolean
-
-  !! 없이 쓰면:
-    actionMsg && user && room && (조건)
-    타입이 boolean이 아니라 마지막으로 평가된 값의 타입이 됨
-    → canDeleteEveryone: boolean | User | Room | undefined 처럼 복잡해짐
-
-Boolean(value) 와 동일:
-  !!value === Boolean(value)
-  !!null === false
-  !!undefined === false
-  !!'' === false
-  !!0 === false
-  !!NaN === false
-  나머지(객체, 비어있지 않은 문자열, 0이 아닌 숫자) → true
-  → [[JS_Truthy_Falsy]] 참고
+  !!actionMsg &&
+  !!user &&
+  !!room &&
+  (actionMsg.senderId === user.id || room.ownerId === user.id);
 ```
 
 ---
@@ -597,68 +348,59 @@ Boolean(value) 와 동일:
 # 계산된 속성명 — [key]: value ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 변수를 객체의 키로 사용
 const key = 'name';
 const obj = { [key]: '홍길동' };
 // → { name: '홍길동' }
-
-// 함수 파라미터를 키로
-function setField<T>(obj: T, key: keyof T, value: T[typeof key]) {
-  return { ...obj, [key]: value };
-}
 ```
-
 
 ```typescript
 // 실전 — display 객체의 특정 키만 토글
-const setDisplay = (key: keyof LyricDecorDisplay, on: boolean) => {
+const setDisplay = (key: keyof DisplayType, on: boolean) => {
   patch({ display: { ...d, [key]: on } });
-  //                     ↑ key 변수가 속성 이름으로 사용됨
+  // key = 'mood', on = true → { ...d, mood: true }
 };
-
-// key = 'mood', on = true 면 → { ...d, mood: true }
-// key = 'date', on = false 면 → { ...d, date: false }
 ```
-
 
 ```txt
-[key]: value 동작:
-  대괄호 안의 표현식을 평가해서 그 결과를 속성 이름으로 사용
-  key가 'mood'면 → { mood: value }
-  key가 'date'면 → { date: value }
-
-일반 표현식도 가능:
-  const prefix = 'get';
-  const obj = {
-    [`${prefix}Name`]: () => 'Tom',  // → { getName: () => 'Tom' }
-  };
-
-TypeScript에서:
-  keyof 타입과 조합하면 타입 안전한 동적 키 접근이 됨
-  { ...d, [key]: on } 에서 key가 keyof LyricDecorDisplay이면
-  TS가 on의 타입도 해당 필드 타입으로 검증
+대괄호 안의 표현식을 평가해서 그 결과를 속성 이름으로 사용
+keyof 타입과 조합하면 타입 안전한 동적 키 접근 가능
 ```
+
 ---
 
-# 한눈에
+# void — 의도적 무시 ⭐️⭐️⭐️
 
-|문법|예시|의미|
-|---|---|---|
-|구조분해|`const { name } = obj`|객체에서 꺼내기|
-|이름 바꾸기|`const { user: me } = useAuth()`|user를 꺼내서 me라는 이름으로|
-|기본값|`const { name = '익명' } = obj`|undefined일 때만 기본값|
-|배열 구조분해|`const [a, b] = arr`|인덱스 순서대로|
-|스프레드|`{ ...obj, key: val }`|복사 + 덮어쓰기, 나중 것이 이김|
-|rest|`const { a, ...rest } = obj`|나머지를 한 객체로|
-|`&&`|`a && b`|a가 truthy면 b 반환|
-|`\|`|`a \| b`|a가 falsy면 b (0·''도 falsy)|
-|`??`|`a ?? b`|a가 null/undefined면 b만|
-|`??=`|`a ??= b`|a가 null/undefined일 때만 b를 a에 할당|
-|`?.`|`obj?.prop`|null/undefined면 undefined, 아니면 접근|
+```typescript
+void markRoomRead(roomId);
+// → Promise를 반환하는 함수를 호출하되, 그 결과를 무시하겠다고 명시
+```
 
 ```txt
-이름 충돌 해결 패턴:
-  같은 스코프에서 출처가 다른 두 값이 같은 이름일 때
-  하나를 { 원래이름: 새이름 }으로 꺼내서 구분
-  → deps 배열에는 "새이름"(me)이 들어감 — props의 user와는 별개
+void 연산자:
+  표현식을 평가하고 항상 undefined를 반환
+  async 함수나 Promise 앞에 붙이면 "이 Promise를 의도적으로 처리하지 않겠다"는 표시
+
+ESLint no-floating-promises 규칙:
+  await나 .catch()로 처리하지 않은 Promise를 에러로 잡음
+  void를 붙이면 "의도적으로 무시하는 것"으로 인식 → 경고 없음
+
+  ❌ markRoomRead(roomId);       // no-floating-promises 경고
+  ✅ void markRoomRead(roomId);  // 의도적 무시임을 명시
+  ✅ await markRoomRead(roomId); // 결과를 기다림
+```
+
+```typescript
+// 이벤트 핸들러 — onClick은 void 반환을 기대하는데 async 함수는 Promise 반환
+<button onClick={() => void handleSubmit()}>저장</button>
+
+// useEffect 안에서 async 함수 즉시 실행
+useEffect(() => {
+  void load();
+  return () => { cancelled = true; };
+}, [deps]);
+```
+
+```txt
+void vs await 판단 기준 → [[React_AsyncUI]] "fire-and-forget" 섹션
+함수 옵션 객체 패턴 (force = false, Partial<T>) → [[JS_FunctionPatterns]]
 ```

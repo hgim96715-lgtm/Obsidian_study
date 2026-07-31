@@ -9,11 +9,10 @@ cssclasses:
   - table-max
   - table-wrap
 ---
-
 # 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
 
->[!info] 
->이 넷은 같은 런타임(JS)과 같은 타입 시스템(TS) 위에서 React가 컴포넌트 모델을, Next.js가 그 위의 프레임워크를 얹은 한 묶음이라 폴더를 합쳤다.
+> [!info] 
+> 이 넷은 같은 런타임(JS)과 같은 타입 시스템(TS) 위에서 React가 컴포넌트 모델을, Next.js가 그 위의 프레임워크를 얹은 한 묶음이라 폴더를 합쳤다.
 
 ```txt
 Python(Pandas/Airflow/Kafka)은 이 묶음과 실제로 얽힌 적이 없어서 별도 폴더 유지
@@ -48,20 +47,20 @@ flowchart TB
 
 # 빠른 찾기
 
-| 찾을 때 | 섹션 |
-| --- | --- |
-| 인증/토큰 | [[#🔐 인증 · 토큰 흐름]] |
-| 브라우저/DOM | [[#🌐 브라우저 · DOM · Canvas]] |
-| 스타일 | [[#🎨 스타일링 · CSS]] |
-| React 훅 | [[#⚛️ React 훅]] |
-| 폼 | [[#📝 폼 처리]] |
-| API 통신 | [[#📡 API 통신 · 타입 매핑]] |
-| 임베드/미디어 | [[#📺 임베드 · 미디어 재생]] |
-| 라우팅/메타 | [[#🗺️ 라우팅 · 메타데이터]] |
-| 날짜/문자열 | [[#📅 날짜 · 문자열 · 유틸]] |
-| 기초 문법 | [[#🔤 범용 문법 기초 — 전 트랙에 깔림]] |
-| 보안 | [[#🛡️ 보안 기초]] |
-| 독립 노트 | [[#📦 독립 노트]] |
+|찾을 때|섹션|
+|---|---|
+|인증/토큰|[[#🔐 인증 · 토큰 흐름]]|
+|브라우저/DOM|[[#🌐 브라우저 · DOM · Canvas]]|
+|스타일|[[#🎨 스타일링 · CSS]]|
+|React 훅|[[#⚛️ React 훅]]|
+|폼|[[#📝 폼 처리]]|
+|API 통신|[[#📡 API 통신 · 타입 매핑]]|
+|임베드/미디어|[[#📺 임베드 · 미디어 재생]]|
+|라우팅/메타|[[#🗺️ 라우팅 · 메타데이터]]|
+|날짜/문자열|[[#📅 날짜 · 문자열 · 유틸]]|
+|기초 문법|[[#🔤 범용 문법 기초 — 전 트랙에 깔림]]|
+|보안|[[#🛡️ 보안 기초]]|
+|독립 노트|[[#📦 독립 노트]]|
 
 ---
 
@@ -77,12 +76,12 @@ flowchart TB
 
 ## 🌐 브라우저 · DOM · Canvas
 
-|             | 노트                                                                                   |
-| ----------- | ------------------------------------------------------------------------------------ |
-| **JS**      | [[JS_BrowserAPI]] · [[JS_CustomEvent]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] |
-| **TS**      | [[TS_DOM_Events]]                                                                    |
-| **React**   | [[React_useRef]]                                                                     |
-| **Next.js** | [[NextJS_ServerClient]]                                                              |
+| |노트|
+|---|---|
+|**JS**|[[JS_BrowserAPI]] · [[JS_CustomEvent]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]]|
+|**TS**|[[TS_DOM_Events]]|
+|**React**|[[React_useRef]]|
+|**Next.js**|[[NextJS_ServerClient]]|
 
 ```txt
 JS_DOM      요소 조작 · Pointer Events · getBoundingClientRect · scrollIntoView
@@ -93,11 +92,11 @@ JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
 
 ## 🎨 스타일링 · CSS
 
-|             | 노트                                                                  |
-| ----------- | ------------------------------------------------------------------- |
-| **JS**      | [[JS_BrowserAPI]] (style 섹션) · [[JS_DOM]] (classList)               |
-| **React**   | [[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] |
-| **Next.js** | [[NextJS_Font]] (next/font · @import · 한글 폰트 · 커스텀 클래스)             |
+| |노트|
+|---|---|
+|**JS**|[[JS_BrowserAPI]] (style 섹션) · [[JS_DOM]] (classList)|
+|**React**|[[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]]|
+|**Next.js**|[[NextJS_Font]] (next/font · @import · 한글 폰트 · 커스텀 클래스)|
 
 ---
 
@@ -113,6 +112,10 @@ JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
 |비동기 UI|[[React_AsyncUI]]|
 |Suspense|[[React_Suspense]]|
 |외부 스토어|[[React_useSyncExternalStore]]|
+
+```txt
+React_AsyncUI   이벤트 핸들러(try/catch/finally) · useEffect(cancelled·reqIdRef) · fire-and-forget(void) · applyLocal
+```
 
 ---
 
@@ -132,7 +135,6 @@ JS_Canvas   Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
 |---|---|
 |**JS**|[[JS_Fetch_API]]|
 |**Next.js**|[[NextJS_API_Client]] · [[NextJS_ApiTypes_Mapper]] · [[NextJS_UI_Types]]|
-
 
 ```txt
 NextJS_UI_Types ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
@@ -154,10 +156,9 @@ NextJS_UI_Types ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
 
 ## 🗺️ 라우팅 · 메타데이터
 
-|             | 노트                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------- |
-| **Next.js** | [[NextJS_Routing]] · [[NextJS_Metadata]] · [[NextJS_OGImage]] · [[NextJS_WebSocket]]  |
-
+| |노트|
+|---|---|
+|**Next.js**|[[NextJS_Routing]] · [[NextJS_Metadata]] · [[NextJS_OGImage]] · [[NextJS_WebSocket]]|
 
 ```txt
 NextJS_OGImage    OG 이미지 · Apple 아이콘 · ImageResponse
@@ -202,7 +203,8 @@ NextJS_WebSocket  socket.io-client · 싱글턴 · 클린업 패턴
 |[[JS_OptionalChaining]]|`?.` / `??`|
 |[[JS_Array_Methods]]|some · filter · map · reduce · findLast · 불변성|
 |[[JS_Loops_Conditionals]]|if · switch · for · while|
-|[[JS_Operators]]|=== · && · ... · 구조분해 · [key] 계산 속성|
+|[[JS_Operators]]|구조분해 · 스프레드 · 논리 연산자 · [key] 계산 속성 · void|
+|[[JS_FunctionPatterns]]|옵션 객체 패턴 · early return · async 래퍼|
 |[[JS_Truthy_Falsy]]|truthy/falsy|
 |[[JS_Object_Methods]]|Object.keys · entries · assign|
 |[[JS_Map_Set]]|Map · Set · ID 인덱싱 · WeakMap|
