@@ -1,532 +1,398 @@
 ---
 aliases:
-  - type guard
-  - type narrowing
   - typeof
   - instanceof
+  - any
+  - unknown
   - in
+  - kind
   - is
+  - never
   - as const
+  - void
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_DTO]]"
-  - "[[JS_Array_Methods]]"
-  - "[[JS_Operators]]"
-  - "[[TS_Utility_Types]]"
-  - "[[TS_Unknown_Any]]"
-  - "[[TS_TypeAssertion]]"
-  - "[[JS_JSON]]"
+  - "[[TS_Generics]]"
 ---
 # TS_Type_Guards — 타입 좁히기
 
 > [!info] 
-> 타입 가드 = "이 값이 어떤 타입인지 런타임에 확인해서 TS에게 알려주는 것."
->  `unknown` / 유니온 타입처럼 "여러 가능성" 안에서 실제 타입을 특정하는 방법들이다.
+> TypeScript는 코드 흐름을 분석해서 변수의 타입을 좁힌다(narrow).
+>  `if (typeof x === 'string')` 같은 조건이 type guard — 이 분기 안에서 TypeScript가 x를 string으로 확정해준다.
 
 ---
 
-# 왜 필요한가 ⭐️⭐️⭐️
+# any vs unknown — 타입 가드가 필요한 이유 ⭐️⭐️⭐️⭐️
 
 ```typescript
-function process(value: string | number) {
-  value.toUpperCase(); // ❌ number에는 없음 → TS 에러
-}
+let a: any     = '문자열';
+let u: unknown = '문자열';
 
-function process(value: string | number) {
-  if (typeof value === 'string') {
-    value.toUpperCase(); // ✅ 여기서는 string 확정
-  } else {
-    value.toFixed(2);   // ✅ 여기서는 number 확정
-  }
-}
+a.toUpperCase();  // ✅ any — TypeScript가 체크 안 함 (런타임 에러 가능)
+u.toUpperCase();  // ❌ unknown — 타입 확인 전 사용 불가
 ```
 
 ```txt
-좁히기(Narrowing):
-  타입의 범위를 점점 좁혀나가는 것
-  if 블록 안에서 TS는 조건을 분석해서 타입이 무엇으로 확정됐는지 추적함
-  좁힌 이후에는 그 타입의 메서드/속성을 자동완성과 함께 안전하게 쓸 수 있음
+any:
+  타입 검사를 완전히 끔
+  무엇이든 할 수 있지만 TypeScript의 보호도 없음
+  → 런타임에 터질 때까지 에러가 안 보임
+  → 쓰면 안 됨 (불가피할 때만 최소한으로)
+
+unknown:
+  "어떤 타입인지 모름"을 안전하게 표현
+  사용하기 전에 반드시 타입을 확인해야 함
+  → 확인하는 행위 = type guard
+
+unknown이 필요한 상황:
+  catch (err) — err은 무조건 unknown (어떤 에러가 올지 모름)
+  JSON.parse()  — 결과가 무엇인지 모름
+  외부 API 응답 — 서버가 뭘 보낼지 모름
+```
+
+## any가 필요한 경우 — 최소한으로 ⭐️⭐️
+
+```typescript
+// ❌ 전체를 any로
+function process(data: any) { ... }
+
+// ✅ 필요한 부분만 any로 우회
+const iframe = document.createElement('iframe') as any;
+iframe.src = '...';  // TypeScript가 모르는 속성에 접근할 때 최소 범위로
+
+// ✅ unknown으로 받고 내부에서 좁히기
+function process(data: unknown) {
+  if (typeof data === 'string') data.toUpperCase(); // ✅
+}
 ```
 
 ---
 
-# typeof — 원시 타입 좁히기 ⭐️⭐️⭐️
+# typeof — 원시 타입 확인 ⭐️⭐️⭐️⭐️
 
 ```typescript
-typeof x === 'string'     // string
-typeof x === 'number'     // number
-typeof x === 'boolean'    // boolean
-typeof x === 'bigint'     // bigint
-typeof x === 'symbol'     // symbol
-typeof x === 'undefined'  // undefined
-typeof x === 'function'   // function
-typeof x === 'object'     // object | null ⚠️
-```
-
-```txt
-⚠️ typeof null === 'object' — 역사적 버그, null이 object로 잘못 분류됨
-  null 체크는 별도로 해야 함
-
-  if (typeof x === 'object' && x !== null) { ... }
-```
-
-```typescript
-function format(value: string | number | boolean): string {
-  if (typeof value === 'string')  return value;
-  if (typeof value === 'number')  return value.toLocaleString();
+function format(value: string | number | boolean) {
+  if (typeof value === 'string')  return value.toUpperCase();
+  if (typeof value === 'number')  return value.toFixed(2);
   if (typeof value === 'boolean') return value ? '예' : '아니오';
-  const _: never = value; // 모든 케이스 처리 확인
-  return _;
 }
+```
+
+|`typeof` 결과|타입|
+|---|---|
+|`'string'`|string|
+|`'number'`|number|
+|`'boolean'`|boolean|
+|`'undefined'`|undefined|
+|`'function'`|function|
+|`'object'`|object (⚠️ null도 'object')|
+|`'symbol'`|symbol|
+|`'bigint'`|bigint|
+
+```typescript
+// null 체크 — typeof 'object' 함정 피하기
+if (typeof value === 'object' && value !== null) {
+  // 여기서야 value가 진짜 object
+}
+
+// undefined 확인
+if (typeof value !== 'undefined') { ... }
+// 또는 더 간결하게
+if (value !== undefined) { ... }
 ```
 
 ---
 
-# instanceof — 클래스 인스턴스 좁히기 ⭐️⭐️⭐️⭐️
+# instanceof — 클래스 인스턴스 확인 ⭐️⭐️⭐️⭐️
 
 ```typescript
-class NetworkError extends Error {
-  constructor(public statusCode: number, message: string) {
-    super(message);
-    this.name = 'NetworkError';
-  }
-}
-
-function handleError(err: unknown) {
-  if (err instanceof NetworkError) {
-    console.log(err.statusCode); // NetworkError 확정 → statusCode 접근 가능
-    return;
-  }
-  if (err instanceof Error) {
-    console.log(err.message);    // Error 확정
-    return;
-  }
-  console.log(String(err));      // 나머지: 문자열로 변환
-}
-```
-
-```txt
-instanceof 체크 순서:
-  서브클래스(NetworkError)를 먼저, 부모 클래스(Error)를 나중에 체크
-  순서가 반대면 NetworkError도 Error이므로 부모 블록에 걸려버림
-
-catch 블록에서 가장 자주 쓰이는 패턴:
-  catch(err) → err: unknown (TS 4.0+)
-  → instanceof Error로 좁혀야 err.message에 접근 가능
-```
-
-## catch 블록 — 가장 흔한 실전 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
+// 가장 자주 쓰이는 곳 — 에러 처리
 try {
-  await fetchData();
+  await someAsyncOperation();
 } catch (err) {
-  // 패턴 1 — 단순 메시지 추출
-  const message = err instanceof Error ? err.message : String(err);
-  setError(message);
-
-  // 패턴 2 — Prisma 에러 분기
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P2002') throw new ConflictException('중복입니다.');
-  }
-  if (err instanceof HttpException) throw err; // NestJS HTTP 예외는 그대로 올려보냄
-  throw new InternalServerErrorException('서버 오류');
-}
-```
-
----
-
-# in — 객체 속성 존재 여부로 좁히기 ⭐️⭐️⭐️
-
-```typescript
-type Cat = { meow: () => void };
-type Dog = { bark: () => void };
-
-function makeSound(animal: Cat | Dog) {
-  if ('meow' in animal) {
-    animal.meow(); // Cat 확정
-  } else {
-    animal.bark(); // Dog 확정
+  if (err instanceof Error) {
+    console.log(err.message);  // ✅ Error 클래스의 message 속성 사용 가능
+    console.log(err.stack);    // ✅
   }
 }
 ```
 
 ```txt
-'속성명' in 객체 — 해당 속성이 객체에 있는지 런타임에 확인
-  → 타입 간에 고유한 속성으로 구분할 때 유용
-  → 인터페이스/타입에만 있고 클래스가 아닌 경우 (instanceof 불가)
+catch (err)에서 err 타입이 unknown인 이유:
+  throw 'string 에러'    — 문자열도 throw 가능
+  throw 42               — 숫자도 throw 가능
+  throw new Error('...')  — Error 인스턴스도 가능
+  → 어떤 타입이든 올 수 있으니 unknown
 
-unknown 좁히기에서 in 쓸 때 주의:
-  typeof x === 'object' && x !== null 체크 먼저 필요
-  (null이나 원시값에 in 연산자를 쓰면 런타임 에러)
-
-  if (typeof err === 'object' && err !== null && 'message' in err) {
-    console.log((err as { message: unknown }).message);
-  }
+  err instanceof Error 체크 없이 err.message 쓰면:
+  → TypeScript 에러 (unknown에 .message 없음)
+  → instanceof로 좁힌 뒤에만 사용 가능
 ```
-
----
-
-## JSON.parse — unknown 좁히기 실전 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// JSON.parse 반환 타입은 any — as unknown으로 받아 단계별 검증
-function parseStringArray(raw: string | null): string[] {
-  try {
-    const parsed = JSON.parse(raw ?? '[]') as unknown;
+// 커스텀 에러 클래스 구분
+class NetworkError extends Error { statusCode: number; }
+class ValidationError extends Error { field: string; }
 
-    if (!Array.isArray(parsed)) return [];
-
-    // filter + 타입 서술어 → 결과가 string[]으로 확정
-    return parsed.filter((x): x is string => typeof x === 'string');
-  } catch {
-    return [];  // SyntaxError 방어
-  }
-}
+if (err instanceof NetworkError)   handleNetwork(err.statusCode);
+if (err instanceof ValidationError) handleValidation(err.field);
 ```
 
-```txt
-as unknown vs as any:
-  as any   → 이후 모든 접근이 검사 없이 통과 (위험)
-  as unknown → 좁히기 전까지 아무것도 못 씀 (안전)
-
-단계:
-  ① JSON.parse → as unknown
-  ② Array.isArray()로 배열인지 확인
-  ③ filter(타입 서술어)로 요소 타입 좁히기
-  ④ try-catch로 SyntaxError 방어
-
-filter + 타입 서술어 패턴 → [[JS_Array_Methods]] 참고
-JSON.stringify / JSON.parse 전체 → [[JS_JSON]] 참고
-```
----
-# as const — 리터럴 타입으로 고정 ⭐️⭐️⭐️⭐️
+## 에러 메시지 추출 유틸 패턴
 
 ```typescript
-// 1. 값 하나에 as const — boolean → true 리터럴
-return { removed: true as const };
-//                ↑ 타입: true  (boolean이 아님)
-
-// 비교
-return { removed: true };
-//  타입 추론: { removed: boolean }
-
-return { removed: true as const };
-//  타입 추론: { removed: true }  ← 리터럴 타입
-```
-
-
-```txt
-왜 true as const 가 필요한가:
-
-  removed: true 만 쓰면:
-    TypeScript가 "나중에 false가 될 수도 있다"고 가정
-    → { removed: boolean } 으로 넓게 추론
-
-  removed: true as const 쓰면:
-    "이 값은 항상 true다, 절대 바뀌지 않는다" 고 TypeScript에 알림
-    → { removed: true } 리터럴 타입
-
-실전 — 분기 처리에서 유용:
-  if (result.removed) → result.removed 타입이 true 인 분기에서
-  TypeScript가 정확히 "removed 반환 케이스"임을 알 수 있음
-```
-
-## 적용 범위별 as const
-
-```typescript
-// 1. 값 하나 — 그 값만 리터럴로
-{ removed: true as const }     // { removed: true }
-{ count:   0 as const }        // { count: 0 }
-{ status: 'done' as const }    // { status: 'done' }
-
-// 2. 객체 전체 — 모든 필드가 리터럴, readonly
-{ removed: true, count: 0 } as const
-// { readonly removed: true; readonly count: 0 }
-
-// 3. 배열 — readonly 튜플, 요소가 리터럴
-['a', 'b', 'c'] as const
-// readonly ['a', 'b', 'c']
-```
-
-```txt
-값 하나 vs 객체 전체 as const:
-
-  값 하나:  특정 필드만 리터럴로 좁힐 때
-            나머지 필드는 일반 타입 유지
-
-  객체 전체: 모든 필드가 readonly + 리터럴
-             → [[NestJS_Prisma]] mode: 'insensitive' as const 패턴과 동일 원리
-             → 배열의 T[number] 타입 추출 패턴과 연결
-```
-
-## 반환 타입 분기 패턴
-
-
-```typescript
-// 같은 함수에서 상황에 따라 다른 "형태"를 반환할 때
-async function toggleReaction(messageId: string, emoji: string) {
-  if (existing?.emoji === emoji) {
-    // 제거 케이스
-    await this.prisma.reaction.delete({ ... });
-    return { messageId, emoji, removed: true as const };
-    //                                  ↑ 타입: true
-  }
-  // 추가 케이스
-  const reaction = await this.prisma.reaction.create({ ... });
-  return { messageId, emoji, removed: false as const };
-  //                                   ↑ 타입: false
-}
-
-// 호출하는 쪽에서 분기
-const result = await toggleReaction(id, emoji);
-
-if (result.removed) {
-  // result.removed 타입: true — "제거됐다"는 게 타입으로 보장됨
-} else {
-  // result.removed 타입: false — "추가됐다"는 게 타입으로 보장됨
-}
-```
-
-txt
-
-```txt
-removed: true as const vs removed: true:
-  boolean이면: if (result.removed) 에서 TS가 "true일 수도 false일 수도 있음"
-  true 리터럴이면: TS가 "이 분기에서는 반드시 true"임을 정확히 앎
-
-판별 유니온(Discriminated Union)과 비슷한 효과:
-  removed 필드의 리터럴 타입으로 두 케이스를 구분
-  → [[TS_Type_Guards]] 판별 유니온 참고
-```
-
----
-
-# 타입 서술어 (Type Predicate) — `value is Type` ⭐️⭐️⭐️⭐️
-
-```typescript
-// 반환 타입을 "value is Type" 형태로 쓰면
-// 이 함수가 true를 반환한 블록에서 TS가 자동으로 타입을 좁혀줌
-function isError(value: unknown): value is Error {
-  return value instanceof Error;
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === 'string';
+// catch 블록에서 반복되는 패턴
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return '알 수 없는 오류가 발생했습니다.';
 }
 
 // 사용
-const err: unknown = getError();
-if (isError(err)) {
-  err.message; // ✅ 여기서는 Error로 확정됨
+catch (err) {
+  setError(getErrorMessage(err));
+}
+```
+
+---
+
+# in — 속성 존재로 유니온 구분 ⭐️⭐️⭐️
+
+```typescript
+type Circle    = { kind: 'circle';    radius: number };
+type Rectangle = { kind: 'rectangle'; width: number; height: number };
+
+function getArea(shape: Circle | Rectangle) {
+  if ('radius' in shape) {
+    return Math.PI * shape.radius ** 2;  // shape: Circle
+  }
+  return shape.width * shape.height;    // shape: Rectangle
 }
 ```
 
 ```txt
-Type Predicate가 필요한 경우:
-  같은 좁히기 로직을 여러 곳에서 재사용하고 싶을 때
-  복잡한 조건(여러 필드 동시 체크)을 함수로 추출하고 싶을 때
-  Array.filter에서 타입을 좁히고 싶을 때 (아래 참고)
+in 연산자:
+  'propertyName' in object
+  → 그 속성이 있으면 true, 없으면 false
+
+유니온 타입에서 각 타입만 가진 속성을 확인해서 분기
 ```
 
-## Array.filter + 타입 서술어 ⭐️⭐️⭐️
+## discriminated union — kind 필드로 구분 ⭐️⭐️⭐️⭐️
 
 ```typescript
-const items: (string | null)[] = ['a', null, 'b', null, 'c'];
+type Shape =
+  | { kind: 'circle';    radius: number }
+  | { kind: 'rectangle'; width: number; height: number }
+  | { kind: 'triangle';  base: number; height: number };
 
-// ❌ filter(Boolean)은 null을 걸러내지만 타입은 여전히 (string | null)[]
-const filtered = items.filter(Boolean);
-
-// ✅ 타입 서술어로 null을 걸러내면서 타입도 string[]로 확정
-function isNotNull<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}
-const filtered = items.filter(isNotNull); // string[]
-```
-
-## includes 기반 타입 서술어 — as readonly string[] ⭐️⭐️⭐️⭐️
-
-
-```typescript
-const ROOM_THEME_PRESET_IDS = ['modern', 'retro', 'minimal'] as const;
-type RoomThemePresetId = typeof ROOM_THEME_PRESET_IDS[number];
-// → 'modern' | 'retro' | 'minimal'
-
-function isPresetId(value: string): value is RoomThemePresetId {
-  return (ROOM_THEME_PRESET_IDS as readonly string[]).includes(value);
+function getArea(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle':    return Math.PI * shape.radius ** 2;
+    case 'rectangle': return shape.width * shape.height;
+    case 'triangle':  return (shape.base * shape.height) / 2;
+  }
 }
 ```
 
+```txt
+discriminated union = 공통 필드(kind)의 리터럴 값으로 타입 구분
+각 case 안에서 TypeScript가 해당 타입으로 자동 좁힘
+switch문과 조합하면 in보다 더 명확하게 분기 가능
+```
+
+---
+
+# 사용자 정의 타입 가드 — is ⭐️⭐️⭐️⭐️
+
 ```typescript
+// 반환 타입에 'x is Type' 형태로 선언
+function isUser(value: unknown): value is User {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'name' in value
+  );
+}
+
 // 사용
-const input = 'modern';  // string (어디서 온 값)
-
-if (isPresetId(input)) {
-  input; // ✅ 여기서는 'modern' | 'retro' | 'minimal' 로 좁혀짐
-}
-```
-
-
-```txt
-왜 as readonly string[] 가 필요한가:
-
-  ROOM_THEME_PRESET_IDS 의 타입:
-    as const → readonly ['modern', 'retro', 'minimal']  (리터럴 튜플)
-
-  이 튜플의 .includes() 시그니처:
-    includes(searchElement: 'modern' | 'retro' | 'minimal'): boolean
-    → 인자가 반드시 세 값 중 하나여야 함
-
-  여기서 value: string 을 넣으면:
-    string은 'modern' | 'retro' | 'minimal' 보다 넓음 → TS 에러
-
-  as readonly string[] 로 캐스팅하면:
-    .includes(searchElement: string): boolean
-    → 어떤 string이든 인자로 받음 → 에러 없음
-
-  정리:
-    ROOM_THEME_PRESET_IDS.includes(value)  ← TS 에러 (value가 string이라 너무 넓음)
-    (ROOM_THEME_PRESET_IDS as readonly string[]).includes(value)  ← OK
-```
-
-
-```txt
-이 방식이 좋은 이유:
-  if (value === 'modern' || value === 'retro' || value === 'minimal') 대신
-  isPresetId(value) 한 줄로 표현 가능
-
-  ROOM_THEME_PRESET_IDS 에 프리셋을 추가하면
-  isPresetId 함수와 RoomThemePresetId 타입이 자동으로 따라옴
-  → 수동으로 유니온 타입과 조건을 동기화할 필요 없음
-
-  as const 배열 → T[number] → 타입 서술어 조합:
-  const IDS = [...] as const
-  type Id = typeof IDS[number]
-  function isId(v: string): v is Id { return (IDS as readonly string[]).includes(v) }
-  → 이 패턴 자체가 범용적으로 재사용 가능
-```
-
----
-
-# 판별 유니온 (Discriminated Union) ⭐️⭐️⭐️⭐️
-
-```typescript
-// 공통 tag 필드로 타입을 구분
-type SuccessResponse = { status: 'success'; data: User };
-type ErrorResponse   = { status: 'error';   message: string };
-type Response = SuccessResponse | ErrorResponse;
-
-function handleResponse(res: Response) {
-  switch (res.status) {
-    case 'success':
-      res.data.name; // SuccessResponse 확정
-      break;
-    case 'error':
-      res.message;   // ErrorResponse 확정
-      break;
-  }
-}
-```
-
-```txt
-판별 유니온의 조건:
-  ① 공통 필드(tag)가 있어야 함 (status, type, kind 등)
-  ② 그 필드의 값이 각 타입마다 리터럴 타입으로 달라야 함
-  → TS가 switch/if로 tag를 확인하면 나머지 필드를 자동으로 좁혀줌
-
-API 응답, Redux 액션, 이벤트 타입 등에서 자주 쓰임
-```
-
-## 판별 유니온 + never 소진 체크
-
-```typescript
-function handleResponse(res: Response) {
-  switch (res.status) {
-    case 'success': return res.data;
-    case 'error':   throw new Error(res.message);
-    default:
-      const _: never = res; // 모든 케이스 처리 → 여기 도달 불가
-      throw new Error('처리되지 않은 응답');
-  }
-}
-```
-
----
-
-# Assertion Function — 에러를 throw해서 좁히기 ⭐️⭐️
-
-```typescript
-// assert 함수: 조건이 false면 throw, true면 통과 → 이후 타입이 좁혀짐
-function assertString(value: unknown): asserts value is string {
-  if (typeof value !== 'string') {
-    throw new TypeError(`Expected string, got ${typeof value}`);
-  }
-}
-
-function process(value: unknown) {
-  assertString(value);
-  value.toUpperCase(); // ✅ assertString 통과 후에는 string 확정
-}
-```
-
-```txt
-asserts value is Type:
-  이 함수가 정상적으로 반환(throw 없이)되면
-  호출한 이후부터 value가 Type이라고 TS가 보장
-
-용도:
-  유효성 검사 함수를 별도로 분리하면서 타입 좁히기도 같이 하고 싶을 때
-  테스트 코드의 assert 유틸
-```
-
----
-
-# 좁히기가 안 되는 경우 — as 단언과의 차이 ⭐️⭐️⭐️
-
-```typescript
-// ❌ as는 실제로 검사하지 않음 — "내가 보장하겠다"는 약속만
-const user = data as User; // data가 실제로 User 모양이 아니어도 TS는 통과
-
-// ✅ 타입 가드는 런타임에 실제로 확인
 if (isUser(data)) {
-  // 여기서 data가 진짜 User 모양임을 런타임에 확인함
+  console.log(data.name);  // ✅ TypeScript가 data를 User로 확정
 }
 ```
 
 ```txt
-타입 가드 vs as 단언:
-  타입 가드  런타임에 실제로 확인 → 안전
-  as         컴파일 타임만 속임 → 런타임 에러 가능
+일반 boolean 반환 함수 vs is 타입 가드:
+  function check(x: unknown): boolean { return typeof x === 'string'; }
+  if (check(data)) { data.toUpperCase(); }  // ❌ data 타입이 여전히 unknown
 
-  as는 "내가 확신한다"고 책임지는 것
-  → 확신이 없으면 타입 가드로 실제로 확인해야 함
+  function isString(x: unknown): x is string { return typeof x === 'string'; }
+  if (isString(data)) { data.toUpperCase(); }  // ✅ data 타입이 string으로 좁혀짐
 
-  → [[TS_TypeAssertion]] 참고
+언제 쓰는가:
+  같은 객체 검사를 여러 곳에서 반복할 때 함수로 추출
+  API 응답 검증처럼 복잡한 조건을 한 곳에서 관리
+```
+
+```typescript
+// filter와 조합 — 타입 안전하게 null 제거
+const values = [1, null, 2, undefined, 3];
+
+// ❌ boolean만 반환 — 결과 타입이 여전히 (number | null | undefined)[]
+const cleaned = values.filter((v) => v != null);
+
+// ✅ is 타입 가드 — 결과 타입이 number[]
+const cleaned = values.filter((v): v is number => v != null);
 ```
 
 ---
 
-# 한눈에
-
-|방법|문법|주요 용도|
-|---|---|---|
-|`typeof`|`typeof x === 'string'`|string/number/boolean 등 원시 타입|
-|`instanceof`|`x instanceof Error`|클래스 인스턴스, catch 블록|
-|`in`|`'prop' in obj`|속성 존재 여부로 구분 (인터페이스 타입)|
-|타입 서술어|`fn(x): x is Type`|재사용 가능한 좁히기 함수, Array.filter|
-|판별 유니온|`switch(x.status)`|status/type 공통 필드로 구분|
-|Assertion|`asserts x is Type`|조건 불만족 시 throw하는 검사 함수|
+# never — 절대 일어나지 않는 타입 ⭐️⭐️⭐️⭐️
 
 ```txt
-가장 자주 쓰는 순서:
-  catch 블록     → instanceof Error
-  원시 타입 구분  → typeof
-  유니온 타입    → 판별 유니온 (status/type 필드)
-  null 제거      → isNotNull 타입 서술어 + Array.filter
-  복잡한 객체    → in + typeof 조합
+never = "이 코드는 절대 실행되지 않는다"
 
-타입 가드 없이 좁힐 때 → as (안전 보장 없음) → [[TS_TypeAssertion]]
-any/unknown/void/never 개념 → [[TS_Unknown_Any]]
+유니온 타입을 switch/if로 전부 처리하면
+마지막 분기에서 TypeScript가 타입을 never로 추론
+→ 새 타입이 추가됐는데 분기를 빠뜨리면 컴파일 에러
+```
+
+```typescript
+type Shape = Circle | Rectangle | Triangle;
+
+function getArea(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle':    return Math.PI * shape.radius ** 2;
+    case 'rectangle': return shape.width * shape.height;
+    case 'triangle':  return (shape.base * shape.height) / 2;
+    default:
+      const _exhaustiveCheck: never = shape;  // ← 모든 케이스 처리됐으면 never
+      throw new Error(`처리되지 않은 shape: ${JSON.stringify(shape)}`);
+  }
+}
+```
+
+```txt
+새 타입 추가 시 효과:
+  type Shape = Circle | Rectangle | Triangle | Pentagon  ← Pentagon 추가
+
+  switch에서 Pentagon case가 없으면:
+  const _exhaustiveCheck: never = shape;
+  → shape 타입이 Pentagon (never가 아님) → TS 컴파일 에러
+  → "분기 빠뜨렸어"를 런타임 전에 잡아줌
+
+never가 등장하는 다른 상황:
+  반환하지 않는 함수 (throw만 하거나 무한루프)
+  function fail(msg: string): never { throw new Error(msg); }
+
+  불가능한 타입 조합
+  type Impossible = string & number  // → never
+```
+
+---
+
+# as const — 리터럴 타입 고정 ⭐️⭐️⭐️
+
+```typescript
+// 타입 widening (넓혀짐):
+const direction = 'left';        // 타입: string
+const directions = ['left', 'right']; // 타입: string[]
+
+// as const — 리터럴 타입 유지:
+const direction = 'left' as const;         // 타입: 'left' (리터럴)
+const directions = ['left', 'right'] as const; // 타입: readonly ['left', 'right']
+```
+
+```typescript
+// 실전 — Prisma select 객체
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+} as const;
+// as const 없으면: { id: boolean; email: boolean; name: boolean }
+// as const 있으면: { readonly id: true; readonly email: true; ... }
+// → Prisma가 반환 타입을 정확히 추론 가능
+```
+
+```txt
+as const가 필요한 이유:
+  TypeScript는 기본적으로 타입을 넓게 추론 (widening)
+    'left' → string
+    true   → boolean
+  as const를 붙이면 리터럴 그대로 유지
+    'left' → 'left'
+    true   → true
+
+Prisma select에서 as const:
+  Prisma select의 각 값이 boolean이 아닌 "정확히 true"여야 타입 추론이 작동
+  → [[NestJS_Prisma]] select/include 상수로 빼기 섹션 참고
+```
+
+---
+
+# 실전 패턴
+
+## JSON.parse — unknown으로 안전하게 처리 ⭐️⭐️⭐️
+
+```typescript
+// ❌ any — 검증 없이 바로 사용
+const data = JSON.parse(response) as User;  // 실제로 User인지 모름
+
+// ✅ unknown → 검증 → 좁히기
+function parseUser(json: string): User | null {
+  try {
+    const data: unknown = JSON.parse(json);
+    if (isUser(data)) return data;  // isUser는 사용자 정의 타입 가드
+    return null;
+  } catch {
+    return null;
+  }
+}
+```
+
+## API 에러 응답 처리 ⭐️⭐️⭐️
+
+```typescript
+// fetch 에러 응답에서 메시지 추출
+const body = await res.json() as unknown;
+
+const message =
+  typeof body === 'object' &&
+  body !== null &&
+  'message' in body &&
+  typeof (body as { message: unknown }).message === 'string'
+    ? (body as { message: string }).message
+    : `요청 실패: ${res.status}`;
+```
+
+---
+
+# void — 반환값 없음 ⭐️⭐️
+
+```typescript
+// 함수가 아무것도 반환하지 않을 때
+function logMessage(msg: string): void {
+  console.log(msg);
+}
+
+// 콜백 타입에서 — "반환값을 신경 안 쓴다"
+type OnClick = () => void;
+const handler: OnClick = () => '뭔가 반환해도 됨';  // ✅ void는 반환값 무시
+
+// undefined와의 차이:
+function a(): void      { }  // ✅ 암묵적 undefined 반환
+function b(): undefined { }  // ❌ 명시적으로 undefined를 반환해야 함
+```
+
+```txt
+void vs undefined:
+  void    = "반환값을 신경 안 쓴다" — 콜백 타입에 주로 사용
+  undefined = "정확히 undefined를 반환한다"
+
+onClick: () => void  →  어떤 값을 반환해도 TypeScript가 무시
+onClick: () => undefined → undefined만 반환해야 함 (더 엄격)
 ```

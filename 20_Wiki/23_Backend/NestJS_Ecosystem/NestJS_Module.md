@@ -5,6 +5,7 @@ aliases:
   - Dynamic Module
   - forRootAsync
   - Module
+  - forwardRef
 tags:
   - NestJS
 related:
@@ -13,334 +14,419 @@ related:
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Service_Provider]]"
   - "[[NestJS_Controller]]"
+  - "[[NestJS_WebSocket]]"
 ---
 # NestJS_Module — 모듈
 
 > [!info] 
-> 모듈 = 관련된 Controller/Service를 하나로 묶는 단위
-> 기능별로 모듈을 분리해서 코드를 구조화하고, imports/exports로 모듈 간 의존성을 명시한다.
+> 모듈 = 관련된 Controller·Service를 하나로 묶는 상자. 
+> AppModule은 그 상자들을 담는 큰 상자. 
+> 새 기능을 만들 때 재작성하는 게 아니라, 새 상자(모듈)를 만들고 AppModule에 추가한다.
 
 ---
-# 흐름도
 
-```mermaid-beautiful
-flowchart TB
-    APP["AppModule<br/>루트 — imports로 모듈 조합"]
+# 모듈이란 — 왜 있는가 ⭐️⭐️⭐️⭐️
 
-    APP --> MOV["MovieModule<br/>controllers · providers<br/>exports: MovieService"]
-    APP --> USR["UserModule<br/>imports: MovieModule<br/>controllers · providers"]
+```txt
+모듈이 없으면:
+  모든 Controller, Service가 AppModule 하나에 등록
+  기능이 늘수록 한 파일이 수백 줄 → 유지보수 불가
 
-    MOV -.->|exports Provider| USR
+모듈로 기능 단위로 나누면:
+  각 기능(DM, 채팅방, 인증 등)이 자신의 모듈 안에 담김
+  관련 코드끼리 같은 폴더/파일에 모여 있음
+  다른 모듈의 기능이 필요할 때만 명시적으로 선언(imports)
 ```
 
 ```txt
-각 @Module: controllers · providers 등록 → IoC Container
-다른 모듈 Provider 쓰려면: exports(공개) → imports(가져오기) → constructor 주입
+상자 비유:
+  DmsModule     ← DM 관련 코드가 담긴 상자
+  RoomsModule   ← 채팅방 관련 코드가 담긴 상자
+  AuthModule    ← 인증 관련 코드가 담긴 상자
+
+  AppModule     ← 위 상자들을 전부 담는 큰 상자 (앱 전체의 시작점)
 ```
 
 ---
-# @Module 데코레이터 ⭐️
+
+# @Module — 4가지 필드 ⭐️⭐️⭐️⭐️
 
 ```typescript
 @Module({
-  imports:     [],  // 다른 모듈 불러오기
-  exports:     [],  // 이 모듈의 Provider를 외부에 공개
-  controllers: [],  // 이 모듈의 컨트롤러
-  providers:   [],  // 이 모듈의 서비스 / 프로바이더
+  imports:     [],  // 다른 모듈을 가져와서 그 모듈의 서비스를 쓸 수 있게 함
+  controllers: [],  // 이 모듈의 컨트롤러 (HTTP 요청을 받는 클래스)
+  providers:   [],  // 이 모듈의 서비스 (비즈니스 로직 클래스)
+  exports:     [],  // 이 모듈의 서비스를 다른 모듈에서도 쓸 수 있게 공개
 })
 ```
 
-|필드|역할|
-|---|---|
-|`imports`|다른 모듈을 불러옴 — 그 모듈이 `exports`한 Provider를 사용할 수 있게 됨|
-|`exports`|이 모듈의 Provider를 다른 모듈에서도 쓸 수 있게 공개 (없으면 이 모듈 안에서만 사용 가능)|
-|`controllers`|이 모듈에서 사용할 컨트롤러 등록|
-|`providers`|이 모듈에서 사용할 서비스/프로바이더 등록 — `@Injectable()` 클래스를 IoC Container에 등록|
+|필드|역할|언제 추가하는가|
+|---|---|---|
+|`imports`|다른 모듈 가져오기|다른 모듈의 서비스가 필요할 때|
+|`controllers`|컨트롤러 등록|이 모듈에서 HTTP 요청을 처리할 때|
+|`providers`|서비스 등록|이 모듈에서 비즈니스 로직을 만들 때|
+|`exports`|서비스 공개|다른 모듈에서 이 모듈의 서비스를 써야 할 때|
+
+```txt
+⚠️ 가장 흔한 실수 — exports 누락:
+  DmsModule에서 RoomsService를 쓰고 싶음
+  RoomsModule에 imports: [DmsModule]을 추가했는데 에러 발생
+  → DmsModule에 exports: [DmsService]가 없으면
+    "Nest can't resolve dependencies" 에러
+
+  공식: 서비스를 외부에서 쓰려면 반드시 그 모듈의 exports에 추가
+```
 
 ---
 
-# AppModule — 루트 모듈 ⭐️
+# AppModule — 루트 모듈 ⭐️⭐️⭐️⭐️
 
 ```typescript
 // app.module.ts
 @Module({
-  imports: [MovieModule, UserModule],  // 기능 모듈 조합
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    DmsModule,
+    RoomsModule,
+  ],
 })
 export class AppModule {}
 ```
 
 ```txt
-AppModule의 역할: 앱 전체의 중앙 모듈(루트) — 기능별 모듈을 imports에 등록해서 조합
-main.ts에서 AppModule 기반으로 앱 시작
+AppModule의 역할:
+  앱 전체의 시작점 — NestJS가 AppModule을 기반으로 앱을 시작
+  기능 모듈들을 imports에 모아서 조립하는 곳
 
-실무 관행: app.controller.ts / app.service.ts는 삭제하고,
-           AppModule은 중앙 조립 역할만 담당
+AppModule에서 하지 않는 것:
+  비즈니스 로직 → 기능 모듈(RoomsModule, DmsModule 등)에
+  Controller, Service 직접 등록 → 기능 모듈에
+
+  AppModule = 큰 상자, 기능 모듈 = 작은 상자
+  큰 상자는 작은 상자들을 담기만 함
+
+재작성하는 게 아님:
+  새 기능을 만들 때 AppModule을 재작성하지 않음
+  새 기능 모듈을 만들고, AppModule의 imports에 한 줄 추가
 ```
 
 ---
 
-# 기능별 모듈 분리 ⭐️
+# 새 기능 만들 때 워크플로우 ⭐️⭐️⭐️⭐️
 
 ```txt
-movie/
-  movie.module.ts      모듈
-  movie.controller.ts  컨트롤러
-  movie.service.ts     서비스
-  dto/                 DTO (Data Transfer Object)
-  entities/            엔티티 / 인터페이스
+예시: DM(다이렉트 메시지) 기능을 새로 만드는 경우
 ```
 
+## 1단계 — 기능 모듈 생성
+
+```bash
+nest g resource dms
+# → dms/dms.module.ts
+# → dms/dms.controller.ts
+# → dms/dms.service.ts
+# → dms/dto/ 폴더
+```
+
+```txt
+nest g resource 가 자동으로:
+  모듈 / 컨트롤러 / 서비스 파일 생성
+  AppModule의 imports에 DmsModule 자동 추가 ← 이 단계가 자동으로 됨
+```
+
+## 2단계 — 기본 모듈 (이미 생성됨)
+
 ```typescript
-// movie.module.ts
+// dms/dms.module.ts
 @Module({
-  controllers: [MovieController],
-  providers:   [MovieService],
-  exports:     [MovieService],  // 외부 모듈에서도 사용 가능하게
+  controllers: [DmsController],
+  providers:   [DmsService],
 })
-export class MovieModule {}
+export class DmsModule {}
+```
+
+## 3단계 — 다른 모듈의 서비스가 필요할 때
+
+```typescript
+// DmsService 안에서 PrismaService를 쓰고 싶다면
+// PrismaModule이 @Global()이면 → 아무것도 안 해도 됨
+// PrismaModule이 일반 모듈이면 → imports에 추가
+
+@Module({
+  imports:     [PrismaModule],  // PrismaService를 쓰려면 PrismaModule을 가져와야 함
+  controllers: [DmsController],
+  providers:   [DmsService],
+})
+export class DmsModule {}
+```
+
+## 4단계 — DmsService를 다른 모듈에서 써야 할 때
+
+```typescript
+@Module({
+  imports:     [PrismaModule],
+  controllers: [DmsController],
+  providers:   [DmsService],
+  exports:     [DmsService],  // 이 줄 추가 → 다른 모듈에서 DmsService 주입 가능
+})
+export class DmsModule {}
 ```
 
 ---
 
-# imports / exports 헷갈릴 때 ⭐️⭐️
+# imports/exports 의사결정 ⭐️⭐️⭐️⭐️
 
 ```txt
-"UserService에서 MovieService를 쓰고 싶다" — 3단계
+질문 1: 이 모듈에서 다른 모듈의 서비스를 써야 하는가?
+  → 예: imports에 그 모듈 추가
+  → 아니오: 그냥 둠
+
+질문 2: 이 모듈의 서비스를 다른 모듈이 써야 하는가?
+  → 예: exports에 그 서비스 추가
+  → 아니오: 그냥 둠 (이 모듈 안에서만 사용)
 ```
 
 ```typescript
-// ① MovieModule에서 exports에 추가 — "이 서비스 외부에 공개할게"
-@Module({ providers: [MovieService], exports: [MovieService] })
-export class MovieModule {}
+// 시나리오: DmsService가 RoomsService를 필요로 함
+//           RoomsService가 DmsService를 필요로 함
 
-// ② UserModule에서 imports에 MovieModule 추가 — "MovieModule 꺼 가져다 쓸게"
-@Module({ imports: [MovieModule], providers: [UserService] })
-export class UserModule {}
+// RoomsModule — DmsService를 쓸 수 있도록 exports
+@Module({
+  providers: [RoomsService],
+  exports:   [RoomsService],  // ← 공개
+})
+export class RoomsModule {}
 
-// ③ UserService에서 주입받아 사용
-constructor(private movieService: MovieService) {}
-```
+// DmsModule — RoomsModule을 가져와서 RoomsService 사용
+@Module({
+  imports:     [RoomsModule],  // ← 가져오기
+  providers:   [DmsService],
+  exports:     [DmsService],
+})
+export class DmsModule {}
 
-```txt
-⚠️ 가장 흔한 실수: exports 빠뜨리면 → "Nest can't resolve dependencies of UserService"
-   → MovieModule에 exports: [MovieService] 반드시 추가
+// DmsService 안에서 주입받기
+@Injectable()
+export class DmsService {
+  constructor(private readonly roomsService: RoomsService) {}
+}
 ```
 
 ---
 
-# @Global() — 모듈을 전역으로 ⭐️⭐️⭐️
-
-```txt
-imports/exports 방식은 "쓰려는 모듈마다" 매번 명시적으로 import 해야 함
-같은 Provider를 거의 모든 모듈이 공통으로 써야 한다면(DB 연결, 공통 설정 등)
-→ @Global()을 붙이면 한 번만 import해도 그 이후 모든 모듈에서 바로 주입 가능
-```
+# @Global() — 모든 모듈에서 쓰는 서비스 ⭐️⭐️⭐️
 
 ```typescript
 @Global()
 @Module({
-  providers: [DatabaseService],
-  exports:   [DatabaseService],
+  providers: [PrismaService],
+  exports:   [PrismaService],
 })
-export class DatabaseModule {}
+export class PrismaModule {}
 ```
 
 ```txt
-⚠️ @Global()을 붙여도 그 모듈 자체는 어딘가에 한 번은 import해야 함 (보통 AppModule)
-   "import가 전혀 필요 없다"가 아니라 "한 번만 하면, 이후엔 전역 적용"이라는 뜻
+@Global()이 없으면:
+  PrismaService를 쓰는 모든 모듈마다 imports: [PrismaModule] 추가 필요
+  → DmsModule, RoomsModule, AuthModule... 전부
 
-ConfigModule.forRoot({ isGlobal: true })의 isGlobal 옵션도 내부적으로 똑같이 @Global()을 사용함
-→ isGlobal 옵션이 있는 모듈들은 "옵션으로 @Global()을 켜고 끌 수 있게" 미리 만들어둔 것일 뿐
+@Global()이 있으면:
+  AppModule에 PrismaModule 한 번만 import
+  이후 어떤 모듈이든 imports 없이 PrismaService 주입 가능
+
+⚠️ @Global()이어도 AppModule에는 한 번 import 해야 함
+   "import가 전혀 필요 없다"가 아니라 "AppModule에 한 번만 하면 됨"
+
+언제 @Global()을 쓰는가:
+  거의 모든 모듈이 필요로 하는 서비스 → PrismaService, ConfigService, JwtService
+  일부 모듈만 쓴다면 → 명시적 imports가 더 명확
 ```
 
-|구분|장점|단점|
-|---|---|---|
-|매번 명시적으로 import|"이 모듈이 무엇에 의존하는지"가 import문에 드러남|기능 모듈이 늘수록 반복되는 보일러플레이트|
-|`@Global()`|반복 제거, 거의 모든 모듈이 쓰는 것에 적합|어떤 모듈이 실제로 그 Provider를 쓰는지 import문만 봐선 알 수 없음|
-
 ```txt
-판단 기준:
-  거의 모든 모듈이 필요로 하는가 (DB 연결, 전역 설정 등) → @Global() 후보
-  일부 모듈만 쓰는 거라면 → 명시적 import로 의존 관계를 드러내는 게 더 명확함
+ConfigModule.forRoot({ isGlobal: true })의 isGlobal:
+  내부적으로 @Global()과 같은 효과
+  라이브러리들이 isGlobal 옵션으로 @Global()을 켜고 끌 수 있게 미리 만들어둔 것
 ```
 
 ---
 
-# Dynamic Module — forRoot / forRootAsync 패턴 ⭐️⭐️⭐️
+# forwardRef — 순환 참조 해결 ⭐️⭐️⭐️⭐️
 
 ```txt
-ConfigModule.forRoot({...}), TypeOrmModule.forRootAsync({...})처럼
-"모듈이름.forRoot(옵션)" 형태로 쓰는 것들 — 일반 모듈과 뭐가 다른가
+순환 참조(Circular Dependency):
+  DmsModule   → RoomsModule을 import
+  RoomsModule → DmsModule을 import
+  → 서로가 서로를 기다리는 상황
+  → NestJS가 어느 것도 먼저 초기화하지 못함
+  → 에러: "A circular dependency between modules has been detected."
 ```
-
-|구분|정적 모듈|Dynamic Module|
-|---|---|---|
-|등록 방법|`imports: [MovieModule]` — 모듈 그 자체|`imports: [ConfigModule.forRoot({...})]` — 옵션을 넘겨 호출한 결과|
-|설정값 전달|불가능|가능 — 호출 시점에 원하는 설정을 인자로 전달|
-|내부 구현|`@Module({...})` 클래스 그대로|모듈 클래스 안에 `static forRoot(options)` 메서드가 있고 `@Module` 설정을 반환|
 
 ```typescript
-// 라이브러리 내부 구현 개념 예시
-@Module({})
-export class ConfigModule {
-  static forRoot(options: ConfigOptions): DynamicModule {
-    return {
-      module:    ConfigModule,
-      providers: [{ provide: 'CONFIG_OPTIONS', useValue: options }, ConfigService],
-      exports:   [ConfigService],
-      global:    options.isGlobal,  // 위 @Global()과 같은 효과를 옵션으로 켜고 끔
-    };
-  }
-}
+// DmsModule
+@Module({
+  imports: [AuthModule, forwardRef(() => RoomsModule)],
+  controllers: [DmsController],
+  providers:   [DmsService],
+  exports:     [DmsService],
+})
+export class DmsModule {}
+
+// RoomsModule — 반대편도 forwardRef 필요
+@Module({
+  imports:   [forwardRef(() => DmsModule)],
+  providers: [RoomsService, RoomsGateway],
+  exports:   [RoomsService],
+})
+export class RoomsModule {}
 ```
 
-## 흔히 보이는 이름들
+```txt
+forwardRef(() => RoomsModule) 동작:
+  일반 import는 즉시 참조 → 초기화 순서 결정 → 순환이면 막힘
+  forwardRef는 함수로 감싸서 참조를 나중으로 미룸 (지연 참조)
+  NestJS가 두 모듈을 각각 먼저 만들고, 이후에 연결
 
-|이름|의미|
+⚠️ 양쪽 모두 forwardRef 필요 — 한쪽만 하면 여전히 에러
+```
+
+## 더 좋은 해결책 — 공통 모듈 분리 ⭐️⭐️⭐️⭐️
+
+```txt
+forwardRef는 임시방편 — 순환 참조 자체가 설계 문제의 신호
+
+순환 참조가 생기는 이유:
+  두 모듈이 서로의 기능을 필요로 함
+  → 그 공통 기능을 제3의 모듈로 분리하면 해결
+
+패턴:
+  ❌ A ↔ B (순환)
+  ✅ A → Shared ← B (공통 분리)
+
+  A와 B는 서로를 몰라도 됨
+  둘 다 Shared만 import
+  Shared는 누구도 import 안 함 → 순환 없음
+```
+
+```typescript
+// ❌ 순환 참조 — forwardRef 필요
+@Module({ imports: [forwardRef(() => FeatureBModule)], ... })
+export class FeatureAModule {}
+
+@Module({ imports: [forwardRef(() => FeatureAModule)], ... })
+export class FeatureBModule {}
+
+// ✅ 공통 분리 — forwardRef 없음
+@Module({
+  providers: [SharedGateway],
+  exports:   [SharedGateway],  // 기능 모듈들이 주입해서 사용
+})
+export class SharedModule {}
+
+@Module({ imports: [SharedModule], ... })  // Shared만 import
+export class FeatureAModule {}
+
+@Module({ imports: [SharedModule], ... })  // Shared만 import
+export class FeatureBModule {}
+```
+
+```txt
+언제 어떤 것을 Shared로 빼는가:
+  두 모듈이 서로를 필요로 하게 된 "공통 기능"이 무엇인지 찾기
+  그 기능만 별도 모듈로 분리
+
+WebSocket 예시:
+  ModuleA와 ModuleB 둘 다 실시간 emit이 필요
+  → SharedGateway(연결·인증·emit)를 SharedModule로 분리
+  → 기능별 이벤트(@SubscribeMessage)는 각 모듈에 유지
+  → [[NestJS_WebSocket]] Gateway 책임 분리 패턴 참고
+```
+
+---
+
+# Dynamic Module — forRoot / forRootAsync ⭐️⭐️⭐️
+
+```txt
+ConfigModule.forRoot({...}), TypeOrmModule.forRootAsync({...}) 같은 패턴
+→ 옵션을 전달해서 모듈을 설정하는 방법
+```
+
+|이름|언제|
 |---|---|
-|`forRoot(options)`|앱 전체에서 한 번만 설정 (보통 AppModule에서 1번) — 동기적으로 옵션 확정|
-|`forRootAsync(options)`|`forRoot`와 같지만, 다른 Provider(ConfigService 등)에 의존해서 비동기로 옵션을 만들 때|
-|`register(options)`|특정 모듈 범위에서만 다르게 설정하고 싶을 때 (여러 번 호출 가능)|
-|`registerAsync(options)`|`register`의 비동기 버전|
+|`forRoot(options)`|고정된 옵션을 직접 전달 (동기)|
+|`forRootAsync(options)`|ConfigService 등 다른 Provider에서 값을 받아 옵션 계산 (비동기)|
 
 ```typescript
-// forRootAsync — 다른 Provider(ConfigService)의 값을 받아와야 할 때
-TypeOrmModule.forRootAsync({
+// forRoot — 값을 직접 넘김
+JwtModule.register({
+  secret: 'my-secret',
+  signOptions: { expiresIn: '15m' },
+})
+
+// forRootAsync — ConfigService에서 값을 받아서 옵션 만들기
+JwtModule.registerAsync({
   imports:    [ConfigModule],
   useFactory: (configService: ConfigService) => ({
-    type: 'postgres',
-    host: configService.get('DB_HOST'),
+    secret:      configService.getOrThrow('JWT_SECRET'),
+    signOptions: { expiresIn: '15m' },
   }),
   inject: [ConfigService],
 })
 ```
 
 ```txt
-forRoot: 고정된 객체를 바로 넘길 수 있음
-forRootAsync: useFactory + inject로 ConfigService 같은 값을 받아 옵션을 "계산"해서 반환
-→ "어떤 값이 들어올지 런타임에 결정되는" 설정이 필요할 때 forRootAsync 사용
+forRootAsync를 쓰는 이유:
+  환경변수 값은 런타임에 ConfigService를 통해 읽어야 함
+  forRoot에 process.env.JWT_SECRET을 직접 넣으면 undefined일 수 있음
+  → forRootAsync + inject: [ConfigService]로 안전하게 읽기
 ```
 
 ---
 
-# dto / entities 폴더 역할
-
-|폴더|역할|
-|---|---|
-|`dto/`|요청 Body 구조 정의 + 유효성 검사|
-|`entities/`|DB 테이블 구조 또는 타입 정의|
-
----
-
-# nest g resource — 한번에 생성 ⭐️
-
-```bash
-nest g resource movie
-```
-
-```txt
-transport layer 선택 → REST API
-CRUD entry points 생성? → Y(findAll/findOne/create/update/remove 자동) / N(빈 컨트롤러·서비스만)
-
-생성 파일: movie.module.ts / movie.controller.ts / movie.service.ts / dto/ / entities/
-→ app.module.ts에 imports: [MovieModule] 자동 추가됨
-```
-
----
-
-# 커스텀 공통 모듈 ⭐️
-
-```txt
-여러 모듈에서 공통으로 쓰는 로직을 CommonModule로 분리 (페이지네이션, 파일 처리, 유틸리티 등)
-```
-
-```typescript
-// common.module.ts
-@Module({
-  providers: [CommonService],
-  exports:   [CommonService],  // 반드시 exports에 추가
-})
-export class CommonModule {}
-
-// movie.module.ts — 사용할 모듈에서 import
-@Module({
-  imports:     [CommonModule],
-  controllers: [MovieController],
-  providers:   [MovieService],
-})
-export class MovieModule {}
-
-// movie.service.ts — 주입받아 사용
-@Injectable()
-export class MovieService {
-  constructor(private readonly commonService: CommonService) {}
-}
-```
-
----
-
-# ConditionalModule — 조건부 모듈 등록 ⭐️
-
-```txt
-환경변수에 따라 특정 모듈을 켜거나 끄는 기능
-사용 사례: Worker 서버 / API 서버를 같은 코드베이스에서 분리 실행
-```
-
-```typescript
-import { ConditionalModule } from '@nestjs/config';
-
-@Module({
-  imports: [
-    ConditionalModule.registerWhen(
-      WorkerModule,
-      (env: NodeJS.ProcessEnv) => env['TYPE'] === 'worker',  // true면 등록, false면 스킵
-    ),
-  ],
-})
-export class AppModule {}
-```
-
-```bash
-TYPE=worker node dist/main.js  # WorkerModule 등록됨
-node dist/main.js              # WorkerModule 스킵
-```
-
----
-
-# 전체 구조 예시
+# 폴더 구조 ⭐️⭐️⭐️
 
 ```txt
 src/
-├── app.module.ts            루트 모듈 (중앙 조립)
-├── common/
-│   ├── common.module.ts
-│   └── common.service.ts
-├── movie/
-│   ├── movie.module.ts
-│   ├── movie.controller.ts
-│   ├── movie.service.ts
-│   ├── dto/
-│   └── entities/
-└── user/
-    ├── user.module.ts
-    └── ...
+├── app.module.ts              루트 모듈 — 기능 모듈 조립만
+├── prisma/
+│   ├── prisma.module.ts       @Global() — 전역 DB 연결
+│   └── prisma.service.ts
+├── auth/
+│   ├── auth.module.ts
+│   ├── auth.controller.ts
+│   └── auth.service.ts
+├── dms/
+│   ├── dms.module.ts
+│   ├── dms.controller.ts
+│   ├── dms.service.ts
+│   └── dto/
+└── rooms/
+    ├── rooms.module.ts
+    ├── rooms.controller.ts
+    ├── rooms.service.ts
+    ├── rooms.gateway.ts       WebSocket
+    └── dto/
+```
+
+```txt
+폴더 안의 파일들:
+  module.ts     모듈 선언 (imports/exports/controllers/providers)
+  controller.ts HTTP 요청 받기 (@Get, @Post 등)
+  service.ts    비즈니스 로직 (DB 쿼리, 계산 등)
+  gateway.ts    WebSocket 이벤트 처리 (선택)
+  dto/          요청 Body 타입 정의 + 유효성 검사
+
+기능 하나 = 폴더 하나 = 모듈 하나
 ```
 
 ---
 
-# 한눈에
+# 자주 만나는 에러
 
-```txt
-@Module 4 필드: imports(가져오기) / exports(공개) / controllers / providers
-exports 빠뜨림 = 가장 흔한 DI 에러 ("can't resolve dependencies")
-
-@Global() = 한 번만 import하면 이후 모든 모듈에서 imports 없이 주입 가능
-  (isGlobal 옵션이 있는 모듈들은 내부적으로 이걸 옵션화해둔 것)
-
-forRoot(동기) / forRootAsync(다른 Provider에 의존해 비동기로 옵션 계산) / register(부분 적용) 구분
-  → forRootAsync의 핵심은 useFactory + inject로 ConfigService 같은 값을 받아 옵션을 동적으로 생성
-
-ConditionalModule로 환경변수 기반 모듈 on/off 가능 (Worker/API 서버 분리 등)
-
-Provider 자체 (DI, 등록 방식, Scope) → [[NestJS_Service_Provider]]
-```
+| 에러                                | 원인                                           | 해결                            |
+| --------------------------------- | -------------------------------------------- | ----------------------------- |
+| `Nest can't resolve dependencies` | 서비스를 주입받으려는데 그 모듈이 imports에 없음 또는 exports 누락 | 해당 모듈 imports 추가 + exports 확인 |
+| `Circular dependency detected`    | 두 모듈이 서로를 import                             | forwardRef 사용 또는 구조 재설계       |
+| `Cannot find module`              | 모듈 파일 경로 오류                                  | import 경로 확인                  |
+| 서비스 주입이 undefined                 | providers에 등록 안 됨                            | @Module providers에 서비스 추가     |

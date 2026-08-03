@@ -4,12 +4,15 @@ aliases:
   - 함수 설계 패턴
   - force=false
   - Early Return
+  - 내부 함수 추출
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Operators]]"
   - "[[React_AsyncUI]]"
+  - "[[NextJS_WebSocket]]"
+  - "[[JS_Promise]]"
 ---
 # JS_FunctionPatterns — 함수 설계 패턴
 
@@ -189,4 +192,82 @@ runAction이 적합한 경우:
   액션마다 다른 후처리 (삭제 성공 후 편집 모드 닫기 등)
   대상별 pending id를 각자 관리해야 할 때
   → [[React_AsyncUI]] 이벤트 핸들러 섹션 참고
+```
+---
+# 내부 함수 추출 — 즉시 실행 vs 참조로 전달 ⭐️⭐️⭐️⭐️
+
+```txt
+같은 코드를 두 가지 시점에 실행해야 할 때
+내부 함수로 추출하면 중복 없이 두 경우 모두 처리 가능
+```
+
+
+```typescript
+// ❌ 내부 함수 없이 — 같은 코드가 두 번 반복
+if (isReady) {
+  doWork(data);                   // 즉시 실행
+} else {
+  waitForReady.once('ready', () => {
+    doWork(data);                 // 나중에 실행 — 완전히 같은 코드 반복
+  });
+}
+
+// ✅ 내부 함수로 추출 — 한 곳에서 정의, 두 곳에서 사용
+const execute = () => {
+  doWork(data);
+};
+
+if (isReady) execute();           // 즉시 실행
+else waitForReady.once('ready', execute);  // 나중에 참조로 전달
+```
+
+```txt
+execute()   → 소괄호 있음 → "지금 즉시 실행"
+execute     → 소괄호 없음 → "나중에 실행할 함수를 참조로 넘김"
+
+  once('ready', execute())  — ❌ once 호출 시점에 즉시 실행
+  once('ready', execute)    — ✅ ready 이벤트가 오면 그때 execute 실행
+
+이 구분을 모르면:
+  once(event, fn()) — fn이 즉시 실행되고 그 반환값(보통 undefined)이 콜백으로 등록
+  → 이벤트가 와도 아무 일도 안 일어남
+```
+
+## 실전 예 — WebSocket 연결 대기
+
+
+```typescript
+// 연결이 됐으면 지금 emit, 아직이면 연결 완료 후 emit
+const doEmit = () => {
+  socket.emit('featureA:join', { resourceId }, callback);
+};
+
+if (socket.connected) doEmit();            // 즉시 실행
+else socket.once('connect', doEmit);       // 참조로 전달 → 나중에 실행
+```
+
+```txt
+자세한 설명 → [[NextJS_WebSocket]] acknowledgement 섹션
+```
+
+## 실전 예 — 조건에 따라 다른 시점에 같은 작업
+
+```typescript
+// 초기화가 됐으면 바로, 아직이면 초기화 완료 후 실행
+const initialize = () => {
+  setupPlayer(videoId);
+};
+
+if (isApiReady) {
+  initialize();                            // 즉시
+} else {
+  window.onApiReady = initialize;          // API 준비되면 실행 (참조)
+}
+```
+
+```txt
+함수가 "값"처럼 쓰이는 것:
+  JavaScript에서 함수는 일급 객체 — 변수에 담거나, 인자로 넘기거나, 반환할 수 있음
+  execute 처럼 이름을 붙여두면 여러 곳에서 참조로 전달 가능
+  → [[JS_Promise]] 비동기 흐름과 같이 자주 나오는 패턴
 ```

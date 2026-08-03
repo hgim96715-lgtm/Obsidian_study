@@ -4,10 +4,11 @@ aliases:
   - Promise
   - Promise.reject
   - Promise.resolve
-  - then
   - Promise.all
   - void
   - unknown
+  - 동기
+  - 비동기
 tags:
   - JavaScript
 related:
@@ -20,19 +21,105 @@ related:
 
 > [!info] 
 > Promise = 지금은 모르지만 나중에 결과가 나올 값을 표현하는 객체. 
-> async/await는 이것을 더 읽기 쉽게 만든 문법. 
-> 대부분은 async/await로 충분하고, new Promise()는 콜백 기반 API를 래핑할 때만 필요.
+> async/await는 이것을 더 읽기 쉽게 만든 문법.
+>  대부분은 async/await로 충분하고, new Promise()는 콜백 기반 API를 래핑할 때만 필요.
 
 ---
 
-# Promise란 — 왜 필요한가 ⭐️⭐️⭐️⭐️
+# 비동기란 무엇인가 ⭐️⭐️⭐️⭐️
+
+```txt
+동기(synchronous):
+  코드가 한 줄씩 순서대로 실행됨
+  한 줄이 끝나야 다음 줄이 시작됨
+  → 중간에 오래 걸리는 작업이 있으면 그 시간 동안 다음 코드가 전부 멈춤
+
+비동기(asynchronous):
+  오래 걸리는 작업을 "시작"만 하고, 기다리지 않고 다음 코드를 실행
+  작업이 완료되면 나중에 결과를 돌려받음
+  → 기다리는 동안 다른 일을 할 수 있음
+```
+
+```txt
+비유:
+  동기  = 카페에서 주문하고 카운터 앞에서 서서 기다림
+          내 음료 나올 때까지 뒤 사람은 주문도 못 함
+
+  비동기 = 주문하고 진동벨 받아서 자리에 앉음
+           진동벨 울리면 가져옴
+           그 사이에 다른 사람도 주문하고, 나는 핸드폰 볼 수 있음
+```
+
+## 왜 JavaScript에서 특히 중요한가 ⭐️⭐️⭐️⭐️
+
+```txt
+JavaScript는 싱글 스레드 — 한 번에 한 가지 일만 처리함
+
+브라우저에서 동기적으로 서버에 데이터를 요청하면:
+  fetch('/api/data')  →  응답 올 때까지 0.5초 대기
+  →  그 0.5초 동안 화면이 굳어버림 (스크롤도 안 됨, 클릭도 안 됨)
+  →  사용자 입장에서 앱이 먹통이 된 것처럼 보임
+
+해결 = 비동기:
+  fetch('/api/data') 를 "시작"만 하고 바로 다음 코드로 넘어감
+  응답이 오면 그때 결과를 처리
+  그 사이에 화면 렌더링, 클릭 이벤트, 다른 코드가 정상 동작
+```
+
+## 비동기가 필요한 작업들
+
+```txt
+네트워크 요청    fetch('/api/data')     0.1초~수초 걸릴 수 있음
+타이머           setTimeout(fn, 1000)   1초 뒤에 실행
+파일 읽기/쓰기  readFile('data.txt')   디스크 I/O
+DB 쿼리          prisma.user.findMany() 네트워크 + DB 처리 시간
+이미지 로드      img.onload             다운로드 완료 시점 모름
+
+공통점:
+  "언제 완료될지 모름" → JavaScript가 기다리면 멈춰버림
+  → 비동기로 처리해서 기다리는 동안 다른 일을 함
+```
+
+## 이벤트 핸들러와 useEffect에서 비동기 ⭐️⭐️⭐️
+
+```typescript
+// 이벤트 핸들러: 버튼을 클릭했을 때 서버에 요청
+const handleSubmit = async () => {
+  // await: "이 작업이 완료될 때까지 여기서 기다려"
+  //        (기다리는 동안 화면은 정상 동작)
+  const result = await createPost(data);
+  setState(result);
+};
+
+// useEffect: 컴포넌트가 화면에 나타날 때 데이터 가져오기
+useEffect(() => {
+  async function load() {
+    const data = await fetchPosts();  // 완료될 때까지 기다림
+    setPosts(data);
+  }
+  void load();
+}, []);
+```
+
+```txt
+React_AsyncUI가 다루는 것:
+  "비동기 작업의 결과로 UI를 어떻게 업데이트하는가"
+  pending(로딩 중) / fulfilled(성공) / rejected(실패) 각 상태를 어떻게 처리하는가
+  → [[React_AsyncUI]]
+
+Promise가 다루는 것:
+  비동기 작업의 "결과 값"을 표현하는 방법
+  async/await가 어떻게 Promise를 사용하기 쉽게 만드는가
+  → 이 노트의 나머지 내용
+```
+
+---
+
+# Promise란 — 비동기 결과를 담는 그릇 ⭐️⭐️⭐️⭐️
 
 ```txt
 JavaScript는 기본적으로 한 번에 한 가지 일만 처리함 (싱글 스레드)
 네트워크 요청처럼 "결과가 나올 때까지 기다려야 하는 일"이 문제
-
-기다리는 동안 아무것도 못 하면:
-  fetch('/api/data') → 응답 올 때까지 화면이 굳어버림 → 사용자가 아무것도 못 함
 
 해결:
   "지금 당장 결과를 줄 순 없는데, 나중에 완료되면 알려줄게"

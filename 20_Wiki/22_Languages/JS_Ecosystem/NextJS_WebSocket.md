@@ -3,19 +3,23 @@ aliases:
   - WebSocket
   - socket.io
   - client
+  - emit
+  - on
+  - off
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NestJS_WebSocket]]"
   - "[[JS_Operators]]"
+  - "[[JS_FunctionPatterns]]"
 ---
 # NextJS_WebSocket — Socket.IO 클라이언트 패턴
 
 > [!info] 
-> WebSocket = 한 번 연결하면 서버도 클라이언트에게 언제든 데이터를 보낼 수 있는 실시간 통신 방식.
->  이 노트는 Next.js(클라이언트)에서 socket.io-client로 NestJS Gateway와 연결하는 패턴을 다룬다. 
->  서버 Gateway 구현 → [[NestJS_WebSocket]]
+> WebSocket = 한 번 연결하면 서버도 클라이언트에게 언제든 데이터를 보낼 수 있는 실시간 통신 방식. 
+> 이 노트는 Next.js(클라이언트)에서 socket.io-client로 NestJS Gateway와 연결하는 패턴을 다룬다. 
+> 서버 Gateway 구현 → [[NestJS_WebSocket]]
 
 ---
 
@@ -249,44 +253,150 @@ acknowledgement:
   → "쏘고 응답 대기"가 가능해짐
 ```
 
+## const s = getRoomSocket() — 모든 함수가 이걸 먼저 부르는 이유 ⭐️⭐️⭐️⭐️
+
 ```typescript
-// 기본 — 이미 연결된 경우
-export function socketLeaveRoom(roomId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();
-  return new Promise((resolve) => {
-    s.emit('leave', { roomId }, (res: { ok: boolean }) => resolve(res));
-    //                          ↑ 서버가 return한 값이 여기로 옴
-  });
+export function socketJoin(resourceId: string): Promise<{ ok: boolean }> {
+  const s = getRoomSocket();  // ① 항상 이 줄부터
+  // ...
 }
 ```
 
-```typescript
-// 개선 — 연결 중이면 연결 완료 후 emit ⭐️⭐️⭐️
-export function socketJoinRoom(roomId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();
-  return new Promise((resolve) => {
-    const doJoin = () => {
-      s.emit('join', { roomId }, (res: { ok: boolean }) =>
-        resolve(res ?? { ok: false }),
-      );
-    };
+```txt
+getRoomSocket()이 하는 일:
+  ① 이미 연결된 소켓이 있으면 → 그 소켓을 그대로 반환
+  ② 소켓이 없으면 → 새로 만들고 connect() 호출 후 반환
 
-    if (s.connected) doJoin();        // 이미 연결됨 → 즉시 emit
-    else s.once('connect', doJoin);   // 연결 중 → 연결되면 한 번만 실행
+왜 모든 함수에서 호출하는가:
+  소켓 인스턴스가 모듈 스코프 변수(let socket)에 담겨있음
+  let socket: Socket | null = null  ← 파일 맨 위에 선언된 변수
+
+  export function socketJoin(...) {
+    socket.emit(...)  // ❌ socket이 null일 수 있음 → 타입 에러 + 런타임 에러
+  }
+
+  → "null인지 확인하고 없으면 만들어서 연결까지 해주는" 과정을
+    getRoomSocket() 하나가 담당
+  → 모든 함수가 이 한 줄로 "유효한 소켓 인스턴스"를 얻음
+
+const s = ... 로 받는 이유:
+  getRoomSocket()이 socket을 반환하지만 반환 타입이 Socket (null 아님)
+  s라는 새 변수에 받아두면 이후 코드에서 null 체크 없이 바로 사용 가능
+  함수 안에서 socket 모듈 변수를 직접 쓰지 않고 s를 쓰는 것이 더 명확
+```
+
+## 기본 패턴 — 이미 연결된 경우
+
+```typescript
+export function socketLeave(resourceId: string): Promise<{ ok: boolean }> {
+  const s = getRoomSocket();           // ① 소켓 가져오기
+  return new Promise((resolve) => {
+    s.emit(                            // ② 이벤트 전송
+      'featureA:leave',
+      { resourceId },
+      (res: { ok: boolean }) => resolve(res),  // ③ 서버 응답을 콜백으로 받음
+    );
   });
 }
 ```
 
 ```txt
-s.once('connect', doJoin) 가 필요한 이유:
-  getRoomSocket()이 connect()를 호출하지만 연결은 비동기로 완료됨
-  연결 완료 전에 emit을 보내면 서버가 못 받음
-  → connected 여부를 확인하고, 아직이면 'connect' 이벤트를 한 번만 기다림
+socket.emit(이벤트이름, payload, 콜백) — 인자 세 가지:
+
+  ① 이벤트 이름 (string)
+    서버의 @SubscribeMessage('featureA:leave') 와 정확히 일치해야 함
+    대소문자 포함 완전히 같아야 함 — 다르면 서버가 조용히 무시
+
+  ② payload (보낼 데이터, 선택)
+    서버 핸들러의 @MessageBody()로 받는 값
+    객체, 문자열, 숫자 등 어떤 타입이든 가능
+    보낼 데이터가 없으면 생략하거나 null
+
+    { resourceId }  →  { resourceId: resourceId } 와 동일 (단축 표기)
+    서버에서: @MessageBody() body: { resourceId: string }
+
+  ③ acknowledgement 콜백 (선택)
+    서버 핸들러가 return한 값을 받는 함수
+    이 인자를 넣어야 서버 응답을 받을 수 있음
+    안 넣으면 "쏘고 끝" — 서버가 뭘 return하든 클라이언트는 모름
+
+    (res: { ok: boolean }) => resolve(res)
+    ↑ res = 서버 핸들러의 return 값
+
+payload 없이 콜백만 넣을 때:
+  s.emit('ping', (res) => resolve(res))
+  → 두 번째 인자를 생략하고 콜백만 넣으면 됨
+```
+
+
+## 연결 중이면 기다렸다가 emit ⭐️⭐️⭐️
+
+```typescript
+export function socketJoin(resourceId: string): Promise<{ ok: boolean }> {
+  const s = getRoomSocket();
+
+  return new Promise((resolve) => {
+    const doEmit = () => {                              // ① 내부 함수로 추출
+      s.emit(
+        'featureA:join',
+        { resourceId },
+        (res: { ok: boolean }) => resolve(res ?? { ok: false }),
+      );
+    };
+
+    if (s.connected) doEmit();        // ② 이미 연결됨 → 즉시 실행
+    else s.once('connect', doEmit);   // ③ 연결 중 → 연결되면 참조로 전달
+  });
+}
+```
+
+```txt
+const doEmit = () => { ... } 를 왜 쓰는가:
+
+  같은 s.emit(...) 코드를 두 가지 시점에 실행해야 함
+    ② connected → 지금 바로 실행
+    ③ connecting → 나중에 connect 이벤트가 오면 실행
+
+  doEmit 없이 쓰면:
+    if (s.connected) {
+      s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
+    } else {
+      s.once('connect', () => {
+        s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
+        // ↑ 완전히 같은 코드를 또 써야 함 — 중복
+      });
+    }
+
+  doEmit으로 추출하면:
+    const doEmit = () => {
+      s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
+    };
+    if (s.connected) doEmit();          // 즉시 실행
+    else s.once('connect', doEmit);     // 나중에 실행할 함수를 참조로 전달
+
+  핵심 차이:
+    doEmit()        → 소괄호 붙임 → "지금 즉시 실행"
+    doEmit          → 소괄호 없음 → "나중에 실행할 함수를 참조로 넘김"
+
+  s.once('connect', doEmit) 에서 doEmit() 이 아닌 doEmit:
+    doEmit()로 쓰면 그 줄에서 즉시 실행됨 → 아직 연결 안 됐는데 emit → 실패
+    doEmit 으로 쓰면 "connect 이벤트가 오면 이 함수를 불러줘"라는 의미
+    → 함수를 값처럼 전달하는 패턴 → [[JS_FunctionPatterns]] 내부 함수 추출 참고
+```
+
+```txt
+s.connected 분기가 필요한 이유:
+  getRoomSocket()은 소켓을 만들고 connect()를 호출하지만
+  connect()는 비동기 → 함수가 반환된 시점에 아직 연결 안 됐을 수 있음
+  연결 완료 전에 s.emit() → 서버가 못 받음 (조용히 사라짐)
 
 s.once vs s.on:
-  s.on   → 이벤트마다 계속 실행
-  s.once → 딱 한 번만 실행 후 자동 제거
-  연결 대기용으로는 once가 적합 (매번 join이 실행되면 안 됨)
+  s.on   → 이벤트마다 계속 실행 → 여러 번 join되는 버그 발생 가능
+  s.once → 딱 한 번만 실행 후 자동 제거 → 연결 대기용으로 적합
+
+res ?? { ok: false }:
+  서버가 아무것도 return 안 한 경우 null/undefined → { ok: false }로 대체
+  네트워크 문제나 서버 에러 시 방어
 ```
 
 ---

@@ -9,47 +9,54 @@ tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NestJS_WebSocket]]"
   - "[[JS_Promise]]"
-  - "[[NextJS_API_Client]]"
-  - "[[React_useRef]]"
-  - "[[TS_TypeAssertion]]"
-  - "[[React_Context]]"
-  - "[[JS_Primitive_Methods]]"
-  - "[[TS_ImportType]]"
+  - "[[React_AsyncUI]]"
+  - "[[JS_Promise]]"
 ---
 # TS_Generics — 제네릭
 
 > [!info] 
-> 제네릭 = "타입을 변수처럼 나중에 결정하는 것". 
-> `Array<string>`, `Promise<User>`, `useState<number>` 처럼 `<>` 안에 타입을 넣는 패턴이다.
+> 제네릭 = 타입을 나중에 결정할 수 있게 하는 것.
+>  `<T>`를 선언하면 함수를 호출할 때 T에 어떤 타입이 들어갈지 결정된다. 
+>  TypeScript가 대부분 자동으로 추론하므로 `fn<string>('hello')`처럼 직접 명시하지 않아도 되는 경우가 많다.
 
 ---
 
-# 왜 필요한가 ⭐️⭐️⭐️⭐️
+# 제네릭이란 — 타입을 변수처럼 ⭐️⭐️⭐️⭐️
+
+```txt
+일반 변수:   값을 나중에 결정
+  const x = 5;     // 숫자 5를 x에 저장
+  const x = 'hi';  // 문자열 'hi'를 x에 저장
+
+타입 변수:   타입을 나중에 결정
+  function fn<T>  // T에 어떤 타입이 들어갈지는 호출 시 결정됨
+  fn('hello')  → T = string
+  fn(42)       → T = number
+  fn({ id: 1}) → T = { id: number }
+```
+
+## any와의 차이 ⭐️⭐️⭐️⭐️
 
 ```typescript
 // ❌ any — 타입 정보가 사라짐
-function identity(arg: any): any {
-  return arg;
-}
-const result = identity('hello');
-// result 타입: any — string인지 number인지 모름
+function wrap(value: any): any { return { value }; }
+const result = wrap('hello');
+// result 타입: any → result.value 가 string인지 모름
 
 // ✅ 제네릭 — 타입 정보 유지
-function identity<T>(arg: T): T {
-  return arg;
-}
-const result = identity('hello');
-// result 타입: string — 입력 타입이 그대로 출력으로 나옴
+function wrap<T>(value: T): { value: T } { return { value }; }
+const result = wrap('hello');
+// result 타입: { value: string } → result.value 가 string임을 앎
 ```
 
 ```txt
-제네릭의 핵심:
-  "어떤 타입이 들어오든 그 타입 그대로 돌려준다"를 표현
-  T는 타입 변수 — 함수 호출 시 실제 타입으로 채워짐
-  identity('hello')  → T = string
-  identity(42)       → T = number
-  identity({})       → T = {}
+any는 "어떤 타입이든 받겠다, 대신 타입 정보는 포기"
+제네릭은 "어떤 타입이든 받겠다, 그리고 그 타입 정보를 유지"
+
+제네릭 없으면 → any로 처리 → 타입 자동완성 없음, 오타도 잡아줌 없음
+제네릭 있으면 → T = string으로 결정 → string의 메서드 자동완성, 타입 검사 유지
 ```
 
 ---
@@ -57,27 +64,42 @@ const result = identity('hello');
 # 기본 문법 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 함수
+// 함수 선언 — <T>를 파라미터 목록 앞에 선언
 function first<T>(arr: T[]): T | undefined {
   return arr[0];
 }
-first([1, 2, 3])   // T = number, 반환: number | undefined
-first(['a', 'b'])  // T = string, 반환: string | undefined
 
 // 화살표 함수
-const wrap = <T>(value: T): { value: T } => ({ value });
+const first = <T>(arr: T[]): T | undefined => arr[0];
+```
 
-// 타입 명시 (추론이 안 될 때)
-first<string>([])
+## 타입 추론 — 대부분 자동으로 ⭐️⭐️⭐️⭐️
+
+```typescript
+first([1, 2, 3])   // TypeScript가 T = number로 자동 추론
+first(['a', 'b'])  // T = string으로 자동 추론
+first([])          // T = never (빈 배열 — 타입 알 수 없음)
 ```
 
 ```txt
-T, U, K, V — 관례적인 타입 파라미터 이름:
-  T        일반 타입 (Type)
-  U        두 번째 타입
-  K        키 타입 (Key)
-  V        값 타입 (Value)
-  TResult  명확한 의미를 표현할 때 긴 이름도 OK
+T를 직접 쓰는 경우는 드뭄:
+  first<string>([])     // 빈 배열처럼 추론이 안 될 때만 명시
+
+대부분의 제네릭 함수는:
+  호출할 때 인자를 보고 TypeScript가 T를 자동으로 결정
+  → 매번 first<string>(...) 처럼 명시하지 않아도 됨
+```
+
+## 타입 파라미터 이름 관례
+
+```txt
+T   일반 타입 (Type)
+U   두 번째 타입
+K   키 타입 (Key)
+V   값 타입 (Value)
+
+의미를 명확히 하고 싶으면 긴 이름도 OK:
+  <TResult>, <TInput>, <TKey>
 ```
 
 ---
@@ -87,43 +109,51 @@ T, U, K, V — 관례적인 타입 파라미터 이름:
 ```typescript
 // T는 어떤 타입이든 — length가 없을 수 있음
 function logLength<T>(arg: T) {
-  console.log(arg.length);  // ❌ T에 length가 있다는 보장 없음
+  arg.length;  // ❌ T에 length가 있다는 보장 없음
 }
 
-// T는 { length: number }를 가져야 함
+// T는 반드시 length 속성을 가져야 함
 function logLength<T extends { length: number }>(arg: T) {
-  console.log(arg.length);  // ✅
+  arg.length;  // ✅ extends로 보장됨
 }
 
-logLength('hello');  // string은 length 있음 ✅
-logLength([1, 2]);   // array는 length 있음 ✅
+logLength('hello');  // ✅ string은 length 있음
+logLength([1, 2]);   // ✅ 배열은 length 있음
 logLength(42);       // ❌ number에는 length 없음
 ```
 
+```txt
+extends 읽는 법:
+  <T extends { length: number }>
+  = "T는 어떤 타입이든 되는데, 최소한 { length: number }는 가져야 함"
+  = T의 범위를 제한하는 조건
+```
+
+## keyof 조합 — 객체의 키를 타입으로 ⭐️⭐️⭐️
+
 ```typescript
-// 실전 — 배열 요소를 반환
+// K extends keyof T = K는 T의 키 중 하나여야 함
 function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
   return obj[key];
 }
 
-const user = { id: 1, name: 'Tom' };
-getProperty(user, 'name');  // ✅ 'name'은 user의 키
-getProperty(user, 'age');   // ❌ 'age'는 user에 없음
+const user = { id: 1, name: 'Tom', age: 30 };
+getProperty(user, 'name');  // ✅ 반환 타입: string
+getProperty(user, 'id');    // ✅ 반환 타입: number
+getProperty(user, 'email'); // ❌ 'email'은 user의 키가 아님
 ```
 
----
-
-# 기본값 — 제네릭 기본 타입 ⭐️⭐️
-
 ```typescript
-// T의 기본값을 string으로
-function createPair<T = string>(first: T, second: T): [T, T] {
-  return [first, second];
-}
+// keyof 단독 사용 — 타입의 키 유니온
+type User = { id: string; name: string; age: number };
+type UserKey = keyof User;  // 'id' | 'name' | 'age'
 
-createPair('a', 'b')    // T = string (추론)
-createPair(1, 2)        // T = number (추론)
-createPair()            // T = string (기본값 사용)
+// 타입 안전한 설정 배열
+const FIELDS: { key: keyof User; label: string }[] = [
+  { key: 'name', label: '이름' },
+  { key: 'age',  label: '나이' },
+  // key에 오타 넣으면 컴파일 에러
+];
 ```
 
 ---
@@ -131,22 +161,37 @@ createPair()            // T = string (기본값 사용)
 # React에서 제네릭 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// useState — 타입 명시
-const [count, setCount]   = useState<number>(0);
-const [user, setUser]     = useState<User | null>(null);
-const [items, setItems]   = useState<string[]>([]);
+// useState — 초기값으로 추론 가능할 때는 생략 가능
+const [count, setCount] = useState(0);          // T = number 자동 추론
+const [name, setName]   = useState('');          // T = string 자동 추론
 
-// useRef — DOM 타입
+// 초기값이 null이거나 복잡한 경우 — 명시 필요
+const [user, setUser]   = useState<User | null>(null);  // null만 보고는 User를 모름
+const [items, setItems] = useState<Post[]>([]);          // 빈 배열만 보고는 Post를 모름
+
+// useRef
 const inputRef = useRef<HTMLInputElement>(null);
 const divRef   = useRef<HTMLDivElement>(null);
+```
 
-// Promise — 응답 타입
+```txt
+useState<User | null>(null):
+  null만으로는 TypeScript가 "나중에 User가 들어올 것"을 알 수 없음
+  → 제네릭으로 직접 알려줘야 함
+
+useState([])와 useState<Post[]>([]):
+  [] 만으로는 어떤 배열인지 모름 → Post[]임을 명시
+```
+
+```typescript
+// Promise — 응답 타입 명시
 const user = await fetch('/api/user').then(r => r.json() as Promise<User>);
 
-// 이미 담긴 제네릭
-Array<string>      // string[]과 동일
+// 이미 내장된 제네릭 타입들
+Array<string>      // = string[]
 Map<string, User>  // 키: string, 값: User
 Set<number>
+Promise<User>      // resolve되면 User
 ```
 
 ---
@@ -155,23 +200,24 @@ Set<number>
 
 ```typescript
 // 함수를 타입으로 표현
-type Handler  = () => void;                            // 파라미터 없음
-type OnChange = (value: string) => void;               // 파라미터 있음
-type Fetcher  = (id: string) => Promise<User>;         // 비동기 반환
+type Handler  = () => void;                     // 파라미터 없음, 반환 없음
+type OnChange = (value: string) => void;        // string 받음, 반환 없음
+type Fetcher  = (id: string) => Promise<User>;  // 비동기 반환
 
 // React Props에서 콜백
-type Props = {
-  value:    string;
-  onChange: (value: string) => void;  // 필수 콜백
-  onSave?:  () => void;               // 선택 콜백
+type ButtonProps = {
+  label:    string;
+  onClick:  () => void;                         // 필수 콜백
+  onChange?: (value: string) => void;           // 선택 콜백
 };
 ```
 
 ```txt
 void vs Promise<T>:
-  () => void           반환값을 신경 안 씀 (이벤트 핸들러)
-  () => Promise<User>  비동기 함수 — await 하면 User
-  () => Promise<void>  비동기지만 반환값 없음
+  () => void            반환값을 신경 안 씀 (이벤트 핸들러)
+  () => Promise<User>   비동기 함수 — await 하면 User
+  () => Promise<void>   비동기지만 반환값 없음
+  () => Promise<unknown> 어떤 타입이든 받을 때 (래퍼 패턴) → [[JS_Promise]]
 ```
 
 ---
@@ -179,225 +225,146 @@ void vs Promise<T>:
 # 함수를 인자로 받기 — 고차 함수 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// count 파라미터 자체가 함수 타입
+// count 파라미터 자체가 "함수 타입"
 const periodCounts = async (
   count: (gte?: Date) => Promise<number>
 ) => {
   const [week, month, total] = await Promise.all([
-    count(startOfWeek),   // 이번 주 이후 count
-    count(startOfMonth),  // 이번 달 이후 count
-    count(),              // 전체 count
+    count(startOfWeek),
+    count(startOfMonth),
+    count(),
   ]);
   return { week, month, total };
 };
 
 // 사용 — 어떤 모델이든 주입 가능
 const postStats = await periodCounts(
-  (gte) => prisma.post.count({ where: { createdAt: gte ? { gte } : undefined } })
+  (gte) => prisma.post.count({
+    where: { createdAt: gte ? { gte } : undefined }
+  })
 );
 const commentStats = await periodCounts(
-  (gte) => prisma.comment.count({ where: { createdAt: gte ? { gte } : undefined } })
+  (gte) => prisma.comment.count({
+    where: { createdAt: gte ? { gte } : undefined }
+  })
 );
 ```
 
 ```txt
 왜 이렇게 쓰는가:
   "기간별(week/month/total) 집계 로직"은 모든 모델에서 동일
-  어떤 모델을 셀지만 다름 → 쿼리 함수를 주입받아 재사용
+  어떤 모델을 셀지만 다름 → count 함수를 주입받아 재사용
 
-  periodCounts는 날짜 계산 + Promise.all 병렬 실행만 담당
-  실제 쿼리는 주입된 count 함수가 담당
+  periodCounts는 날짜 계산 + Promise.all만 담당
+  실제 DB 쿼리는 주입된 count 함수가 담당
 ```
 
 ---
 
-# ReactNode — 렌더링 가능한 모든 것 ⭐️⭐️⭐️⭐️
-
-```typescript
-import { type ReactNode } from 'react';
-
-// children prop에 가장 자주 씀
-type Props = {
-  children: ReactNode;   // JSX, string, number, null, undefined 전부 허용
-  label?:   ReactNode;
-};
-```
-
-```typescript
-// ReactNode vs JSX.Element
-const a: JSX.Element = <div />;      // ✅
-const b: JSX.Element = 'hello';      // ❌ 문자열 안 됨
-const c: JSX.Element = null;         // ❌ null 안 됨
-
-const d: ReactNode = <div />;        // ✅
-const e: ReactNode = 'hello';        // ✅
-const f: ReactNode = null;           // ✅
-```
-
-```txt
-언제 뭘 쓰는가:
-  children?: ReactNode          가장 넓음 — 뭐든 받을 때
-  icon?: React.ReactElement     JSX 엘리먼트만 (문자열, null 제외)
-  renderHeader?: () => JSX.Element  반드시 JSX를 반환하는 함수
-```
-
----
-
-# keyof — 타입의 키 유니온 ⭐️⭐️⭐️⭐️
-
-```typescript
-type User = { id: string; name: string; age: number };
-
-type UserKey = keyof User;
-// → 'id' | 'name' | 'age'
-
-// 실전 — 타입 안전한 설정 배열
-const DISPLAY_CHIPS: { key: keyof LyricDecorDisplay; label: string }[] = [
-  { key: 'lyrics', label: '가사' },
-  { key: 'mood',   label: '감정' },
-  // key에 오타 넣으면 컴파일 에러
-];
-```
-
----
-
-# `Partial<T>` + 스프레드 패치 패턴 ⭐️⭐️⭐️⭐️
+# `Partial<T>` + 스프레드 패치 패턴 ⭐️⭐️⭐️
 
 ```typescript
 // 전체 중 일부 필드만 업데이트
 const patch = (partial: Partial<ApiCustomization>) => {
-  onChange({ ...normalizeValue(value), ...partial });
+  onChange({ ...current, ...partial });
 };
 
-// 특정 필드만 바꾸기
-patch({ display: { ...d, [key]: on } });
+patch({ theme: 'dark' });              // theme만 바꿈
+patch({ layout: 'grid', size: 'sm' }); // 두 필드 바꿈
 ```
 
 ```txt
 Partial<T>:
-  T의 모든 필드를 optional로 → "일부 필드만 보내면 됨"
+  T의 모든 필드를 optional로 만듦 → "일부 필드만 보내면 됨"
   PATCH 업데이트 파라미터 타입으로 자주 씀
 
-{ ...기존값, ...partial }:
+{ ...current, ...partial }:
   partial의 필드가 기존값을 덮어씀
   나머지 필드는 그대로 유지
+
+Partial 포함 유틸리티 타입 전체 → [[TS_Utility_Types]]
 ```
 
 ---
 
-# readonly T[] — 읽기 전용 배열 파라미터 ⭐️⭐️⭐️
+# readonly T[] — 읽기 전용 배열 ⭐️⭐️⭐️
 
 ```typescript
-// T[]     → 함수 안에서 수정 가능
-// readonly T[] → 수정 불가 (더 넓은 타입 허용)
 function process(items: readonly string[]) {
   items.push('x');  // ❌ readonly라 push 불가
   return items[0];  // ✅ 읽기만 가능
 }
 
-process(['a', 'b'])           // ✅ string[]
-process(['a', 'b'] as const)  // ✅ readonly string[]
-
-// as const 배열도 받을 수 있게 readonly로 선언하는 것이 더 유연
-```
-
----
-
-# size variant prop 패턴 ⭐️⭐️⭐️
-
-```typescript
-// string으로 받으면 어떤 값이든 통과
-function Button({ size }: { size: string }) { }
-
-// 리터럴 유니온으로 제한
-function Button({
-  size = 'md',
-}: {
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const cls = size === 'sm' ? 'px-2 py-1' : size === 'lg' ? 'px-6 py-3' : 'px-4 py-2';
-  // ...
-}
-
-// Record로 매핑
-const SIZE_CLASS: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'px-2 py-1',
-  md: 'px-4 py-2',
-  lg: 'px-6 py-3',
-};
-```
-
----
-
-# 스프레드 → 타입 느슨해짐 → 콜백 추론 실패 ⭐️⭐️⭐️
-
-```typescript
-// ❌ 스프레드가 섞이면 콜백 타입 추론 끊어짐
-const options = {
-  ...defaults,
-  events: {
-    onError: (e) => { console.log(e.data); }  // e 타입: any
-  },
-};
-
-// ✅ 파라미터 직접 명시
-const options = {
-  ...defaults,
-  events: {
-    onError: (e: { data: number }) => { console.log(e.data); }
-  },
-};
-
-// ✅ 또는 satisfies로 연결
-const options = {
-  ...defaults,
-  events: { onError: (e) => { ... } },
-} satisfies PlayerOptions;
+process(['a', 'b'])           // ✅ string[]도 통과
+process(['a', 'b'] as const)  // ✅ readonly string[]도 통과
 ```
 
 ```txt
-이유:
-  { ...something, key: value } → TS가 "이 객체에 뭐가 더 붙을지 모름"
-  → 넓은 타입으로 추론 → 콜백 파라미터 타입 끊어짐
-  → strict 모드에서 "Parameter 'e' implicitly has an 'any' type" 에러
+T[] vs readonly T[]:
+  T[]          함수 안에서 수정 가능
+  readonly T[] 수정 불가 — 더 넓은 타입을 받을 수 있음
 
-satisfies:
-  검증(타입 맞는지 체크) + 리터럴 타입 유지
-  as는 강요, satisfies는 검증
+  as const로 만든 배열도 받고 싶을 때 readonly T[]로 선언하면 유연함
 ```
 
 ---
 
-# 한눈에
+# 교차 타입 & — 두 타입을 합치기 ⭐️⭐️⭐️⭐️
 
 ```txt
-기본:
-  <T>           타입 변수 선언
-  <T>(arg: T)   호출 시 T가 실제 타입으로 채워짐
-  추론 → 대부분 명시 불필요, 안 될 때만 fn<string>(...)
+& = "A이고 동시에 B이기도 한" 타입 → 두 타입의 속성을 전부 가짐
+| = "A이거나 B인" 타입 → 둘 중 하나면 됨
+```
 
-extends:
-  <T extends string>        T는 string만
-  <T extends { id: string }> T는 id 필드가 있어야
-  <K extends keyof T>       K는 T의 키 중 하나
+```typescript
+type A = { name: string };
+type B = { age: number };
 
-React:
-  useState<User | null>(null)
-  useRef<HTMLInputElement>(null)
+type AB   = A & B;  // { name: string; age: number } — 둘 다 있어야 함
+type AorB = A | B;  // name이 있거나 age가 있거나
 
-함수 타입:
-  (param: T) => void    파라미터 → 반환 없음
-  () => Promise<User>   비동기 반환
+const ok: AB   = { name: '홍길동', age: 30 };  // ✅
+const fail: AB = { name: '홍길동' };             // ❌ age 없음
+```
 
-고차 함수:
-  fn: (arg: T) => U     함수를 인자로 받음
+## 수정 못 하는 타입 확장 — 실전 패턴 ⭐️⭐️⭐️⭐️
 
-ReactNode:
-  children: ReactNode   JSX, string, null 전부 허용
+```typescript
+// socket.io의 Socket 타입은 직접 수정 불가
+// data 필드가 기본적으로 any → 구체적인 타입을 추가하고 싶을 때
 
-keyof:
-  keyof T → T의 키 유니온
+type AuthedSocket = Socket & { data: { userId?: string } };
+//   ↑ 새 이름      ↑ 기존 타입  ↑ 추가할 타입
 
-Partial 패치:
-  { ...base, ...partial }  일부 필드만 덮어쓰기
+client.id           // ✅ Socket 기존 속성
+client.emit(...)    // ✅ Socket 기존 메서드
+client.data.userId  // ✅ 내가 추가한 타입 (string | undefined)
+```
+
+```txt
+읽는 법:
+  Socket & { data: { userId?: string } }
+  = "Socket이 가진 모든 것을 가지면서, data.userId?: string 도 가진 타입"
+
+& vs interface extends:
+  // 방법 1 — & (즉석 선언, 인라인 가능)
+  type AuthedSocket = Socket & { data: { userId?: string } };
+
+  // 방법 2 — interface extends (정식 선언)
+  interface AuthedSocket extends Socket { data: { userId?: string }; }
+
+  제3자 라이브러리 타입 빠르게 확장 → &
+  재사용·상속이 필요한 정식 선언 → extends
+```
+
+```typescript
+// 여러 타입 합치기
+type AdminRequest = Request & {
+  user:      JwtPayload;
+  adminMeta: AdminInfo;
+};
+```
+
+```txt
+실제 사용 위치 → [[NestJS_WebSocket]]
 ```

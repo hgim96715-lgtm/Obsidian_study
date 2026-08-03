@@ -1,15 +1,20 @@
 ---
 aliases:
   - Gateway
-  - payload
-  - Realtime
   - SocketIO
   - WebSocket
+  - emit
+  - leave
+  - disconnect
+  - token
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NextJS_WebSocket]]"
+  - "[[NestJS_CORS]]"
+  - "[[TS_Generics]]"
+  - "[[NestJS_Module]]"
 ---
 # NestJS_WebSocket — Socket.IO Gateway
 
@@ -17,6 +22,28 @@ related:
 > Gateway = WebSocket 이벤트를 처리하는 Controller. 
 > `@SubscribeMessage`가 `@Get/@Post` 역할, `@ConnectedSocket`이 `@Req` 역할을 한다.
 >연결한 클라이언트 하나 = Socket 객체. 클라이언트(Next.js) 구현 → [[NextJS_WebSocket]]
+
+---
+# 흐름도
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant G as Gateway
+  participant Room as Socket Room
+
+  C->>G: 1. connect (JWT)
+  Note over G: 연결 인증 · user 룸 입장
+
+  C->>G: 2. emit 이벤트 (join)
+  G->>Room: 3. 소켓을 Room에 넣기
+  G-->>C: ack (응답)
+
+  Note over G,Room: 4. 서버가 Room에 emit
+  Room-->>C: 5. 같은 Room 전원 수신
+
+  C->>G: 6. leave / disconnect
+```
 
 ---
 
@@ -543,7 +570,8 @@ emitMemberKicked(roomId: string, targetUserId: string) {
   namespace: '/chat',
   cors: {
     origin: [
-      'http://localhost:3031',
+    'http://localhost:3031', // 로컬 개발 — localhost 
+    'http://127.0.0.1:3031', // 로컬 개발 — 127.0.0.1 (브라우저마다 다르게 처리)
       process.env.FRONTEND_URL
         ? new URL(process.env.FRONTEND_URL).origin
         : undefined,
@@ -554,17 +582,28 @@ emitMemberKicked(roomId: string, targetUserId: string) {
 ```
 
 ```txt
+localhost vs 127.0.0.1 둘 다 넣는 이유:
+  localhost와 127.0.0.1은 같은 IP를 가리키지만 브라우저는 다른 origin으로 취급
+  http://localhost:3031  ≠  http://127.0.0.1:3031  (다른 출처)
+  어떤 브라우저/환경은 localhost를, 어떤 것은 127.0.0.1을 사용하는 경우가 있음
+  → 둘 다 허용해야 로컬 개발 시 CORS 에러 없음
+
 origin: true  vs  origin: [배열]:
   true  → 어떤 출처에서든 허용 (개발 시 편하지만 운영에선 위험)
   [배열] → 허용 출처 명시 (운영 권장)
 
 new URL(process.env.FRONTEND_URL).origin:
   'https://my-app.vercel.app/some/path' → 'https://my-app.vercel.app'
-  경로가 포함된 URL에서 origin만 추출
+  경로가 포함된 URL에서 origin(프로토콜+도메인+포트)만 추출
+  환경변수에 경로가 포함돼 있어도 정확한 origin을 얻을 수 있음
 
 .filter(Boolean):
   FRONTEND_URL 없으면 ternary가 undefined 반환
   배열에 undefined 있으면 에러 → filter(Boolean)으로 제거
+
+credentials: true:
+  쿠키 포함 요청 허용 — 클라이언트 socket.io의 withCredentials: true 와 세트
+  이 설정 없이 withCredentials: true 를 클라이언트에서 쓰면 CORS 에러
 ```
 
 ---
@@ -691,4 +730,179 @@ prefix 방식(room:, message:)을 쓰는 이유:
   서버: server.to(room).emit('room:updated', payload)
   클라이언트: socket.on('room:updated', handler)
   이름이 다르면 조용히 무시 (에러 없음, 이벤트 수신 안 됨)
+```
+
+---
+# Gateway 책임 분리 — 순환 참조 없이 구조화하기 ⭐️⭐️⭐️⭐️
+
+```txt
+문제:
+  RoomsModule과 DmsModule이 각자 Gateway를 가지고
+  Controller에서 서로의 Gateway를 주입받으면 순환 참조 발생
+
+  RoomsModule → (emit 필요) → DmsModule
+  DmsModule   → (emit 필요) → RoomsModule
+  → 서로가 서로를 import → forwardRef 필요 → 설계 문제 신호
+
+해결:
+  Gateway의 책임을 두 가지로 분리
+  ① 연결·인증·emit  → 공통 Gateway (RealtimeModule)
+  ② 이벤트 구독      → 기능별 Gateway (RoomsModule, DmsModule)
+
+  기능 모듈들은 공통 Gateway만 import → 서로를 몰라도 됨 → 순환 없음
+```
+
+## 구조
+
+```txt
+Before (순환):
+  ModuleA ──import──▶ ModuleB
+     ▲                    │
+     └────── 서로 emit ◀──┘
+
+After (공통 분리):
+  SharedModule  ← SharedGateway (연결 + 인증 + emit만 담당)
+       ▲                ▲
+   ModuleA          ModuleB
+  (이벤트 A)        (이벤트 B)
+```
+
+## SharedGateway — 공통 Gateway (연결·emit만)
+
+```typescript
+// shared/shared.gateway.ts
+@WebSocketGateway({ namespace: '/chat', cors: { origin: true, credentials: true } })
+export class SharedGateway implements OnGatewayConnection {
+
+  @WebSocketServer()
+  server: Server;
+
+  constructor(
+    private readonly jwtService:    JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  // 연결·인증만 담당 — 비즈니스 로직(Service) 주입 없음
+  async handleConnection(client: AuthedSocket) {
+    try {
+      const token =
+        (client.handshake.auth?.token as string | undefined) ??
+        (client.handshake.query?.token as string | undefined);
+
+      if (!token) { client.disconnect(); return; }
+
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.getOrThrow('JWT_SECRET'),
+      });
+
+      client.data.userId = payload.sub;
+      await client.join(`user:${payload.sub}`);
+    } catch {
+      client.disconnect();
+    }
+  }
+
+  // emit 메서드들만 — @SubscribeMessage 없음
+  emitToRoom(roomId: string, event: string, payload: unknown) {
+    this.server.to(`room:${roomId}`).emit(event, payload);
+  }
+
+  emitToUser(userId: string, event: string, payload: unknown) {
+    this.server.to(`user:${userId}`).emit(event, payload);
+  }
+}
+```
+
+## 기능별 Gateway — @SubscribeMessage만
+
+```typescript
+// feature-a/feature-a-events.gateway.ts
+@WebSocketGateway({ namespace: '/chat' })  // 같은 namespace — 가능
+export class FeatureAGateway {
+  constructor(
+    private readonly sharedGateway:  SharedGateway,
+    private readonly featureAService: FeatureAService,
+  ) {}
+
+  @SubscribeMessage('featureA:join')
+  async onJoin(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() body: { resourceId: string },
+  ): Promise<{ ok: boolean }> {
+    const userId = client.data.userId;
+    if (!userId || !body?.resourceId) return { ok: false };
+    await this.featureAService.assertAccess(body.resourceId, userId);
+    await client.join(`room:${body.resourceId}`);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('featureA:leave')
+  async onLeave(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() body: { resourceId: string },
+  ): Promise<{ ok: boolean }> {
+    if (!body?.resourceId) return { ok: false };
+    await client.leave(`room:${body.resourceId}`);
+    return { ok: true };
+  }
+}
+
+// feature-b/feature-b-events.gateway.ts
+@WebSocketGateway({ namespace: '/chat' })  // 같은 namespace 공유
+export class FeatureBGateway {
+  constructor(private readonly featureBService: FeatureBService) {}
+
+  @SubscribeMessage('featureB:join')
+  async onJoin(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() body: { resourceId: string },
+  ): Promise<{ ok: boolean }> {
+    if (!body?.resourceId) return { ok: false };
+    await client.join(`featureB:${body.resourceId}`);
+    return { ok: true };
+  }
+}
+```
+
+## 모듈 구성
+
+```typescript
+// shared/shared.module.ts
+@Module({
+  providers: [SharedGateway],
+  exports:   [SharedGateway],   // 기능 모듈들이 inject해서 emit 호출
+})
+export class SharedModule {}
+
+// feature-a/feature-a.module.ts
+@Module({
+  imports:     [SharedModule],                          // SharedGateway만 import
+  providers:   [FeatureAService, FeatureAGateway],
+  controllers: [FeatureAController],
+})
+export class FeatureAModule {}
+
+// feature-b/feature-b.module.ts
+@Module({
+  imports:     [SharedModule],                          // SharedGateway만 import
+  providers:   [FeatureBService, FeatureBGateway],
+  controllers: [FeatureBController],
+})
+export class FeatureBModule {}
+```
+
+```txt
+핵심:
+  ModuleA와 ModuleB가 서로를 전혀 모름 → 순환 참조 없음
+  둘 다 SharedModule만 import → SharedModule은 누구도 import 안 함
+
+같은 namespace에 여러 Gateway:
+  @WebSocketGateway({ namespace: '/chat' }) 를 여러 클래스에 붙여도 됨
+  Socket.IO가 같은 namespace를 공유하므로 client.join/leave가 동일하게 동작
+  @SubscribeMessage 핸들러가 어떤 Gateway에 있든 클라이언트 입장에서는 동일한 서버
+
+Gateway는 providers에 등록 (controllers 아님):
+  SharedGateway  → SharedModule의 providers + exports
+  FeatureAGateway → FeatureAModule의 providers (export 불필요)
+  FeatureBGateway → FeatureBModule의 providers (export 불필요)
 ```

@@ -7,118 +7,136 @@ tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[Deploy_CloudMVP]]"
-  - "[[JS_Fetch_API]]"
-  - "[[NextJS_TokenStorage]]"
-  - "[[Web_XSS_CSRF]]"
+  - "[[NestJS_WebSocket]]"
   - "[[Web_Cookie]]"
 ---
-# NestJS_CORS — Cross-Origin 요청 허용
+# NestJS_CORS — CORS 설정
 
 > [!info] 
-> CORS = 브라우저가 다른 도메인(origin)으로 요청 보낼 때 서버가 명시적으로 허용해야 하는 보안 정책
->  Vercel(프론트) + Railway(API)처럼 도메인이 다른 구조에서 로그인·쿠키가 안 되는 이유가 대부분 여기에 있다.
+> CORS(Cross-Origin Resource Sharing) = 브라우저의 기본 보안 정책(Same-Origin Policy)이 차단하는 cross-origin 요청을, 서버가 명시적으로 허용하는 메커니즘. 
+> 프론트(Vercel) + API(Railway)처럼 도메인이 다른 구조에서 로그인·API 호출이 안 되는 이유가 대부분 여기에 있다.
 
 ---
 
-# 흐름도
+# CORS란 — 왜 존재하는가 ⭐️⭐️⭐️⭐️
 
-```mermaid-beautiful
-flowchart TB
-  subgraph ORIGIN["① Origin"]
-    direction TB
-    Q{"프로토콜 · 도메인 · 포트\n모두 같음?"}
-    SAME["same-origin · CORS 불필요"]
-    CROSS["cross-origin"]
-    Q -->|예| SAME
-    Q -->|아니오| CROSS
-  end
+```txt
+Cross-Origin Resource Sharing
+  Cross        = 다른 / 교차
+  Origin       = 출처 (프로토콜 + 도메인 + 포트)
+  Resource     = 리소스 (API 응답, 이미지 등)
+  Sharing      = 공유
 
-  subgraph CORS["② 이 페이지 — Nest enableCors"]
-    direction TB
-    C1["브라우저 cross-origin 요청"]
-    C2["main.ts origin · credentials"]
-    C3["Access-Control-Allow-Origin"]
-    C4{"origin 매칭?"}
-    PASS["요청·응답 통과"]
-    BLOCK["브라우저 차단"]
-    C1 --> C2 --> C3 --> C4
-    C4 -->|일치| PASS
-    C4 -->|미설정 · 불일치| BLOCK
-  end
+= "다른 출처의 리소스를 공유하는 것을 허용하는 메커니즘"
+```
 
-  subgraph CRED["③ 쿠키 인증 시 추가"]
-    direction TB
-    S1["서버 credentials true"]
-    S2["fetch credentials include"]
-    S3["origin 와일드카드 불가"]
-    S1 --> S2
-    S1 --> S3
-  end
+## 브라우저의 기본 정책 — Same-Origin Policy
 
-  subgraph BEARER["③-B Bearer JWT"]
-    direction TB
-    B1["Authorization 헤더 직접"]
-    B2["credentials 불필요"]
-    B1 --> B2
-  end
+```txt
+브라우저는 기본적으로 다른 출처로의 요청을 차단함 (Same-Origin Policy)
 
-  subgraph LIMIT["④ CORS 밖 — 쿠키·Safari"]
-    direction TB
-    K1["CORS 통과해도 가능"]
-    K2["cross-site 쿠키 · iOS ITP"]
-    K3["로그인 200 · me 401"]
-    K4["Nest enableCors만으로 해결 불가"]
-    K1 --> K2 --> K3 --> K4
-  end
+왜 차단하는가 — 보안 위협 예시:
+  내가 bank.com 에 로그인되어 있는 상태
+  악성 사이트 evil.com 을 방문
+  evil.com의 JavaScript가 몰래 bank.com/transfer 로 요청을 보냄
+  → 내 쿠키가 자동으로 첨부됨 → 인증된 요청처럼 처리됨 → 계좌 이체 성공
 
-  subgraph NEXT["⑤ 해결 — 다른 노트"]
-    direction TB
-    N1["same-site 프록시 /api/nest"]
-    N2["Bearer + localStorage"]
-    N3["상세 → Web_Cookie"]
-    N1 --> N3
-    N2 --> N3
-  end
+  Same-Origin Policy가 없으면 이런 공격(CSRF)이 가능해짐
+  → 브라우저는 기본적으로 다른 출처로의 요청을 막음
 
-  CROSS --> C1
-  PASS --> S1
-  PASS --> B1
-  PASS --> K1
-  K4 --> N1
-  K4 --> N2
+CORS = 이 차단을 선택적으로 풀어주는 메커니즘
+  서버가 "나는 이 출처에서 오는 요청을 허용한다"고 헤더로 알려줌
+  브라우저가 그 헤더를 보고 통과시킴
+```
+
+---
+
+# Origin이란 ⭐️⭐️⭐️⭐️
+
+```txt
+Origin = 프로토콜 + 도메인 + 포트 세 가지의 조합
+
+  https://my-app.vercel.app
+  ↑ 프로토콜   ↑ 도메인              (포트 없음 = 443 기본)
+
+  http://localhost:3000
+  ↑ 프로토콜   ↑ 도메인    ↑ 포트
+
+셋 중 하나라도 다르면 cross-origin:
+```
+
+|비교|결과|이유|
+|---|---|---|
+|`https://a.com` vs `https://a.com`|same-origin|동일|
+|`https://a.com` vs `http://a.com`|cross-origin|프로토콜 다름|
+|`https://a.com` vs `https://b.com`|cross-origin|도메인 다름|
+|`http://localhost:3000` vs `http://localhost:3001`|cross-origin|포트 다름|
+|`http://localhost:3000` vs `http://127.0.0.1:3000`|cross-origin|도메인 다름|
+
+```txt
+⚠️ localhost와 127.0.0.1은 같은 IP지만 브라우저는 다른 origin으로 취급
+  → 둘 다 허용 목록에 넣어야 로컬 개발 시 CORS 에러 없음
+```
+
+---
+
+# 브라우저에서 실제로 일어나는 일 ⭐️⭐️⭐️⭐️
+
+```txt
+CORS 오류의 핵심을 많이 오해하는 부분:
+  "서버가 요청을 차단한다" → ❌ 틀림
+  "브라우저가 응답을 차단한다" → ✅ 맞음
+
+서버는 요청을 받고 처리하고 응답을 보냄
+브라우저가 응답을 받고 CORS 헤더를 확인한 뒤
+→ 허용된 origin이면: JavaScript에 응답 전달 ✅
+→ 허용 안 된 origin이면: JavaScript에 응답 차단 ❌ (콘솔에 CORS 에러 표시)
 ```
 
 ```txt
-이 노트 범위: cross-origin이면 enableCors + origin 명시 · 쿠키는 credentials 양쪽 · origin * 와 credentials 동시 불가
-CORS 통과 ≠ 인증 성공 — Safari 401은 쿠키·서드파티 문제 → Nest CORS 설정만으로는 안 됨
-프록시·ITP·쿠키 도메인 → [[Web_Cookie]] · Bearer는 [[JS_Fetch_API]] [[NextJS_TokenStorage]]
+흐름:
+  브라우저 ──요청 + Origin: https://front.com──▶ 서버 (요청 처리 완료)
+  브라우저 ◀──응답 + Access-Control-Allow-Origin: https://front.com── 서버
+
+  브라우저가 Access-Control-Allow-Origin 확인:
+    origin이 목록에 있음 → JavaScript에 응답 전달
+    origin이 목록에 없음 → JavaScript에 "CORS 에러" → 응답 데이터 접근 불가
 ```
 
----
-
-# CORS가 필요한 이유 ⭐️⭐️⭐️
+## Preflight — 허락부터 받고 보내는 요청
 
 ```txt
-same-origin = 프로토콜 + 도메인 + 포트가 모두 같음
-cross-origin = 셋 중 하나라도 다름
+단순한 GET, POST(text)는 바로 요청을 보냄
+하지만 복잡한 요청(Authorization 헤더, application/json body 등)은
+브라우저가 먼저 "이 요청을 보내도 되나요?" 확인 요청을 먼저 보냄 → Preflight
+```
 
-  프론트: https://my-app.vercel.app
-  API:    https://my-api.railway.app  ← 도메인이 다름 → cross-origin
+```txt
+Preflight 흐름:
+  1. 브라우저 → OPTIONS 요청 (Preflight)
+               Access-Control-Request-Method: POST
+               Access-Control-Request-Headers: Authorization, Content-Type
 
-브라우저는 보안상 cross-origin 요청을 기본적으로 차단함
-→ 서버가 "이 출처는 허용한다"고 응답 헤더로 알려줘야 브라우저가 통과시킴
+  2. 서버 → 허용 응답
+             Access-Control-Allow-Origin: https://front.com
+             Access-Control-Allow-Methods: GET, POST, PATCH, DELETE
+             Access-Control-Allow-Headers: Content-Type, Authorization
 
-로컬에서도:
-  프론트: http://localhost:3000
-  API:    http://localhost:3001  ← 포트가 다름 → cross-origin → CORS 설정 필요
+  3. 허용 확인됨 → 브라우저가 실제 요청 전송
+  4. 서버가 실제 요청 처리 및 응답
+
+Preflight가 실패하면:
+  실제 요청 자체를 안 보냄 → 네트워크 탭에 OPTIONS 요청만 보이고 실제 요청 없음
+  콘솔에 CORS 에러
+
+maxAge 옵션:
+  Preflight 결과를 캐싱하는 시간 (초)
+  86400 = 24시간 — 같은 요청에 대해 24시간 동안 Preflight 생략
 ```
 
 ---
 
-# NestJS enableCors() ⭐️⭐️⭐️⭐️
-
-## main.ts 설정
+# NestJS enableCors() 설정 ⭐️⭐️⭐️⭐️
 
 ```typescript
 // apps/api/src/main.ts
@@ -128,151 +146,184 @@ async function bootstrap() {
   const configService  = app.get(ConfigService);
   const frontendUrl    = configService.get<string>('FRONTEND_URL');
   const frontendOrigin = frontendUrl
-    ? new URL(frontendUrl).origin   // URL에서 origin(프로토콜+도메인)만 추출
+    ? new URL(frontendUrl).origin  // 경로 제거 → origin만
     : undefined;
 
   app.enableCors({
-    origin: frontendOrigin
-      ? [
-          'http://localhost:3000',    // 로컬 개발 (프론트)
-          'http://127.0.0.1:3000',   // 일부 브라우저는 127.0.0.1을 localhost와 다르게 봄
-          frontendOrigin,             // 운영 프론트엔드 도메인
-        ]
-      : undefined,                   // FRONTEND_URL 없으면 CORS 제한 없음 (로컬 전용)
+    origin: [
+      'http://localhost:3000',    // 로컬 개발
+      'http://127.0.0.1:3000',   // 로컬 개발 (127.0.0.1 접근 시)
+      frontendOrigin,             // 운영 프론트엔드 도메인
+    ].filter(Boolean),            // undefined 제거
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,                // Preflight 24시간 캐싱
   });
 
   await app.listen(3000);
 }
 ```
 
-## new URL(frontendUrl).origin — 왜 origin만 추출하는가
-
-```txt
-FRONTEND_URL 환경변수에는 경로까지 포함될 수 있음:
-  https://my-app.vercel.app/recommendations  ← /recommendations 경로가 붙어있음
-
-CORS의 origin 비교는 경로를 포함하지 않음 → 경로 포함된 URL을 그대로 쓰면 매칭 실패
-→ new URL(frontendUrl).origin으로 경로를 제거한 도메인만 사용
-
-  new URL('https://my-app.vercel.app/path').origin
-  // → 'https://my-app.vercel.app'
-```
-
----
-
-# 환경변수로 분리 ⭐️⭐️⭐️
+## new URL(frontendUrl).origin — 경로 제거
 
 ```typescript
-// ❌ 하드코딩 — Git에 도메인 노출 + 환경마다 코드 수정 필요
-app.enableCors({
-  origin: ['https://my-app.vercel.app'],
-  credentials: true,
-});
+new URL('https://my-app.vercel.app/some/path').origin
+// → 'https://my-app.vercel.app'
 
-// ✅ 환경변수로 분리
-app.enableCors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean),   // FRONTEND_URL 없을 때 undefined 제거
-  credentials: true,
-});
+new URL('https://my-app.vercel.app').origin
+// → 'https://my-app.vercel.app'
 ```
 
 ```txt
-filter(Boolean)이 필요한 이유:
-  process.env.FRONTEND_URL이 없으면 undefined
-  origin 배열에 undefined가 들어가면 예기치 않은 동작 발생
-  → filter(Boolean)으로 falsy 값(undefined, null, '') 전부 제거
+왜 origin만 추출하는가:
+  CORS origin 비교는 경로(path)를 포함하지 않음
+  환경변수 FRONTEND_URL에 경로가 포함되어 있으면 origin 비교가 실패함
+  → new URL(url).origin으로 경로를 제거한 도메인만 사용
 
-127.0.0.1을 따로 추가하는 이유:
-  브라우저에 따라 localhost와 127.0.0.1을 다른 origin으로 취급하는 경우가 있음
+.filter(Boolean):
+  frontendOrigin이 undefined면 배열에 undefined가 들어감
+  → filter(Boolean)으로 falsy 값(undefined, null, '') 전부 제거
 ```
 
 ---
 
-# credentials: true — 양쪽 모두 설정 ⭐️⭐️⭐️⭐️
+# credentials — 쿠키 포함 요청 ⭐️⭐️⭐️⭐️
 
 ```txt
 쿠키나 Authorization 헤더를 cross-origin 요청에서 주고받으려면
-서버(NestJS)와 클라이언트(fetch) 양쪽 모두 설정이 필요함 — 한쪽만 하면 동작 안 함
+서버와 클라이언트 양쪽 모두 설정 필요 — 한쪽만 하면 동작 안 함
 ```
 
 |위치|설정|
 |---|---|
 |서버 (NestJS)|`app.enableCors({ credentials: true })`|
 |클라이언트 (fetch)|`fetch(url, { credentials: 'include' })`|
+|클라이언트 (socket.io)|`io(url, { withCredentials: true })`|
 
 ```txt
 ⚠️ credentials: true 와 origin: '*' 는 같이 쓸 수 없음
-  → 와일드카드 허용 + credentials 허용은 보안상 브라우저가 차단
-  → credentials를 쓰려면 origin을 구체적인 주소로 명시해야 함
+  와일드카드 + credentials 허용은 보안상 브라우저가 차단
+  credentials를 쓰려면 origin을 구체적인 주소로 반드시 명시
 
-fetch에서 credentials: 'include'가 언제 필요한지 → [[JS_Fetch_API]] 참고
-JWT(Bearer 헤더) 방식이면 credentials 설정 불필요 — 헤더에 직접 담기 때문
+JWT(Bearer 헤더) 방식이면:
+  쿠키가 아니라 Authorization 헤더에 토큰을 담음
+  credentials: 'include' 는 쿠키 전송을 위한 것
+  → 헤더 방식이면 credentials 설정 불필요할 수 있음
+  (allowedHeaders에 'Authorization' 은 여전히 필요)
 ```
 
 ---
 
-# 트러블슈팅 — 모바일(iOS Safari) 로그인·인증 안 됨 ⭐️⭐️⭐️⭐️
+# WebSocket CORS 설정 ⭐️⭐️⭐️
 
-```txt
-증상: 로그인 200 성공인데 이후 /auth/me 등이 전부 401 — PC는 멀쩡, 아이폰만 안 됨
-원인: API 절대 URL → 쿠키가 API 도메인에 귀속 → iOS ITP가 서드파티 쿠키로 인식해 차단
-해결: NEXT_PUBLIC_API_URL을 /api/nest 상대 경로로 + Vercel rewrites로 프록시
+```typescript
+@WebSocketGateway({
+  namespace: '/chat',
+  cors: {
+    origin: [
+      'http://localhost:3031',    // 로컬 프론트
+      'http://127.0.0.1:3031',   // 로컬 127.0.0.1
+      process.env.FRONTEND_URL
+        ? new URL(process.env.FRONTEND_URL).origin
+        : undefined,
+    ].filter(Boolean),
+    credentials: true,
+  },
+})
 ```
 
->쿠키가 서드파티로 인식되는 원리, ITP란 무엇인지, 프록시가 이를 해결하는 과정 
->→ [[Web_Cookie]] "iOS Safari와 ITP" / "프록시로 해결하는 원리" 섹션 참고
+```txt
+HTTP CORS와 WebSocket CORS는 별도 설정
+  main.ts의 enableCors()  → HTTP REST API
+  @WebSocketGateway cors  → WebSocket 연결
+
+둘 다 같은 패턴 (origin 목록 + credentials: true)
+로컬에서 localhost와 127.0.0.1 둘 다 넣는 것도 동일하게 적용
+```
 
 ---
 
 # 주요 enableCors 옵션
 
-|옵션|설명|
-|---|---|
-|`origin`|허용할 출처 — 문자열 / 문자열 배열 / 정규식 / `true`(전체)|
-|`credentials`|`true` = 쿠키/Authorization 헤더 허용 (origin이 구체적 주소일 때만)|
-|`methods`|허용할 HTTP 메서드 — 기본값: `GET,HEAD,PUT,PATCH,POST,DELETE`|
-|`allowedHeaders`|허용할 요청 헤더 — 기본값: `Content-Type, Authorization`|
-|`exposedHeaders`|브라우저가 읽을 수 있게 노출할 응답 헤더|
-|`maxAge`|preflight 결과 캐시 시간(초)|
-
-```typescript
-app.enableCors({
-  origin:         ['http://localhost:3000', frontendOrigin].filter(Boolean),
-  credentials:    true,
-  methods:        ['GET', 'POST', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge:         86400,  // preflight 24시간 캐싱
-});
-```
+|옵션|설명|기본값|
+|---|---|---|
+|`origin`|허용할 출처 — 문자열 / 배열 / 정규식 / `true`(전체)|`false`|
+|`credentials`|`true` = 쿠키·Authorization 헤더 허용|`false`|
+|`methods`|허용할 HTTP 메서드|`GET,HEAD,PUT,PATCH,POST,DELETE`|
+|`allowedHeaders`|허용할 요청 헤더|`Content-Type, Authorization`|
+|`exposedHeaders`|브라우저가 읽을 수 있게 노출할 응답 헤더|없음|
+|`maxAge`|Preflight 결과 캐시 시간(초)|없음|
 
 ---
 
-# 한눈에
+# 트러블슈팅
+
+## CORS 에러인지 확인하는 방법
 
 ```txt
-CORS가 필요한 상황:
-  프론트와 API의 도메인/포트가 다를 때 → cross-origin → enableCors() 필수
+브라우저 콘솔:
+  "Access to fetch at '...' from origin '...' has been blocked by CORS policy"
+  → CORS 에러 확정
 
-enableCors() 설정:
-  origin: [로컬주소, 127.0.0.1주소, frontendOrigin].filter(Boolean)
-  credentials: true (쿠키 허용 — origin이 *이면 사용 불가)
-  FRONTEND_URL에서 new URL(url).origin으로 경로 제거 후 사용
+브라우저 네트워크 탭:
+  OPTIONS 요청이 있고 응답 상태가 200이 아님 → Preflight 실패
+  OPTIONS 요청 자체가 없고 실제 요청에 CORS 에러 → Simple request CORS 실패
+  요청은 성공(200)인데 JavaScript에서 응답 못 받음 → origin 설정 누락
+```
 
-양쪽 모두 설정:
-  서버: credentials: true
-  클라이언트: fetch의 credentials: 'include' ([[JS_Fetch_API]] 참고)
+## 자주 하는 실수
 
-모바일(iOS Safari) 401 버그:
-  원인: API 절대 URL → 쿠키가 API 도메인에 귀속 → iOS ITP가 서드파티로 인식해 차단
-  해결: NEXT_PUBLIC_API_URL을 /api/nest 상대 경로로 + Vercel rewrites로 프록시
-  → 쿠키가 프론트 도메인에 귀속 → same-site → iOS 차단 안 함
+|증상|원인|해결|
+|---|---|---|
+|로컬에서만 CORS 에러|`origin` 목록에 로컬 주소 없음|`localhost:포트`, `127.0.0.1:포트` 둘 다 추가|
+|운영에서만 CORS 에러|`FRONTEND_URL` 환경변수 미설정|Railway/배포 환경에 `FRONTEND_URL` 추가|
+|쿠키가 안 전달됨|`credentials` 설정 누락|서버 `credentials: true` + 클라이언트 `credentials: 'include'`|
+|`origin: '*'`인데 쿠키 안 됨|와일드카드 + credentials 불가|origin을 구체적 주소로 변경|
+|모바일(iOS Safari)에서만 401|iOS ITP가 cross-origin 쿠키 차단|→ 아래 섹션 참고|
 
-프록시가 CORS 노트에 있는 이유:
-  문제의 원인이 CORS + 쿠키 cross-origin 차단이고
-  프록시는 그 해결책 — "왜 필요한가"와 "어떻게 해결하는가"가 같은 맥락
+## 모바일(iOS Safari) 로그인 안 됨 — ITP 문제 ⭐️⭐️⭐️⭐️
+
+```txt
+증상: 로그인 200 성공인데 이후 /auth/me 등이 전부 401
+      PC 브라우저는 정상, 아이폰만 안 됨
+
+원인:
+  프론트: https://my-app.vercel.app
+  API:    https://my-api.railway.app  ← 다른 도메인
+
+  API에서 쿠키를 Set-Cookie로 보냄 → 쿠키가 my-api.railway.app 도메인에 귀속
+  다음 요청에서 my-api.railway.app 으로 쿠키를 보내야 함 → cross-site 쿠키
+  iOS Safari의 ITP(Intelligent Tracking Prevention): cross-site 쿠키를 차단
+
+해결: Vercel rewrites로 API를 프론트 도메인 하위로 프록시
+```
+
+```json
+// vercel.json
+{
+  "rewrites": [
+    { "source": "/api/nest/:path*", "destination": "https://my-api.railway.app/:path*" }
+  ]
+}
+```
+
+```typescript
+// 클라이언트에서 절대 URL 대신 상대 경로 사용
+// ❌ process.env.NEXT_PUBLIC_API_URL = 'https://my-api.railway.app'
+// ✅ process.env.NEXT_PUBLIC_API_URL = '/api/nest'
+
+fetch('/api/nest/auth/login', { credentials: 'include' })
+// → Vercel이 https://my-api.railway.app/auth/login 으로 프록시
+// → 쿠키가 my-app.vercel.app 도메인에 귀속 → same-site → iOS 차단 없음
+```
+
+```txt
+프록시가 해결하는 원리:
+  브라우저 입장에서 요청은 /api/nest → 같은 도메인(same-site)
+  Vercel 서버가 실제 API 서버로 중계
+  Set-Cookie가 프론트 도메인(vercel.app)에 귀속
+  → iOS ITP가 same-site 쿠키로 인식 → 차단 안 함
+
+ITP 상세 → [[Web_Cookie]] "iOS Safari와 ITP" 섹션
 ```

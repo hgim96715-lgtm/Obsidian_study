@@ -11,8 +11,7 @@ cssclasses:
 ---
 # 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
 
-> [!info]
->  이 넷은 같은 런타임(JS)과 같은 타입 시스템(TS) 위에서 React가 컴포넌트 모델을, Next.js가 그 위의 프레임워크를 얹은 한 묶음이라 폴더를 합쳤다.
+> [!info] 이 넷은 같은 런타임(JS)과 같은 타입 시스템(TS) 위에서 React가 컴포넌트 모델을, Next.js가 그 위의 프레임워크를 얹은 한 묶음이라 폴더를 합쳤다.
 
 ```mermaid-beautiful
 flowchart LR
@@ -138,10 +137,12 @@ NextJS_UI_Types ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
 | |노트|
 |---|---|
 |**Next.js**|[[NextJS_Routing]] · [[NextJS_Metadata]] · [[NextJS_OGImage]] · [[NextJS_WebSocket]]|
+|**패턴**|[[WebSocket_Patterns]]|
 
 ```txt
 NextJS_OGImage    OG 이미지 · Apple 아이콘 · ImageResponse
-NextJS_WebSocket  socket.io-client · 싱글턴 · 클린업 패턴
+NextJS_WebSocket  socket.io-client · 싱글턴 · emit 구조 · on/off · 재연결
+WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐스트·개인 알림 양쪽 코드
 ```
 
 ---
@@ -165,10 +166,9 @@ NextJS_WebSocket  socket.io-client · 싱글턴 · 클린업 패턴
 
 |노트|내용|
 |---|---|
-|[[TS_Generics]]|`<T>` · keyof · Partial 패치 · readonly T[]|
+|[[TS_Type_Guards]]|typeof · instanceof · in · is · never · any vs unknown · as const|
+|[[TS_Generics]]|`<T>` · keyof · Partial 패치 · readonly T[] · `&` 교차 타입|
 |[[TS_Utility_Types]]|Record · Partial · Omit · ReturnType · Awaited|
-|[[TS_Type_Guards]]|typeof · instanceof · in · is · as const|
-|[[TS_Unknown_Any]]|any · unknown · void · never|
 |[[TS_TypeAssertion]]|`as` — 언제 쓰고 왜 위험한가|
 |[[TS_ImportType]]|import type · type as alias · .d.ts · 경로 별칭|
 |[[TS_TsConfig]]|API vs Web 옵션 비교|

@@ -15,6 +15,7 @@ related:
   - "[[JS_Operators]]"
   - "[[JS_Promise]]"
   - "[[React_useMemo_useCallback_useEffect]]"
+  - "[[TS_Generics]]"
 ---
 # React_AsyncUI — 비동기 UI 패턴
 

@@ -98,10 +98,12 @@ NestJS_Controller의 @Req() = NodeJS_HTTP_Request의 Express Request 객체
 |---|---|
 |**NestJS**|[[NestJS_WebSocket]]|
 |**Next.js**|[[NextJS_WebSocket]] (→ JS_Ecosystem 폴더)|
+|**패턴**|[[WebSocket_Patterns]]|
 
 ```txt
-NestJS_WebSocket   Gateway · 룸 · 인증 · REST+WS 브로드캐스트 · sockets.values() 순회
-NextJS_WebSocket   socket.io-client · 싱글턴 · Promise 래핑 · 클린업 함수
+NestJS_WebSocket    Gateway · 룸 · 인증 · REST+WS 브로드캐스트 · Gateway 책임 분리
+NextJS_WebSocket    socket.io-client · 싱글턴 · emit 구조 · on/off 구독 · 재연결
+WebSocket_Patterns  서버+클라이언트 코드 나란히 — 연결·룸·브로드캐스트·개인 알림·재연결
 ```
 
 ---
