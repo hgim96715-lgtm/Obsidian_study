@@ -11,411 +11,281 @@ tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_DTO]]"
-  - "[[NextJS_Concept]]"
-  - "[[React_DatePicker]]"
-  - "[[NestJS_StatsBucket]]"
-  - "[[NestJS_Throttle]]"
-  - "[[Snippet_date-statistics-pattern]]"
   - "[[JS_Intl]]"
+  - "[[React_DatePicker]]"
 ---
 # JS_Date — Date 객체
 
-> [!info] 
-> `Date` 객체는 특정 시점을 UTC 기준 밀리초(타임스탬프)로 저장한다. 
-> 날짜를 "어떻게 표시할지"(포맷·타임존·언어)는 → [[JS_Intl]] 참고.
+> [!info]
+>  Date 객체의 내부는 "1970년 1월 1일 0시(UTC)부터 지금까지의 밀리초" 숫자 하나다. 
+>  덕분에 날짜 계산이 숫자 계산으로 단순해진다. 
+>  서버 전송엔 `toISOString()`, input 연동엔 `.slice(0,10)`. 
+>  화면 포맷 → [[JS_Intl]], DatePicker → [[React_DatePicker]]
 
 ---
 
-# Date 생성 ⭐️⭐️⭐️⭐️
-
-```typescript
-new Date()                          // 지금 이 순간
-new Date(0)                         // 유닉스 에포크 (1970-01-01 UTC)
-new Date(1_700_000_000_000)         // 타임스탬프(ms)로 생성
-
-new Date('2024-01-15')              // ISO 날짜 문자열 (UTC 자정)
-new Date('2024-01-15T09:30:00')     // ISO 날짜+시간 (로컬 타임존)
-new Date('2024-01-15T09:30:00Z')    // ISO 날짜+시간 (명시적 UTC)
-
-new Date(2024, 0, 15)               // year, month(0=1월), day — 로컬 타임존
-new Date(2024, 0, 15, 9, 30, 0)    // year, month, day, hour, min, sec
-```
+# Date 객체란 — 내부는 숫자 하나 ⭐️⭐️⭐️⭐️
 
 ```txt
-⚠️ new Date(2024, 0, 15) 에서 month가 0부터 시작
-  0 = 1월, 1 = 2월, ..., 11 = 12월
+Date 객체가 저장하는 것:
+  1970년 1월 1일 00:00:00 UTC 부터 지금까지의 밀리초(ms)
+  = Unix timestamp (ms 단위)
 
-new Date('2024-01-15')
-  날짜만 있으면 UTC 자정으로 해석 → 로컬이 UTC+9면 1월 15일 09:00로 표시
-  시간까지 있으면 로컬 타임존으로 해석
-  → 타임존을 명시하려면 'Z'(UTC) 또는 '+09:00'(KST) 붙이기
+  2024-01-15 → 내부적으로는 1705276800000 같은 숫자 하나
+
+이 숫자 하나로 모든 것이 가능:
+  두 날짜의 차이 = 두 숫자의 빼기
+  n일 후 = 숫자 + (n × 24 × 60 × 60 × 1000)
+  크기 비교 = 숫자 비교
 ```
-
----
-
-# 타임스탬프 — 날짜를 숫자로 ⭐️⭐️⭐️⭐️
-
-```typescript
-Date.now()           // 현재 시각 (ms) — 가장 빠름, new Date() 안 만들어도 됨
-new Date().getTime() // 특정 Date 객체의 타임스탬프
-+new Date()          // 단항 + 로 타임스탬프 변환 (getTime 축약)
-
-// 날짜 비교 — 타임스탬프로
-const a = new Date('2024-01-01');
-const b = new Date('2024-06-01');
-a < b   // true — Date는 비교 연산자 사용 가능 (타임스탬프로 비교됨)
-a.getTime() < b.getTime()  // 명시적 비교 (의도가 더 명확)
-```
-
----
-
-# 날짜 읽기 ⭐️⭐️⭐️
-
-```typescript
-const d = new Date('2024-06-15T09:30:00');
-
-d.getFullYear()   // 2024
-d.getMonth()      // 5  ← 0부터 시작! 5 = 6월
-d.getDate()       // 15 (일)
-d.getDay()        // 6  ← 0=일요일, 1=월, ..., 6=토요일
-d.getHours()      // 9  (로컬 타임존 기준)
-d.getMinutes()    // 30
-d.getSeconds()    // 0
-d.getMilliseconds() // 0
-d.getTime()       // 타임스탬프 (ms)
-
-// UTC 기준 읽기
-d.getUTCHours()   // KST 기준이면 9 - 9 = 0
-```
-
-```txt
-⚠️ getMonth()는 0부터 — 흔한 실수
-  d.getMonth() + 1  → 실제 월 (1~12)
-
-⚠️ getHours()는 실행 환경 로컬 타임존 기준
-  서버(UTC)에서 실행하면 UTC 시간
-  KST 기준으로 구하려면 → [[JS_Intl]] "KST 시간 구하기" 참고
-```
-
----
-
-# 타임존 기준 날짜 처리 — KST 예시 ⭐️⭐️⭐️⭐️
-
-```txt
-문제:
-  Date 객체는 UTC 기준 — getHours()는 서버/로컬 시스템 시각
-  배포 서버(UTC)에서 getHours() → 한국 시각과 9시간 차이
-
-해결:
-  Intl.DateTimeFormat에 timeZone 지정 → 해당 타임존의 시각을 문자열로 추출
-  → 타임존에 관계없이 어떤 환경에서도 KST 기준 날짜 계산 가능
-```
-
-## KST 유틸 함수
-
-```typescript
-const KST = 'Asia/Seoul';
-
-/** KST 기준 날짜 키 YYYY-MM-DD */
-export function toKstDateKey(date: Date): string {
-  return new Intl.DateTimeFormat('en-CA', {  // en-CA → YYYY-MM-DD 포맷
-    timeZone: KST,
-    year:     'numeric',
-    month:    '2-digit',
-    day:      '2-digit',
-  }).format(date);
-  // 예: new Date('2024-06-15T03:00:00Z') → '2024-06-15' (KST 12:00)
-}
-
-/** KST 그날 00:00:00.000 — DB timestamptz 비교용 */
-export function startOfKstDay(reference = new Date()): Date {
-  const key = toKstDateKey(reference);        // 'YYYY-MM-DD'
-  return new Date(`${key}T00:00:00+09:00`);  // KST 자정
-}
-
-/** KST 시각 (0-23) */
-export function getKstHour(date: Date): number {
-  return Number(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: KST,
-      hour:     'numeric',
-      hour12:   false,
-    }).format(date),
-  );
-}
-
-/** KST 기준 월 키 YYYY-MM */
-export function getKstMonthKey(date: Date): string {
-  return toKstDateKey(date).slice(0, 7);
-}
-```
-
-```txt
-en-CA 로케일을 쓰는 이유:
-  Intl.DateTimeFormat 출력 포맷은 로케일마다 다름
-  ko-KR → '2024. 6. 15.' (한국 표기)
-  en-US → '6/15/2024'
-  en-CA → '2024-06-15' ← ISO 8601 순서 (YYYY-MM-DD), 파싱하기 쉬움
-  → 날짜 문자열을 DB 키나 비교에 쓸 때 en-CA가 편함
-
-`${key}T00:00:00+09:00`:
-  key = 'YYYY-MM-DD'
-  T00:00:00   → 자정 (시:분:초)
-  +09:00      → KST 오프셋 명시
-  → new Date()가 정확히 KST 그날 자정을 UTC로 변환해서 생성
-
-왜 시스템 시각을 안 쓰는가:
-  date.setHours(0, 0, 0, 0)        → 서버 시스템 시각 기준 자정
-  startOfKstDay()                   → 항상 KST 기준 자정
-  UTC 서버에서 실행해도 한국 날짜 경계가 정확함
-
-Intl.DateTimeFormat 상세 → [[JS_Intl]]
-```
-
-## 실전 사용
 
 ```typescript
 const now = new Date();
+now.getTime()  // 밀리초 숫자 (예: 1705276800000)
+Date.now()     // 현재 밀리초 — new Date().getTime() 와 동일, 더 짧음
+```
 
-// DB 쿼리: 오늘(KST) 이후 데이터
-const startOfToday = startOfKstDay(now);
-where: { createdAt: { gte: startOfToday } }
+---
 
-// 이번 주(오늘 포함 7일) 시작
-const startOfWeek = new Date(startOfToday.getTime() - 6 * 86_400_000);
-where: { createdAt: { gte: startOfWeek } }
+# Date 만들기 ⭐️⭐️⭐️
 
-// 시간대별 통계 키
-const hour = getKstHour(new Date());  // 현재 KST 시각 (0-23)
-const dateKey = toKstDateKey(new Date());  // '2024-06-15'
-const monthKey = getKstMonthKey(new Date()); // '2024-06'
+```typescript
+// 현재 시각
+new Date()
+Date.now()              // 밀리초 숫자만 필요할 때 (더 가벼움)
+
+// 특정 날짜 — ISO 8601 형식 (권장)
+new Date('2024-01-15')                    // 날짜만 (자정 UTC 기준)
+new Date('2024-01-15T09:00:00')           // 날짜 + 시간 (로컬 시간 기준)
+new Date('2024-01-15T00:00:00.000Z')      // UTC 명시
+
+// API 응답 string → Date
+new Date(createdAt)   // "2024-01-15T09:00:00.000Z" 같은 ISO 문자열
+new Date(timestamp)   // 밀리초 숫자
+```
+
+```txt
+new Date('2024-01-15') vs new Date('2024-01-15T00:00:00'):
+  날짜만 있으면 UTC 자정으로 해석 → 한국(UTC+9)에서는 오전 9시로 표시됨
+  시간까지 있으면 로컬 시간으로 해석
+
+  API에서 오는 날짜 문자열은 보통 ISO 8601 형식 ("2024-01-15T09:00:00.000Z")
+  → new Date(isoString)으로 안전하게 파싱
+```
+
+---
+
+# 값 읽기 ⭐️⭐️⭐️
+
+```typescript
+const d = new Date('2024-01-15T09:30:00');
+
+d.getFullYear()     // 2024
+d.getMonth()        // 0  ← ⚠️ 0부터 시작 (0=1월, 11=12월)
+d.getDate()         // 15  (날짜)
+d.getDay()          // 1   (요일: 0=일요일, 1=월요일 ... 6=토요일)
+d.getHours()        // 9
+d.getMinutes()      // 30
+d.getSeconds()      // 0
+d.getTime()         // 밀리초 숫자
+```
+
+```txt
+⚠️ getMonth()가 0부터 시작하는 것은 유명한 함정
+  1월 = 0, 2월 = 1 ... 12월 = 11
+  화면에 표시할 때: d.getMonth() + 1
 ```
 
 ---
 
 # 날짜 계산 ⭐️⭐️⭐️⭐️
 
+## 두 날짜의 차이
+
 ```typescript
-// N일 뒤
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);          // 원본 보존
-  result.setDate(result.getDate() + days);
-  return result;
-}
+const start = new Date('2024-01-01');
+const end   = new Date('2024-01-15');
 
-// N시간 뒤 — 타임스탬프로 계산이 더 안전
-function addHours(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 60 * 60 * 1000);
-}
+const diffMs   = end.getTime() - start.getTime();  // 밀리초 차이
+const diffDays = diffMs / (1000 * 60 * 60 * 24);  // 일 차이 = 14
 
-// 두 날짜 사이 일수
-function daysBetween(a: Date, b: Date): number {
-  const ms = Math.abs(b.getTime() - a.getTime());
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
+// 소수점이 생기는 경우 (시간이 포함된 날짜 비교)
+Math.floor(diffMs / (1000 * 60 * 60 * 24))   // 내림 (완전한 날수)
+Math.round(diffMs / (1000 * 60 * 60 * 24))   // 반올림
 ```
 
 ```txt
-왜 원본 Date에 setDate를 직접 안 하는가:
-  Date 객체는 mutable — setDate()가 원본을 직접 바꿈
-  new Date(date)로 복사본을 만들어서 수정해야 원본이 안 바뀜
-
-타임스탬프 계산이 더 안전한 경우:
-  월말 경계 (1월 31일 + 1달), 일광절약시간 같은 엣지케이스를
-  setDate로 처리하면 예상 밖 결과가 나올 수 있음
-  → 시간·분·초 단위 계산은 타임스탬프(ms) 산술이 명확함
+날짜 계산 = 숫자 빼기:
+  getTime()으로 내부 숫자를 꺼내서 빼면 됨
+  1000 * 60 * 60 * 24 = 하루를 밀리초로 표현
+  (1000ms = 1초, 60초 = 1분, 60분 = 1시간, 24시간 = 1일)
 ```
 
-## 단위별 ms 상수 ⭐️⭐️⭐️⭐️
+## n일 후/전 계산
 
 ```typescript
-// 어떻게 계산하는가
-1_000           // 1초    = 1,000ms
-60_000          // 1분    = 60 * 1,000
-3_600_000       // 1시간  = 60 * 60 * 1,000
-86_400_000      // 1일    = 24 * 60 * 60 * 1,000
-604_800_000     // 1주    = 7 * 24 * 60 * 60 * 1,000
+const now = new Date();
 
-// 상수로 정의해서 사용
-const MS_PER_SECOND = 1_000;
-const MS_PER_MINUTE = 60 * 1_000;
-const MS_PER_HOUR   = 60 * 60 * 1_000;
-const MS_PER_DAY    = 24 * 60 * 60 * 1_000;   // = 86_400_000
-const MS_PER_WEEK   = 7 * MS_PER_DAY;          // = 604_800_000
+// n일 후
+const after7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-// 또는 객체로 묶기
-const MS = {
-  SECOND: 1_000,
-  MINUTE: 60_000,
-  HOUR:   3_600_000,
-  DAY:    86_400_000,
-  WEEK:   604_800_000,
-};
-```
+// n일 전
+const before30days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-```txt
-_ (숫자 구분자):
-  86400000 보다 86_400_000 이 읽기 쉬움
-  JavaScript/TypeScript 문법 — 실행에는 영향 없음
-  천 단위 또는 의미 있는 단위로 끊어서 표기
-
-86_400_000 검산:
-  하루 = 24시간 × 60분 × 60초 × 1,000ms
-  24 × 60 = 1,440분
-  1,440 × 60 = 86,400초
-  86,400 × 1,000 = 86,400,000ms = 86_400_000
-```
-
-## 실전 계산 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-const now = Date.now();  // 현재 타임스탬프 (ms)
-
-// N일 전
-const startOfWeek = new Date(startOfToday.getTime() - 6 * MS_PER_DAY);
-// 오늘 포함 7일 = 6일 전 자정부터
-
-// N일 뒤 (만료 시각)
-const expiresAt = new Date(now + 7 * MS_PER_DAY);    // 7일 후
-const tokenExp  = new Date(now + 15 * MS_PER_MINUTE); // 15분 후 토큰 만료
-
-// 두 날짜 사이 일수
-const diffMs   = Math.abs(b.getTime() - a.getTime());
-const diffDays = Math.floor(diffMs / MS_PER_DAY);
-
-// 1시간 이내인지 확인
-const isRecent = (Date.now() - createdAt.getTime()) < MS_PER_HOUR;
-
-// 30분 내 중복 요청 방지 (스로틀링)
-const lastSentAt = new Date(stored);
-if (Date.now() - lastSentAt.getTime() < 30 * MS_PER_MINUTE) {
-  throw new Error('잠시 후 다시 시도해주세요.');
-}
-```
-
-```txt
-타임스탬프(ms) 산술이 안전한 이유:
-  addDays처럼 setDate() 쓰면 월말, 일광절약시간(DST) 경계에서 엣지케이스 발생
-  ms 단위 덧셈은 항상 정확한 시간 차이를 보장
-
-  6 * 86_400_000:
-  6일을 ms로 표현 = 6 * 하루ms
-  → 타임스탬프에서 빼면 "6일 전 그 시각"의 타임스탬프
-
-  startOfToday.getTime() - 6 * 86_400_000:
-  오늘 자정 타임스탬프 - 6일ms = 6일 전 자정 타임스탬프
-  → "오늘 포함 7일치 데이터 조회" 시작점
-```
-
----
-
-# 날짜 쓰기 — set* 메서드 ⭐️⭐️
-
-```typescript
+// setDate를 쓰는 방법 (원본 변경 주의)
 const d = new Date();
-d.setFullYear(2025);
-d.setMonth(11);        // 12월 (0 기반)
-d.setDate(31);
-d.setHours(0, 0, 0, 0); // 자정으로 (hour, min, sec, ms)
+d.setDate(d.getDate() + 7);   // 원본이 바뀜
 ```
 
 ```txt
-자주 쓰는 패턴:
-  setHours(0, 0, 0, 0)  → 그 날의 자정(00:00:00.000)
-  setHours(23, 59, 59, 999) → 그 날의 끝 (23:59:59.999)
+setDate(d.getDate() + 7) 의 장점:
+  월 경계를 알아서 처리 (1월 28일 + 7 = 2월 4일 자동)
+  밀리초 계산은 DST(서머타임) 같은 예외에서 1일이 23시간 또는 25시간이 될 수 있음
+
+안전한 방법:
+  날짜 계산은 date-fns 라이브러리를 쓰면 예외 케이스를 다 처리해줌
+  pnpm add date-fns
+  [[React_DatePicker]] 참조
 ```
 
----
-
-# ISO 문자열 변환 ⭐️⭐️⭐️
+## 월 시작/끝
 
 ```typescript
-const d = new Date();
+const now = new Date();
 
-d.toISOString()         // '2024-06-15T09:30:00.000Z'  (항상 UTC, Z 포함)
-d.toJSON()              // toISOString과 동일
-d.toString()            // 로컬 타임존 기준 읽기 어려운 문자열 (디버깅용)
+// 이번 달 1일
+const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-// 날짜만 (YYYY-MM-DD)
-d.toISOString().slice(0, 10)  // '2024-06-15'
-
-// DB 저장 / API 전송에는 toISOString() 또는 getTime() 사용
+// 이번 달 마지막 날 — 다음달 0일 = 이번달 마지막
+const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+endOfMonth.getDate()  // 28, 29, 30, 31 중 하나
 ```
 
 ---
 
-# 날짜 유효성 확인 ⭐️⭐️
+# 비교 ⭐️⭐️⭐️
 
 ```typescript
-// new Date()가 유효한 날짜를 만들었는지 확인
-function isValidDate(d: unknown): d is Date {
-  return d instanceof Date && !isNaN(d.getTime());
-}
+const a = new Date('2024-01-01');
+const b = new Date('2024-06-15');
 
-isValidDate(new Date('2024-01-15'))     // true
-isValidDate(new Date('invalid'))        // false — NaN
-isValidDate(new Date(undefined as any)) // false — Invalid Date
+// 대소 비교 — 숫자처럼 비교 가능
+a < b   // true  (a가 더 과거)
+a > b   // false
+a <= b  // true
+
+// 같은지 확인 — == 안 됨, getTime() 비교
+a == b           // false (객체 참조 비교)
+a.getTime() === b.getTime()  // true/false (값 비교) ✅
+
+// 오늘 이후인지
+new Date() < deadline  // true = 아직 기간 남음
+
+// 정렬
+dates.sort((a, b) => a.getTime() - b.getTime());  // 오름차순 (과거 → 최신)
+dates.sort((a, b) => b.getTime() - a.getTime());  // 내림차순 (최신 → 과거)
 ```
 
 ---
 
-# 자주 쓰는 패턴 모음 ⭐️⭐️⭐️
+# 날짜 → 문자열 변환 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 오늘 자정 (로컬 기준)
-const startOfToday = new Date();
-startOfToday.setHours(0, 0, 0, 0);
+const d = new Date('2024-01-15T09:30:00.000Z');
 
-// 오늘 끝 (로컬 기준)
-const endOfToday = new Date();
-endOfToday.setHours(23, 59, 59, 999);
+d.toISOString()         // "2024-01-15T09:30:00.000Z"  ← UTC 기준 ISO 8601
+d.toJSON()              // "2024-01-15T09:30:00.000Z"  ← toISOString()과 동일
 
-// 이번 주 월요일
-const monday = new Date();
-monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-monday.setHours(0, 0, 0, 0);
+d.toISOString().slice(0, 10)   // "2024-01-15"  ← 날짜만 (서버 전송·input type="date"에 사용)
+d.toISOString().slice(11, 16)  // "09:30"       ← 시간만
 
-// N분 전인지 확인
-function isWithinMinutes(date: Date, minutes: number): boolean {
-  return Date.now() - date.getTime() < minutes * MS.MINUTE;
-}
+d.toLocaleDateString('ko-KR')  // "2024. 1. 15."  ← 로케일 기반 날짜
+d.toLocaleTimeString('ko-KR')  // "오전 6:30:00"  ← 로케일 기반 시간 (로컬 시간 기준)
+d.toLocaleString('ko-KR')      // "2024. 1. 15. 오전 6:30:00"  ← 둘 다
 
-// 오래된 순으로 정렬
-dates.sort((a, b) => a.getTime() - b.getTime());
-
-// 최신순으로 정렬
-dates.sort((a, b) => b.getTime() - a.getTime());
+d.toDateString()        // "Mon Jan 15 2024"  ← 영문 고정 (로케일 무시)
+d.toString()            // "Mon Jan 15 2024 18:30:00 GMT+0900 (KST)"
+d.toUTCString()         // "Mon, 15 Jan 2024 09:30:00 GMT"
 ```
-
----
-
-# 한눈에
 
 ```txt
-생성:
-  new Date()                현재
-  new Date(timestamp)       타임스탬프(ms)
-  new Date('YYYY-MM-DD')    ISO 문자열 (UTC 자정)
-  new Date(y, m, d)         연,월(0=1월),일 (로컬 타임존)
+어떤 메서드를 언제 쓰는가:
 
-읽기:
-  getFullYear() / getMonth()+1 / getDate() / getDay()
-  getHours() / getMinutes() / getSeconds()
-  ⚠️ getMonth() = 0부터 / getHours() = 로컬 타임존 기준
+  toISOString()
+    서버에 날짜 데이터를 전송할 때 (항상 UTC, 일관된 형식)
+    DB에 저장할 날짜 문자열 만들 때
+    → "2024-01-15T09:30:00.000Z"
 
-타임스탬프:
-  Date.now()         현재 (ms)
-  d.getTime()        특정 Date (ms)
-  a < b              비교 가능 (타임스탬프로 변환됨)
+  toISOString().slice(0, 10)
+    input type="date"의 value에 넣을 때 (YYYY-MM-DD 형식 필요)
+    날짜만 필요한 API 파라미터 만들 때
+    → "2024-01-15"
 
-계산:
-  new Date(d.getTime() + N * MS.DAY)   날짜 연산은 타임스탬프가 안전
-  new Date(date)로 복사 후 set* 사용   원본 보존
+  toLocaleString() / toLocaleDateString()
+    화면에 표시할 때 — 로케일에 맞는 형식
+    옵션 지정이 필요하면 Intl.DateTimeFormat이 더 정밀 → [[JS_Intl]]
+    → "2024. 1. 15."
 
-출력:
-  d.toISOString()    'YYYY-MM-DDTHH:mm:ss.sssZ' (UTC, DB/API 저장에)
-  .slice(0, 10)      'YYYY-MM-DD'
+  toDateString() / toString()
+    디버깅용 — 로케일 무시하고 영문 고정
+    실제 UI에 쓰면 안 됨
+```
 
-사람이 읽을 수 있는 포맷 (타임존 변환 포함) → [[JS_Intl]]
+```txt
+⚠️ toISOString()은 항상 UTC 기준:
+  서울(UTC+9) 오전 6시 30분인 날짜 d
+  d.toISOString() → "2024-01-15T09:30:00.000Z"  (UTC 기준으로 변환됨)
+
+  한국 시간 그대로 보내고 싶으면:
+  → Intl.DateTimeFormat으로 포맷하거나
+  → toISOString() 대신 수동으로 로컬 시간 조합
+```
+
+---
+
+# 타임존 주의사항 ⭐️⭐️⭐️
+
+```txt
+Date 객체 내부는 항상 UTC
+getHours()는 로컬 시간 기준으로 반환
+
+한국(UTC+9)에서:
+  new Date('2024-01-15T00:00:00Z').getHours()  // 9 (UTC 자정 = 한국 오전 9시)
+
+서버(UTC)에서 같은 코드:
+  new Date('2024-01-15T00:00:00Z').getHours()  // 0
+
+→ 서버와 클라이언트가 다른 결과 → 버그 원인
+
+안전한 방법:
+  날짜 표시는 getHours() 같은 로컬 메서드 대신 Intl로
+  계산은 getTime()(UTC 기반 ms)으로
+  타임존 포함 저장/전송은 ISO 8601 형식 ("2024-01-15T00:00:00.000Z")
+```
+
+---
+
+# 자주 쓰는 유틸 함수
+
+```typescript
+// 오늘 자정 (00:00:00)
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// 두 날짜가 같은 날인지 (시간 무시)
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth()    === b.getMonth() &&
+    a.getDate()     === b.getDate()
+  );
+}
+
+// N일 전 날짜
+function daysAgo(n: number): Date {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+}
 ```

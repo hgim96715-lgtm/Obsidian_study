@@ -115,7 +115,7 @@ React_AsyncUI    이벤트 핸들러 비동기 · useEffect fetch · fire-and-fo
 | |노트|
 |---|---|
 |**JS**|[[JS_FormData]]|
-|**React**|[[React_useFormStatus]] · [[React_ControlledInput]]|
+|**React**|[[React_useFormStatus]] · [[React_ControlledInput]] · [[React_DatePicker]]|
 |**Next.js**|[[NextJS_Server_Actions]]|
 
 ---
@@ -155,12 +155,13 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 
 |노트|내용|
 |---|---|
-|[[JS_Date]]|Date 객체 · 계산 · 비교 · KST 타임존 유틸|
+|[[JS_Date]]|Date 객체 내부(ms) · 계산 · 비교 · 타임존 주의|
 |[[JS_JSON]]|stringify · parse · unknown 패턴|
 |[[JS_WebStorage]]|localStorage · sessionStorage · Set 직렬화|
-|[[JS_Intl]]|타임존 · 날짜 포맷 · 상대 시간 · 통화|
+|[[JS_Intl]]|DateTimeFormat · 상대시간("5분 전") · NumberFormat · 통화|
 |[[JS_Regex]]|test · match · 캡처그룹 · 시간 파싱|
 |[[JS_URL_Encoding]]|encodeURIComponent · new URL · URLSearchParams|
+
 
 ---
 

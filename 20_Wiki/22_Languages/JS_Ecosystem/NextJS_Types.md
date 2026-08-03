@@ -9,13 +9,17 @@ related:
   - "[[NestJS_DTO]]"
   - "[[NextJS_API_Client]]"
   - "[[NextJS_API_Mapper]]"
+  - "[[JS_Fetch_API]]"
+  - "[[NestJS_Swagger]]"
 ---
 # NextJS_Types — API 타입 · UI 타입 · 매퍼
 
-> [!info]
->  API 타입(ApiXxx) = 서버가 보내주는 것의 형태. 
->  UI 타입(UiXxx) = 화면이 필요로 하는 형태. 둘이 같으면 그냥 쓰고, 다르면 매퍼로 변환한다. 
->  NestJS DTO → OpenAPI → ApiXxx → (매퍼) → UiXxx → 컴포넌트.
+> [!info] 
+> API 타입(ApiXxx) = 서버가 JSON으로 보내주는 것의 형태. 
+> `Date`는 JSON에 없어서 항상 `string`으로 옴
+> UI 타입(UiXxx) = 화면이 필요로 하는 형태. 
+> 둘이 같으면 그냥 쓰고, 다르면 매퍼로 변환. 
+> NestJS DTO → OpenAPI → ApiXxx → (매퍼) → UiXxx → 컴포넌트.
 
 ---
 
@@ -80,18 +84,302 @@ openapi-typescript가 그 스펙을 읽어서 TypeScript 타입을 자동 생성
   수동으로 타입 관리하면 DTO 바뀌었는데 프론트 타입은 그대로인 불일치 발생
 ```
 
-## 방법 2 — 수동 정의
+## 방법 2 — 수동 정의 ⭐️⭐️⭐️⭐️
+
+```txt
+자동 생성이 안 되는 환경이거나 스펙이 불완전할 때 NestJS DTO를 보고 직접 작성
+핵심: "서버가 실제로 JSON으로 보내주는 것"을 그대로 TypeScript 타입으로 옮김
+```
+
+### 요청 DTO ≠ 응답 타입 — 다른 층 ⭐️⭐️⭐️⭐️
+
+```txt
+처음에 헷갈리는 부분:
+  ListAdminRoomsQueryDto  →  q · status · cursor · limit 4개 뿐
+  ApiAdminRoom            →  id · name · description · ... 필드가 많음
+
+  왜 이렇게 다른가?
+  완전히 다른 개념이기 때문
+
+요청 DTO (ListAdminRoomsQueryDto):
+  클라이언트가 서버에 보내는 것 (쿼리 파라미터, body)
+  "어떤 조건으로 가져올지"를 담음
+  → 필터·정렬·페이지네이션 파라미터만 → 당연히 작음
+
+응답 타입 (ApiAdminRoom):
+  서버가 DB에서 꺼내서 클라이언트에게 주는 것
+  "방 하나의 전체 정보"를 담음
+  → DB 컬럼 거의 전부 + 관계 포함 → 당연히 큼
+
+  요청 필드 4개, 응답 필드 15개 — 완전히 정상
+```
+
+### 응답에 전용 DTO 클래스가 없는 경우 — Prisma select를 보면 됨 ⭐️⭐️⭐️⭐️
+
+```txt
+NestJS에서 응답 DTO를 항상 명시적으로 만드는 건 아님
+
+방법 1 — 전용 응답 DTO 클래스 있음:
+  export class AdminRoomDto { ... }
+  → 이 클래스를 보고 API 타입 작성
+
+방법 2 — 응답 DTO 없이 Prisma select 결과를 그대로 반환:
+  return this.prisma.room.findMany({ select: { ... } });
+  → Prisma select 안의 필드들이 곧 응답 형태
+  → select를 보고 API 타입 작성
+```
 
 ```typescript
-// 자동 생성이 안 되는 환경이거나 스펙이 불완전할 때
-type ApiUser = {
-  id:        string;
-  nickname:  string;
-  email:     string;
-  image:     string | null;
-  role:      'user' | 'admin';
-  createdAt: string;    // API는 string으로 줌
+// 서비스에서 이렇게 반환하면
+const rooms = await this.prisma.room.findMany({
+  where,
+  select: {
+    id:          true,
+    name:        true,
+    description: true,
+    visibility:  true,
+    status:      true,
+    memberCount: true,
+    passwordHint: true,
+    createdAt:   true,
+    updatedAt:   true,
+    ownerId:     true,
+    owner: {
+      select: { id: true, nickname: true, email: true },
+    },
+  },
+});
+
+// 프론트 API 타입은 select를 그대로 옮김
+export type ApiAdminRoom = {
+  id:          string;
+  name:        string;
+  description: string | null;   // nullable 컬럼
+  visibility:  'public' | 'private' | 'invite';
+  status:      'active' | 'closed' | 'archived';
+  memberCount: number;
+  passwordHint: string | null;
+  createdAt:   string;          // Date → string
+  updatedAt:   string;
+  ownerId:     string;
+  owner: { id: string; nickname: true; email: string };
 };
+```
+
+```txt
+passwordHash가 select에 없는 이유:
+  select에 명시한 필드만 응답에 포함됨
+  민감한 필드(passwordHash, refreshToken 등)는 select에서 제외
+  → 응답 타입에도 포함 안 됨
+
+select가 응답 타입을 결정:
+  select에 있다 → 응답에 있다 → API 타입에 포함
+  select에 없다 → 응답에 없다 → API 타입에 포함 안 함
+  select 없이 findMany()하면 → scalar 전부 → API 타입도 전부
+
+어떻게 응답 형태를 파악하는가:
+  ① @ApiProperty가 붙은 응답 DTO 클래스가 있으면 → 그걸 보고 작성
+  ② 없으면 서비스 코드의 Prisma select를 보고 작성
+  ③ 자동 생성(openapi-typescript)이 가능하면 → 그게 가장 정확
+```
+
+```typescript
+// NestJS DTO (백엔드)
+export class RoomDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty({ nullable: true })
+  description: string | null;    // nullable: true → string | null
+
+  @ApiProperty({ enum: ['public', 'private', 'invite'] })
+  visibility: 'public' | 'private' | 'invite';
+
+  @ApiProperty()
+  memberCount: number;
+
+  @ApiProperty()
+  createdAt: Date;   // ← DTO는 Date 타입
+
+  @ApiProperty({ type: () => UserSummaryDto })
+  owner: UserSummaryDto;         // 관계 → 중첩 객체
+}
+```
+
+```typescript
+// NextJS API 타입 (프론트엔드) — DTO를 보고 만든 것
+export type ApiRoom = {
+  id:          string;
+  name:        string;
+  description: string | null;   // nullable: true → string | null
+  visibility:  'public' | 'private' | 'invite';
+  memberCount: number;
+  createdAt:   string;          // ← Date가 아닌 string! (JSON 전송 특성)
+  owner: {
+    id:       string;
+    nickname: string;
+    email:    string;
+  };
+};
+```
+
+```txt
+DTO → API 타입 변환 규칙:
+
+  DTO 타입          →  API 타입
+  ─────────────────────────────────────────────
+  string            →  string
+  number            →  number
+  boolean           →  boolean
+  Date              →  string  ← 가장 중요!
+  string | null     →  string | null
+  string[]          →  string[]
+  enum SomeEnum     →  'value1' | 'value2' | ...  (리터럴 유니온)
+  OtherDto          →  { id: string; ... }  (중첩 객체로 펼침)
+  OtherDto[]        →  { id: string; ... }[]
+  OtherDto | null   →  { ... } | null
+```
+
+### Date가 string인 이유 ⭐️⭐️⭐️⭐️
+
+```txt
+NestJS DTO에서 createdAt: Date 라고 해도
+JSON으로 직렬화(JSON.stringify)되면 string이 됨
+
+  new Date('2024-01-15') → JSON.stringify → "2024-01-15T00:00:00.000Z"
+
+JSON 형식에는 Date 타입이 없음 — string, number, boolean, object, array, null 만 있음
+→ Date는 항상 ISO 8601 형식 문자열로 전송됨
+
+따라서 API 타입은 항상 string으로 선언:
+  createdAt: string   ← "2024-01-15T00:00:00.000Z" 형태의 문자열
+  updatedAt: string
+
+UI 타입에서 Date 객체가 필요하면 매퍼에서 변환:
+  createdAt: new Date(api.createdAt)  → [[NextJS_Types]] 매퍼 섹션
+```
+
+### nullable vs optional ⭐️⭐️⭐️
+
+```typescript
+// nullable: 값이 있지만 null일 수 있음
+description: string | null;   // 항상 JSON에 키가 있음, 값이 null일 수 있음
+
+// optional: 키 자체가 없을 수 있음 (드묾)
+nickname?: string;             // JSON에 'nickname' 키 자체가 없을 수 있음
+```
+
+```txt
+API 응답에서는 대부분 nullable(string | null)을 씀
+  키는 항상 있고 값이 null인 형태
+  → DTO의 @ApiProperty({ nullable: true }) 를 보면 string | null
+
+optional(?)은 다른 의미:
+  응답 객체에 그 키가 아예 없을 수 있음
+  → DTO의 @IsOptional() 이 있는 필드
+```
+
+### 관계(nested object) 타입 ⭐️⭐️⭐️
+
+```typescript
+// DTO에서 다른 DTO를 참조하는 경우
+export class RoomDto {
+  @ApiProperty({ type: () => UserSummaryDto })
+  owner: UserSummaryDto;
+}
+
+export class UserSummaryDto {
+  id:       string;
+  nickname: string;
+  email:    string;
+}
+```
+
+```typescript
+// 방법 1 — 인라인으로 펼침 (간단한 중첩)
+export type ApiRoom = {
+  owner: { id: string; nickname: string; email: string };
+};
+
+// 방법 2 — 별도 타입으로 분리 (여러 곳에서 재사용)
+export type ApiUserSummary = {
+  id:       string;
+  nickname: string;
+  email:    string;
+};
+
+export type ApiRoom = {
+  owner: ApiUserSummary;  // 재사용
+};
+```
+
+```txt
+언제 인라인, 언제 별도 타입:
+  한 곳에서만 씀 → 인라인이 더 간결
+  여러 타입에서 같은 구조를 씀 → 별도 타입으로 분리
+```
+
+### 페이지네이션 응답 타입 ⭐️⭐️⭐️
+
+```typescript
+// 서버가 페이지네이션 응답을 이 형태로 줄 때
+export type ApiRoomsPage = {
+  items:      ApiRoom[];
+  nextCursor: string | null;  // 다음 페이지 없으면 null
+};
+
+// 제네릭으로 만들면 재사용 가능
+export type ApiPage<T> = {
+  items:      T[];
+  nextCursor: string | null;
+};
+
+export type ApiRoomsPage = ApiPage<ApiRoom>;
+export type ApiUsersPage = ApiPage<ApiUser>;
+```
+
+### 실전 예시 — ApiAdminRoom 전체 과정
+
+```typescript
+// ① NestJS AdminRoomDto를 보고 각 필드의 JSON 타입을 결정
+// ② Date → string, enum → 리터럴 유니온, nullable → string | null
+// ③ 관계 필드는 중첩 객체로 표현
+
+export type ApiAdminRoom = {
+  id:           string;
+  name:         string;
+  description:  string | null;                           // nullable
+  topicTags:    string[];                                // string 배열
+  visibility:   'public' | 'private' | 'invite';        // enum → 리터럴 유니온
+  status:       'active' | 'closed' | 'archived';
+  memberCount:  number;
+  passwordHint: string | null;
+  createdAt:    string;    // Date → string (JSON 직렬화)
+  updatedAt:    string;
+  ownerId:      string;    // FK 컬럼 (ID만)
+  owner: {                 // 관계 → 중첩 객체
+    id:       string;
+    nickname: string;
+    email:    string;
+  };
+};
+
+export type ApiAdminRoomsPage = {
+  items:      ApiAdminRoom[];
+  nextCursor: string | null;
+};
+```
+
+```txt
+ownerId와 owner 둘 다 있는 이유:
+  ownerId  → FK 컬럼 값 (단순 string ID)
+  owner    → JOIN/include로 가져온 User 객체
+  DTO에서 둘 다 @ApiProperty로 노출하면 둘 다 타입에 포함
+  UI에서 owner.nickname을 표시하려면 owner 객체가 필요
+  owner 없이 ownerId만 있으면 별도 API 호출 필요
 ```
 
 ---

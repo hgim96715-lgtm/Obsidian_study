@@ -16,6 +16,7 @@ aliases:
   - "[key]: value"
   - void
   - 불린 변환
+  - 조건부 스프레드
 tags:
   - JavaScript
 related:
@@ -198,6 +199,53 @@ setState(prev => ({ ...prev, name: '새이름' }));
 ```txt
 ⚠️ 스프레드는 얕은 복사 — 중첩 객체는 참조가 공유됨
   깊은 복사가 필요하면 structuredClone() → [[JS_BrowserAPI]]
+```
+
+## 조건부 스프레드 — 조건이 참일 때만 속성 추가 ⭐️⭐️⭐️⭐️
+
+```typescript
+const obj = {
+  always: 'here',
+  ...(condition ? { key: value } : {}),
+  //  ↑ 참이면 { key: value }를 spread → 속성 추가됨
+  //  ↑ 거짓이면 {}를 spread → 아무것도 추가 안 됨
+};
+```
+
+```typescript
+// 실전 — Prisma 쿼리에서 cursor 있을 때만 추가
+const rows = await this.prisma.post.findMany({
+  where,
+  take: take + 1,
+  ...(query.cursor
+    ? { cursor: { id: query.cursor }, skip: 1 }  // cursor 있음 → 두 속성 추가
+    : {}),                                         // cursor 없음 → 아무것도 안 추가
+  orderBy: { createdAt: 'desc' },
+});
+```
+
+```txt
+...(condition ? { ... } : {}) 읽는 법:
+
+  조건이 참  → 객체를 스프레드 → 그 속성들이 바깥 객체에 포함됨
+  조건이 거짓 → 빈 객체를 스프레드 → 빈 {}를 펼치면 아무것도 안 추가됨
+
+왜 {} 를 쓰는가:
+  ...(condition ? { key: value } : undefined)  ← undefined를 spread하면 에러
+  ...(condition ? { key: value } : {})         ← 빈 객체는 안전하게 아무것도 안 함
+
+언제 쓰는가:
+  if문 없이 인라인으로 조건부 속성을 추가하고 싶을 때
+  Prisma 쿼리, fetch options, API 파라미터 등 객체를 한 번에 만들 때
+
+여러 개 조합도 가능:
+  const query = {
+    where,
+    ...(take != null  ? { take: take + 1 }              : {}),
+    ...(query.cursor  ? { cursor: { id: query.cursor },
+                          skip: 1 }                     : {}),
+    ...(query.orderBy ? { orderBy: query.orderBy }       : {}),
+  };
 ```
 
 ## 함수 인자 스프레드

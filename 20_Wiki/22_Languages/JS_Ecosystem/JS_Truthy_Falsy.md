@@ -8,7 +8,6 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Operators]]"
-  - "[[JS_OptionalChaining]]"
   - "[[TS_PartialUpdate]]"
 ---
 

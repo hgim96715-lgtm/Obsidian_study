@@ -14,69 +14,14 @@ related:
 # NestJS_Prisma — Prisma ORM
 
 > [!info] 
-> Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다.
->  schema.prisma에 모델을 정의하면 `migrate dev` 한 번으로 DB 반영 + Client 자동 생성까지 된다. 
->  설치·워크플로우·migrate 명령 → [[NestJS_Migration]], 관계 필터·토글·원자적 업데이트 패턴 → [[NestJS_Prisma_Patterns]]
-
----
-# 흐름도
-
-> Prisma를 **한 장**으로: 위에서 아래로 = 프로젝트 수명, 오른쪽 분기 = **읽기 shape** 고르기.
-> 상세 표·코드 → 아래 「읽기 shape」·「select / omit / include」.
-
-```mermaid
-flowchart TD
-  subgraph LIFE["① 프로젝트 수명"]
-    S["schema.prisma<br/>model · relation"] --> M["migrate / db push<br/>DB 테이블 반영"]
-    M --> C["prisma generate<br/>Client 타입 생성"]
-    C --> Q["Nest PrismaService<br/>findMany · create · update …"]
-  end
-
-  Q --> NEED{"② 이 쿼리의 결과는?"}
-
-  NEED -->|"쓰기만<br/>create/update/delete"| W["data · where<br/>include/select는<br/>응답 shape 필요할 때만"]
-  NEED -->|"읽기<br/>findMany / findUnique"| R{"③ 지금 모델 vs 관계"}
-
-  R -->|"지금 모델의<br/>컬럼만"| SEL{"민감 필드<br/>passwordHash 등?"}
-  SEL -->|예| SELECT["select: 화이트리스트<br/>필요한 scalar만 true"]
-  SEL -->|아니오| ALL["옵션 생략 OK<br/>scalar 전부 · 관계 ❌"]
-
-  R -->|"연결된 테이블<br/>실제 행이 필요"| INC["include: 관계 로드<br/>owner · posts · messages"]
-  INC --> INCOPT["include 안에서<br/>where · orderBy · take · select"]
-
-  R -->|"개수만<br/>댓글 N개"| CNT["_count<br/>include 또는 select 안"]
-
-  R -->|"필터만<br/>멤버인 방 찾기"| WH["where: 관계 조건만<br/>include 불필요"]
-
-  SELECT --> BAN{"④ 최상위 규칙"}
-  ALL --> BAN
-  INC --> BAN
-  CNT --> BAN
-  WH --> BAN
-
-  BAN -->|"select + include"| X["❌ 동시 사용 불가"]
-  BAN -->|"select + _count"| OK1["✅"]
-  BAN -->|"include + _count"| OK2["✅"]
-  BAN -->|"include 안 select"| OK3["✅ 관계 행은 가져오되<br/>필드는 좁히기"]
-
-  classDef bad fill:#3a2222,stroke:#c77,color:#f5e6e6
-  classDef good fill:#223a2a,stroke:#7c7,color:#e6f5ea
-  class X bad
-  class OK1,OK2,OK3 good
-```
-
-```txt
-한 줄 암기
-  scalar만 · 민감 → select
-  관계 행 필요 → include (+ 안에서 select로 줄이기)
-  숫자만 → _count
-  필터만 → where (include ❌)
-  최상위 select+include ❌
-```
+> Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 
+> schema.prisma에 모델을 정의하면 `migrate dev` 한 번으로 DB 반영 + Client 자동 생성까지 된다. 
+> `Prisma.RoomWhereInput` 같은 namespace 타입으로 조건을 타입 안전하게 조립하고, 중첩 where로 관계 테이블 필드까지 필터링할 수 있다. 
+> 설치·워크플로우·migrate → [[NestJS_Migration]], 패턴 → [[NestJS_Prisma_Patterns]]
 
 ---
 
-# 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
+## 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
 
 ```txt
 "지금 조회하는 모델" vs "relations로 연결된 다른 테이블" 한 가지만 기준으로 생각하면 됨
@@ -465,8 +410,7 @@ this.prisma.user.findFirst({ where: { name, NOT: { id } } });  // 자기 자신 
 this.prisma.post.findMany({ where: { isVisible: true } });
 ```
 
----
-# OrThrow 변형 — findUniqueOrThrow · findFirstOrThrow ⭐️⭐️⭐️⭐️
+## OrThrow 변형 — findUniqueOrThrow · findFirstOrThrow ⭐️⭐️⭐️⭐️
 
 ```typescript
 // findUnique   → User | null  (null 체크 필요)
@@ -542,6 +486,7 @@ OrThrow가 던지는 에러:
   → 사용자에게 노출되면 안 되는 내부 오류 (서버 버그 신호)로 다루는 게 적절
   → 사용자 입력 ID 조회처럼 "없으면 404"가 명확히 필요한 경우는 findUnique + 수동 throw
 ```
+
 ---
 
 # CRUD 기본
@@ -725,7 +670,7 @@ include 안의 관계 필드도 findMany와 같은 옵션(where/orderBy/take/ski
 → "관계 = 또 하나의 작은 조회"로 생각하면 됨
 ```
 
-## `_count `— 개수만 필요할 때
+## `_count` — 개수만 필요할 때
 
 ```typescript
 this.prisma.user.findUnique({
@@ -796,7 +741,7 @@ const userCountInclude = {
 } as const;
 ```
 
-## ` _count`는 select 안에서도 쓸 수 있음 — 재사용 트릭
+## `_count`는 select 안에서도 쓸 수 있음 — 재사용 트릭
 
 ```typescript
 this.prisma.user.findMany({
@@ -857,26 +802,176 @@ const rows = await this.prisma.post.groupBy({
 
 ```txt
 prisma generate를 실행하면, schema.prisma에 정의한 모델마다 자동으로 타입 생성:
-  {모델명}WhereInput    where 조건에 쓸 수 있는 타입
-  {모델명}CreateInput   create data에 넣을 수 있는 타입
-  {모델명}UpdateInput   update data에 넣을 수 있는 타입 (전 필드 optional)
+  {모델명}WhereInput         where 조건에 쓸 수 있는 타입
+  {모델명}WhereUniqueInput   unique 조건 (findUnique의 where)
+  {모델명}CreateInput        create data 타입
+  {모델명}UpdateInput        update data 타입 (전 필드 optional)
+  {모델명}OrderByWithRelationInput  orderBy 타입
+  {모델명}Select             select 옵션 타입
+  {모델명}Include            include 옵션 타입
 ```
 
 ```typescript
 import { Prisma } from '../generated/prisma/client';
 
-Prisma.PostCreateInput   // create data 타입
-Prisma.PostUpdateInput   // update data 타입 (전 필드 optional)
-Prisma.PostWhereInput    // where 조건 타입
+Prisma.RoomWhereInput        // where: { ... } 에 들어가는 타입
+Prisma.RoomCreateInput       // create: { data: ... } 타입
+Prisma.RoomUpdateInput       // update: { data: ... } 타입 (전 필드 optional)
+Prisma.RoomWhereUniqueInput  // findUnique의 where (unique 컬럼만)
+```
+
+## WhereInput — 조건부 where 조립 ⭐️⭐️⭐️⭐️
+
+```txt
+서비스에서 where 조건을 단계별로 조립할 때 타입 안전하게 쓰는 방법
 ```
 
 ```typescript
-// 조건별로 다른 필드 조합할 때 활용
-function buildUpdateInput(existing: Post | null, incoming: Dto): Prisma.PostUpdateInput {
-  return existing
-    ? { title: incoming.title }
-    : { title: incoming.title, isVisible: true };
+// 조건에 따라 where를 쌓아가는 패턴
+async findRooms(q?: string, status?: RoomStatus) {
+  const where: Prisma.RoomWhereInput = {};  // 처음엔 비어있음
+
+  if (status) {
+    where.status = status;           // 조건 추가
+  }
+  if (q) {
+    where.OR = [                     // OR 조건 추가
+      { name:  { contains: q, mode: 'insensitive' } },
+      { owner: { nickname: { contains: q, mode: 'insensitive' } } },
+    ];
+  }
+
+  return this.prisma.room.findMany({ where });
 }
+```
+
+```txt
+Prisma.RoomWhereInput vs let where: object = {}:
+  object  = 어떤 객체든 가능, 타입 체크 없음
+            where.typo = 'abc' 처럼 잘못된 필드를 써도 에러 안 남
+
+  Prisma.RoomWhereInput = Room의 where 조건에 맞는 필드만 허용
+            where.typo = 'abc' → TS 에러 즉시 잡힘
+            where.OR, where.name, where.status 만 쓸 수 있음
+
+  → 실제 코드에서는 Prisma.RoomWhereInput 을 쓰는 것이 더 안전
+    조건부 where 조립 패턴 → [[NestJS_Prisma_Patterns]]
+```
+
+---
+
+# 중첩 where — 관계 테이블 필드로 필터링 ⭐️⭐️⭐️⭐️
+
+```txt
+단순 where: 이 테이블의 컬럼 조건
+중첩 where: 관계로 연결된 다른 테이블의 컬럼 조건
+```
+
+```typescript
+// 단순: Room의 컬럼으로 필터
+where: { status: 'active' }
+
+// 중첩: Room에 연결된 owner(User)의 컬럼으로 필터
+where: { owner: { nickname: { contains: q } } }
+// "nickname에 q가 포함된 owner를 가진 방"
+```
+
+```txt
+{ owner: { nickname: { contains: q } } } 읽는 법:
+
+  owner          →  Room과 @relation으로 연결된 User
+  nickname       →  그 User의 nickname 컬럼
+  contains: q    →  q가 포함된 것만
+
+  SQL로 표현하면:
+    JOIN users ON rooms.owner_id = users.id
+    WHERE users.nickname LIKE '%q%'
+
+  Prisma가 중첩 객체 구조를 보고 자동으로 JOIN을 생성
+  → 직접 JOIN을 작성할 필요 없음
+```
+
+## 검색 — 여러 필드를 OR로 ⭐️⭐️⭐️⭐️
+
+```typescript
+if (q) {
+  where.OR = [
+    { name:  { contains: q, mode: 'insensitive' } },  // 방 이름에 q 포함
+    { owner: { nickname: { contains: q, mode: 'insensitive' } } },  // 방장 닉네임에 q 포함
+  ];
+}
+```
+
+```txt
+mode: 'insensitive':
+  대소문자를 무시하고 검색 (PostgreSQL 전용)
+  'Hello'로 검색하면 'hello', 'HELLO', 'Hello' 전부 매칭
+
+  mode: 'default'  → 대소문자 구분 (기본값)
+  mode: 'insensitive' → 대소문자 무시
+
+OR 배열:
+  배열 안의 조건 중 하나라도 일치하면 해당 행 포함
+  [ { name: ... }, { owner: { nickname: ... } } ]
+  = "방 이름에 q가 있거나, 방장 닉네임에 q가 있는 방"
+```
+
+## 중첩 깊이 ⭐️⭐️⭐️
+
+```typescript
+// 2단계 중첩
+where: {
+  owner: {         // Room → User
+    nickname: { contains: q }
+  }
+}
+
+// 3단계 중첩 — Room → Member → User
+where: {
+  members: {
+    some: {
+      user: {      // Member → User
+        status: 'active'
+      }
+    }
+  }
+}
+```
+
+```txt
+중첩 구조가 schema.prisma의 @relation 관계를 따름
+relation이 정의된 필드만 중첩해서 조건을 걸 수 있음
+
+일반 where(scalar 필드)와 관계 where를 같이 쓸 수 있음:
+  where: {
+    status: 'active',           // scalar 조건
+    owner: {                    // 관계 조건 (중첩)
+      nickname: { contains: q }
+    },
+    members: { some: { userId } } // 관계 필터
+  }
+```
+
+---
+
+# Prisma namespace 타입 — 자주 쓰는 타입 전체
+
+```typescript
+// 타입 선언 예시
+const where:   Prisma.RoomWhereInput         = {};  // where 조건
+const data:    Prisma.RoomCreateInput        = {};  // create 데이터
+const update:  Prisma.RoomUpdateInput        = {};  // update 데이터 (전 optional)
+const orderBy: Prisma.RoomOrderByWithRelationInput = {};  // 정렬
+
+// 중첩 타입
+const ownerWhere: Prisma.UserWhereInput = { nickname: { contains: q } };
+```
+
+```txt
+모델명 자리에 schema.prisma에 정의한 model 이름을 그대로 씀:
+  model Room { ... } → Prisma.RoomWhereInput
+  model User { ... } → Prisma.UserWhereInput
+  model Post { ... } → Prisma.PostCreateInput
 ```
 
 ## Json 필드 — JsonValue vs InputJsonValue ⭐️⭐️⭐️⭐️
