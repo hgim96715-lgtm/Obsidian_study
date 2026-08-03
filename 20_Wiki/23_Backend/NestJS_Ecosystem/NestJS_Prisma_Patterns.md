@@ -10,6 +10,7 @@ related:
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Migration]]"
   - "[[NestJS_Transaction]]"
+  - "[[NestJS_Pagination]]"
 ---
 # NestJS_Prisma_Patterns — Prisma 실전 패턴
 
@@ -356,6 +357,66 @@ async getDmRoom(userAId: string, userBId: string) {
 ```txt
 pairKey가 @unique이므로 findUnique 사용 가능
 어느 방향(A→B, B→A)으로 호출해도 같은 방을 찾음
+```
+
+---
+# 조건부 where 조립 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+여러 조건이 선택적으로 붙는 쿼리에서
+각 조건을 별도 변수에 담고 마지막에 spread로 합치는 패턴
+```
+
+```typescript
+// 각 조건을 담을 변수 — 처음엔 비어있음
+let feedWhere:   object = {};
+let cursorWhere: object = {};
+
+// 조건에 따라 채움
+if (feed === 'friends') {
+  feedWhere = { authorId: { in: friendIds } };
+}
+if (query.cursor) {
+  cursorWhere = { OR: [{ createdAt: { lt: cursorDate } }, ...] };
+}
+
+// 마지막에 한 번에 합침
+const rows = await this.prisma.post.findMany({
+  where: {
+    hidden: false,
+    ...feedWhere,    // 비어있으면 spread해도 아무 영향 없음
+    ...cursorWhere,  // 있으면 해당 조건이 추가됨
+  },
+});
+```
+
+```txt
+핵심: 빈 객체를 spread하면 아무것도 추가되지 않음
+
+  { hidden: false, ...{} }
+  = { hidden: false }  ← 변화 없음
+
+  { hidden: false, ...{ authorId: { in: [...] } } }
+  = { hidden: false, authorId: { in: [...] } }  ← 조건 추가됨
+
+왜 이렇게 하는가:
+  조건마다 if문 안에서 findMany를 따로 호출하면 코드가 중복됨
+  조건들을 각자 처리하고 마지막 쿼리 하나에서 합치면 깔끔
+
+let x: object = {} 타입:
+  object는 "어떤 객체든 가능"한 넓은 타입
+  나중에 Prisma.PostWhereInput 처럼 구체적인 타입으로 교체하면 더 안전
+  단계적으로 조건을 조립할 때 object가 편의상 많이 쓰임
+```
+
+
+```typescript
+// 더 타입 안전한 방법 — Prisma 타입 사용
+let feedWhere: Prisma.PostWhereInput = {};
+
+if (feed === 'friends') {
+  feedWhere = { authorId: { in: friendIds } };
+}
 ```
 ---
 

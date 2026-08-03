@@ -9,8 +9,6 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Monorepo_PNPM]]"
   - "[[NestJS_Env_Config]]"
-  - "[[NextJS_ApiTypes_Mapper]]"
-  - "[[NextJS_UI_Types]]"
   - "[[Deploy_CloudMVP]]"
 ---
 # NextJS_Env_Config — 환경변수

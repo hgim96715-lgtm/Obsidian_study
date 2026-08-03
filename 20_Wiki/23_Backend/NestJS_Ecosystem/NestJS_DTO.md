@@ -9,7 +9,6 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Swagger]]"
   - "[[NextJS_API_Client]]"
-  - "[[NextJS_ApiTypes_Mapper]]"
   - "[[TS_PartialUpdate]]"
 ---
 # NestJS_DTO — 데이터 전송 객체 & 유효성 검사

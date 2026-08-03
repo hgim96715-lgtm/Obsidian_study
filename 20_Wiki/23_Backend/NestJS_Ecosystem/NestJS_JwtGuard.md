@@ -10,9 +10,8 @@ related:
 ---
 # NestJS_JwtGuard — JWT 인증 파이프라인
 
-> [!info] 
-> Guard 인프라(CanActivate · Reflector · SetMetadata)는 NestJS가 제공하고, 
-> 실제 검증 로직(JwtAuthGuard · @Roles · @Public · @UserId 등)은 직접 만든다. 이 둘을 구분하는 것이 이 노트의 핵심.
+> [!info]
+>  Guard 인프라(CanActivate · Reflector · SetMetadata)는 NestJS가 제공하고, 실제 검증 로직(JwtAuthGuard · @Roles · @Public · @UserId 등)은 직접 만든다. 이 둘을 구분하는 것이 이 노트의 핵심.
 
 ---
 
@@ -29,22 +28,22 @@ related:
   어디서나 같은 이름, 같은 모양으로 나오는 것
 ```
 
-|                            | 제공 주체         | 역할                                    |
-| -------------------------- | ------------- | ------------------------------------- |
-| `CanActivate`              | NestJS        | Guard가 구현해야 하는 인터페이스                  |
-| `ExecutionContext`         | NestJS        | 현재 요청의 handler·class·request에 접근하는 객체 |
-| `SetMetadata(key, value)`  | NestJS        | 클래스/메서드에 "라벨"을 붙이는 함수                 |
-| `Reflector`                | NestJS        | 붙인 라벨을 다시 읽는 헬퍼                       |
-| `APP_GUARD`                | NestJS        | 전역 Guard 등록 토큰                        |
-| `@UseGuards()`             | NestJS        | 특정 Guard를 라우트에 적용하는 데코레이터             |
-| `createParamDecorator()`   | NestJS        | 커스텀 파라미터 데코레이터를 만드는 함수                |
-| `JwtModule` · `JwtService` | `@nestjs/jwt` | JWT 발급(signAsync) · 검증(verifyAsync)   |
-| **`JwtAuthGuard`**         | **직접 만듦**     | Bearer 토큰 검증, request.user 채우기        |
-| **`@Public()`**            | **직접 만듦**     | 인증 건너뛰기 라벨 (SetMetadata 래퍼)           |
-| **`@Roles()`**             | **직접 만듦**     | role 체크 라벨 (SetMetadata 래퍼)           |
-| **`RolesGuard`**           | **직접 만듦**     | @Roles 라벨을 읽어서 role 검사                |
-| **`@UserId()`**            | **직접 만듦**     | request.user.sub를 꺼내는 파라미터 데코레이터      |
-| **`@AllowWithdrawing()`**  | **직접 만듦**     | 특정 상태 예외 라벨 (SetMetadata 래퍼)          |
+| |제공 주체|역할|
+|---|---|---|
+|`CanActivate`|NestJS|Guard가 구현해야 하는 인터페이스|
+|`ExecutionContext`|NestJS|현재 요청의 handler·class·request에 접근하는 객체|
+|`SetMetadata(key, value)`|NestJS|클래스/메서드에 "라벨"을 붙이는 함수|
+|`Reflector`|NestJS|붙인 라벨을 다시 읽는 헬퍼|
+|`APP_GUARD`|NestJS|전역 Guard 등록 토큰|
+|`@UseGuards()`|NestJS|특정 Guard를 라우트에 적용하는 데코레이터|
+|`createParamDecorator()`|NestJS|커스텀 파라미터 데코레이터를 만드는 함수|
+|`JwtModule` · `JwtService`|`@nestjs/jwt`|JWT 발급(signAsync) · 검증(verifyAsync)|
+|**`JwtAuthGuard`**|**직접 만듦**|Bearer 토큰 검증, request.user 채우기|
+|**`@Public()`**|**직접 만듦**|인증 건너뛰기 라벨 (SetMetadata 래퍼)|
+|**`@Roles()`**|**직접 만듦**|role 체크 라벨 (SetMetadata 래퍼)|
+|**`RolesGuard`**|**직접 만듦**|@Roles 라벨을 읽어서 role 검사|
+|**`@UserId()`**|**직접 만듦**|request.user.sub를 꺼내는 파라미터 데코레이터|
+|**`@AllowWithdrawing()`**|**직접 만듦**|특정 상태 예외 라벨 (SetMetadata 래퍼)|
 
 ---
 
@@ -224,7 +223,140 @@ getMe(@UserId() userId: string) {
 }
 ```
 
-## 4단계 — 인가 패턴들
+## @OptionalUserId() — 로그인 안 해도 되는 라우트 ⭐️⭐️⭐️⭐️
+
+```typescript
+// user-id.decorator.ts — 같은 파일에 함께 선언
+export const OptionalUserId = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): string | undefined => {
+    const request = ctx.switchToHttp().getRequest<Request>();
+    return request.user?.sub;  // 로그인 안 했으면 undefined, 했으면 userId
+  },
+);
+```
+
+```txt
+@UserId() vs @OptionalUserId():
+
+  @UserId()          반환 타입: string
+                     user.sub 없으면 UnauthorizedException 던짐
+                     → 반드시 로그인해야 하는 라우트
+
+  @OptionalUserId()  반환 타입: string | undefined
+                     user.sub 없으면 undefined 반환 (에러 없음)
+                     → 비로그인도 가능하지만 로그인하면 개인화되는 라우트
+```
+
+---
+
+# 선택적 인증 — OptionalJwtAuthGuard ⭐️⭐️⭐️⭐️
+
+```txt
+전체 공개 피드처럼:
+  비로그인 → 전체 피드 볼 수 있음
+  로그인   → 내 친구 피드 필터링 가능 (개인화)
+
+JwtAuthGuard    → 토큰 없으면 401 (로그인 필수)
+@Public()       → 토큰을 아예 확인 안 함 (항상 게스트 취급)
+OptionalJwtAuth → 토큰 있으면 검증해서 user 채움, 없어도 통과 (게스트로 처리)
+```
+
+## Guard 구현
+
+```typescript
+// optional-jwt-auth.guard.ts
+@Injectable()
+export class OptionalJwtAuthGuard implements CanActivate {
+  constructor(
+    private readonly jwtService:    JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private extractToken(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' && token ? token : undefined;
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const token   = this.extractToken(request);
+
+    if (!token) return true;  // 토큰 없음 = 게스트 → 그냥 통과
+
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.getOrThrow('JWT_SECRET'),
+      });
+      request.user = payload;  // 토큰 유효 → user 채움
+    } catch {
+      // 잘못된 토큰 = 게스트로 취급 → 에러 없이 통과
+      // 특정 기능(feed=friends)의 401은 서비스 레이어에서 처리
+    }
+
+    return true;  // 항상 true — 게스트든 로그인이든 통과
+  }
+}
+```
+
+```txt
+JwtAuthGuard와의 핵심 차이:
+  JwtAuthGuard: 토큰 없거나 잘못되면 → throw UnauthorizedException
+  OptionalJwtAuthGuard: 토큰 없거나 잘못되면 → 그냥 통과 (request.user = undefined)
+
+return true를 항상 하는 이유:
+  Guard의 역할은 "통과/차단"을 결정하는 것
+  OptionalJwtAuthGuard는 "항상 통과"하되 토큰이 있으면 request.user를 채워줌
+
+잘못된 토큰(만료, 변조)도 게스트 취급하는 이유:
+  토큰이 잘못됐다고 403을 던지면 비로그인 사용자와 구분이 안 됨
+  잘못된 토큰 = "내가 로그인 정보를 가져올 수 없음" → 게스트와 동일하게 처리
+  특정 기능(친구 피드)의 로그인 요구는 서비스에서 viewerUserId 여부로 확인
+```
+
+## 컨트롤러에서 사용
+
+```typescript
+@Get()
+@UseGuards(OptionalJwtAuthGuard)          // ① 선택적 인증 Guard 적용
+async findAll(
+  @Query() query: ListFeedQueryDto,
+  @OptionalUserId() viewerUserId?: string, // ② undefined일 수 있음을 타입으로 표현
+) {
+  return this.feedService.findAll(query, viewerUserId);
+}
+```
+
+## 서비스에서 활용
+
+```typescript
+async findAll(query: ListFeedQueryDto, viewerUserId?: string) {
+  let feedWhere: object = {};
+
+  if (query.feed === 'friends') {
+    // 친구 피드는 로그인 필수 — Guard가 아닌 서비스에서 체크
+    if (!viewerUserId) {
+      throw new UnauthorizedException('친구 피드는 로그인이 필요합니다.');
+    }
+    feedWhere = { authorId: { in: friendIds } };
+  }
+
+  // viewerUserId 있으면 개인화 로직 추가 가능
+}
+```
+
+```txt
+로그인 체크를 Guard가 아닌 서비스에서 하는 이유:
+  같은 GET /feed 라우트인데
+  feed=all    → 비로그인 OK
+  feed=friends → 로그인 필수
+
+  Guard는 라우트 단위로 동작 → 쿼리 파라미터에 따라 다르게 할 수 없음
+  서비스에서 query.feed와 viewerUserId를 함께 보고 판단
+
+APP_GUARD로 전역 등록된 JwtAuthGuard가 있어도:
+  @UseGuards(OptionalJwtAuthGuard)를 명시하면 이 Guard가 우선 적용됨
+  → 해당 라우트만 선택적 인증으로 동작
+```
 
 ```txt
 인증(누구야?) 은 JwtAuthGuard가 끝냄

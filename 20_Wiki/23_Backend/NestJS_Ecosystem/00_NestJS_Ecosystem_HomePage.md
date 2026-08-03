@@ -149,7 +149,7 @@ NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 ```txt
 NestJS_DTO      class-validator · @Type · @ValidateIf · PartialType · 커스텀 메시지
 NestJS_Swagger  @ApiProperty · type:[String] 배열 · nullable · 응답 타입
-→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_ApiTypes_Mapper]]와 연결
+→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결
 ```
 
 ---

@@ -1,308 +1,288 @@
 ---
 aliases:
-  - "mailto:"
-  - Browser
-  - decodeURIComponent
-  - encodeURI
-  - encodeURIComponent
   - URLSearchParams
+  - URL
+  - 인코딩
+  - 디코딩
 tags:
   - JavaScript
+  - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_BrowserAPI]]"
-  - "[[NestJS_Auth]]"
   - "[[NextJS_Routing]]"
-  - "[[Web_Email]]"
+  - "[[NestJS_Pagination]]"
 ---
-# JS_URL_Encoding — URL 조작 & 인코딩
+# JS_URL_Encoding — URL 인코딩 · URLSearchParams
 
 > [!info] 
-> URL에 한글·공백·특수문자가 들어가면 반드시 인코딩이 필요하다.
->  `encodeURIComponent`는 문자를 인코딩하고, `new URL()`은 URL 구조를 파싱·조립하며, `URLSearchParams`는 쿼리스트링을 다룬다.
-
----
-# 흐름도
-
-```mermaid
-flowchart TD
-    W1["왜 · 한글·공백·특수문자가 URL 구조를 깨뜨림"]
-    W2["왜 · 문자열 접합은 슬래시·인코딩 실수 나기 쉬움"]
-
-    Q{"언제 · 무엇을 다루나?"}
-
-    W1 --> Q
-    W2 --> Q
-
-    Q -->|값 하나만 인코딩| A
-    Q -->|URL 파싱·조립| B
-    Q -->|쿼리 여러 개| C
-
-    A["encodeURIComponent"]
-    A1["decodeURIComponent로 복원"]
-    A --> A1
-
-    B["new URL(path, base)"]
-    B1["pathname · search · hash"]
-    B2["+ searchParams.set — 권장 조합"]
-    B --> B1 --> B2
-
-    C["URLSearchParams"]
-    C1["set · get · toString 자동 인코딩"]
-    C --> C1
-```
-
-> 실무 — `new URL` + `searchParams.set` (OAuth redirect 등)  
-> `encodeURI`는 구조 문자 유지 — 파라미터 값에는 `encodeURIComponent`
+> URL에는 특수문자(&, =, 공백, # 등)를 그대로 쓸 수 없다 — URL 구조를 깨뜨리기 때문. 
+> URLSearchParams = 쿼리스트링을 안전하게 조합하는 도구. 
+> 특수문자를 자동으로 인코딩해줘서 값에 무엇이 들어오든 URL이 올바르게 유지된다.
 
 ---
 
-# 왜 인코딩이 필요한가 ⭐️⭐️⭐️
+# URL 구조 ⭐️⭐️⭐️⭐️
 
 ```txt
-URL은 ASCII 문자만 허용
-한글, 공백, ?, &, = 같은 특수문자는 URL 구조와 충돌 가능
-
-  검색어: "서울 맛집"
-  ❌ /search?q=서울 맛집      → 공백이 URL 구조를 깨뜨림
-  ✅ /search?q=%EC%84%9C%EC%9A%B8%20%EB%A7%9B%EC%A7%91   → 퍼센트 인코딩
-```
-
----
-
-# encodeURIComponent / decodeURIComponent ⭐️⭐️⭐️⭐️
-
-```typescript
-// 인코딩 — 문자 → %XX 형태
-encodeURIComponent('서울 맛집')
-// → '%EC%84%9C%EC%9A%B8%20%EB%A7%9B%EC%A7%91'
-
-encodeURIComponent('hello world')  // → 'hello%20world'
-encodeURIComponent('a=1&b=2')      // → 'a%3D1%26b%3D2'  (=와 &도 인코딩)
-encodeURIComponent('/path/to')     // → '%2Fpath%2Fto'   (/도 인코딩)
-
-// 디코딩 — %XX → 원래 문자
-decodeURIComponent('%EC%84%9C%EC%9A%B8')  // → '서울'
-decodeURIComponent('hello%20world')       // → 'hello world'
+https://api.example.com/users/search?q=홍길동&limit=20&cursor=abc#top
+───┬───  ───────┬──────  ──────┬───── ─────────────┬──────────────  ─┬─
+   │             │              │                   │                  │
+   프로토콜      호스트         경로(path)           쿼리스트링        fragment
 ```
 
 ```txt
-encodeURIComponent vs encodeURI:
-  encodeURIComponent  쿼리 파라미터 값에 사용 — /, ?, &, = 포함 전부 인코딩
-  encodeURI           URL 전체에 사용 — 구조 문자(/, ?, &, =)는 그대로 유지
+쿼리스트링:
+  ? 로 시작
+  key=value 형태
+  여러 개는 & 로 연결
+  → ?q=홍길동&limit=20&cursor=abc
 
-  실무에서는 encodeURIComponent를 씀
-  → 파라미터 값에 &나 =가 들어오면 URL이 깨지기 때문
-  → URLSearchParams / new URL을 쓰면 자동으로 처리됨 (직접 쓸 일이 줄어듦)
-```
-
-## 실전 — 쿼리스트링 직접 조합할 때
-
-```typescript
-// ❌ 인코딩 안 하면 한글/특수문자에서 깨짐
-const url = `/search?q=${query}&category=${category}`;
-
-// ✅ encodeURIComponent로 각 값 인코딩
-const url = `/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`;
-
-// ✅✅ URLSearchParams 사용 — 자동 인코딩 (더 권장)
-const params = new URLSearchParams({ q: query, category });
-const url = `/search?${params.toString()}`;
+여기서 & = # 공백은 URL 구조를 구분하는 특수문자
+→ 이 문자들이 "값" 안에 있으면 URL이 깨짐
 ```
 
 ---
 
-# new URL() — URL 파싱 & 조립 ⭐️⭐️⭐️⭐️
+# 왜 인코딩이 필요한가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 절대 URL 파싱
-const url = new URL('https://example.com/path?q=hello#section');
-url.protocol  // 'https:'
-url.host      // 'example.com'
-url.pathname  // '/path'
-url.search    // '?q=hello'
-url.hash      // '#section'
-url.origin    // 'https://example.com'
-url.href      // 전체 URL 문자열
+// 검색어가 "홍길동 & 김철수"라면 어떻게 될까?
 
-// 상대 경로 + base URL 조합
-const url = new URL('/auth/oauth/callback', 'https://my-app.vercel.app');
-// → 'https://my-app.vercel.app/auth/oauth/callback'
+// ❌ 직접 문자열 조합
+const url = `/users/search?q=${opts.q}&limit=20`;
+// → /users/search?q=홍길동 & 김철수&limit=20
+//                        ↑ 공백  ↑ & 가 URL에 그대로 들어감
+
+// 서버가 이 URL을 파싱하면:
+//   q     = "홍길동 "   (& 앞까지만)
+//   " 김철수" = ""       (키로 인식)
+//   limit  = "20"
+// → "홍길동 & 김철수"를 검색하는 게 아니라 깨진 요청이 됨
 ```
-
-```txt
-new URL(path, base):
-  첫 번째 인자가 절대 URL이면 base 무시
-  첫 번째 인자가 상대 경로면 base + 상대경로로 조합
-  → 문자열 접합(baseUrl + path)보다 안전 (슬래시 중복, 특수문자 자동 처리)
-
-Node.js 10+, 모든 최신 브라우저에서 사용 가능 — import 없이 전역
-```
-
-## URL 속성 한눈에
-
-|속성|예시 값|읽기/쓰기|
-|---|---|---|
-|`href`|`'https://example.com/path?q=1#h'`|읽기/쓰기|
-|`origin`|`'https://example.com'`|읽기 전용|
-|`protocol`|`'https:'`|읽기/쓰기|
-|`host`|`'example.com:8080'` (포트 포함)|읽기/쓰기|
-|`hostname`|`'example.com'` (포트 제외)|읽기/쓰기|
-|`port`|`'8080'`|읽기/쓰기|
-|`pathname`|`'/path'`|읽기/쓰기|
-|`search`|`'?q=1'`|읽기/쓰기|
-|`searchParams`|`URLSearchParams 인스턴스`|읽기 전용 (내용 수정은 가능)|
-|`hash`|`'#section'`|읽기/쓰기|
-
-## URL 속성 수정
 
 ```typescript
-const url = new URL('https://example.com/old?q=1');
-url.pathname = '/new';
-url.searchParams.set('q', '2');
-url.hash = '#top';
-url.toString(); // 'https://example.com/new?q=2#top'
-```
-
----
-
-# URLSearchParams — 쿼리스트링 빌드 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 생성
+// ✅ URLSearchParams — 특수문자 자동 인코딩
 const sp = new URLSearchParams();
-sp.set('q', '서울 맛집');   // 자동 인코딩
-sp.set('page', '1');
-sp.toString()               // 'q=%EC%84%9C%EC%9A%B8+%EB%A7%9B%EC%A7%91&page=1'
+sp.set('q', '홍길동 & 김철수');
+sp.set('limit', '20');
+sp.toString()
+// → "q=%ED%99%8D%EA%B8%B8%EB%8F%99+%26+%EA%B9%80%EC%B2%A0%EC%88%98&limit=20"
+//     ↑ 한글은 %xx 형태로, 공백은 +, &는 %26으로 변환됨
 
-// 객체로 초기화
-const sp = new URLSearchParams({ q: '서울', page: '1' });
-
-// 현재 URL의 쿼리 읽기
-const sp = new URLSearchParams(window.location.search);
-sp.get('q');     // '서울 맛집'  (자동 디코딩)
-sp.has('page');  // true
+// 서버가 파싱하면:
+//   q     = "홍길동 & 김철수"   ← 정확히 원하는 값
+//   limit = "20"
 ```
 
-|메서드|역할|
-|---|---|
-|`sp.set(k, v)`|설정 (덮어쓰기)|
-|`sp.get(k)`|읽기 (없으면 `null`)|
-|`sp.append(k, v)`|추가 (중복 허용)|
-|`sp.delete(k)`|삭제|
-|`sp.has(k)`|존재 여부|
-|`sp.toString()`|`'k=v&k2=v2'` 문자열 변환|
+```txt
+인코딩 = 특수문자를 % + 16진수 코드로 변환
+  공백 → + 또는 %20
+  &    → %26
+  =    → %3D
+  ?    → %3F
+  #    → %23
+  한글 → %ED%99%8D ... (UTF-8 바이트를 % + hex로)
 
-## 조건부 파라미터 빌드
+URLSearchParams가 이 변환을 자동으로 해줌
+직접 문자열 조합하면 매번 인코딩을 직접 해야 함 → 실수 발생 쉬움
+```
+
+---
+
+# URLSearchParams — 쿼리스트링 안전하게 만들기 ⭐️⭐️⭐️⭐️
 
 ```typescript
-function buildSearchParams(filters: {
-  keyword?: string;
-  category?: string;
-  page?: number;
-}) {
+const sp = new URLSearchParams();
+
+// 값 추가
+sp.set('q', '검색어');          // 없으면 추가, 있으면 덮어씀
+sp.append('tag', '개발');       // 기존 값 유지하고 추가 (같은 키 여러 개)
+sp.delete('q');                 // 삭제
+sp.has('q')                     // 있는지 확인 → true/false
+sp.get('q')                     // 값 읽기 → string | null
+sp.toString()                   // "q=%EA%B2%80%EC%83%89%EC%96%B4" 형태로 출력
+
+// 초기값으로 생성
+const sp2 = new URLSearchParams({ q: '검색어', limit: '20' });
+const sp3 = new URLSearchParams('q=%EA%B2%80%EC%83%89%EC%96%B4&limit=20');
+```
+
+## 조건부 파라미터 — 있을 때만 추가 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 실전 예시 — 사용자 검색 API
+export function searchUsers(opts: {
+  q:       string;
+  cursor?: string;
+  limit?:  number;
+}): Promise<ApiUserSearchPage> {
   const sp = new URLSearchParams();
-  if (filters.keyword)  sp.set('q',        filters.keyword);
-  if (filters.category) sp.set('category', filters.category);
-  if (filters.page)     sp.set('page',     String(filters.page));
-  return sp;
-}
 
-const params = buildSearchParams({ keyword: '서울 맛집', page: 2 });
-// → 'q=%EC%84%9C%EC%9A%B8+%EB%A7%9B%EC%A7%91&page=2'
+  sp.set('q', opts.q.trim());                                // 필수 — 항상 추가
+
+  if (opts.cursor)       sp.set('cursor', opts.cursor);      // 있을 때만
+  if (opts.limit != null) sp.set('limit', opts.limit.toString()); // 0도 포함
+
+  return apiFetch<ApiUserSearchPage>(`/users/search?${sp.toString()}`);
+}
 ```
 
----
+```txt
+if (opts.cursor) sp.set(...):
+  cursor가 undefined이거나 빈 문자열이면 추가 안 함
+  첫 페이지 요청 = cursor 없음 → ?q=홍길동 만
+  다음 페이지 요청 = cursor 있음 → ?q=홍길동&cursor=abc
 
-# new URL + searchParams 조합 패턴 ⭐️⭐️⭐️⭐️
+if (opts.limit != null) sp.set(...):
+  != null 은 null과 undefined 둘 다 걸러냄
+  !== undefined 만 쓰면 null이 통과됨
+  0도 유효한 limit이므로 if (opts.limit)을 쓰면 안 됨
+    → if (opts.limit) 은 0을 falsy로 처리 → limit=0 이 무시됨
+    → if (opts.limit != null) 은 0도 통과 ✅
+
+opts.limit.toString():
+  URLSearchParams의 값은 항상 문자열
+  number를 그냥 넣으면 TypeScript 에러 → toString()으로 변환
+```
+
+## ?${sp.toString()} 조합 ⭐️⭐️⭐️
 
 ```typescript
-// OAuth 성공 후 프론트로 토큰 전달
-function buildOAuthSuccessRedirect(accessToken: string, next: string): string {
-  const url = new URL('/auth/oauth/callback', FRONTEND_URL);
-  url.searchParams.set('accessToken', accessToken);
-  url.searchParams.set('next', next);
-  return url.toString();
-  // → 'https://my-app.vercel.app/auth/oauth/callback?accessToken=eyJ...&next=%2Fprofile'
-}
+const sp = new URLSearchParams();
+sp.set('q', '홍길동');
+sp.set('limit', '20');
 
-// 에러 redirect
-function buildOAuthErrorRedirect(error: string, next: string): string {
-  const url = new URL('/login', FRONTEND_URL);
-  url.searchParams.set('oauthError', error);
-  url.searchParams.set('next', next);
-  return url.toString();
-}
-```
+// sp.toString() → "q=%ED%99%8D%EA%B8%B8%EB%8F%99&limit=20"
+const url = `/users/search?${sp.toString()}`;
+// → "/users/search?q=%ED%99%8D%EA%B8%B8%EB%8F%99&limit=20"
 
-```txt
-url.searchParams.set()의 자동 인코딩:
-  next에 '/profile' 같은 값이 들어오면 '%2Fprofile'로 자동 인코딩
-  encodeURIComponent를 직접 쓸 필요 없음
-
-문자열 접합 vs new URL:
-  ❌ baseUrl + '/callback?token=' + token + '&next=' + next
-     → next에 특수문자 있으면 URL 깨짐, 슬래시 중복 위험
-
-  ✅ new URL('/callback', baseUrl) + searchParams.set(...)
-     → URL 구조를 알고 각 부분을 올바르게 인코딩
+// 파라미터가 없을 수도 있으면 — ? 자체를 붙이지 않기
+const qs = sp.toString();
+const url2 = `/users/search${qs ? `?${qs}` : ''}`;
 ```
 
 ---
 
-# location.origin — 절대 URL 만들기 ⭐️⭐️
+# encodeURIComponent — 단일 값 수동 인코딩 ⭐️⭐️⭐️
 
 ```typescript
-// 브라우저에서 현재 사이트의 기준 주소
-const shareUrl = `${window.location.origin}/posts/${id}`;
-// → 'https://my-app.vercel.app/posts/42'
+// URL의 일부(path 세그먼트)에 특수문자가 들어갈 때
+const username = '홍길동/admin';  // / 가 path 구분자로 잘못 해석됨
+const url = `/users/${encodeURIComponent(username)}`;
+// → /users/%ED%99%8D%EA%B8%B8%EB%8F%99%2Fadmin  ← / 가 %2F로 인코딩
+
+// encodeURI vs encodeURIComponent
+encodeURI('https://example.com/path?q=홍길동 & 김철수')
+// → "https://example.com/path?q=%ED%99%8D..." (URL 구조 유지, 공백·한글만 인코딩)
+
+encodeURIComponent('홍길동 & 김철수')
+// → "%ED%99%8D%EA%B8%B8%EB%8F%99%20%26%20%EA%B9%80%EC%B2%A0%EC%88%98"
+// (& 포함 모든 특수문자 인코딩 — 값 하나에 사용)
 ```
 
 ```txt
-location.origin = 프로토콜 + 도메인 + 포트 (경로 제외)
-공유 링크처럼 "이 사이트 바깥으로 보낼 절대 URL"이 필요할 때 사용
-브라우저 전용 — SSR/서버에서는 FRONTEND_URL 환경변수로 대체
+언제 뭘 쓰는가:
+  쿼리스트링 여러 파라미터   → URLSearchParams (자동)
+  URL path의 값 하나        → encodeURIComponent (수동)
+  URL 전체를 인코딩         → encodeURI (거의 안 씀)
 ```
 
 ---
 
-# 언제 무엇을 쓰는가
+# new URL() — URL 파싱 · 조작 ⭐️⭐️⭐️
 
-|상황|방법|
-|---|---|
-|파라미터 값에 한글/특수문자|`encodeURIComponent()` 또는 `URLSearchParams`|
-|URL 전체 파싱 (각 부분 꺼내기)|`new URL(href)`|
-|상대경로 + base 조합|`new URL(path, base)`|
-|쿼리스트링 빌드 (여러 파라미터)|`URLSearchParams` + `toString()`|
-|쿼리스트링 + URL 함께 조립|`new URL(path, base)` + `url.searchParams.set()`|
-|현재 URL의 쿼리 읽기|`new URLSearchParams(window.location.search)`|
-|공유/리다이렉트용 절대 URL|`window.location.origin` + 경로 조합|
+```typescript
+// URL 파싱
+const url = new URL('https://example.com/users?q=홍길동&limit=20');
+
+url.protocol  // 'https:'
+url.hostname  // 'example.com'
+url.pathname  // '/users'
+url.search    // '?q=%ED%99%8D...&limit=20'
+url.searchParams.get('q')     // '홍길동'  (자동 디코딩)
+url.searchParams.get('limit') // '20'
+
+// URL 조작
+const url2 = new URL('https://example.com/users');
+url2.searchParams.set('q', '홍길동');
+url2.searchParams.set('limit', '20');
+url2.toString()
+// → 'https://example.com/users?q=%ED%99%8D...&limit=20'
+```
+
+```txt
+new URL()의 장점:
+  protocol, hostname, pathname, search를 각각 조작 가능
+  searchParams가 URLSearchParams 인스턴스 → set/get/delete 사용 가능
+  브라우저 환경에서 현재 URL 파싱할 때 유용
+
+  window.location.href 대신:
+  const url = new URL(window.location.href);
+  url.searchParams.get('cursor');  // 현재 URL의 cursor 파라미터
+```
 
 ---
 
-# 한눈에
+# 실전 패턴
+
+## 페이지네이션 + 검색 조합 ⭐️⭐️⭐️⭐️
+
+```typescript
+// [[NestJS_Pagination]] 참고
+export function fetchItems(params: {
+  q?:      string;
+  cursor?: string;
+  take?:   number;
+} = {}): Promise<CursorPage<UiItem>> {
+  const sp = new URLSearchParams();
+
+  if (params.q?.trim())    sp.set('q',      params.q.trim());
+  if (params.cursor)       sp.set('cursor', params.cursor);
+  if (params.take != null) sp.set('take',   params.take.toString());
+
+  const qs = sp.toString();
+  return apiFetch<CursorPage<ApiItem>>(`/items${qs ? `?${qs}` : ''}`);
+}
+```
 
 ```txt
-인코딩:
-  encodeURIComponent(str)  → %XX 형태로 인코딩 (쿼리 파라미터 값에)
-  decodeURIComponent(str)  → 원래 문자로 디코딩
-  URLSearchParams가 있으면 직접 쓸 일이 줄어듦 (자동 처리)
+params.q?.trim():
+  q가 undefined면 ?. 로 조용히 undefined 반환 → if 조건 false → 추가 안 함
+  q가 '   '처럼 공백만 있으면 trim() 후 빈 문자열 → falsy → 추가 안 함
+  q가 '홍길동'이면 trim() 후 '홍길동' → truthy → sp.set()
+```
 
-URL 파싱/조립:
-  new URL(href)             절대 URL 파싱 → .protocol .host .pathname .search 등
-  new URL(path, base)       상대경로 + base 조합
-  url.pathname = '...'      속성 직접 수정
-  url.toString()            전체 URL 문자열로
+## 현재 URL에서 파라미터 읽기 (Next.js)
 
-URLSearchParams:
-  new URLSearchParams()     빈 파라미터 빌더
-  new URLSearchParams(obj)  객체로 초기화
-  sp.set(k, v)              설정 (자동 인코딩)
-  sp.get(k)                 읽기 (자동 디코딩)
-  sp.toString()             'k=v&k2=v2' 변환
+```typescript
+// app/search/page.tsx — Server Component
+export default function SearchPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; cursor?: string };
+}) {
+  const q      = searchParams.q      ?? '';
+  const cursor = searchParams.cursor ?? undefined;
+  // 이미 디코딩된 값으로 들어옴
+}
 
-조합 패턴:
-  const url = new URL('/callback', BASE);
-  url.searchParams.set('token', token);
-  url.toString()  → 자동 인코딩된 완성 URL
+// Client Component — useSearchParams
+import { useSearchParams } from 'next/navigation';
+
+function SearchComponent() {
+  const searchParams = useSearchParams();
+  const q      = searchParams.get('q')      ?? '';
+  const cursor = searchParams.get('cursor') ?? undefined;
+}
+```
+
+## URL 직접 조합이 괜찮은 경우
+
+```typescript
+// 값이 단순 숫자나 고정 문자열 — 특수문자 없음
+const url = `/users/${userId}`;          // UUID는 안전 (하이픈·알파벳·숫자만)
+const url = `/rooms/${roomId}/messages`; // 동일
+
+// 특수문자가 들어갈 가능성이 없는 경우만
+// 검색어·사용자 입력·한글이 포함될 수 있으면 반드시 URLSearchParams
 ```

@@ -1,408 +1,384 @@
 ---
 aliases:
-  - Cursor
+  - Pagination
   - Offset
+  - Cursor
+  - take
   - query
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Controller]]"
   - "[[NestJS_DTO]]"
   - "[[NestJS_Prisma]]"
-  - "[[JS_Array_Methods]]"
   - "[[JS_URL_Encoding]]"
+  - "[[NestJS_Prisma_Patterns]]"
 ---
 # NestJS_Pagination — 페이지네이션
 
-> [!info]
->  페이지네이션 = 대량 데이터를 나눠서 가져오는 방식. 
->  오프셋 방식(page/limit)과 커서 방식(cursor) 두 가지 — 실시간 피드는 커서, 관리 목록은 오프셋이 적합하다.
+> [!info] 
+> 페이지네이션 = 많은 데이터를 한 번에 다 보내지 않고 나눠서 보내는 것. 
+> Offset(페이지 번호) 방식과 Cursor(마지막 항목 기준) 방식이 있고, NestJS + Prisma에서는 Cursor 방식이 더 안전하다. 
+> `take + 1` 트릭으로 추가 COUNT 쿼리 없이 "다음 페이지 있음" 여부를 판단한다.
 
 ---
 
-# 오프셋 vs 커서 ⭐️⭐️⭐️⭐️
-
-| |오프셋 (Offset)|커서 (Cursor)|
-|---|---|---|
-|방식|`skip = (page-1) * limit`|마지막 ID를 기준으로 다음 항목|
-|URL|`?page=2&limit=20`|`?cursor=abc123&limit=20`|
-|장점|구현 단순, 특정 페이지 이동 가능|실시간 데이터에서 중복/누락 없음|
-|단점|데이터 추가 시 페이지 어긋남|특정 페이지 이동 불가|
-|언제|관리자 목록, 검색 결과|피드, 채팅, 무한 스크롤|
-
----
-
-# 커서 + 검색 + 관계 필터 — 실전 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// DTO
-export class ListMembersQueryDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(40)
-  q?: string;          // 닉네임 검색
-
-  @IsOptional()
-  @IsUUID()
-  cursor?: string;     // 이전 페이지 마지막 항목 id
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  limit?: number;
-}
-```
-
-```typescript
-// Service
-async listMembers(
-  roomId: string,
-  userId: string,
-  query: { q?: string; cursor?: string; limit?: number } = {},
-) {
-  // 1. limit 안전하게 처리 — 클라이언트 값을 그대로 믿지 않음
-  const take = Math.min(Math.max(query.limit ?? 30, 1), 50);
-  const q    = query.q?.trim();
-
-  // 2. 관계 모델 필드로 검색 — user.nickname
-  const where = {
-    roomId,
-    ...(q
-      ? {
-          user: {
-            nickname: { contains: q, mode: 'insensitive' as const },
-            //                              ↑ as const 필요 (아래 설명)
-          },
-        }
-      : {}),
-  };
-
-  // 3. 전체 수 + 데이터 동시 조회
-  const [total, rows] = await Promise.all([
-    this.prisma.roomMember.count({ where }),
-    this.prisma.roomMember.findMany({
-      where,
-      take: take + 1,  // 다음 페이지 존재 확인용
-      ...(query.cursor
-        ? { cursor: { id: query.cursor }, skip: 1 }
-        : {}),
-      orderBy: [
-        { joinedAt: 'asc' },   // 1차: 입장 시각
-        { id:       'asc' },   // 2차: id (동시 입장 시 안정 정렬)
-      ],
-      include: {
-        user: { select: { id: true, nickname: true, image: true } },
-      },
-    }),
-  ]);
-
-  // 4. hasMore 판단 + 여분 제거
-  const hasMore = rows.length > take;
-  const page    = hasMore ? rows.slice(0, take) : rows;
-
-  // 5. 첫 페이지에서만 owner를 앞으로
-  if (!query.cursor) {
-    page.sort((a, b) => {
-      if (a.role === RoomMemberRole.owner && b.role !== RoomMemberRole.owner) return -1;
-      if (b.role === RoomMemberRole.owner && a.role !== RoomMemberRole.owner) return 1;
-      return a.joinedAt.getTime() - b.joinedAt.getTime();
-    });
-  }
-
-  return {
-    items:      page,
-    nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null,
-    total,
-  };
-}
-```
-
-## 패턴 설명
+# 왜 필요한가 ⭐️⭐️⭐️⭐️
 
 ```txt
-Math.min(Math.max(query.limit ?? 30, 1), 50):
-  클라이언트가 limit=0 이나 limit=9999 를 보낼 수 있음
-  Math.max(..., 1)   → 최솟값 1 보장
-  Math.min(..., 50)  → 최댓값 50 보장
-  ?? 30              → 없으면 기본값 30
+DB에 유저가 100,000명 있다면:
+  findMany() → 100,000개를 한 번에 응답 → 수십 MB → 서버/클라이언트 둘 다 과부하
 
-mode: 'insensitive' as const:
-  Prisma의 mode 타입은 Prisma.QueryMode (리터럴 유니온)
-  'insensitive' 를 그냥 쓰면 TS가 string으로 추론 → Prisma 타입 불일치 에러
-  as const 로 리터럴 타입 'insensitive'로 좁혀야 에러 없음
-  → [[TS_Type_Guards]] as const 참고
-
-관계 모델 필드 검색 (user.nickname):
-  where.user.nickname.contains — 중첩 관계의 필드로 필터링
-  MemberModel.findMany 에서 User.nickname으로 검색 가능
-  → [[NestJS_Prisma]] "관계 필터" 참고
-
-복합 orderBy [{ joinedAt }, { id }]:
-  joinedAt만으로는 동시 입장한 멤버의 순서가 불안정
-  id(UUID/CUID)를 2차 기준으로 추가 → 항상 같은 순서 보장 (안정 정렬)
-  커서 페이지네이션에서 순서가 달라지면 중복/누락 발생 → 필수
-
-cursor 없을 때만 owner 정렬:
-  커서 페이지에서 다시 정렬하면 중간 페이지의 순서가 꼬임
-  첫 페이지(!query.cursor)에서만 특별 정렬 → 2페이지부터는 DB 정렬 그대로
-  [[JS_Array_Methods#sort — 비교 함수 규칙 ⭐️⭐️⭐️⭐️]] 참고 
-
-page[page.length - 1]?.id ?? null:
-  hasMore이면 마지막 항목의 id → 다음 요청의 cursor
-  items가 비어있을 경우(예외 상황) ?? null 로 안전하게
+페이지네이션:
+  "지금 당장 보여줄 20개만 가져와"
+  → 사용자가 스크롤하면 "다음 20개 가져와"
+  → 화면에 필요한 것만, 필요한 때에 가져옴
 ```
 
 ---
 
-# 오프셋 페이지네이션 ⭐️⭐️⭐️⭐️
+# Offset vs Cursor — 두 가지 방식 ⭐️⭐️⭐️⭐️
+
+## Offset (페이지 번호 방식)
+
+```typescript
+// "3페이지 줘" = 앞 40개 건너뛰고 20개
+prisma.user.findMany({ skip: 40, take: 20 });
+//                     ↑ OFFSET    ↑ LIMIT
+```
+
+```txt
+문제 — 데이터가 중간에 추가/삭제되면 틀어짐:
+
+  1페이지 (skip 0): [A, B, C, D, E, F, G, H, I, J]
+  사용자가 읽는 동안 맨 앞에 새 항목 X 추가됨
+  2페이지 (skip 10): [J, K, L, M, N, O, P, Q, R, S]
+                      ↑ J가 두 번 보임! (1페이지에도 있었음)
+
+  반대로 항목이 삭제되면 빠지는 항목 발생
+
+실시간으로 데이터가 바뀌는 채팅·피드에서 부적합
+단순한 관리자 페이지처럼 정적인 데이터에는 괜찮음
+```
+
+## Cursor (마지막 항목 기준 방식)
+
+```typescript
+// "id='abc' 다음부터 20개 줘"
+prisma.user.findMany({
+  cursor: { id: 'abc' },
+  skip: 1,    // cursor 항목 자체는 제외
+  take: 20,
+});
+```
+
+```txt
+동작 원리:
+  1페이지: 처음부터 20개 → 마지막 항목 id = 'abc'
+  2페이지: 'abc' 이후부터 20개 → 마지막 항목 id = 'xyz'
+  3페이지: 'xyz' 이후부터 20개
+
+  중간에 새 항목이 생겨도:
+  "abc 이후부터"라는 기준이 변하지 않음 → 중복/누락 없음
+
+cursor = "내가 마지막으로 본 항목의 ID"
+nextCursor = 응답에서 알려주는 다음 페이지의 시작점
+```
+
+## 비교
+
+|구분|Offset|Cursor|
+|---|---|---|
+|구현 난이도|쉬움|보통|
+|URL 파라미터|`?page=3`|`?cursor=abc`|
+|중복/누락|실시간 변경 시 발생|없음|
+|특정 페이지 이동|가능 (`?page=5`)|불가 (순서대로만)|
+|대용량 성능|느림 (OFFSET이 클수록)|빠름|
+|사용 사례|관리자 목록, 정적 데이터|피드, 채팅, 무한 스크롤|
+
+---
+
+# take + 1 트릭 — hasMore 판단 ⭐️⭐️⭐️⭐️
+
+```txt
+문제: 다음 페이지가 있는지 어떻게 알 수 있을까?
+
+방법 1 — COUNT 쿼리:
+  SELECT COUNT(*) FROM users WHERE ...  → 총 100,000개
+  현재 skip=40, take=20 → 아직 남아있음
+  → 쿼리 2번 (SELECT + COUNT) → 성능 손해
+
+방법 2 — take + 1 트릭:
+  take=20 이면 21개를 요청
+  21개 돌아왔으면 → 더 있음 (hasMore = true)
+  20개 이하 돌아왔으면 → 마지막 페이지 (hasMore = false)
+  응답에는 21번째 항목을 잘라내고 20개만 보냄
+  → 쿼리 1번으로 해결
+```
+
+```typescript
+const take = 20;
+const rows = await prisma.user.findMany({ take: take + 1, ... });
+//                                              ↑ 21개 요청
+
+const hasMore = rows.length > take;             // 21개 왔으면 true
+const items   = hasMore ? rows.slice(0, take) : rows;  // 21번째 제거
+//                                 ↑ 20개만 반환
+
+return {
+  items,
+  nextCursor: hasMore ? items[items.length - 1].id : null,
+  //                    ↑ 마지막 항목(20번째)의 id = 다음 요청의 cursor
+};
+```
+
+```txt
+take + 1 흐름 시각화:
+
+  요청한 것: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+                                                                                        ↑ 21번째 = 더 있음의 증거
+  응답:      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+                                                                                   ↑ nextCursor
+```
+
+---
+
+# 구현 전체 ⭐️⭐️⭐️⭐️
 
 ## Query DTO
 
 ```typescript
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class PaginationDto {
+// cursor-query.dto.ts
+export class CursorQueryDto {
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  page?: number = 1;
+  @IsString()
+  cursor?: string;   // 이전 응답의 nextCursor 값
+  //                    첫 요청은 없음, 이후 요청에 포함
 
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)
   @Type(() => Number)
-  limit?: number = 20;
-}
-```
+  take?: number = 20;  // 기본값 20
 
-## Service
-
-```typescript
-async findAll(dto: PaginationDto) {
-  const { page = 1, limit = 20 } = dto;
-  const skip = (page - 1) * limit;
-
-  const [items, total] = await Promise.all([
-    this.prisma.post.findMany({
-      skip,
-      take:    limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    this.prisma.post.count(),
-  ]);
-
-  return {
-    data: items,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      hasNext:    page < Math.ceil(total / limit),
-      hasPrev:    page > 1,
-    },
-  };
-}
-```
-
-## 응답 형태
-
-```json
-{
-  "data": [...],
-  "meta": {
-    "total": 142,
-    "page": 2,
-    "limit": 20,
-    "totalPages": 8,
-    "hasNext": true,
-    "hasPrev": true
-  }
+  @IsOptional()
+  @IsString()
+  q?: string;   // 검색어 (선택)
 }
 ```
 
 ```txt
-Promise.all([findMany, count]):
-  count 쿼리와 데이터 쿼리를 동시에 실행 — 순차 실행보다 빠름
-  total이 없으면 totalPages/hasNext 계산 불가
+cursor:
+  첫 요청 → undefined (처음부터)
+  이후 요청 → 이전 응답의 nextCursor 값
 
-skip = (page - 1) * limit:
-  page 1 → skip 0  (처음부터)
-  page 2 → skip 20 (21번째부터)
-  page 3 → skip 40 (41번째부터)
+take:
+  한 번에 받을 항목 수
+  클라이언트가 조절 가능 (무한 스크롤: 20, 리스트: 50 등)
+
+q (search query):
+  검색어 — 있으면 LIKE 검색 포함, 없으면 전체
+  이름이 q인 이유: 관례 (query의 약자, URL에서 ?q=홍길동)
 ```
 
----
-
-# 커서 페이지네이션 ⭐️⭐️⭐️⭐️
-
-## Query DTO
+## Prisma 쿼리
 
 ```typescript
-export class CursorPaginationDto {
-  @IsOptional()
-  @IsString()
-  cursor?: string;  // 마지막으로 받은 항목의 ID
+async findUsers(query: CursorQueryDto) {
+  const take = query.take ?? 20;
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  @Type(() => Number)
-  limit?: number = 20;
-}
-```
+  // ① where 조건 — 검색어가 있으면 필터 추가
+  const where: Prisma.UserWhereInput = query.q?.trim()
+    ? {
+        OR: [
+          { nickname: { contains: query.q, mode: 'insensitive' } },
+          { email:    { contains: query.q, mode: 'insensitive' } },
+        ],
+      }
+    : {};
 
-## Service
+  // ② cursor 조건 — 있으면 그 항목 다음부터
+  const cursorOption = query.cursor
+    ? { cursor: { id: query.cursor }, skip: 1 }
+    : {};
+  //  cursor: { id: '...' }  →  이 id를 가진 항목을 기준점으로
+  //  skip: 1                →  기준점 자체는 건너뜀 (이미 이전에 받음)
 
-```typescript
-async findAll(dto: CursorPaginationDto) {
-  const { cursor, limit = 20 } = dto;
-
-  const items = await this.prisma.post.findMany({
-    take:    limit + 1,       // 하나 더 가져와서 다음 페이지 존재 확인
-    cursor:  cursor ? { id: cursor } : undefined,
-    skip:    cursor ? 1 : 0,  // cursor 항목 자체는 제외
-    orderBy: { createdAt: 'desc' },
+  // ③ take + 1 요청
+  const rows = await this.prisma.user.findMany({
+    where,
+    take: take + 1,
+    ...cursorOption,
+    orderBy: [
+      { nickname: 'asc' },   // 1차 정렬: 이름 오름차순
+      { id: 'asc' },         // 2차 정렬: id (동률일 때 일관된 순서 보장)
+    ],
+    select: { id: true, nickname: true, image: true },
   });
 
-  const hasNext = items.length > limit;
-  const data    = hasNext ? items.slice(0, limit) : items;  // 여분 제거
-  const nextCursor = hasNext ? data[data.length - 1].id : null;
-
-  return { data, nextCursor, hasNext };
-}
-```
-
-## 응답 형태
-
-```json
-{
-  "data": [...],
-  "nextCursor": "clh7x...",
-  "hasNext": true
-}
-```
-
-```txt
-take: limit + 1 트릭:
-  20개가 필요하면 21개를 요청
-  21개가 오면 → 다음 페이지 있음 (hasNext = true), 실제 반환은 20개
-  20개 이하면 → 마지막 페이지 (hasNext = false)
-
-skip: cursor ? 1 : 0:
-  cursor가 있으면 cursor 항목 자체를 건너뜀 (이미 클라이언트에 있으므로)
-  cursor가 없으면 (첫 요청) 처음부터 시작
-
-nextCursor:
-  클라이언트가 다음 요청에서 cursor=nextCursor 로 전달
-  null이면 마지막 페이지
-```
-
----
-
-# 검색 + 필터 조합 ⭐️⭐️⭐️
-
-```typescript
-export class SearchDto extends PaginationDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  keyword?: string;
-
-  @IsOptional()
-  @IsEnum(PostStatus)
-  status?: PostStatus;
-}
-
-async search(dto: SearchDto) {
-  const { page = 1, limit = 20, keyword, status } = dto;
-
-  const where: Prisma.PostWhereInput = {
-    ...(keyword && {
-      OR: [
-        { title:   { contains: keyword, mode: 'insensitive' } },
-        { content: { contains: keyword, mode: 'insensitive' } },
-      ],
-    }),
-    ...(status && { status }),
-  };
-
-  const [items, total] = await Promise.all([
-    this.prisma.post.findMany({
-      where,
-      skip:    (page - 1) * limit,
-      take:    limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    this.prisma.post.count({ where }),
-  ]);
+  // ④ hasMore 판단 + nextCursor 계산
+  const hasMore = rows.length > take;
+  const items   = hasMore ? rows.slice(0, take) : rows;
 
   return {
-    data:  items,
-    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    items,
+    nextCursor: hasMore ? (items[items.length - 1].id ?? null) : null,
   };
 }
 ```
 
-```txt
-...(condition && { field: value }) 패턴:
-  condition이 falsy면 빈 객체 {} → where에 아무 효과 없음
-  condition이 truthy면 { field: value }가 스프레드됨
-  → 선택적 필터를 깔끔하게 조합 → [[NestJS_Prisma]] 참고
+## orderBy에 id를 추가하는 이유 ⭐️⭐️⭐️
 
-mode: 'insensitive':
-  대소문자 무시 검색 (PostgreSQL)
-  MySQL에서는 기본적으로 대소문자 무시라 mode 불필요
+```txt
+nickname만으로 정렬하면:
+  nickname = '홍길동'인 유저가 여러 명 있을 때
+  DB가 임의의 순서로 반환 → 페이지가 바뀌면 순서가 달라질 수 있음
+
+nickname + id로 정렬하면:
+  nickname이 같더라도 id로 순서가 고정됨
+  cursor 기반 페이지네이션이 정확하게 동작
+
+규칙: orderBy에 항상 고유한 값(id)을 마지막에 추가
 ```
 
 ---
 
-# Controller
+# 응답 타입 ⭐️⭐️⭐️
 
 ```typescript
-@ApiTags('posts')
-@Controller('posts')
-export class PostController {
-  @ApiOkResponse({ type: PostListResponseDto })
-  @Get()
-  findAll(@Query() dto: PaginationDto) {
-    return this.postService.findAll(dto);
-  }
+// 페이지네이션 응답의 공통 구조
+type CursorPage<T> = {
+  items:      T[];           // 이번 페이지 항목들
+  nextCursor: string | null; // null = 마지막 페이지
+};
+```
 
-  @Get('search')
-  search(@Query() dto: SearchDto) {
-    return this.postService.search(dto);
-  }
-}
+```typescript
+// 사용 예
+return {
+  items,
+  nextCursor: hasMore ? items[items.length - 1].id ?? null : null,
+} satisfies CursorPage<typeof items[0]>;
 ```
 
 ---
 
-# 한눈에
+# 클라이언트에서 사용 — 무한 스크롤 ⭐️⭐️⭐️
+
+```typescript
+// 상태 관리
+const [items, setItems] = useState<User[]>([]);
+const [cursor, setCursor] = useState<string | null>(null);
+const [hasMore, setHasMore] = useState(true);
+
+// 첫 로드 또는 검색어 변경
+useEffect(() => {
+  setItems([]);
+  setCursor(null);
+  setHasMore(true);
+  void loadMore(null);
+}, [q]);
+
+// 다음 페이지 로드
+const loadMore = async (currentCursor: string | null) => {
+  const params = new URLSearchParams({ take: '20' });
+  if (currentCursor) params.set('cursor', currentCursor);
+  if (q)            params.set('q', q);
+
+  const res = await apiFetch<CursorPage<User>>(`/users?${params}`);
+
+  setItems(prev => currentCursor ? [...prev, ...res.items] : res.items);
+  setCursor(res.nextCursor);
+  setHasMore(res.nextCursor !== null);
+};
+
+// 스크롤 끝에 도달했을 때
+const onScrollEnd = () => {
+  if (hasMore && cursor) void loadMore(cursor);
+};
+```
 
 ```txt
-오프셋:
-  skip = (page - 1) * limit
-  Promise.all([findMany, count])  → 동시 실행
-  응답: { data, meta: { total, page, limit, totalPages, hasNext, hasPrev } }
+nextCursor가 null이면 → 마지막 페이지 → "더 보기" 버튼 숨김
+nextCursor가 있으면  → 다음 요청에 cursor 파라미터로 전달
+```
 
-커서:
-  take: limit + 1  → 다음 페이지 존재 확인 트릭
-  cursor ? { id: cursor } / skip: cursor ? 1 : 0
-  응답: { data, nextCursor, hasNext }
+---
 
-선택 기준:
-  관리 목록 / 검색 / 특정 페이지 이동 필요  → 오프셋
-  피드 / 채팅 / 무한 스크롤                 → 커서
+# 자주 만나는 문제
 
-검색 + 필터:
-  ...(keyword && { OR: [...] }) — 조건부 where 스프레드
-  count({ where })  — 같은 where로 전체 개수
+| 증상                       | 원인                    | 해결                          |
+| ------------------------ | --------------------- | --------------------------- |
+| 항목이 중복 노출                | orderBy에 고유 필드(id) 누락 | orderBy 마지막에 id 추가          |
+| 마지막 페이지인데 hasMore = true | take + 1 로직 오류        | `rows.length > take` 조건 확인  |
+| cursor 항목이 결과에 포함됨       | skip: 1 누락            | cursor 있을 때 skip: 1 추가      |
+| 검색 후 이전 결과가 섞임           | q 변경 시 items 초기화 안 함  | q 변경 시 items/cursor 리셋      |
+| 첫 요청에 cursor 포함          | 초기화 안 됨               | 첫 요청은 cursor 없이 (undefined) |
+
+---
+# 복합 커서 — createdAt + id 조합 ⭐️⭐️⭐️⭐️
+
+```txt
+기본 Prisma cursor({ id }) 방식의 한계:
+  cursor: { id } 는 Prisma가 내부적으로 id 기준으로 찾아서 SKIP하는 방식
+  orderBy가 createdAt 기준인데 cursor가 id면 순서가 맞지 않을 수 있음
+
+createdAt 기준 정렬 + id 커서를 안전하게 조합하는 방법:
+  마지막 항목의 createdAt과 id를 기억
+  "이 시각보다 이전 OR 같은 시각이면서 id가 더 작은 것"으로 필터
+```
+
+
+```typescript
+// 서비스
+let cursorWhere: object = {};
+
+if (query.cursor) {
+  // ① cursor ID로 해당 행의 실제 createdAt 조회
+  const cursorRow = await this.prisma.post.findFirst({
+    where:  { id: query.cursor },
+    select: { id: true, createdAt: true },
+  });
+
+  if (cursorRow) {
+    // ② createdAt + id 조합으로 "다음" 범위 설정
+    cursorWhere = {
+      OR: [
+        { createdAt: { lt: cursorRow.createdAt } },                          // 더 오래된 것
+        { createdAt: cursorRow.createdAt, id: { lt: cursorRow.id } },         // 같은 시각이면 id로
+      ],
+    };
+  }
+}
+
+const rows = await this.prisma.post.findMany({
+  where: { ...cursorWhere, ...otherWhere },
+  orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],  // createdAt 먼저, 동률이면 id
+  take: take + 1,
+});
+```
+
+
+```txt
+OR 조건이 두 가지인 이유:
+
+  정렬: [createdAt desc, id desc]
+  cursor: createdAt = T, id = 'xyz'
+
+  "cursor 다음"이란:
+  ① createdAt < T   → 확실히 이전 (시간이 더 오래됨)
+  ② createdAt = T, id < 'xyz'  → 같은 시각인데 id가 더 작음 (id desc 정렬 기준)
+
+  이 두 조건의 합집합 = cursor 이후에 오는 모든 행
+
+Prisma cursor: { id } 와의 차이:
+  Prisma 기본 cursor는 내부적으로 OFFSET 비슷하게 동작
+  → orderBy createdAt인데 cursor id면 매칭이 부정확할 수 있음
+  복합 커서는 WHERE 조건으로 직접 범위를 지정 → 정확함
+
+nextCursor로 뭘 넘기는가:
+  items[items.length - 1].id  ← 마지막 항목의 id만 넘김
+  다음 요청에서 이 id로 createdAt을 다시 조회해서 복합 커서 생성
+  id 하나로 커서를 표현하되, 서버에서 createdAt도 함께 조회
 ```

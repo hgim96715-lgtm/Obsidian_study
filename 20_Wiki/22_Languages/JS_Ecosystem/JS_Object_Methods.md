@@ -1,217 +1,316 @@
 ---
-aliases: [Object.assign, Object.entries, Object.keys, Object.values]
+aliases:
+  - key
+  - value
+  - 객체 메서드
+  - Map
+  - values
+  - entries
+  - keys
+  - fromEntries
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Array_Methods]]"
-  - "[[JS_Operators]]"
-  - "[[JS_Truthy_Falsy]]"
-  - "[[NestJS_DTO]]"
 ---
-# JS_Object_Methods — 객체를 배열로 다루기
+# JS_Object_Methods — 객체 메서드 · Map
 
 > [!info] 
->  Object.keys/values/entries는 객체의 내용을 배열로 뽑아내는 방법이다.
->   객체 자체는 map/filter 같은 배열 메서드를 직접 못 쓰지만, 일단 이 메서드들로 배열을 만들고 나면 [[JS_Array_Methods]]의 모든 메서드를 그대로 이어서 쓸 수 있다.
+> Object 메서드 = 객체의 key-value 쌍을 꺼내거나, 합치거나, 변환하는 도구.
+>  Map은 같은 key-value 구조지만 동적 키·빠른 탐색이 필요할 때 Object 대신 쓴다.
 
 ---
-# 흐름도
 
-```mermaid-beautiful
-flowchart TB
-    OBJ["객체 obj"] --> EXTRACT{무엇이 필요?}
-    EXTRACT -->|키만| KEYS["Object.keys()"]
-    EXTRACT -->|값만| VALS["Object.values()"]
-    EXTRACT -->|키+값| ENT["Object.entries() ⭐"]
-    KEYS --> ARR["배열"]
-    VALS --> ARR
-    ENT --> ARR
-    ARR --> ARRAY["map · filter · for...of<br/>JS_Array_Methods"]
-    ARRAY -->|가공 후 복원| FROM["Object.fromEntries()"]
-    FROM --> NEW["새 객체"]
+# 객체란 — key-value 쌍의 모음 ⭐️⭐️⭐️
+
+```typescript
+const user = {
+  id:   1,
+  name: '홍길동',
+  role: 'admin',
+};
+// 키(id, name, role)와 값(1, '홍길동', 'admin')의 쌍들
 ```
 
 ```txt
-객체는 map/filter 직접 ❌ — keys/values/entries로 배열 만든 뒤 배열 메서드 사용
-모르겠으면 entries부터 — 키만 [k] · 값만 [, v] 구조분해로 건너뛰기
-합치기: 평소 { ...a, ...b } · fromEntries는 entries 가공 후 되돌릴 때
+언제 객체를 쓰는가:
+  구조가 미리 정해진 데이터 (User, Post, Config 등)
+  점 표기법(user.name)으로 편리하게 접근
+  JSON 직렬화가 필요할 때
+
+언제 Map을 쓰는가 (아래 Map 섹션 참고):
+  키가 런타임에 동적으로 결정될 때
+  id → 데이터 처럼 빠른 탐색 테이블이 필요할 때
+  키-값 쌍을 자주 추가/삭제할 때
 ```
 
 ---
 
-# 왜 필요한가 — 객체는 배열 메서드를 직접 못 씀 ⭐️⭐️⭐️
+# 속성 접근 — 점 표기법 vs 대괄호 ⭐️⭐️⭐️
 
 ```typescript
-const obj = { a: 1, b: 2 };
+const user = { id: 1, name: '홍길동' };
 
-obj.map((v) => v * 2);   // ❌ TypeError — 객체엔 map이 없음
+// 점 표기법 — 키를 미리 알 때
+user.name       // '홍길동'
 
-Object.entries(obj).map(([k, v]) => v * 2);   // ✅ 일단 배열로 바꾸면 map 사용 가능
-```
+// 대괄호 표기법 — 키가 변수일 때
+const key = 'name';
+user[key]       // '홍길동'
+user['name']    // '홍길동' (동일)
 
-```txt
-배열 메서드(map/filter/reduce 등)는 Array.prototype에 정의돼있어서 배열에서만 동작함
-객체 자체를 순회/변환하고 싶다면, 먼저 Object.keys/values/entries로 "배열"을 만들어야
-그 다음부터 익숙한 배열 메서드 체이닝을 그대로 이어 쓸 수 있음
-```
-
----
-
-# Object.keys / values / entries — 세 가지 ⭐️⭐️⭐️⭐️
-
-```typescript
-const user = { name: '공이', age: 20 };
-
-Object.keys(user);    // ['name', 'age']             — 키만
-Object.values(user);  // ['공이', 20]                 — 값만
-Object.entries(user); // [['name', '공이'], ['age', 20]] — [키, 값] 쌍의 배열
-```
-
-|메서드|반환|언제 쓰나|
-|---|---|---|
-|`Object.keys(obj)`|키 문자열 배열|키 이름만 필요할 때 (개수 세기, 키 목록 확인 등)|
-|`Object.values(obj)`|값 배열|값만 필요할 때 (합계 계산, 값 목록 확인 등)|
-|`Object.entries(obj)`|`[키, 값]` 쌍의 배열|키와 값을 같이 다뤄야 할 때 — 가장 범용적|
-
-```txt
-셋 중 뭘 골라야 할지 모르겠다면: 일단 Object.entries부터 떠올리는 게 안전함
-키만 필요하면 나중에 [k] 만 쓰고 무시하면 되고, 값만 필요하면 [, v] 로 키를 건너뛰면 됨
-→ entries가 keys+values를 합친 가장 일반적인 형태이기 때문
-```
-
----
-
-# Object.entries — for...of와 짝, 구조분해와 잘 어울림 ⭐️⭐️⭐️
-
-```typescript
-for (const [key, value] of Object.entries(user)) {
-  console.log(key, value);
+// 동적 키 접근
+function getValue(obj: Record<string, unknown>, field: string) {
+  return obj[field];  // 런타임에 결정되는 키 → 대괄호 필수
 }
 ```
 
 ```txt
-Object.entries가 [키, 값] "배열"을 반환하기 때문에, for...of의 각 반복에서
-배열 구조분해([key, value])로 바로 이름을 붙여 꺼낼 수 있음 — 이 둘이 항상 같이 다니는 이유
-(구조분해 자체의 동작은 [[JS_Operators]] 참고)
+점 표기법: 자동완성 · 타입 체크 ✅
+대괄호: 변수로 키를 결정해야 할 때 ✅
+
+계산된 속성명 (객체 생성 시) → [[JS_Operators]] [key] 섹션
 ```
 
 ---
 
-# 실전 — class-validator 에러 순회 ⭐️⭐️⭐️⭐️
+# Object.keys / values / entries ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 키만 필요한 경우 — 어떤 제약을 어겼는지만 알면 됨
-for (const key of Object.keys(error.constraints)) {
-  messages.push(getValidationMessage(error.property, key));
-}
+const user = { id: 1, name: '홍길동', role: 'admin' };
 
-// 키 + 값(기본 메시지) 둘 다 필요한 경우 — 영어 기본 메시지를 fallback으로 같이 써야 할 때
-for (const [key, msg] of Object.entries(error.constraints ?? {})) {
-  messages.push(toKoMessage(key, msg));
-}
+Object.keys(user)    // ['id', 'name', 'role']         → 키 배열
+Object.values(user)  // [1, '홍길동', 'admin']          → 값 배열
+Object.entries(user) // [['id',1], ['name','홍길동'], ...] → [키, 값] 쌍 배열
 ```
 
 ```txt
-[[NestJS_DTO]]의 exceptionFactory에서 이 둘이 같이 등장한 이유:
-  Object.keys만 쓴 버전  → 키만으로 한국어 메시지를 표에서 찾아오니 영어 기본 메시지(값) 자체는 필요 없음
-  Object.entries를 쓴 버전 → 표에 없는 키일 때 "원래 영어 메시지를 그대로 보여줄 fallback"이 필요해서
-                            그 영어 메시지(값)까지 같이 꺼내야 함
-  → 어느 메서드를 쓰는지는 "값(기존 메시지)도 같이 써야 하는가"로 결정됨
+언제 뭘 쓰는가:
+  키만 필요할 때    → Object.keys()
+  값만 필요할 때    → Object.values()
+  둘 다 필요할 때   → Object.entries() + 구조분해
+
+세 메서드 모두:
+  반환값이 배열 → map · filter · reduce 등 배열 메서드를 바로 사용 가능
+  for...of와 조합해도 됨
 ```
-
----
-
-# 빈 객체 확인 — Object.keys(obj).length === 0 ⭐️⭐️
 
 ```typescript
-if (Object.keys(obj).length === 0) {
-  // 객체가 비어있음
-}
-```
+// 실전 — entries로 변환/필터링
+const scores = { math: 90, english: 85, science: 78 };
 
-```txt
-빈 객체 {}는 truthy라서 if (obj)만으로는 "비었는지" 확인이 안 됨 — 자세한 이유는 [[JS_Truthy_Falsy]] 참고
-Object.keys(obj)로 키 배열을 뽑아서 그 length가 0인지 보는 게 "내용이 비었는가"를 확인하는 정확한 방법
-```
-
----
-
-# Object.fromEntries — entries의 반대 ⭐️
-
-```typescript
-const entries = [['a', 1], ['b', 2]];
-Object.fromEntries(entries); // { a: 1, b: 2 }
-```
-
-```txt
-Object.entries(obj)로 배열로 바꾼 뒤, 배열 메서드(map/filter 등)로 가공하고,
-다시 객체로 되돌리고 싶을 때 짝으로 씀 — "객체 → 배열로 변환·가공 → 다시 객체로" 흐름의 마지막 단계
-
-예: 값을 전부 2배로 만든 새 객체
-Object.fromEntries(
-  Object.entries(user).map(([k, v]) => [k, typeof v === 'number' ? v * 2 : v])
+// 값 변환
+const doubled = Object.fromEntries(
+  Object.entries(scores).map(([k, v]) => [k, v * 2])
 );
-```
+// { math: 180, english: 170, science: 156 }
 
----
-
-# Object.assign vs 스프레드({...obj}) — 합치는 두 가지 방법 ⭐️⭐️⭐️⭐️
-
-```typescript
-const a = { x: 1 };
-const b = { y: 2 };
-
-const merged1 = Object.assign(a, b);   // ⚠️ a 자신이 바뀜! { x: 1, y: 2 }
-a === merged1                           // true — 새 객체가 아니라 a를 직접 변형한 것
-
-const merged2 = { ...a, ...b };         // ✅ a, b는 그대로, 완전히 새 객체가 만들어짐
-a === merged2                           // false
-```
-
-|방법|원본 변형 여부|
-|---|---|
-|`Object.assign(target, ...sources)`|`target`(첫 번째 인자) 자체를 직접 변형함|
-|`{ ...obj }` (스프레드)|항상 새 객체를 만듦 — 원본은 그대로|
-
-```txt
-React를 포함한 대부분의 최신 코드에서 스프레드를 더 흔히 쓰는 이유:
-  state 등을 직접 변형(mutate)하면 안 되는 규칙이 많아서, "항상 새 객체를 만드는" 스프레드가 더 안전함
-  Object.assign은 "정말 원본 자체를 합쳐서 바꾸고 싶을 때"만 의도적으로 사용
-  (스프레드 자체의 동작과 얕은 복사 주의점은 [[JS_Operators]] 참고)
-
-빈 객체를 첫 번째 인자로 주면 Object.assign도 새 객체를 만드는 것처럼 쓸 수 있음:
-  Object.assign({}, a, b)  → { ...a, ...b } 와 결과는 같음, 그래도 스프레드 쪽이 더 짧고 흔함
-```
-
----
-
-# Object.freeze — 얕은 불변성 ⭐️
-
-```typescript
-const config = Object.freeze({ apiUrl: 'https://example.com', nested: { a: 1 } });
-
-config.apiUrl = '다른 값'; // 조용히 무시됨(strict mode면 에러) — 변경 안 됨
-config.nested.a = 2;        // ⚠️ 이건 바뀜! — freeze는 "한 단계"만 동결함
+// 조건 필터
+const passing = Object.fromEntries(
+  Object.entries(scores).filter(([, v]) => v >= 80)
+);
+// { math: 90, english: 85 }
 ```
 
 ```txt
-Object.freeze는 얕은(shallow) 동결 — 객체 바로 아래 단계의 값 재할당만 막음
-중첩된 객체/배열 내부까지는 보호 안 됨 — 완전한 깊은 불변성이 필요하면 별도 라이브러리나
-재귀적으로 직접 freeze를 적용해야 함
+Object.entries(obj).map(([k, v]) => ...) 읽는 법:
+  entries → [['math', 90], ['english', 85], ...]
+  map(([k, v]) => ...) → 각 [키, 값] 쌍을 구조분해해서 처리
+  fromEntries → 다시 객체로 조립
 ```
 
 ---
 
-# 한눈에
+# Object.fromEntries — 배열/Map → 객체 ⭐️⭐️⭐️
 
-| 메서드                             | 반환                              | 핵심                                    |
-| ------------------------------- | ------------------------------- | ------------------------------------- |
-| `Object.keys(obj)`              | 키 배열                            | 키만 필요할 때                              |
-| `Object.values(obj)`            | 값 배열                            | 값만 필요할 때                              |
-| `Object.entries(obj)`           | `[키,값]` 배열                      | 가장 범용적, `for...of`+구조분해와 잘 맞음         |
-| `Object.fromEntries(arr)`       | 객체                              | `entries`로 가공한 배열을 다시 객체로             |
-| `Object.assign(target, ...src)` | target 자체(변형됨)                  | 원본을 직접 합쳐야 할 때만 — 평소엔 스프레드 권장         |
-| `{ ...obj }`                    | 새 객체                            | 원본을 안 건드리고 합치기 — 더 흔하게 쓰임             |
-| `Object.freeze(obj)`            | 동결된 obj                         | 한 단계만 불변, 중첩은 안 막아줌                   |
-| 빈 객체 확인                         | `Object.keys(obj).length === 0` | `if (obj)`로는 안 됨([[JS_Truthy_Falsy]]) |
+```typescript
+// [키, 값] 쌍 배열 → 객체
+const pairs = [['name', '홍길동'], ['role', 'admin']] as const;
+const obj = Object.fromEntries(pairs);
+// { name: '홍길동', role: 'admin' }
+
+// Map → 객체
+const map = new Map([['a', 1], ['b', 2]]);
+const obj2 = Object.fromEntries(map);
+// { a: 1, b: 2 }
+```
+
+---
+
+# Object.assign / 스프레드 — 객체 합치기 ⭐️⭐️⭐️
+
+```typescript
+const defaults = { theme: 'light', lang: 'ko', size: 'md' };
+const overrides = { theme: 'dark' };
+
+// 스프레드 (권장 — 불변)
+const config = { ...defaults, ...overrides };
+// { theme: 'dark', lang: 'ko', size: 'md' }
+
+// Object.assign (대상 객체를 변경)
+Object.assign(defaults, overrides);  // defaults 자체가 바뀜 ⚠️
+```
+
+```txt
+같은 키가 있으면 나중에 오는 것이 이김:
+  { ...defaults, ...overrides }
+  → overrides의 theme: 'dark'가 defaults의 theme: 'light'를 덮어씀
+
+스프레드 vs Object.assign:
+  스프레드  → 새 객체 반환 (원본 불변) → 권장
+  assign   → 첫 번째 인자(대상)를 직접 수정 → React state에서 쓰면 안 됨
+```
+
+```typescript
+// React state 업데이트 패턴
+setState(prev => ({ ...prev, theme: 'dark' }));
+// prev를 건드리지 않고 새 객체 반환 → React가 변경 감지 가능
+```
+
+---
+
+# Map — 동적 key-value 저장소 ⭐️⭐️⭐️⭐️
+
+```typescript
+const map = new Map<string, User>();
+
+// 쓰기 / 읽기 / 확인 / 삭제
+map.set('user-1', { id: 'user-1', name: '홍길동' });
+map.get('user-1')     // { id: 'user-1', name: '홍길동' } — 없으면 undefined
+map.has('user-1')     // true
+map.delete('user-1')  // 삭제 후 true 반환
+map.size              // 항목 수
+
+// 초기화
+const map2 = new Map([
+  ['a', 1],
+  ['b', 2],
+]);
+```
+
+## Object vs Map — 언제 뭘 쓰는가 ⭐️⭐️⭐️⭐️
+
+|상황|Object|Map|
+|---|---|---|
+|구조가 고정됨 (User, Config)|✅|❌ 과함|
+|키가 런타임에 결정됨|△ (인덱스 시그니처)|✅|
+|JSON 직렬화 필요|✅|❌ 지원 안 함|
+|빠른 탐색 (O(1) 조회)|○|✅ 더 최적화|
+|순서 보장 필요|❌|✅ 삽입 순서 유지|
+|키가 문자열이 아님 (객체, 숫자)|❌|✅|
+
+```typescript
+// ❌ Object로 동적 키 관리 — 타입 불안전
+const cache: { [key: string]: User } = {};
+cache[userId] = user;
+
+// ✅ Map — 더 명확하고 안전
+const cache = new Map<string, User>();
+cache.set(userId, user);
+```
+
+## ID 인덱싱 패턴 — 빠른 탐색 테이블 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 배열에서 특정 id 찾기 — O(n): 매번 전체 순회
+const user = users.find(u => u.id === targetId);
+
+// Map으로 인덱스 만들기 — O(1): 즉시 찾음
+const userMap = new Map(users.map(u => [u.id, u]));
+// 또는
+const userMap = users.reduce((map, u) => {
+  map.set(u.id, u);
+  return map;
+}, new Map<string, User>());
+
+const user = userMap.get(targetId);  // 즉시 반환
+```
+
+```txt
+언제 Map 인덱스를 만드는가:
+  같은 배열에서 id 기반 탐색을 여러 번 해야 할 때
+  users.find()를 루프 안에서 반복하면 O(n²) → Map으로 O(n)으로 개선
+
+  배열 한 번 탐색으로 충분하면 → find/filter
+  여러 번 탐색이 필요하면 → Map 인덱스
+```
+
+## Map 순회 ⭐️⭐️⭐️
+
+```typescript
+const map = new Map([['a', 1], ['b', 2], ['c', 3]]);
+
+// for...of — 가장 기본
+for (const [key, value] of map) {
+  console.log(key, value);  // 'a' 1, 'b' 2, 'c' 3 (삽입 순서)
+}
+
+// 배열로 변환 → 배열 메서드 사용
+[...map.entries()]   // [['a',1], ['b',2], ['c',3]]
+[...map.keys()]      // ['a', 'b', 'c']
+[...map.values()]    // [1, 2, 3]
+
+// Map → Object
+Object.fromEntries(map)  // { a: 1, b: 2, c: 3 }
+
+// Object → Map
+new Map(Object.entries(obj))
+```
+
+---
+
+# WeakMap — 메모리 누수 없는 연결 ⭐️⭐️
+
+```typescript
+const cache = new WeakMap<object, ComputedResult>();
+
+function getResult(key: object): ComputedResult {
+  if (cache.has(key)) return cache.get(key)!;
+  const result = computeExpensive(key);
+  cache.set(key, result);
+  return result;
+}
+```
+
+```txt
+Map vs WeakMap:
+  Map    → 키가 참조되는 한 GC(가비지 컬렉션)가 메모리 해제 안 함
+  WeakMap → 키 객체가 다른 곳에서 더 이상 참조되지 않으면 자동 GC
+
+  WeakMap 제약:
+    키는 반드시 객체 (문자열, 숫자 불가)
+    size 속성 없음 / 순회 불가
+
+  사용하는 경우:
+    DOM 요소에 데이터를 연결 (요소가 삭제되면 데이터도 자동 해제)
+    라이브러리 내부 캐싱 (외부에서 접근 불가한 private 데이터)
+```
+
+---
+
+# 자주 쓰는 패턴 정리
+
+```typescript
+// 객체 배열 → Map (ID 인덱싱)
+const map = new Map(items.map(item => [item.id, item]));
+
+// Map → 객체
+Object.fromEntries(map)
+
+// 객체 → Map
+new Map(Object.entries(obj))
+
+// 객체 특정 키만 꺼내기 (pick)
+const { id, name } = user;
+const picked = { id, name };
+
+// 객체 특정 키 제거 (omit)
+const { password, ...rest } = user;  // password 제외한 나머지
+
+// 객체가 비어있는지
+Object.keys(obj).length === 0
+
+// 중첩 객체 안전하게 접근
+const city = user?.address?.city ?? '주소 없음';
+```

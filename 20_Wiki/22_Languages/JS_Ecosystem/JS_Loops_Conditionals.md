@@ -11,7 +11,6 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Loops_Conditionals]]"
-  - "[[NextJS_ApiTypes_Mapper]]"
   - "[[JS_Promise]]"
 ---
 

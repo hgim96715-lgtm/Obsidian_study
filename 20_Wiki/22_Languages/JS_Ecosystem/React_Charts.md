@@ -152,7 +152,7 @@ flex/grid 아이템의 기본 min-width는 "내용물 크기"임 — 안에 있�
 → 차트 컴포넌트에 API 응답을 그대로 넘기지 않고, mapper 함수에서 차트가 원하는
   shape으로 한 번 변환해서 넘기는 게 일반적 — API 응답 구조가 바뀌어도 차트 컴포넌트
   자체는 안 바뀌고 mapper만 고치면 되는 효과도 있음
-  (API 응답 ↔ UI 타입을 변환하는 mapper 패턴 자체는 [[NextJS_ApiTypes_Mapper]] 참고)
+  (API 응답 ↔ UI 타입을 변환하는 mapper 패턴 자체는 [[NextJS_API_Mapper]] 참고)
 
   날짜별/시간대별 통계처럼 "빈 구간도 0으로" 채워서 내려주는 백엔드 쪽 패턴은 [[NestJS_StatsBucket]] 참고 —
   그 노트에서 만든 배열이 정확히 여기서 말하는 "차트가 원하는 shape"으로 이미 정규화된 데이터임

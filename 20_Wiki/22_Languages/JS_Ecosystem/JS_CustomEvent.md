@@ -1,11 +1,15 @@
 ---
-aliases: [addEventListener, CustomEvent, dispatchEvent, pub/sub]
+aliases:
+  - addEventListener
+  - CustomEvent
+  - dispatchEvent
+  - pub/sub
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
-  - "[[React_Context]]"
+  - "[[React_Context_Provider]]"
 ---
 
 # JS_CustomEvent — 컴포넌트 간 상태 동기화

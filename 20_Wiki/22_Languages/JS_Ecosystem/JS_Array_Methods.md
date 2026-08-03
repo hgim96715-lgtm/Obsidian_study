@@ -6,20 +6,19 @@ aliases:
   - forEach
   - map
   - reduce
+  - Set
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Map_Set]]"
   - "[[JS_Object_Methods]]"
-  - "[[JS_Operators]]"
-  - "[[JS_Primitive_Methods]]"
 ---
 # JS_Array_Methods — 배열 메서드
 
-> [!info]
->  배열 메서드 = 함수를 인자로 받아, 그 함수를 각 요소에 실행하는 것. 
+> [!info] 
+> 배열 메서드 = 함수를 인자로 받아, 그 함수를 각 요소에 실행하는 것.
 >  `filter` · `map` · `some` · `find` — 전부 이 하나의 구조다.
+>  Set은 중복 없는 값의 모음으로 배열과 자주 함께 쓰인다.
 
 ---
 
@@ -480,6 +479,105 @@ reduce 읽는 법:
   새 배열 만들기 → map 또는 flatMap이 더 명확
   조건 맞는 것만 → filter가 더 명확
   그룹핑이나 집계 → reduce가 적합
+```
+
+## 실전 예 — 배열 + Set 조합
+
+```typescript
+// 태그 목록 — 선택/해제 토글
+setState((prev) =>
+  prev.includes(tag)
+    ? prev.filter(t => t !== tag)   // 있으면 제거
+    : [...prev, tag]                 // 없으면 추가
+);
+```
+
+---
+
+# Set — 중복 없는 값의 모음 ⭐️⭐️⭐️⭐️
+
+```txt
+Set = 같은 값이 두 번 들어갈 수 없는 배열 같은 자료구조
+주로 배열에서 중복 제거 또는 "있냐 없냐" 빠른 확인에 사용
+```
+
+```typescript
+const set = new Set<string>();
+
+set.add('apple')
+set.add('banana')
+set.add('apple')   // 이미 있으면 무시
+set.size           // 2 (apple 하나만)
+
+set.has('apple')   // true  — O(1) 탐색
+set.has('grape')   // false
+set.delete('apple')
+```
+
+## 배열 ↔ Set 변환 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 배열 → Set (중복 제거)
+const arr = ['a', 'b', 'a', 'c', 'b'];
+const unique = [...new Set(arr)];   // ['a', 'b', 'c']
+// 또는
+Array.from(new Set(arr))
+
+// Set → 배열
+const set = new Set(['x', 'y', 'z']);
+const arr2 = [...set];              // ['x', 'y', 'z']
+```
+
+## Set.has() vs Array.includes() ⭐️⭐️⭐️
+
+```typescript
+// 성능 비교
+array.includes(id)  // O(n) — 처음부터 끝까지 순회
+set.has(id)         // O(1) — 즉시 확인
+
+// 반복 탐색이 많다면 Set으로 변환 후 사용
+const friendIds = new Set(friends.map(f => f.id));
+
+members.map(member => ({
+  ...member,
+  isFriend: friendIds.has(member.id),  // 매번 O(1)
+}));
+// friends.some(f => f.id === member.id) 로 하면 매번 O(n) → 전체 O(n²)
+```
+
+```txt
+언제 Set을 쓰는가:
+  배열에서 중복 제거 → [...new Set(arr)]
+  "이 값이 목록에 있는가" 를 여러 번 확인할 때 → Set.has()
+  순서가 필요 없는 고유 값들의 컬렉션
+
+언제 배열을 쓰는가:
+  순서가 중요할 때
+  같은 값이 여러 번 나와야 할 때
+  index로 접근이 필요할 때
+```
+
+## React state에서 Set ⭐️⭐️⭐️
+
+```typescript
+// Set을 직접 state로 쓰면 React가 변경 감지 못함
+// → 배열로 저장, 필요할 때 Set 변환
+
+const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+// 토글 — 있으면 제거, 없으면 추가
+const toggleId = (id: string) => {
+  setSelectedIds(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  );
+};
+
+// 탐색이 많은 경우 — 렌더 중 Set으로 변환해서 사용
+const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+return items.map(item => (
+  <Item key={item.id} isSelected={selectedSet.has(item.id)} />
+));
 ```
 
 ---

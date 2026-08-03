@@ -1,9 +1,11 @@
 ---
-aliases: [00_JS_Ecosystem_HomePage — JS · TS · React · Next.js]
-tags: [HomePage]
+aliases:
+  - 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
+tags:
+  - HomePage
 related:
-  - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[00_Tools_Ecosystem_HomePage]]"
+  - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[JS_Array_Methods]]"
 cssclasses:
   - max
   - table-max
@@ -89,16 +91,16 @@ classList 조작 → [[JS_DOM]] / style 직접 조작 → [[JS_BrowserAPI]] (�
 
 ## ⚛️ React 훅
 
-|훅 / 역할|노트|
-|---|---|
-|기본 3대장|[[React_useMemo_useCallback_useEffect]]|
-|DOM 접근 · 값 보관|[[React_useRef]]|
-|전역 상태 공유|[[React_Context]]|
-|비동기 UI 패턴|[[React_AsyncUI]]|
-|고유 ID|[[React_useId]]|
-|Portal|[[React_Portal]]|
-|Suspense|[[React_Suspense]]|
-|외부 스토어|[[React_useSyncExternalStore]]|
+| 훅 / 역할        | 노트                                      |
+| ------------- | --------------------------------------- |
+| 기본 3대장        | [[React_useMemo_useCallback_useEffect]] |
+| DOM 접근 · 값 보관 | [[React_useRef]]                        |
+| 전역 상태 공유      | [[React_Context_Provider]]              |
+| 비동기 UI 패턴     | [[React_AsyncUI]]                       |
+| 고유 ID         | [[React_useId]]                         |
+| Portal        | [[React_Portal]]                        |
+| Suspense      | [[React_Suspense]]                      |
+| 외부 스토어        | [[React_useSyncExternalStore]]          |
 
 ```txt
 React_useMemo_useCallback_useEffect  언제 뭘 쓰는가 · useCallback 판단 기준 · cancelled 플래그
@@ -123,11 +125,13 @@ React_AsyncUI    이벤트 핸들러 비동기 · useEffect fetch · fire-and-fo
 | |노트|
 |---|---|
 |**JS**|[[JS_Fetch_API]]|
-|**Next.js**|[[NextJS_API_Client]] · [[NextJS_ApiTypes_Mapper]] · [[NextJS_UI_Types]]|
+|**Next.js**|[[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_Types]]|
 
 ```txt
-NextJS_UI_Types ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
-→ [[00_NestJS_Ecosystem_HomePage]] 참고
+NextJS_API_Client  apiFetch 래퍼 · 토큰 · 에러 처리 · FormData
+NextJS_API_Mapper  기능별 fetch 함수 · ApiXxx→UiXxx 변환 · 전체 흐름
+NextJS_Types       API 타입(ApiXxx) · UI 타입(UiXxx) · 매퍼 패턴 (개념)
+                   ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
 ```
 
 ---
@@ -180,11 +184,10 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 |노트|내용|
 |---|---|
 |[[JS_Operators]]|구조분해 · 스프레드 · ?. · ?? · ! · !! · Boolean() · void · [key]|
-|[[JS_FunctionPatterns]]|옵션 객체 패턴 · early return · async 래퍼|
+|[[JS_FunctionPatterns]]|옵션 객체 패턴 · early return · async 래퍼 · 내부 함수 추출|
 |[[JS_Promise]]|async/await · Promise<T> 타입 · 래퍼 패턴 · Promise.all|
-|[[JS_Array_Methods]]|some · filter · map · reduce · findLast · 불변성|
-|[[JS_Object_Methods]]|Object.keys · entries · assign · fromEntries|
-|[[JS_Map_Set]]|Map · Set · ID 인덱싱 · WeakMap|
+|[[JS_Array_Methods]]|some · filter · map · reduce · findLast · 불변성 · Set|
+|[[JS_Object_Methods]]|Object.keys · entries · assign · fromEntries · Map · ID 인덱싱|
 |[[JS_Loops_Conditionals]]|if · switch · for · while|
 |[[JS_Primitive_Methods]]|String · Number · Math · Number.isNaN|
 |[[JS_Truthy_Falsy]]|truthy/falsy 전체 목록|

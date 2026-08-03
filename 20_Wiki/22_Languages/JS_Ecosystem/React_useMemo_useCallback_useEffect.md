@@ -12,7 +12,7 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_Context]]"
+  - "[[React_Context_Provider]]"
   - "[[NestJS_Throttle]]"
   - "[[React_useId]]"
   - "[[React_AsyncUI]]"
