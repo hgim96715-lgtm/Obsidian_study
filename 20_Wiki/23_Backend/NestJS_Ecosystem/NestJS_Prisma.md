@@ -10,6 +10,7 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Migration]]"
   - "[[NestJS_Prisma_Patterns]]"
+  - "[[NestJS_Service_Provider]]"
 ---
 # NestJS_Prisma — Prisma ORM
 

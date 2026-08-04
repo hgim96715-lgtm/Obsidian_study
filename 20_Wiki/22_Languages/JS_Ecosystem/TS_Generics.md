@@ -13,13 +13,12 @@ related:
   - "[[JS_Promise]]"
   - "[[React_AsyncUI]]"
   - "[[JS_Promise]]"
+  - "[[React_Types]]"
 ---
 # TS_Generics — 제네릭
 
-> [!info] 
-> 제네릭 = 타입을 나중에 결정할 수 있게 하는 것.
->  `<T>`를 선언하면 함수를 호출할 때 T에 어떤 타입이 들어갈지 결정된다. 
->  TypeScript가 대부분 자동으로 추론하므로 `fn<string>('hello')`처럼 직접 명시하지 않아도 되는 경우가 많다.
+>[!info]
+>제네릭 = 타입을 나중에 결정할 수 있게 하는 것. `<T>`를 선언하면 함수를 호출할 때 T에 어떤 타입이 들어갈지 결정된다. TypeScript가 대부분 자동으로 추론하므로 `fn<string>('hello')`처럼 직접 명시하지 않아도 되는 경우가 많다.
 
 ---
 
@@ -261,7 +260,7 @@ const commentStats = await periodCounts(
 
 ---
 
-# `Partial<T>` + 스프레드 패치 패턴 ⭐️⭐️⭐️
+# Partial\<T\> + 스프레드 패치 패턴 ⭐️⭐️⭐️
 
 ```typescript
 // 전체 중 일부 필드만 업데이트
@@ -307,9 +306,6 @@ T[] vs readonly T[]:
   as const로 만든 배열도 받고 싶을 때 readonly T[]로 선언하면 유연함
 ```
 
----
-
-# 교차 타입 & — 두 타입을 합치기 ⭐️⭐️⭐️⭐️
 
 ```txt
 & = "A이고 동시에 B이기도 한" 타입 → 두 타입의 속성을 전부 가짐

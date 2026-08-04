@@ -2,727 +2,504 @@
 aliases:
   - class-validator
   - DTO
-  - ValidationPipe
+  - ValidateIf
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Swagger]]"
-  - "[[NextJS_API_Client]]"
-  - "[[TS_PartialUpdate]]"
+  - "[[NestJS_Pipe]]"
+  - "[[NextJS_Types]]"
 ---
-# NestJS_DTO — 데이터 전송 객체 & 유효성 검사
+# NestJS_DTO — Data Transfer Object
 
-> [!info]  
-> DTO = 요청/응답의 데이터 구조를 클래스로 정의하는 것. 
-> class-validator로 유효성 검사, class-transformer로 타입 변환을 처리한다. 
-> Swagger 문서화는 → [[NestJS_Swagger]] 참고.
+> [!info] 
+> DTO = "이 엔드포인트는 이런 형태의 데이터를 받는다"는 계약. 
+> class-validator 데코레이터가 자동으로 형식·필수·범위를 검증하고, ValidationPipe가 이를 실행한다. 
+> `@ValidateIf`로 다른 필드 값에 따라 조건부 검증도 가능.
+>  `req.body`가 `any`가 되는 것을 막고 타입 안전성과 자동 검증을 모두 제공한다
 
 ---
-# 흐름도 
 
-```mermaid
-flowchart TD
-  A[클라이언트 요청 JSON] --> B["@Body / @Query / @Param"]
-  B --> C[ValidationPipe]
-  C --> D{transform?}
-  D -->|true| E[plain → DTO 클래스 인스턴스]
-  D -->|false| F[일반 객체 그대로]
-  E --> G[class-validator 데코레이터 검사]
-  F --> G
+# DTO란 — 왜 필요한가 ⭐️⭐️⭐️⭐️
 
-  G --> H{유효?}
-  H -->|실패| I[400 Bad Request]
-  H -->|성공| J{whitelist?}
+```typescript
+// ❌ DTO 없이 — req.body가 any
+@Post()
+create(@Body() body: any) {
+  // body.email이 있는지, 형식이 맞는지 모름
+  // body.password가 최소 8자인지 모름
+  // 코드에서 일일이 if문으로 검사해야 함
+  return this.authService.create(body);
+}
+```
 
-  J -->|true| K[DTO에 없는 필드 제거]
-  J -->|false| L[필드 전부 유지]
-  K --> M{forbidNonWhitelisted?}
-  M -->|true + 제거될 필드 있었음| I
-  M -->|false 또는 여분 없음| N[Controller / Service]
-  L --> N
-
-  N --> O[비즈니스 로직]
-  O --> P[응답 — 별도 Response DTO 또는 엔티티 선택]
+```typescript
+// ✅ DTO 사용 — 자동 검증 + 타입 안전
+@Post()
+create(@Body() dto: CreateUserDto) {
+  // dto.email은 반드시 이메일 형식
+  // dto.password는 반드시 8자 이상
+  // 틀리면 요청이 여기까지 오지도 않음 → 400 BadRequest 자동 반환
+  return this.authService.create(dto);
+}
 ```
 
 ```txt
-한 줄:
-  요청 → ValidationPipe(변환·검사·화이트리스트) → 통과한 DTO만 핸들러로
-  DTO = “이게 들어올 수 있는 모양”을 클래스 + 데코레이터로 적어 둔 계약
+DTO가 해주는 세 가지:
+  ① 타입 안전  — dto.email이 string임을 TypeScript가 앎 (any 아님)
+  ② 자동 검증  — 형식 틀리면 400 에러 자동 반환 (내가 if문 안 써도 됨)
+  ③ 명세 역할  — "이 API는 이런 데이터를 받는다"를 코드로 문서화
 ```
 
 ---
 
-# 설치
-
-```bash
-pnpm add class-validator class-transformer
-```
-
----
-
-# ValidationPipe 전역 등록 ⭐️⭐️⭐️⭐️
-
-```typescript
-// main.ts
-app.useGlobalPipes(
-  new ValidationPipe({
-    transform:            true,   // 요청 데이터를 DTO 클래스 인스턴스로 변환
-    whitelist:            true,   // DTO에 없는 필드 자동 제거
-    forbidNonWhitelisted: true,   // 없는 필드 오면 400 에러
-  }),
-);
-```
-
-|옵션|없을 때|있을 때|
-|---|---|---|
-|`transform`|`@Body()` 값이 순수 객체, 클래스 인스턴스 아님|DTO 클래스 인스턴스로 변환됨|
-|`whitelist`|선언 안 된 필드도 그대로 전달|선언 안 된 필드 자동 제거|
-|`forbidNonWhitelisted`|선언 안 된 필드 조용히 제거|선언 안 된 필드 오면 400 에러|
+# 요청 DTO ≠ 응답 타입 ⭐️⭐️⭐️⭐️
 
 ```txt
-transform: true 가 필요한 이유:
-  transform 없이 @Body() body: CreateUserDto 로 받으면
-  body는 일반 객체({...}) — class-validator 데코레이터는 동작하지만
-  클래스 메서드나 @Type()이 적용된 변환이 일어나지 않음
+DTO라고 하면 보통 "요청 DTO"를 말함
 
-whitelist + forbidNonWhitelisted 세트:
-  선언 안 된 필드를 보내면 → 제거만(whitelist) vs 에러로 막기(+forbidNonWhitelisted)
-  보안 관점에서 forbidNonWhitelisted가 더 명시적
+요청 DTO (CreateUserDto, UpdateUserDto, ListUsersQueryDto):
+  클라이언트가 서버에 보내는 데이터의 형태
+  class-validator 검증이 필요
+  반드시 클래스로 만들어야 함 (ValidationPipe가 클래스 기반)
+
+응답 타입:
+  서버가 클라이언트에게 보내는 데이터의 형태
+  검증 불필요 — 서버가 직접 만들어서 보내는 것
+  항상 DTO 클래스를 만들지 않아도 됨
+  → Prisma select 결과를 그대로 반환하는 경우가 많음
+
+관계: 요청 DTO 4개 → 응답 필드 15개 → 정상
+  → [[NextJS_Types]] "요청 DTO ≠ 응답 타입" 참고
 ```
 
 ---
 
-# Request DTO — 요청 Body 정의 ⭐️⭐️⭐️⭐️
+# 언제 DTO를 만드는가 ⭐️⭐️⭐️⭐️
+
+```txt
+클라이언트에서 데이터를 받는 모든 경우:
+
+  @Body() — POST/PATCH의 요청 body
+    CreatePostDto, UpdatePostDto, LoginDto
+
+  @Query() — 쿼리 파라미터 (?q=홍길동&status=active)
+    ListUsersQueryDto, SearchQueryDto
+
+  @Param() — 경로 파라미터 (:id)
+    간단한 경우 ParseUUIDPipe로 대체 가능
+    복잡한 검증이 필요하면 DTO
+
+만들지 않아도 되는 경우:
+  @Param('id', ParseUUIDPipe) id: string
+  → 단순 UUID 검증은 파이프 하나로 충분
+```
+
+---
+
+# 기본 구조 ⭐️⭐️⭐️⭐️
 
 ```typescript
-import {
-  IsEmail, IsString, IsOptional,
-  MinLength, MaxLength, IsInt, Min, Max,
-  IsArray, IsUUID, IsEnum,
-} from 'class-validator';
+// create-user.dto.ts
+import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @IsEmail()
+  @ApiProperty({ example: 'hong@example.com' })  // Swagger 문서화
+  @IsEmail()                                       // 이메일 형식 검증
   email: string;
 
-  @IsString()
-  @MinLength(2)
-  @MaxLength(20)
-  nickname: string;
-
+  @ApiProperty({ example: '비밀번호1234', minLength: 8 })
   @IsString()
   @MinLength(8)
   password: string;
 
-  @IsOptional()
+  @ApiProperty({ required: false })
+  @IsOptional()  // 없어도 됨
   @IsString()
-  @MaxLength(200)
-  bio?: string;
+  nickname?: string;
 }
 ```
 
 ```txt
-데코레이터 순서 관행:
-  @IsOptional() → 선택적임을 먼저 선언
-  @IsXxx() → 타입/형식 검사
-  @MinLength/@MaxLength → 세부 제약
+DTO는 일반 클래스지만 두 가지를 결합:
+  class-validator 데코레이터 → "이 필드는 이래야 한다"는 규칙
+  @ApiProperty → Swagger 문서에 표시될 설명
 
-@IsOptional() 이 없으면:
-  값이 undefined로 와도 아래 데코레이터들이 실행됨
-  → undefined가 @IsString() 검사를 통과하지 못해서 400 에러
-  → 선택적 필드는 반드시 @IsOptional() 필요
-
-에러 커스텀:
-  @IsEmail({}, { message: '올바른 이메일 형식을 입력해주세요.' })
+  class 자체 (interface 아님):
+    ValidationPipe가 런타임에 클래스를 보고 검증을 실행
+    interface는 런타임에 사라지기 때문에 작동 안 함
 ```
-
-## 자주 쓰는 class-validator 데코레이터
-
-|데코레이터|역할|
-|---|---|
-|`@IsString()`|문자열|
-|`@IsEmail()`|이메일 형식|
-|`@IsInt()`|정수|
-|`@IsNumber()`|숫자|
-|`@IsBoolean()`|불리언|
-|`@IsUUID()`|UUID 형식|
-|`@IsArray()`|배열|
-|`@IsEnum(Enum)`|enum 값 중 하나|
-|`@IsOptional()`|undefined/null 허용|
-|`@IsNotEmpty()`|빈 문자열 불허|
-|`@MinLength(n)` / `@MaxLength(n)`|문자열 길이|
-|`@Min(n)` / `@Max(n)`|숫자 범위|
-|`@Matches(regex)`|정규식 일치|
-|`@ValidateNested()`|중첩 객체 검증|
-|`@IsString({ each: true })`|배열 각 요소가 string인지|
 
 ---
-# 커스텀 유효성 메시지 ⭐️⭐️⭐️⭐️
 
-```txt
-class-validator의 기본 에러 메시지:
-  "email must be an email" → 사용자에게 보여주기 부적합
-
-커스터마이징 방법 두 가지:
-  ① 데코레이터에 직접 message 넣기  → 필드 수가 많으면 반복이 많아짐
-  ② ValidationError를 변환하는 유틸  → 한 파일에서 모든 메시지를 관리
-```
-
-## 방법 ① — 데코레이터에 직접 (간단)
+# ValidationPipe 전역 설정 ⭐️⭐️⭐️⭐️
 
 ```typescript
-@IsEmail({}, { message: '올바른 이메일을 입력해주세요.' })
-email: string;
-
-@MinLength(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
-password: string;
-```
-
-## 방법 ② — 메시지 테이블 + ValidationPipe 훅 (중앙 관리) ⭐️⭐️⭐️⭐️
-
-```typescript
-// common/validation-messages.ts
-
-import { ValidationError } from 'class-validator';
-
-// 우선순위 1: 필드 + 제약 조합 (가장 구체적)
-const FIELD_MESSAGES: Record<string, Partial<Record<string, string>>> = {
-  email:    { isEmail:    '올바른 이메일을 입력해주세요.' },
-  password: { minLength:  '비밀번호는 8자 이상이어야 합니다.',
-              matches:    '영문 + 특수문자(!@#$%^&*)를 포함해야 합니다.' },
-  nickname: { isNotEmpty: '닉네임을 입력해주세요.' },
-  embedUrl: { isUrl:      'http(s):// 를 포함한 전체 주소를 입력해주세요.',
-              isNotEmpty:  '재생 URL을 입력해주세요.' },
-  subject:  { isNotEmpty: '제목을 입력해주세요.',
-              maxLength:   '제목은 120자 이하여야 합니다.' },
-  body:     { isNotEmpty: '문의 내용을 입력해주세요.',
-              maxLength:   '문의 내용은 2000자 이하여야 합니다.' },
-};
-
-// 우선순위 2: 제약 공통 fallback
-const CONSTRAINT_MESSAGES: Record<string, string> = {
-  isEmail:            '올바른 이메일을 입력해주세요.',
-  isNotEmpty:         '필수 항목입니다.',
-  isString:           '문자열로 입력해주세요.',
-  minLength:          '입력 길이가 부족합니다.',
-  maxLength:          '입력 길이가 초과되었습니다.',
-  isUrl:              'http(s):// 를 포함한 전체 주소를 입력해주세요.',
-  isArray:            '배열 형식이 올바르지 않습니다.',
-  arrayMinSize:       '선택 개수가 부족합니다.',
-  arrayMaxSize:       '선택 개수가 초과되었습니다.',
-  isIn:               '허용되지 않은 값입니다.',
-  matches:            '형식이 올바르지 않습니다.',
-  isInt:              '정수로 입력해주세요.',
-  isUUID:             '올바른 ID 형식이 아닙니다.',
-  isEnum:             '허용되지 않은 값입니다.',
-  min:                '최소값보다 작습니다.',
-  whitelistValidation:'허용되지 않은 필드가 포함되어 있습니다.',
-};
-
-// 우선순위: FIELD_MESSAGES → CONSTRAINT_MESSAGES → 기본값
-export function getValidationMessage(property: string, constraint: string): string {
-  return (
-    FIELD_MESSAGES[property]?.[constraint] ??
-    CONSTRAINT_MESSAGES[constraint] ??
-    '입력값을 확인해주세요.'
-  );
-}
-
-// ValidationError 배열을 재귀 순회해서 메시지 수집
-function collectMessages(errors: ValidationError[]): string[] {
-  const messages: string[] = [];
-  for (const error of errors) {
-    if (error.constraints) {
-      for (const key of Object.keys(error.constraints)) {
-        messages.push(getValidationMessage(error.property, key));
-      }
-    }
-    if (error.children?.length) {
-      // @ValidateNested() 중첩 객체도 재귀 처리
-      messages.push(...collectMessages(error.children));
-    }
-  }
-  return messages;
-}
-
-export function formatValidationMessages(errors: ValidationError[]): string[] {
-  return collectMessages(errors);
-}
-```
-
-## ValidationPipe에 연결 (main.ts) ⭐️⭐️⭐️
-
-```typescript
-// main.ts
-import { formatValidationMessages } from './common/validation-messages';
-import { BadRequestException } from '@nestjs/common';
-
+// main.ts — 앱 시작 시 전역으로 설정
 app.useGlobalPipes(
   new ValidationPipe({
-    transform:            true,
-    whitelist:            true,
-    forbidNonWhitelisted: true,
-    exceptionFactory: (errors) => {
-      // 기본 에러 대신 커스텀 메시지 배열로 교체
-      const messages = formatValidationMessages(errors);
-      return new BadRequestException(messages);
-    },
+    whitelist:        true,  // DTO에 없는 필드 자동 제거
+    forbidNonWhitelisted: false, // true면 DTO에 없는 필드 있으면 400 에러
+    transform:        true,  // 타입 자동 변환 (string → number, string → Date)
+    transformOptions: { enableImplicitConversion: true },
   }),
 );
 ```
 
 ```txt
-exceptionFactory:
-  ValidationPipe가 에러를 던지기 직전에 호출되는 함수
-  ValidationError[] 를 받아서 원하는 형태의 예외로 변환
-  → 응답 형태: { statusCode: 400, message: ['올바른 이메일을 입력해주세요.', ...] }
+whitelist: true 가 중요한 이유:
+  클라이언트가 DTO에 없는 필드를 보내면 자동으로 제거
+  예: { email, password, isAdmin: true } → { email, password }만 통과
+  → 악의적인 필드 주입 방지
 
-ValidationError 구조:
-  error.property    필드 이름 ('email', 'password' 등)
-  error.constraints 제약 이름 → 기본 메시지 맵 ({ isEmail: 'email must be an email' })
-  error.children    중첩 객체의 에러 (@ValidateNested 사용 시)
-
-우선순위 체인:
-  FIELD_MESSAGES[property][constraint]  → 가장 구체적 (필드 + 제약)
-  CONSTRAINT_MESSAGES[constraint]       → 제약 공통 fallback
-  '입력값을 확인해주세요.'               → 최후 fallback
-
-새 DTO에 필드를 추가할 때:
-  데코레이터에 message를 붙일 필요 없음
-  FIELD_MESSAGES에 해당 필드 + 제약 메시지를 추가하거나
-  CONSTRAINT_MESSAGES에 이미 있으면 자동으로 적용됨
-```
-----
-# @ValidateIf — 조건부 유효성 검사 ⭐️⭐️⭐️⭐️
-
-```typescript
-import { ValidateIf } from 'class-validator';
-
-export class CreateRoomMessageDto {
-  @IsEnum(RoomMessageType)
-  type: RoomMessageType;   // 'text' | 'image' | 'file'
-
-  // type이 'text'일 때만 content를 검사
-  @ValidateIf((o: CreateRoomMessageDto) => o.type === RoomMessageType.text)
-  @IsString()
-  @IsNotEmpty()
-  content?: string;
-
-  // type이 'image'일 때만 imageUrl을 검사
-  @ValidateIf((o: CreateRoomMessageDto) => o.type === RoomMessageType.image)
-  @IsUrl()
-  imageUrl?: string;
-}
-```
-
-```txt
-@ValidateIf(condition):
-  condition 함수가 true를 반환할 때만 그 아래 데코레이터들이 실행됨
-  false를 반환하면 값이 undefined여도 검사를 건너뜀
-
-o 파라미터:
-  전체 DTO 객체가 들어옴 (o = object)
-  다른 필드 값을 조건으로 참조할 수 있음
-
-왜 필요한가:
-  type에 따라 필요한 필드가 다른 "차별 유니온" DTO 상황
-  type: 'text' → content 필수 / imageUrl 없어도 됨
-  type: 'image' → imageUrl 필수 / content 없어도 됨
-  → @IsOptional()로는 이 분기를 표현할 수 없음
-    (@IsOptional()은 타입 무관하게 항상 optional)
-```
-
-## @ValidateIf vs @IsOptional 차이 ⭐️⭐️⭐️
-
-```typescript
-// @IsOptional() — 조건 없이 항상 optional
-@IsOptional()
-@IsString()
-content?: string;
-// type이 뭐든 content가 없으면 검사 건너뜀
-
-// @ValidateIf() — 조건부 optional
-@ValidateIf((o) => o.type === 'text')
-@IsString()
-content?: string;
-// type이 'text'이면 content는 필수(없으면 에러)
-// type이 'image'이면 content 없어도 됨
-```
-
-## 실전 — 다양한 조건 표현
-
-```typescript
-// 다른 필드가 존재할 때만
-@ValidateIf((o) => o.hasDiscount === true)
-@IsNumber()
-discountRate?: number;
-
-// null이 아닐 때만
-@ValidateIf((o) => o.targetId !== null)
-@IsUUID()
-targetId?: string | null;
-
-// 여러 타입 중 하나일 때
-@ValidateIf((o) => [RoomMessageType.image, RoomMessageType.video].includes(o.type))
-@IsUrl()
-mediaUrl?: string;
+transform: true 가 중요한 이유:
+  HTTP 요청의 모든 값은 기본적으로 문자열
+  쿼리 파라미터 ?page=1 → "1" (string)
+  transform: true 하면 @Type(() => Number) 선언 시 자동으로 숫자로 변환
 ```
 
 ---
 
-# Query DTO — @Type() 변환 ⭐️⭐️⭐️⭐️
+# 자주 쓰는 검증 데코레이터 ⭐️⭐️⭐️⭐️
 
-```typescript
-import { Type } from 'class-transformer';
+## 타입 검증
 
-export class GetListDto {
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)   // 쿼리스트링 string '1' → number 1
-  page?: number = 1;
+|데코레이터|검증 내용|
+|---|---|
+|`@IsString()`|문자열|
+|`@IsNumber()`|숫자|
+|`@IsBoolean()`|불린|
+|`@IsInt()`|정수|
+|`@IsArray()`|배열|
+|`@IsObject()`|객체|
+|`@IsEmail()`|이메일 형식|
+|`@IsUrl()`|URL 형식|
+|`@IsUUID()`|UUID 형식|
+|`@IsDateString()`|ISO 날짜 문자열|
+|`@IsEnum(MyEnum)`|열거형 값 중 하나|
 
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @Type(() => Number)
-  limit?: number = 20;
+## 범위 검증
 
-  @IsOptional()
-  @IsString()
-  keyword?: string;
-}
+|데코레이터|검증 내용|
+|---|---|
+|`@MinLength(n)`|최소 문자 수|
+|`@MaxLength(n)`|최대 문자 수|
+|`@Min(n)`|최솟값 (숫자)|
+|`@Max(n)`|최댓값 (숫자)|
+|`@Length(min, max)`|문자 수 범위|
+
+## 존재 여부
+
+|데코레이터|동작|
+|---|---|
+|`@IsOptional()`|없어도 됨 — undefined이면 이후 검증 건너뜀|
+|`@IsNotEmpty()`|빈 문자열 불허 (`""` 거부)|
+
+```txt
+@IsOptional() 위치 주의:
+  @IsOptional()을 붙이면 값이 undefined일 때 이후 데코레이터를 실행 안 함
+  → @IsOptional() @IsEmail() → 없으면 OK, 있으면 이메일 형식이어야 함
+
+  @IsOptional()을 안 붙이면 해당 필드는 필수
+```
+
+---
+# @ValidateIf — 조건부 검증 ⭐️⭐️⭐️⭐️
+
+```txt
+특정 조건이 참일 때만 해당 필드를 검증
+@IsOptional()은 "없으면 검증 스킵"이지만
+@ValidateIf()는 "조건이 맞을 때만 검증 실행" — 더 세밀한 제어
 ```
 
 ```typescript
-// 컨트롤러
-@Get()
-getList(@Query() dto: GetListDto) {
-  // dto.page는 number (변환됨)
+// 기본 문법
+@ValidateIf((obj: DtoClass) => 조건)
+@IsString()
+fieldName?: string;
+// 조건이 true  → @IsString() 실행
+// 조건이 false → @IsString() 건너뜀
+```
+
+## 다른 필드 값에 따라 필수 여부 결정 ⭐️⭐️⭐️⭐️
+
+```typescript
+export class UpdateAdminRoomDto extends PartialType(CreateAdminRoomDto) {
+  @ApiPropertyOptional({ description: '방장 통지용 사유 · 닫기·보관 시 필수' })
+  @ValidateIf(
+    (o: UpdateAdminRoomDto) => o.status === 'closed' || o.status === 'archived',
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason?: string;
 }
 ```
 
 ```txt
-@Type()이 필요한 이유:
-  쿼리스트링은 URL의 일부 → 항상 string으로 도착
-  ?page=1 → dto.page = '1' (string)
+이 코드 읽는 법:
+  status가 'closed' 또는 'archived' 일 때만 reason 검증 실행
+  → status = 'closed'인데 reason 없으면 → 400 BadRequest
+  → status = 'active'이면 reason 없어도 통과
 
-  @Type(() => Number) + transform: true 조합:
-  '1' → 1(number)로 자동 변환
+@IsOptional()과 @ValidateIf()의 차이:
+  @IsOptional()     → undefined이면 검증 스킵 (있으면 반드시 검증)
+  @ValidateIf(fn)   → fn이 false이면 검증 스킵 (조건 기반)
 
-@Type()이 필요한 상황:
-  @Query() — 쿼리스트링
-  @Param() — URL 파라미터 (ParseIntPipe로 대체 가능)
-  중첩 객체 — @ValidateNested()와 항상 세트
+  둘을 같이 쓰면:
+  @IsOptional()       undefined이면 → 바로 스킵
+  @ValidateIf(fn)     fn이 false이면 → 스킵
+  → 하나라도 스킵 조건이면 이후 검증 안 함
+
+@ValidateIf 콜백의 인자:
+  (obj, value) =>
+    obj   = DTO 전체 객체 → 다른 필드 값에 접근 가능
+    value = 이 필드의 현재 값
+
+  타입 안전하게 쓰려면:
+  (o: UpdateAdminRoomDto) => ... 처럼 o에 타입 명시
 ```
 
-## 중첩 객체 검증
+## 두 필드 중 하나는 반드시 있어야 할 때 ⭐️⭐️⭐️
 
 ```typescript
-class AddressDto {
+export class ContactDto {
+  // email이 없으면 phone이 필수
+  @ValidateIf((o: ContactDto) => !o.email)
+  @IsString()
+  @IsNotEmpty()
+  phone?: string;
+
+  // phone이 없으면 email이 필수
+  @ValidateIf((o: ContactDto) => !o.phone)
+  @IsEmail()
+  email?: string;
+}
+```
+
+```txt
+동작:
+  { email: 'test@test.com' }  → phone 검증 안 함 → 통과
+  { phone: '010-1234-5678' }  → email 검증 안 함 → 통과
+  {}                           → 둘 다 검증 실패 → 400
+```
+
+```typescript
+// list-users-query.dto.ts
+import { IsOptional, IsString, IsInt, IsEnum, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ListUsersQueryDto {
+  @IsOptional()
+  @IsString()
+  q?: string;            // 검색어
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;   // 상태 필터
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;       // 페이지네이션 cursor
+
+  @IsOptional()
+  @Type(() => Number)    // 쿼리스트링은 string → Number로 변환 필요
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  take?: number = 20;    // 기본값 20
+}
+```
+
+```typescript
+// 컨트롤러에서
+@Get()
+findAll(@Query() query: ListUsersQueryDto) {
+  return this.usersService.findAll(query);
+}
+```
+
+```txt
+@Type(() => Number) 이 필요한 이유:
+  URL 쿼리스트링은 전부 문자열: ?take=20 → "20" (string)
+  @IsInt()는 숫자를 기대하는데 "20"은 문자열 → 검증 실패
+  @Type(() => Number)을 붙이면 transform: true 설정 시 "20" → 20으로 변환
+
+  @IsString()인 q?, cursor?는 이미 문자열이라 @Type 불필요
+```
+---
+
+# 쿼리 파라미터 DTO ⭐️⭐️⭐️⭐️
+
+```typescript
+// list-users-query.dto.ts
+import { IsOptional, IsString, IsInt, IsEnum, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ListUsersQueryDto {
+  @IsOptional()
+  @IsString()
+  q?: string;            // 검색어
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;   // 상태 필터
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;       // 페이지네이션 cursor
+
+  @IsOptional()
+  @Type(() => Number)    // 쿼리스트링은 string → Number로 변환 필요
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  take?: number = 20;    // 기본값 20
+}
+```
+
+```typescript
+// 컨트롤러에서
+@Get()
+findAll(@Query() query: ListUsersQueryDto) {
+  return this.usersService.findAll(query);
+}
+```
+
+```txt
+@Type(() => Number) 이 필요한 이유:
+  URL 쿼리스트링은 전부 문자열: ?take=20 → "20" (string)
+  @IsInt()는 숫자를 기대하는데 "20"은 문자열 → 검증 실패
+  @Type(() => Number)을 붙이면 transform: true 설정 시 "20" → 20으로 변환
+
+  @IsString()인 q?, cursor?는 이미 문자열이라 @Type 불필요
+```
+
+---
+
+# Utility Types — DTO 재사용 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 기존 DTO를 바탕으로 새 DTO 만들기
+import { PartialType, OmitType, PickType } from '@nestjs/swagger';
+
+export class CreateUserDto {
+  @IsEmail()        email:    string;
+  @IsString()       password: string;
+  @IsString()       nickname: string;
+  @IsOptional()     image?:   string;
+}
+
+// PartialType — 모든 필드를 optional로 (PATCH에 사용)
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+// → { email?: string; password?: string; nickname?: string; image?: string }
+
+// OmitType — 특정 필드 제외
+export class CreateWithoutPasswordDto extends OmitType(CreateUserDto, ['password']) {}
+// → { email: string; nickname: string; image?: string }
+
+// PickType — 특정 필드만 선택
+export class LoginDto extends PickType(CreateUserDto, ['email', 'password']) {}
+// → { email: string; password: string }
+```
+
+```txt
+왜 직접 새 클래스를 만들지 않는가:
+  필드 하나 바꿀 때 모든 DTO를 수정해야 하는 문제 방지
+  CreateUserDto의 @ApiProperty 설명·예시도 자동으로 상속
+  @nestjs/swagger의 PartialType을 쓰면 Swagger에도 반영됨
+
+  @nestjs/swagger vs @nestjs/mapped-types:
+    둘 다 PartialType 제공
+    Swagger를 쓰면 @nestjs/swagger 것을 import해야 문서에도 반영
+```
+
+---
+
+# 중첩 DTO — @Type 필수 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 중첩 객체가 있는 경우
+export class AddressDto {
   @IsString() city:   string;
   @IsString() street: string;
 }
 
-class CreateOrderDto {
-  @ValidateNested()
-  @Type(() => AddressDto)   // 어떤 클래스로 변환할지 알려줌
+export class CreateUserDto {
+  @IsEmail()    email:   string;
+
+  @ValidateNested()         // 중첩 객체도 검증하겠다
+  @Type(() => AddressDto)   // class-transformer에게 타입 알려주기
   address: AddressDto;
 }
 ```
 
----
-
-# DTO 상속 — PartialType / OmitType / PickType ⭐️⭐️⭐️⭐️
-
-```typescript
-// @nestjs/swagger를 쓰면 거기서, 아니면 @nestjs/mapped-types에서 import
-import { PartialType, OmitType, PickType, IntersectionType } from '@nestjs/swagger';
-
-export class CreateUserDto {
-  @IsEmail() email:    string;
-  @IsString() nickname: string;
-  @IsString() password: string;
-}
-
-// 모든 필드 optional — PATCH용
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
-// → { email?: string; nickname?: string; password?: string }
-
-// 특정 필드 제외
-export class PublicUserDto extends OmitType(CreateUserDto, ['password'] as const) {}
-// → { email: string; nickname: string }
-
-// 특정 필드만 선택
-export class LoginDto extends PickType(CreateUserDto, ['email', 'password'] as const) {}
-// → { email: string; password: string }
-
-// 두 DTO 합치기
-export class RegisterDto extends IntersectionType(CreateUserDto, ProfileDto) {}
-```
-
 ```txt
-@nestjs/swagger vs @nestjs/mapped-types:
-  Swagger 쓰면 @nestjs/swagger에서 import → Swagger 문서에도 상속 반영됨
-  둘을 동시에 설치하고 혼용하면 충돌 가능 → 하나만 사용
+@Type(() => AddressDto) 이 필요한 이유:
+  JavaScript는 런타임에 타입 정보를 잃어버림
+  class-transformer가 plain object를 AddressDto 인스턴스로 변환하려면
+  어떤 클래스인지 런타임에 알아야 함 → @Type()으로 명시
 
-as const 가 필요한 이유:
-  OmitType(Dto, ['password'])라고만 쓰면 타입이 string[] → 정확한 추론 안 됨
-  as const 로 ['password'] 를 리터럴 타입으로 고정해야 정확하게 동작
+  @ValidateNested() 없으면:
+    address 자체는 객체인지 검증하지만 내부 필드는 검증 안 함
+    address: { city: 123, street: null } 통과됨
+
+  @ValidateNested() + @Type() 세트로:
+    address 안의 city, street 까지 재귀적으로 검증
 ```
 
 ---
 
-# Response DTO ⭐️⭐️⭐️
+# @ApiProperty — Swagger 문서화 ⭐️⭐️⭐️
 
 ```typescript
-// 응답에서 민감 정보 제외 + 반환 형태 정의
-export class UserResponseDto {
-  id:          string;
-  email:       string;
-  nickname:    string;
-  bio?:        string;
-  createdAt:   Date;
-  // passwordHash는 선언 안 함 → 응답에 포함되지 않음
-}
+export class CreatePostDto {
+  @ApiProperty({
+    description: '게시글 제목',
+    example:     '오늘의 날씨',
+    minLength:   1,
+    maxLength:   100,
+  })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  title: string;
 
-// Prisma entity → Response DTO 변환
-function toUserResponse(user: User): UserResponseDto {
-  const { passwordHash, ...rest } = user;
-  return rest;
-}
-```
-
-```txt
-Response DTO의 역할:
-  DB 모델에는 passwordHash, 내부 상태 등 외부에 노출하면 안 되는 필드가 있음
-  Response DTO를 따로 만들어서 반환할 필드를 명시적으로 제한
-
-Prisma User → Response DTO:
-  구조분해로 제외할 필드를 빼고 나머지를 반환하는 패턴이 흔함
-  또는 class-transformer의 @Exclude() + plainToInstance() 조합도 있음
-```
-
----
-# ValidateBy — 커스텀 검증 데코레이터 ⭐️⭐️⭐️⭐️
-
-```txt
-class-validator의 기본 데코레이터(@IsEmail, @IsUUID 등)로 표현이 안 되는 검증이 필요할 때
-ValidateBy로 직접 만든다
-```
-
-## 기본 구조
-
-```typescript
-import {
-  ValidateBy,
-  ValidationOptions,
-  buildMessage,
-} from 'class-validator';
-
-export function IsHexColor(validationOptions?: ValidationOptions) {
-  return ValidateBy(
-    {
-      name: 'isHexColor',           // 고유 이름 (에러 객체의 constraints 키로 쓰임)
-      validator: {
-        validate(value: unknown): boolean {
-          // true → 통과 / false → 검증 실패
-          return typeof value === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value);
-        },
-        defaultMessage: buildMessage(
-          (each) => each + '$property은(는) #RRGGBB 형식이어야 합니다.',
-          validationOptions,
-        ),
-      },
-    },
-    validationOptions,
-  );
-}
-```
-
-```typescript
-// 사용
-export class CreateCardDto {
-  @IsHexColor()
-  color: string;   // '#ff5733' ✅  'red' ❌  '#xyz' ❌
-}
-```
-
-```txt
-ValidateBy(options, validationOptions):
-  options.name      고유 식별자 — constraints 객체의 키로 사용됨
-  options.validator.validate(value) → boolean
-    값이 조건을 만족하면 true, 아니면 false
-  options.validator.defaultMessage
-    에러 메시지 — validationOptions.message로 오버라이드 가능
-
-buildMessage((each) => each + '메시지', validationOptions):
-  배열 검증(@IsArray + { each: true }) 시 each에 "each value in " 접두사가 붙음
-  단일 값이면 each = '' (빈 문자열)
-  validationOptions.message가 있으면 그걸 우선 사용
-
-$property:
-  buildMessage에서 쓸 수 있는 템플릿 변수
-  DTO 필드 이름으로 치환됨 (예: color → "color은(는) #RRGGBB...")
-```
-
-## 실전 예시 — 여러 커스텀 데코레이터
-
-```typescript
-// 비어있지 않은 hex 색상
-export function IsHexColor(opts?: ValidationOptions) {
-  return ValidateBy({
-    name: 'isHexColor',
-    validator: {
-      validate: (v: unknown) =>
-        typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v),
-      defaultMessage: buildMessage(
-        (each) => each + '$property must be a valid hex color (#RRGGBB)',
-        opts,
-      ),
-    },
-  }, opts);
-}
-
-// 양수인지 확인 (IsPositive와 달리 0 제외 커스텀 메시지)
-export function IsPositiveNumber(opts?: ValidationOptions) {
-  return ValidateBy({
-    name: 'isPositiveNumber',
-    validator: {
-      validate: (v: unknown) => typeof v === 'number' && v > 0,
-      defaultMessage: buildMessage(
-        (each) => each + '$property는 0보다 커야 합니다.',
-        opts,
-      ),
-    },
-  }, opts);
-}
-```
-
-```typescript
-// 사용
-export class CreateRoomDto {
-  @IsHexColor()
-  themeColor: string;
-
-  @IsPositiveNumber()
-  @Type(() => Number)
-  maxMembers: number;
-}
-```
-
-## 기존 데코레이터에 constraints 추가
-
-```typescript
-// ValidationOptions.message로 메시지만 오버라이드
-export class CreateCardDto {
-  @IsHexColor({ message: '올바른 색상 코드를 입력해주세요.' })
-  color: string;
-}
-```
-
-## { each: true } — 배열 요소 하나하나 검증 ⭐️⭐️⭐️⭐️
-
-```typescript
-// moods 배열의 각 요소에 대해 isMood 검증을 실행
-@ValidateBy(
-  {
-    name: 'isMood',
-    validator: {
-      validate: (v: unknown) => typeof v === 'string' && isValidMood(v),
-      defaultMessage: () => '분위기는 1~8자로 입력해주세요.',
-    },
-  },
-  { each: true },   // ← 배열의 각 요소에 개별 실행
-)
-moods: string[];
-```
-
-```txt
-{ each: true }:
-  ValidationOptions의 옵션 — 배열 필드에서 요소 하나하나에 validate()를 실행
-  없으면: moods 배열 전체를 하나의 값으로 validate()에 넘김 (typeof [] === 'string' → false)
-  있으면: moods[0], moods[1], ... 각각 validate()에 넘김
-
-  ValidateBy 두 번째 인자가 ValidationOptions:
-  @ValidateBy(
-    { name, validator },   // 첫 번째 인자: 커스텀 로직
-    { each: true },        // 두 번째 인자: ValidationOptions (each, message 등)
-  )
-
-defaultMessage: () => '메시지':
-  buildMessage() 없이 단순 함수로도 가능
-  배열 each 상황에서 buildMessage를 쓰면 자동으로 "each value in moods..." 접두사 붙음
-  단순 고정 메시지면 () => '...' 로 충분
-
-@IsString({ each: true }) 와의 차이:
-  @IsString({ each: true })  → 요소가 string인지만 확인 (기본 데코레이터)
-  @ValidateBy(..., { each: true }) → string인지 + 추가 조건(isValidMood)까지 한 번에
-```
-
-## 배열 + 커스텀 검증 전체 패턴
-
-```typescript
-function isValidMood(v: string): boolean {
-  return v.trim().length >= 1 && v.trim().length <= 8;
-}
-
-export class CreateRoomDto {
+  @ApiProperty({ required: false, description: '태그 목록' })
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1,  { message: '분위기를 1개 이상 선택해주세요.' })
-  @ArrayMaxSize(3,  { message: '분위기는 최대 3개까지 선택할 수 있어요.' })
-  @ValidateBy(
-    {
-      name: 'isMood',
-      validator: {
-        validate: (v: unknown) => typeof v === 'string' && isValidMood(v),
-        defaultMessage: () => '분위기는 1~8자로 입력해주세요.',
-      },
-    },
-    { each: true },
-  )
-  moods: string[];
+  @IsString({ each: true })  // 배열의 각 요소가 string인지
+  tags?: string[];
+
+  @ApiProperty({ enum: PostStatus, description: '공개 상태' })
+  @IsEnum(PostStatus)
+  status: PostStatus;
 }
 ```
 
 ```txt
-배열 검증 데코레이터 순서:
-  @IsArray()               배열인지 먼저 확인 (이게 없으면 each가 의미 없음)
-  @ArrayMinSize()          배열 길이 최소
-  @ArrayMaxSize()          배열 길이 최대
-  @ValidateBy({ each: true })  요소 하나하나 커스텀 검증
+@ApiProperty가 없으면:
+  Swagger UI에서 이 필드가 보이지 않거나 unknown으로 표시됨
 
-  @IsArray() 없이 { each: true }만 있으면:
-  값이 배열이 아닐 때 validate()가 값 자체에 실행되어 예상치 못한 동작 가능
-  → 배열 필드에는 항상 @IsArray() 먼저
+required: false:
+  Swagger에서 선택 필드로 표시
+  실제 검증은 @IsOptional()이 담당 (@ApiProperty는 문서만)
+
+enum 배열의 각 요소 검증:
+  @IsString({ each: true }) → tags 배열의 각 항목이 string인지 체크
+  @IsInt({ each: true }) → numbers 배열의 각 항목이 정수인지 체크
 ```
 
 ---
 
-# 한눈에
+# 자주 만나는 에러
 
-```txt
-ValidationPipe 세트:
-  transform: true          클래스 인스턴스 변환 (필수)
-  whitelist: true          모르는 필드 제거
-  forbidNonWhitelisted     모르는 필드 → 400
-
-@IsOptional() 없으면:
-  undefined 값도 검증 → 선택 필드에 반드시 추가
-
-@Type() 필요한 경우:
-  쿼리스트링, URL 파라미터 (string → number/boolean)
-  중첩 객체 @ValidateNested()와 세트
-
-DTO 상속:
-  PartialType   모든 optional
-  OmitType      필드 제외
-  PickType      필드 선택
-  → @nestjs/swagger 또는 @nestjs/mapped-types에서 import (혼용 금지)
-  → [...] as const 필요
-
-Swagger 문서화 데코레이터 → [[NestJS_Swagger]]
-```
+| 에러                               | 원인                          | 해결                                                   |
+| -------------------------------- | --------------------------- | ---------------------------------------------------- |
+| 숫자 필드인데 `@IsNumber()` 실패         | 쿼리 파라미터가 string으로 들어옴       | `@Type(() => Number)` 추가 + `transform: true` 설정      |
+| `@ValidateNested()` 해도 내부 검증 안 됨 | `@Type()` 누락                | `@Type(() => 중첩Dto)` 함께 추가                           |
+| Optional 필드인데 검증 실패              | `@IsOptional()` 누락 또는 순서 문제 | `@IsOptional()`을 다른 데코레이터보다 위에 선언                    |
+| whitelist 설정인데 필드가 사라짐           | DTO에 선언 안 된 필드              | DTO에 `@ApiProperty()` + 해당 필드 추가                     |
+| `class-validator` 데코레이터가 작동 안 함  | ValidationPipe 전역 설정 누락     | `main.ts`에 `useGlobalPipes(new ValidationPipe())` 추가 |

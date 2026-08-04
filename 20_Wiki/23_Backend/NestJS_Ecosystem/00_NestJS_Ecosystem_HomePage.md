@@ -14,10 +14,7 @@ cssclasses:
 ---
 # 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
 
-> [!info] 
-> NestJS는 NodeJS 위에 얹힌 프레임워크.
->  NodeJS와 만나는 지점은 주로 인증(Passport)과 HTTP 요청 레이어. 
->  JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
+> [!info] NestJS는 NodeJS 위에 얹힌 프레임워크. NodeJS와 만나는 지점은 주로 인증(Passport)과 HTTP 요청 레이어. JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
 
 ```mermaid-beautiful
 flowchart TB
@@ -83,7 +80,7 @@ Auth_Concept     OAuth 흐름 · JWT vs 세션 (→ JS_Ecosystem 폴더에 있�
 
 | |노트|
 |---|---|
-|**NodeJS**|[[NodeJS_HTTP_Request]] · [[NodeJS_Buffer]]|
+|**NodeJS**|[[NodeJS_HTTP_Request]]|
 |**NestJS**|[[NestJS_Controller]] · [[NestJS_Response]]|
 
 ```txt
@@ -110,14 +107,14 @@ WebSocket_Patterns  서버+클라이언트 코드 나란히 — 연결·룸·브
 
 ## 🗄️ 데이터베이스
 
-|                | 노트                                             |
-| -------------- | ---------------------------------------------- |
-| **Prisma**     | [[NestJS_Prisma]] · [[NestJS_Prisma_Patterns]] |
-| **PostgreSQL** | [[NestJS_PostgreSQL]]                          |
-| **통계**         | [[NestJS_StatsBucket]]                         |
-| **마이그레이션**     | [[NestJS_Migration]]                           |
-| **트랜잭션**       | [[NestJS_Transaction]]                         |
-| **DB 전체**      | [[00_DB_HomePage]]                             |
+| |노트|
+|---|---|
+|**Prisma**|[[NestJS_Prisma]] · [[NestJS_Prisma_Patterns]]|
+|**PostgreSQL**|[[NestJS_PostgreSQL]]|
+|**통계**|[[NestJS_StatsBucket]]|
+|**마이그레이션**|[[NestJS_Migration]]|
+|**트랜잭션**|[[NestJS_Transaction]]|
+|**DB 전체**|[[00_DB_HomePage]]|
 
 ```txt
 NestJS_Prisma          레퍼런스 — Model · CRUD · where · select/include · namespace 타입
@@ -142,14 +139,13 @@ NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 
 | |노트|
 |---|---|
-|**DTO · 유효성**|[[NestJS_DTO]]|
-|**Swagger**|[[NestJS_Swagger]]|
-|**Pipe**|[[NestJS_Pipe]]|
+|**DTO · 유효성**|[[NestJS_DTO]] · [[NestJS_Pipe]]|
 
 ```txt
-NestJS_DTO      class-validator · @Type · @ValidateIf · PartialType · 커스텀 메시지
-NestJS_Swagger  @ApiProperty · type:[String] 배열 · nullable · 응답 타입
-→ 프론트 타입 자동 생성으로 [[NextJS_API_Client]] · [[NextJS_API_Mapper]]와 연결
+NestJS_DTO   Data Transfer Object — 요청 데이터 형태 정의 · class-validator · PartialType
+NestJS_Pipe  파이프 — ParseUUIDPipe · ValidationPipe 옵션 · 커스텀 파이프
+→ 프론트 타입 자동 생성으로 [[NextJS_Types]]와 연결
+→ Swagger 문서화 → [[NestJS_Swagger]] (📄 API 문서화 섹션)
 ```
 
 ---
@@ -197,9 +193,9 @@ NestJS_Seed        테스트 데이터 생성 · @seed.local · DRY_RUN · clean
 
 ## 📦 기초 개념
 
-| |노트|
-|---|---|
-|**NestJS**|[[NestJS_Concept]]|
+|            | 노트                 |
+| ---------- | ------------------ |
+| **NestJS** | [[NestJS_Concept]] |
 
 ---
 
