@@ -9,272 +9,407 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[Monorepo_PNPM]]"
-  - "[[NextJS_Env_Config]]"
-  - "[[NextJS_Routing]]"
-  - "[[NextJS_API_Client]]"
-  - "[[NestJS_Concept]]"
+  - "[[NextJS_Concept]]"
+  - "[[JS_URL_Encoding]]"
+  - "[[JS_DOM]]"
+  - "[[JS_BrowserAPI]]"
 ---
-# NextJS_Concept — Next.js 란
+# NextJS_Concept — Next.js 핵심 개념
 
-> [!info] 
-> Next.js = React 기반 풀스택 프레임워크 (Vercel 제작, 오픈소스)
->  SSR·SSG·폴더 기반 라우팅·API Route 내장 — React 단독으로 부족한 SEO·서버 렌더링을 해결
-
----
-
-# React만으로 부족한 것 ⭐️
-
-|항목|React 단독|Next.js가 해결|
-|---|---|---|
-|라우팅|직접 설치 필요 (react-router-dom)|폴더 구조 = 자동 라우팅|
-|SEO|CSR 기본 → 검색엔진 불리|SSR / SSG 기본 지원|
-|API 서버|별도 구성 필요|같은 프로젝트 안에 Route Handler 내장|
-|이미지/폰트 최적화|직접 구현|내장|
+>[!info]
+>Next.js = React 위에 라우팅·SSR·이미지 최적화를 얹은 풀스택 프레임워크. 
+>SSR로 초기 로딩 속도와 SEO를 개선하고, Server Component로 서버에서 DB 접근까지 가능하다. 
+>서버에는 `window`·`document`가 없으므로 브라우저 API는 `useEffect` 안에서만 사용한다.
 
 ---
 
-# App Router vs Pages Router ⭐️
-
-|구분|Pages Router (Next.js 12 이하)|App Router (Next.js 13+, 현재 권장)|
-|---|---|---|
-|예시|`pages/index.tsx` → `/`|`app/page.tsx` → `/`|
-|동적 라우트|`pages/movie/[id].tsx`|`app/movie/[id]/page.tsx`|
-|기본 컴포넌트|전부 Client|Server Component 기본|
-|공통 레이아웃|`_app.tsx` 하나|`layout.tsx` 폴더별로 중첩 가능|
-
----
-
-# 폴더 기반 라우팅 — 개념만 짧게
+# 왜 Next.js인가 — 순수 React의 한계 ⭐️⭐️⭐️⭐️
 
 ```txt
-폴더 구조 = URL 구조
-app/page.tsx → /
-app/about/page.tsx → /about
-app/movie/[id]/page.tsx → /movie/1 ...
+순수 React(Vite, CRA):
+  서버가 빈 HTML + JavaScript 파일만 보냄
+  브라우저가 JS를 다운로드·실행해서 화면을 그림
 
-특수 파일:
-  page.tsx      페이지
-  layout.tsx    공통 레이아웃
-  loading.tsx   로딩 UI
-  error.tsx     에러 UI
-  route.ts      API Route Handler
+문제 1 — 느린 초기 로딩:
+  JS 다운로드 → 실행 → 데이터 fetch → 화면 표시
+  사용자가 흰 화면을 보는 시간이 김
+
+문제 2 — SEO 불리:
+  검색 엔진 봇이 JS 실행 전에 빈 HTML만 봄
+  → 콘텐츠를 인식 못해서 검색 순위에 불리
+
+Next.js:
+  서버에서 HTML을 완성해서 보내줌 (SSR)
+  → 브라우저가 HTML을 받자마자 콘텐츠 표시
+  → 검색 엔진도 완성된 HTML을 읽음
 ```
-
-`[id]` 동적 라우팅, `(그룹)` 라우트 그룹, `useParams`/`usePathname` 등 자세한 건 [[NextJS_Routing]] 참고
 
 ---
 
-# Server Component vs Client Component ⭐️
+# 렌더링 방식 비교 ⭐️⭐️⭐️⭐️
 
-|구분|Server Component (기본)|Client Component|
-|---|---|---|
-|실행 위치|서버 — HTML 생성 후 전달|브라우저|
-|선언|없음 (기본값)|파일 맨 위 `'use client'`|
-|DB 직접 접근|가능|불가|
-|`useState`/`useEffect`/이벤트 핸들러|불가|가능|
-|용도|데이터 페칭 / 정적 UI|인터랙티브 UI|
+## CSR — Client-Side Rendering (클라이언트 렌더링)
+
+```txt
+흐름: 서버 → 빈 HTML + JS → 브라우저가 JS 실행 → 화면 그림
+
+서버:  <html><body><div id="root"></div><script src="app.js"></script></body></html>
+           ↑ 내용 없음
+
+브라우저: app.js 실행 → fetch('/api/data') → 데이터 오면 React가 그림
+
+언제 씀:
+  로그인 후 개인화된 대시보드 (SEO 불필요)
+  실시간 업데이트가 많은 앱
+  순수 React 앱의 기본 방식
+```
+
+## SSR — Server-Side Rendering (서버 렌더링)
+
+```txt
+흐름: 요청마다 서버에서 HTML 생성 → 완성된 HTML을 브라우저에 전달
+
+서버:  DB 조회 → 데이터를 HTML에 삽입 → 완성된 HTML 전송
+       <html><body><h1>홍길동님의 피드</h1><article>...</article></body></html>
+           ↑ 내용이 채워진 상태
+
+브라우저: HTML 즉시 표시 → JS 로드 후 React가 이어받음 (hydration)
+
+언제 씀:
+  콘텐츠가 자주 바뀌는 페이지 (뉴스, 소셜 피드)
+  로그인한 유저마다 다른 데이터
+  SEO가 중요한 페이지
+```
+
+## SSG — Static Site Generation (정적 생성)
+
+```txt
+흐름: 빌드 시 미리 HTML 생성 → 요청 시 파일 바로 제공 (CDN)
+
+빌드 시: 모든 페이지를 미리 렌더링해서 HTML 파일로 저장
+요청 시: 저장된 HTML 파일을 그냥 보냄 (DB 조회 없음)
+
+장점: 매우 빠름, 서버 부하 없음
+단점: 데이터가 바뀌어도 반영 안 됨 (재빌드 필요)
+
+언제 씀:
+  블로그 포스트, 문서, 마케팅 페이지
+  데이터가 거의 안 바뀌는 콘텐츠
+```
+
+## ISR — Incremental Static Regeneration
+
+```txt
+SSG + 주기적 재생성:
+  처음엔 SSG처럼 빌드 시 생성
+  revalidate 시간이 지나면 백그라운드에서 재생성
+  사용자는 항상 캐시된 HTML을 받고, 백그라운드에서 최신화
+
+// Next.js에서 설정
+fetch('/api/data', { next: { revalidate: 60 } })  // 60초마다 재검증
+```
+
+## 비교표
+
+|방식|HTML 생성 시점|속도|SEO|실시간 데이터|
+|---|---|---|---|---|
+|CSR|브라우저에서|느림(초기)|❌|✅|
+|SSR|요청마다 서버|빠름|✅|✅|
+|SSG|빌드 시|매우 빠름|✅|❌|
+|ISR|빌드+주기적|빠름|✅|△|
+
+---
+
+# Server Component vs Client Component ⭐️⭐️⭐️⭐️
+
+```txt
+Next.js App Router의 핵심 개념:
+  Server Component = 서버에서만 실행 (기본값)
+  Client Component = 브라우저에서 실행 ('use client' 명시)
+```
+
+## Server Component (기본)
 
 ```tsx
-// Server Component (기본 — 선언 없음)
-async function MovieList() {
-  const movies = await fetch('https://api.example.com/movies');
-  return <ul>...</ul>;
-}
+// app/posts/page.tsx — 'use client' 없으면 Server Component
 
-// Client Component
-'use client';
+// 서버에서만 실행되므로:
+//   DB 직접 접근 가능
+//   API 키를 클라이언트에 노출 안 해도 됨
+//   useState, useEffect 사용 불가 (서버 개념 없음)
+//   이벤트 핸들러 불가 (onClick 등)
+
+async function PostsPage() {
+  const posts = await prisma.post.findMany();  // DB 직접 접근
+  return (
+    <ul>
+      {posts.map(post => <li key={post.id}>{post.title}</li>)}
+    </ul>
+  );
+}
+```
+
+## Client Component
+
+```tsx
+'use client';  // ← 이 한 줄로 Client Component로 전환
+
+// 브라우저에서 실행되므로:
+//   useState, useEffect 사용 가능
+//   이벤트 핸들러(onClick 등) 가능
+//   DB 직접 접근 불가 (API를 통해 접근해야 함)
+//   window, document 접근 가능
+
 import { useState } from 'react';
 
-function Counter() {
-  const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+function LikeButton({ postId }: { postId: string }) {
+  const [liked, setLiked] = useState(false);  // ✅ Client에서 가능
+  return (
+    <button onClick={() => setLiked(!liked)}>  {/* ✅ 이벤트 핸들러 */}
+      {liked ? '❤️' : '🤍'}
+    </button>
+  );
+}
+```
+
+## 언제 어느 것을 쓰는가 ⭐️⭐️⭐️⭐️
+
+```txt
+기본 전략:
+  Server Component로 시작 → 인터랙션이 필요하면 Client로 전환
+
+Server Component가 좋은 경우:
+  데이터 fetch (DB 조회, API 호출)
+  인터랙션 없는 표시용 컴포넌트
+  레이아웃, 네비게이션 (정적인 것)
+  민감한 정보 (API 키, DB 연결 등)
+
+Client Component가 필요한 경우:
+  useState, useReducer, useRef 사용
+  useEffect, useCallback, useMemo 사용
+  onClick, onChange 등 이벤트 핸들러
+  window, document 등 브라우저 API
+  실시간 업데이트 (WebSocket)
+```
+
+```tsx
+// 혼합 패턴 — Server가 데이터 fetch, Client에게 전달
+// app/posts/[id]/page.tsx (Server Component)
+async function PostPage({ params }: { params: { id: string } }) {
+  const post = await prisma.post.findUnique({ where: { id: params.id } });
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <LikeButton postId={post.id} />  {/* Client Component 내포 */}
+    </div>
+  );
+}
+```
+
+```txt
+Server Component가 Client Component를 포함할 수 있음
+Client Component가 Server Component를 포함할 수 없음
+  → 'use client' 아래로는 전부 Client로 취급
+```
+
+---
+
+# App Router 폴더 구조 ⭐️⭐️⭐️⭐️
+
+```txt
+app/
+├── layout.tsx           루트 레이아웃 — 모든 페이지 공통 (html, body 태그)
+├── page.tsx             루트 페이지 → /
+├── loading.tsx          로딩 UI (Suspense 자동 적용)
+├── error.tsx            에러 UI
+├── not-found.tsx        404 페이지
+│
+├── posts/
+│   ├── page.tsx         → /posts
+│   └── [id]/
+│       └── page.tsx     → /posts/123
+│
+└── api/
+    └── users/
+        └── route.ts     API Route → GET/POST /api/users
+```
+
+## 각 파일 역할
+
+```typescript
+// page.tsx — 페이지 컴포넌트 (라우트의 UI)
+export default function Page() { ... }
+
+// layout.tsx — 레이아웃 (하위 page들에 공유)
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <div><Header />{children}</div>;
+}
+
+// loading.tsx — page.tsx가 로딩 중일 때 표시
+export default function Loading() {
+  return <div>로딩 중...</div>;
+}
+
+// error.tsx — 에러 발생 시 (반드시 'use client')
+'use client';
+export default function Error({ error, reset }) {
+  return <button onClick={reset}>다시 시도</button>;
 }
 ```
 
 ---
 
-# 렌더링 방식 — 개념만 짧게
+# 데이터 페칭 방식 ⭐️⭐️⭐️⭐️
 
-|방식|시점|예시 옵션|
-|---|---|---|
-|SSR|요청마다 서버에서 새로 생성|`cache: 'no-store'`|
-|SSG|빌드 시점에 미리 생성 (빠름)|`cache: 'force-cache'`|
-|ISR|SSG + 주기적 재생성|`next: { revalidate: 60 }`|
+```typescript
+// Server Component에서 — async/await 직접 사용
+async function PostsPage() {
+  // 방법 1: API 호출
+  const posts = await fetch('https://api.example.com/posts').then(r => r.json());
 
----
+  // 방법 2: DB 직접 (Prisma)
+  const posts = await prisma.post.findMany();
 
-# 프로젝트 생성
-
-```bash
-npx create-next-app@latest my-app          # 대화형 설치
-
-# 옵션 직접 지정 (질문 없이 한 번에)
-pnpm create next-app@latest web --typescript --eslint --app --no-src-dir --import-alias "@/*"
-```
-
-```txt
-생성되는 구조:
-  app/layout.tsx   루트 레이아웃
-  app/page.tsx     홈 페이지 (/)
-  public/          정적 파일
-  next.config.js   Next.js 설정
-```
-
-모노레포(apps/web 구조)로 시작한다면 → [[Monorepo_PNPM]] 참고
-
-## 프로젝트가 커지면 추가하는 폴더 — lib / types / components ⭐️⭐️⭐️
-
-```txt
-create-next-app이 만들어주는 건 app/ 뿐
-컴포넌트/로직/타입을 어디 둘지는 관례로 정함 (Next.js가 강제하는 규칙은 아님)
-
-my-app/
-├── app/          라우팅 (page.tsx, layout.tsx, route.ts ...)
-├── components/   재사용 UI 컴포넌트
-├── lib/          컴포넌트가 아닌 로직 — API 호출, 유틸 함수, DB 클라이언트 등
-├── types/        TS 타입 정의 (API 응답 타입, 공통 타입)
-└── public/
-```
-
-|폴더|넣는 것|예시|
-|---|---|---|
-|`lib/`|"컴포넌트가 아닌" 모든 로직 — API 래퍼, 인증 헬퍼, 포맷 함수|`lib/api.ts`, `lib/prisma.ts`|
-|`types/`|프로젝트 전역에서 쓰는 타입|`types/movie.ts`|
-|`components/`|재사용 가능한 UI 조각|`components/Button.tsx`|
-
-```txt
-프로젝트 시작할 때 같이 비워두는 자리:
-  types/index.ts     도메인이 아직 안 잡혔어도, 공통 타입 둘 자리부터 마련
-  lib/api-base.ts    getApiBaseUrl처럼 "어디 둘지 애매한" 로직의 기본 자리
-
-⚠️ lib/와 utils/를 혼용하는 프로젝트도 있음 — 정해진 규칙은 없고 관례적인 이름일 뿐
-   중요한 건 "컴포넌트(화면)"와 "로직(데이터/연동)"을 분리해서 찾기 헷갈리지 않게 하는 것
-```
-
----
-
-# Turbopack ⭐️
-
-```txt
-Turbopack = Next.js에 내장된 Rust 기반 번들러 (Webpack 대체)
-개발 서버 시작 속도 / HMR(핫 리로드) 속도가 훨씬 빠름
-```
-
-|버전|상태|
-|---|---|
-|13~14|실험적, 별도 활성화 필요|
-|15|`next dev`에서 안정화|
-|16+ (현재 최신)|`next dev`와 `next build` 모두 기본값 — 별도 플래그 불필요|
-
-```bash
-pnpm dev     # Next.js 16+부터는 이것만으로 Turbopack 사용
-pnpm build   # 프로덕션 빌드도 16+부터 Turbopack 기본
-```
-
-```txt
-⚠️ 커스텀 Webpack 설정이 있는 프로젝트는 16+에서 빌드가 실패할 수 있음
-   → --webpack 플래그로 기존 Webpack 유지, 또는 설정을 Turbopack 호환으로 이전
-   모노레포처럼 web/ 같은 하위 폴더에서 실행할 땐 next.config.ts의 turbopack.root로
-   파일 찾는 루트 경로를 지정해야 할 수 있음
-```
-
----
-
-# NestJS와 함께 쓸 때 ⭐️⭐️
-
-```txt
-Next.js  → 프론트엔드 (UI / 라우팅 / SEO)
-NestJS   → 백엔드 API (DB / 인증 / 비즈니스 로직)
-
-흐름: Next.js 컴포넌트 → fetch(NestJS API 주소) → 응답 받아 렌더링
-```
-
-## 왜 포트를 분리해야 하나
-
-```txt
-NestJS 기본 포트도 3000, Next.js 기본 포트도 3000 → 같이 띄우면 충돌
-해결: 둘 중 하나(보통 Next.js)를 다른 포트로 띄움
-```
-
-## 포트 설정 — .env가 아니라 --port 또는 package.json ⭐️⭐️⭐️
-
-```txt
-⚠️ Next.js의 PORT는 .env/.env.local에 적어도 적용되지 않음
-   Next.js의 HTTP 서버가 바인딩할 포트를 결정하는 시점이 .env 파일 로딩보다 먼저이기 때문
-   (공식 문서: "PORT cannot be set in .env as booting up the HTTP server happens
-    before any other code is initialized")
-→ 포트는 항상 CLI 플래그 또는 셸 환경변수로 지정해야 함
-```
-
-```json
-{
-  "scripts": {
-    "dev":   "next dev --port 3001",
-    "build": "next build",
-    "start": "next start --port 3001"
-  }
+  return <PostList posts={posts} />;
 }
 ```
 
-|방법|예시|
-|---|---|
-|package.json 스크립트 (팀 공유, 권장) ⭐️|`"dev": "next dev --port 3001"`|
-|CLI 플래그 직접|`next dev -p 3001`|
-|셸 환경변수 (1회성)|`PORT=3001 next dev`|
+```typescript
+// Client Component에서 — useEffect 또는 SWR/React Query
+'use client';
 
-```txt
-⚠️ 가장 자주 까먹는 지점 — --port는 dev뿐 아니라 start에도 필요함
-   dev에만 주면, next start로 실행할 때는 다시 기본값(3000)으로 돌아감
+function PostList() {
+  const [posts, setPosts] = useState([]);
 
-우선순위: -p/--port 플래그 > PORT 환경변수(셸) > 기본값 3000
-  (.env/.env.local의 PORT는 이 우선순위에 전혀 끼지 못함)
-```
+  useEffect(() => {
+    fetch('/api/posts').then(r => r.json()).then(setPosts);
+  }, []);
 
-## 모노레포에서 루트로 한 번에 실행하기
-
-```json
-{
-  "scripts": {
-    "dev:api": "pnpm --filter api start:dev",
-    "dev:web": "pnpm --filter web dev"
-  }
+  return ...;
 }
 ```
 
-루트 package.json 작성 규칙, --filter 명령, 동시 실행 → [[Monorepo_PNPM]] 참고
-
-## 환경변수로 API URL 관리
-
-```bash
-# web/.env.local
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
-
 ```txt
-NEXT_PUBLIC_ 접두사, .env.local vs .env 우선순위, 서버/클라이언트 구분
-→ [[NextJS_Env_Config]] 참고
+Server Component에서 데이터 fetch vs Client Component:
+  Server: async/await 직접 — 서버에서 렌더링 시 데이터 포함
+  Client: useEffect + fetch — 브라우저에서 추가 요청
 
-이 URL을 실제로 fetch에 활용하는 방법 → [[NextJS_API_Client]] 참고
+  가능하면 Server Component에서 fetch 권장:
+  → 클라이언트에 데이터 이미 포함돼서 보임 → 로딩 깜빡임 없음
+  → API Key 등 민감 정보 서버에서만 처리
 ```
 
 ---
 
-# 한눈에
+# Hydration ⭐️⭐️⭐️
 
 ```txt
-React 단독 부족한 것: 라우팅 / SEO / SSR / API 서버 → Next.js가 전부 해결
-App Router = app/ 폴더 기반, Server Component 기본 (13+ 권장)
+SSR로 완성된 HTML을 받은 뒤
+React가 그 HTML을 "이어받아서" 이벤트 핸들러 등을 연결하는 과정
 
-렌더링:
-  SSR   → cache: 'no-store' (요청마다)
-  SSG   → cache: 'force-cache' (빌드 시)
-  ISR   → next: { revalidate: N } (주기적 재생성)
+흐름:
+  1. 서버 → 완성된 HTML 전송
+  2. 브라우저 → HTML 즉시 표시 (콘텐츠 보임)
+  3. React JS 로드 완료
+  4. Hydration — React가 HTML에 이벤트 핸들러 연결
+  5. 인터랙션 가능 상태
 
-폴더 구조: app/(라우팅) / components / lib(로직) / types
-Turbopack: Next.js 16+부터 dev·build 모두 기본값
+Hydration 오류:
+  서버에서 렌더링한 HTML과 클라이언트에서 React가 그린 결과가 다를 때
+  → "Hydration failed" 에러
+  예: Math.random(), new Date() 같이 실행마다 다른 값
+  예: window 등 서버에 없는 브라우저 API를 컴포넌트 최상단에서 사용
+```
 
-포트가 헷갈릴 때:
-  .env가 아니라 --port 플래그(또는 package.json 스크립트)
-  dev뿐 아니라 start에도 똑같이 필요
+---
+
+# 서버 vs 브라우저 환경 — window가 없다 ⭐️⭐️⭐️⭐️
+
+```txt
+Next.js는 서버에서도 컴포넌트를 실행함 (SSR, Server Component)
+서버 = Node.js 환경 → 브라우저 API가 없음
+
+서버에 없는 것:
+  window           → 브라우저의 전역 객체
+  document         → DOM 조작
+  localStorage     → 브라우저 저장소
+  navigator        → 브라우저 정보
+  location         → 현재 URL
+```
+
+```tsx
+// ❌ Server Component에서 window 사용 — 빌드/실행 에러
+export default async function Page() {
+  const width = window.innerWidth;  // ReferenceError: window is not defined
+  return <div>{width}</div>;
+}
+
+// ❌ Client Component 최상단에서 사용 — Hydration 에러
+'use client';
+const id = localStorage.getItem('userId');  // 서버 렌더링 시 없음
+
+export default function Component() {
+  return <div>{id}</div>;
+}
+```
+
+## 해결 방법 ⭐️⭐️⭐️⭐️
+
+```tsx
+// ✅ 방법 1 — useEffect 안에서 (클라이언트에서만 실행)
+'use client';
+import { useEffect, useState } from 'react';
+
+export default function Component() {
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    setWidth(window.innerWidth);  // 클라이언트에서만 실행 → 안전
+  }, []);
+
+  return <div>{width}</div>;
+}
+```
+
+```tsx
+// ✅ 방법 2 — typeof window 체크
+const isClient = typeof window !== 'undefined';
+const width    = isClient ? window.innerWidth : 0;
+```
+
+```tsx
+// ✅ 방법 3 — mounted 패턴 (Portal, 모달에서 자주 씀)
+'use client';
+
+export function Modal({ open }: { open: boolean }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;  // 서버 렌더링 시 아무것도 안 보냄
+
+  return createPortal(<div>...</div>, document.body);  // 클라이언트에서만
+}
+```
+
+```txt
+상황별 선택:
+  렌더링 중 값이 필요 → useState + useEffect (초기값 0/null로 시작)
+  조건 분기 → typeof window !== 'undefined'
+  컴포넌트 자체를 서버에서 안 보내려면 → mounted 패턴
+  SSR 자체를 끄려면 → dynamic import + ssr: false
+
+  → window 관련 API 상세 → [[JS_BrowserAPI]]
+```
+
+---
+
+# 각 개념의 상세 노트
+
+```txt
+라우팅 · 동적 경로 · Link   → [[NextJS_Routing]]
+서버/클라이언트 컴포넌트    → [[NextJS_ServerClient]]
+API Route (route.ts)        → [[NextJS_API_Client]]
+타입 · 매퍼                  → [[NextJS_Types]]
+메타데이터 · SEO             → [[NextJS_Metadata]]
+WebSocket 클라이언트         → [[NextJS_WebSocket]]
 ```

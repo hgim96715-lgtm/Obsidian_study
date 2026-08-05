@@ -14,8 +14,8 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Operators]]"
   - "[[JS_Promise]]"
-  - "[[React_useMemo_useCallback_useEffect]]"
   - "[[TS_Generics]]"
+  - "[[React_useEffect]]"
 ---
 # React_AsyncUI — 비동기 UI 패턴
 

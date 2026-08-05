@@ -8,7 +8,6 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_useMemo_useCallback_useEffect]]"
   - "[[React_AsyncUI]]"
   - "[[NextJS_Concept]]"
 ---

@@ -93,23 +93,25 @@ classList 조작 → [[JS_DOM]] / style 직접 조작 → [[JS_BrowserAPI]] (�
 
 ## ⚛️ React 훅
 
-| 훅 / 역할 | 노트 |
-|---|---|
-| **타입** | [[React_Types]] |
-| 기본 3대장 | [[React_useMemo_useCallback_useEffect]] |
-| DOM 접근 · 값 보관 | [[React_useRef]] |
-| 전역 상태 공유 | [[React_Context_Provider]] |
-| 비동기 UI 패턴 | [[React_AsyncUI]] |
-| 고유 ID | [[React_useId]] |
-| Portal | [[React_Portal]] |
-| Suspense | [[React_Suspense]] |
-| 외부 스토어 | [[React_useSyncExternalStore]] |
+| 훅 / 역할            | 노트                             |
+| ----------------- | ------------------------------ |
+| **타입**            | [[React_Types]]                |
+| 메모이제이션            | [[React_useMemo_useCallback]]  |
+| 사이드 이펙트           | [[React_useEffect]]            |
+| DOM 접근 · 값 보관     | [[React_useRef]]               |
+| 전역 상태 공유          | [[React_Context_Provider]]     |
+| 비동기 UI 패턴         | [[React_AsyncUI]]              |
+| 고유 ID             | [[React_useId]]                |
+| Portal · 모달 다이얼로그 | [[React_Portal_Dialog]]        |
+| Suspense          | [[React_Suspense]]             |
+| 외부 스토어            | [[React_useSyncExternalStore]] |
 
 ```txt
-React_Types      children · ReactNode · 이벤트 타입 · Ref 타입 · 컴포넌트 타입
-React_useMemo_useCallback_useEffect  언제 뭘 쓰는가 · useCallback 판단 기준 · cancelled 플래그
-React_useRef     DOM 접근(focus · scroll) · 렌더링 무관 값 보관 · 드래그 진행 데이터
-React_AsyncUI    이벤트 핸들러 비동기 · useEffect fetch · fire-and-forget · applyLocal
+React_Types               children · ReactNode · 이벤트 타입 · Ref 타입
+React_useMemo_useCallback  메모이제이션 · 언제 쓰는지 판단 · React.memo
+React_useEffect           데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프
+React_useRef              DOM 접근(focus · scroll) · 렌더링 무관 값 보관
+React_AsyncUI             이벤트 핸들러 비동기 · fire-and-forget · applyLocal
 ```
 
 ---

@@ -10,7 +10,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
-  - "[[TS_TypeAssertion(타입 단언)]]"
+  - "[[TS_TypeAssertion]]"
   - "[[React_Styling]]"
 ---
 

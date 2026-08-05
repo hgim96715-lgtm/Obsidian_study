@@ -6,7 +6,6 @@ tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_useMemo_useCallback_useEffect]]"
   - "[[React_Suspense]]"
   - "[[NextJS_Concept]]"
   - "[[JS_WebStorage]]"
