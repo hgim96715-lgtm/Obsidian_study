@@ -1,11 +1,14 @@
 ---
-aliases: [extends, implements, parameter properties, readonly]
+aliases:
+  - extends
+  - implements
+  - parameter properties
+  - readonly
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NestJS_JwtGuard]]"
-  - "[[NestJS_Response]]"
 ---
 
 # TS_Class_Patterns — interface/implements, extends, readonly

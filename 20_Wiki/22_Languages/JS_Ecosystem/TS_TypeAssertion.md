@@ -8,6 +8,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[TS_Generics]]"
+  - "[[TS_Type_Guards]]"
 ---
 # TS_TypeAssertion — 타입 단언
 

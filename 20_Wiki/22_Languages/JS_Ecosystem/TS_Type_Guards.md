@@ -10,17 +10,139 @@ aliases:
   - never
   - as const
   - void
+  - 제어 흐름 타입 좁히기 — early return
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[TS_Generics]]"
+  - "[[TS_TypeAssertion]]"
 ---
 # TS_Type_Guards — 타입 좁히기
 
-> [!info] 
-> TypeScript는 코드 흐름을 분석해서 변수의 타입을 좁힌다(narrow).
->  `if (typeof x === 'string')` 같은 조건이 type guard — 이 분기 안에서 TypeScript가 x를 string으로 확정해준다.
+>[!info]
+>TypeScript는 코드 흐름을 분석해서 변수의 타입을 좁힌다(narrow). 
+>`if (!x) return` 뒤에서 TypeScript가 자동으로 x를 non-null로 인식하는 것이 제어 흐름 좁히기.
+> `typeof`, `instanceof`, `in`, `is` 데코레이터도 같은 원리.
+> `!` 단언·`as`·`satisfies` → [[TS_TypeAssertion]]
+
+---
+
+# 제어 흐름 타입 좁히기 — early return 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+TypeScript는 if문, return, throw 등을 보고
+"이 줄 이후에는 어떤 타입이 가능한가"를 자동으로 추론함
+이걸 제어 흐름 분석(Control Flow Analysis)이라고 함
+```
+
+## 핵심 — `if (!x) return` 뒤에서 x는 non-null
+
+```typescript
+// focusMessage: Message | null
+
+async function confirmDelete() {
+  if (!focusMessage) return;  // null이면 여기서 함수 종료
+  //                    ↑ TypeScript: "이 아래에선 focusMessage가 null일 수 없음"
+
+  focusMessage.body   // ✅ non-null로 확정 — 오류 없음
+  focusMessage.id     // ✅
+}
+```
+
+```txt
+왜 return 뒤에서 null이 아닌지:
+  if (!focusMessage) return
+  = "focusMessage가 null이거나 undefined이면 함수를 종료한다"
+
+  이 줄을 통과했다는 것 = focusMessage가 null이 아님이 보장됨
+  TypeScript가 이 논리를 자동으로 추론 → 이후 코드에서 타입 좁혀짐
+```
+
+## 왜 다른 변수 체크는 도움이 안 되는가 ⭐️⭐️⭐️⭐️
+
+```typescript
+// focusRoomId: string | null
+// focusMessage: Message | null — focusRoomId와 별개의 변수
+
+// ❌ focusRoomId를 체크해도 focusMessage는 여전히 null일 수 있음
+if (!focusRoomId) return;
+focusMessage.body  // ❌ TypeScript: focusMessage는 여전히 null | Message
+
+// ✅ focusMessage 자체를 체크해야 함
+if (!focusMessage) return;
+focusMessage.body  // ✅ non-null 확정
+```
+
+```txt
+TypeScript는 각 변수를 독립적으로 추적함
+focusRoomId와 focusMessage는 서로 다른 변수
+focusRoomId가 있다고 해서 focusMessage도 있다는 보장이 없음
+→ TypeScript는 이 연관관계를 알 수 없음
+→ 사용하는 변수를 직접 체크해야 함
+
+실수가 생기는 이유:
+  "roomId가 있으면 message도 있겠지"라는 개발자의 가정이 있지만
+  TypeScript는 그 가정을 코드로 증명할 수 없음
+  → focusMessage를 직접 체크하는 것만이 TypeScript에게 증명이 됨
+```
+
+## 여러 조건 동시 체크 ⭐️⭐️⭐️⭐️
+
+```typescript
+async function confirmDeleteMessage() {
+  // 여러 조건을 한 번에 체크
+  if (!focusMessage || deletingMessage || focusMessage.deletedAt) return;
+  //    ↑ null 체크      ↑ 진행 중 체크    ↑ 이미 삭제됨 체크
+
+  // 여기서 TypeScript가 아는 것:
+  // focusMessage → Message (null 아님)
+  // deletingMessage → false
+  // focusMessage.deletedAt → null/undefined/falsy
+
+  setDeletingMessage(true);
+  await deleteMessage(focusMessage.roomId, focusMessage.id);  // ✅ 안전
+}
+```
+
+```txt
+|| (or) 조건과 타입 좁히기:
+  if (!a || !b || !c) return
+  = a, b, c 중 하나라도 falsy면 return
+  = 이 줄을 통과하면 a, b, c 모두 truthy(non-null)
+
+  TypeScript는 각 변수를 개별적으로 좁힘:
+    !focusMessage 조건 → focusMessage: Message (null 제거)
+    !deletingMessage 조건 → deletingMessage: false
+```
+
+## 타입 좁히기 vs !  단언
+
+```typescript
+// 방법 1 — early return (권장)
+if (!focusMessage) return;
+focusMessage.body  // ✅ 안전 — null이면 애초에 실행 안 됨
+
+// 방법 2 — !  단언 (위험)
+focusMessage!.body  // TypeScript는 OK지만 실제로 null이면 런타임 에러
+//           ↑ "나는 null이 아님을 안다"고 개발자가 주장
+
+// 방법 3 — ?. 옵셔널 체이닝 (null이면 조용히 건너뜀)
+focusMessage?.body  // null이면 undefined 반환 (에러 없음)
+                    // "있으면 접근, 없으면 무시"
+```
+
+```txt
+세 가지 비교:
+  early return   → null이면 함수 자체를 종료 (가장 명확한 의도)
+  !  단언         → 개발자가 null 아님을 주장 (틀리면 런타임 에러)
+  ?.             → null이어도 조용히 undefined (에러 없이 진행)
+
+언제 뭘:
+  null이면 아무것도 안 해야 할 때 → early return 또는 ?.
+  null이 절대 불가능하다고 확신 → ! 단언 (확신이 틀리면 위험)
+  null이어도 그냥 넘어가도 될 때 → ?.
+```
 
 ---
 

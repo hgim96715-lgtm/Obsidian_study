@@ -82,13 +82,13 @@ Auth_Concept     OAuth 흐름 · JWT vs 세션 (→ JS_Ecosystem 폴더에 있�
 
 ## 🌐 HTTP 요청 · 응답
 
-| |노트|
-|---|---|
-|**NodeJS**|[[NodeJS_HTTP_Request]]|
-|**NestJS**|[[NestJS_Controller]] · [[NestJS_Response]]|
+| | 노트                      |
+| ---------- | ----------------------- |
+|**NodeJS**| [[NodeJS_HTTP_Request]] |
+|**NestJS**| [[NestJS_Controller]]   |
 
 ```txt
-NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · @HttpCode · Guard 적용 · CRUD 패턴
+NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · 응답(return→JSON · @HttpCode · @Header · @Redirect · @Res) · Guard 적용 · CRUD 패턴
 NestJS_Controller의 @Req() = NodeJS_HTTP_Request의 Express Request 객체
 ```
 

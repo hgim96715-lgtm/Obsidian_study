@@ -6,6 +6,8 @@ aliases:
   - Param
   - Pipe
   - Query
+  - "@HttpCode"
+  - HttpStatus
 tags:
   - NestJS
 related:
@@ -18,10 +20,10 @@ related:
 ---
 # NestJS_Controller — 컨트롤러
 
-> [!info] 
-> 컨트롤러 = HTTP 요청을 받아서 응답을 돌려주는 클래스.
->  URL 경로와 HTTP 메서드를 핸들러 함수에 연결한다. 
->  비즈니스 로직은 Service에 위임하고, 컨트롤러는 "요청 받기 → 서비스 호출 → 응답 반환" 세 가지만 한다. 
+>[!info]
+>컨트롤러 = HTTP 요청을 받아서 응답을 돌려주는 클래스.
+> URL 경로와 HTTP 메서드를 핸들러 함수에 연결한다. 
+> 비즈니스 로직은 Service에 위임하고, 컨트롤러는 "요청 받기 → 서비스 호출 → 응답 반환" 세 가지만 한다.
 >  DTO → [[NestJS_DTO]], Pipe → [[NestJS_Pipe]], Guard/인증 → [[NestJS_JwtGuard]]
 
 ---
@@ -182,9 +184,9 @@ create(
 
 ---
 
-# 응답 제어 ⭐️⭐️⭐️
+# 응답 제어 ⭐️⭐️⭐️⭐️
 
-## 기본 — return 값이 자동으로 JSON
+## return 값이 자동으로 JSON이 되는 이유
 
 ```typescript
 @Get(':id')
@@ -194,44 +196,147 @@ findOne(@Param('id', ParseUUIDPipe) id: string) {
 }
 ```
 
-## 상태 코드 변경 — @HttpCode
+```txt
+NestJS는 컨트롤러 메서드가 return한 값을:
+  객체/배열이면 → JSON.stringify()해서 body에 담아 응답
+  문자열이면   → 그대로 text/plain으로 응답
+  undefined이면 → body 없이 응답
+
+직접 res.json()이나 res.send()를 호출할 필요 없음
+return만 하면 NestJS가 알아서 처리
+
+Promise를 return해도:
+  async 함수가 Promise를 반환하면
+  NestJS가 await한 결과로 응답
+  → async/await 자연스럽게 사용 가능
+```
+
+## @HttpCode — 상태 코드 변경 ⭐️⭐️⭐️⭐️
 
 ```typescript
+import { HttpCode, HttpStatus } from '@nestjs/common';
+
+// 숫자 직접 사용
 @Post()
-@HttpCode(201)  // POST 성공 시 201 Created (기본값은 200)
-create(@Body() dto: CreatePostDto) {
-  return this.postsService.create(dto);
-}
+@HttpCode(201)
+create() { ... }
+
+// HttpStatus enum 사용 (권장 — 이름만 봐도 의미 명확)
+@Post()
+@HttpCode(HttpStatus.CREATED)        // 201
+create() { ... }
 
 @Delete(':id')
-@HttpCode(204)  // DELETE 성공 시 204 No Content
-async remove(@Param('id', ParseUUIDPipe) id: string) {
-  await this.postsService.remove(id);
-  // 204면 body가 없음 → return 안 해도 됨
+@HttpCode(HttpStatus.NO_CONTENT)     // 204
+async remove() {
+  await this.service.remove(id);
+  // 204면 body 없음 → return 안 해도 됨
 }
 ```
 
 ```txt
-주요 상태 코드:
-  200  OK — GET · PATCH 기본
-  201  Created — POST 성공 시 (생성됨)
-  204  No Content — DELETE 성공 시 (응답 body 없음)
-  400  Bad Request — 요청 형식 오류 (ValidationPipe 자동 반환)
-  401  Unauthorized — 인증 안 됨
-  403  Forbidden — 권한 없음
-  404  Not Found — 리소스 없음
-  409  Conflict — 중복 등 충돌
-  500  Internal Server Error — 서버 에러
+숫자 vs HttpStatus enum:
+  @HttpCode(204)                      → 숫자 직접 (짧지만 의미 파악에 불편)
+  @HttpCode(HttpStatus.NO_CONTENT)    → enum 사용 (이름만 봐도 의미 명확)
 ```
 
-## 헤더 설정 — @Header
+## 자주 쓰는 상태 코드 ⭐️⭐️⭐️⭐️
+
+|상황|코드|HttpStatus|
+|---|---|---|
+|조회 성공|200|`HttpStatus.OK`|
+|생성 성공|201|`HttpStatus.CREATED`|
+|삭제·처리 완료 (body 없음)|204|`HttpStatus.NO_CONTENT`|
+|요청 형식 오류|400|`HttpStatus.BAD_REQUEST`|
+|인증 안 됨 (로그인 필요)|401|`HttpStatus.UNAUTHORIZED`|
+|권한 없음 (로그인 했지만 거부)|403|`HttpStatus.FORBIDDEN`|
+|리소스 없음|404|`HttpStatus.NOT_FOUND`|
+|중복·충돌|409|`HttpStatus.CONFLICT`|
+|서버 에러|500|`HttpStatus.INTERNAL_SERVER_ERROR`|
+
+```txt
+기본값:
+  @HttpCode 없으면 → 200 (POST도 기본 200)
+
+POST 상태 코드 구분:
+  생성 POST   → 201 Created    (POST /posts, POST /rooms)
+  액션형 POST → 200 OK 그대로  (POST /rooms/:id/join, POST /posts/:id/like, POST /posts/:id/hide)
+
+  생성 POST: 새 리소스가 DB에 만들어짐 → "생성됐다"를 201로 표현
+  액션형 POST: 어떤 동작을 수행 (좋아요·숨기기·입장 등) → 리소스 생성이 아니므로 200
+
+  → 생성용 POST에만 @HttpCode(HttpStatus.CREATED) 일괄 적용
+  → join·like·hide·read 같은 액션형은 @HttpCode 생략 (200 기본값 사용)
+
+204 No Content:
+  응답 body를 보내지 않음
+  DELETE, 토글처럼 결과 데이터가 필요 없는 경우
+  return 값이 있어도 무시됨
+
+400 vs 401 vs 403:
+  400 BadRequest   → 데이터 형식 자체가 잘못됨 (ValidationPipe 자동)
+  401 Unauthorized → 로그인이 필요한데 토큰 없음
+  403 Forbidden    → 로그인은 했지만 "당신은 이걸 할 권한이 없음"
+```
+
+## @Header — 응답 헤더 추가 ⭐️⭐️
 
 ```typescript
+import { Header } from '@nestjs/common';
+
 @Get(':id/download')
 @Header('Content-Disposition', 'attachment; filename="file.pdf"')
+@Header('Content-Type', 'application/pdf')
 download(@Param('id') id: string) {
   return this.filesService.getFile(id);
 }
+```
+
+## @Redirect — 리다이렉트 ⭐️⭐️
+
+```typescript
+import { Redirect } from '@nestjs/common';
+
+@Get('docs')
+@Redirect('https://docs.nestjs.com', 302)  // 기본 302
+redirectToDocs() {}
+
+// 동적으로 리다이렉트 URL 결정
+@Get('version')
+@Redirect('https://docs.nestjs.com', 302)
+getVersion() {
+  return { url: 'https://docs.nestjs.com/v5/', statusCode: 301 };
+  // return 값으로 @Redirect 덮어쓰기 가능
+}
+```
+
+## @Res() — Express Response 직접 (잘 안 씀) ⭐️⭐️
+
+```typescript
+import { Res } from '@nestjs/common';
+import { Response } from 'express';
+
+@Get()
+findAll(@Res() res: Response) {
+  // Express res 객체를 직접 사용
+  res.status(200).json({ data: 'hello' });
+}
+```
+
+```txt
+@Res()를 직접 쓰면:
+  NestJS의 자동 응답 처리가 비활성화됨
+  res.send() 또는 res.json()을 직접 호출해야 함
+  Interceptor, 예외 필터 등 NestJS 기능과 호환이 떨어짐
+  → 거의 쓸 일 없음
+
+예외적으로 쓰는 경우:
+  파일 스트리밍 (res.pipe())
+  쿠키 직접 설정 (res.cookie())
+  SSE(Server-Sent Events)
+
+쿠키를 설정해야 한다면:
+  @Res({ passthrough: true }) 옵션으로 NestJS 자동 처리 유지하면서 res도 사용 가능
 ```
 
 ---
