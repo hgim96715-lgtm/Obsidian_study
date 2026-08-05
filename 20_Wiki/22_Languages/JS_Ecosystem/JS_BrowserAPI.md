@@ -10,6 +10,7 @@ related:
   - "[[NextJS_Concept]]"
   - "[[JS_URL_Encoding]]"
   - "[[JS_DOM]]"
+  - "[[React_useEffect]]"
 ---
 # JS_BrowserAPI — 브라우저 API · window
 
