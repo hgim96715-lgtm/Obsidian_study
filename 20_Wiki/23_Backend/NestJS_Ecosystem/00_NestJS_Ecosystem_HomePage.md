@@ -14,7 +14,10 @@ cssclasses:
 ---
 # 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
 
-> [!info] NestJS는 NodeJS 위에 얹힌 프레임워크. NodeJS와 만나는 지점은 주로 인증(Passport)과 HTTP 요청 레이어. JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
+>[!info]
+> NestJS는 NodeJS 위에 얹힌 프레임워크. 
+> NodeJS와 만나는 지점은 주로 인증(Passport)과 HTTP 요청 레이어. JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
+
 
 ```mermaid-beautiful
 flowchart TB
@@ -43,18 +46,18 @@ flowchart TB
 
 # 빠른 찾기
 
-|찾을 때|섹션|
-|---|---|
-|인증 / JWT / Guard|[[#🔐 인증 · JWT]]|
-|HTTP 요청 / 응답|[[#🌐 HTTP 요청 · 응답]]|
-|데이터베이스 / Prisma|[[#🗄️ 데이터베이스]]|
-|모듈 / DI|[[#🧩 모듈 · DI]]|
-|DTO / 유효성 검사|[[#📋 요청 · 응답 처리]]|
-|이메일 / 스케줄링|[[#⚙️ 패턴 · 기법]]|
-|WebSocket|[[#📡 실시간 · WebSocket]]|
-|Swagger / 문서화|[[#📄 API 문서화]]|
-|환경변수 / 배포|[[#🚀 설정 · 보안 · 배포]]|
-|기초 개념|[[#📦 기초 개념]]|
+| 찾을 때 | 섹션 |
+| --- | --- |
+| 인증 / JWT / Guard | [[#🔐 인증 · JWT]] |
+| HTTP 요청 / 응답 | [[#🌐 HTTP 요청 · 응답]] |
+| 데이터베이스 / Prisma | [[#🗄️ 데이터베이스]] |
+| 모듈 / DI | [[#🧩 모듈 · DI]] |
+| DTO / 유효성 검사 | [[#📋 요청 · 응답 처리]] |
+| 이메일 / 스케줄링 | [[#⚙️ 패턴 · 기법]] |
+| WebSocket | [[#📡 실시간 · WebSocket]] |
+| Swagger / 문서화 | [[#📄 API 문서화]] |
+| 환경변수 / 배포 | [[#🚀 설정 · 보안 · 배포]] |
+| 기초 개념 | [[#📦 기초 개념]] |
 
 ---
 
@@ -64,6 +67,7 @@ flowchart TB
 |---|---|
 |**NodeJS**|[[NodeJS_Passport]] · [[NodeJS_Buffer]]|
 |**NestJS**|[[NestJS_Auth]] · [[NestJS_JwtGuard]] · [[NestJS_Bcrypt]] · [[Auth_Concept]]|
+
 
 ```txt
 NodeJS_Passport  Passport.js 동작 원리 — Strategy · validate · req.user
@@ -84,6 +88,7 @@ Auth_Concept     OAuth 흐름 · JWT vs 세션 (→ JS_Ecosystem 폴더에 있�
 |**NestJS**|[[NestJS_Controller]] · [[NestJS_Response]]|
 
 ```txt
+NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · @HttpCode · Guard 적용 · CRUD 패턴
 NestJS_Controller의 @Req() = NodeJS_HTTP_Request의 Express Request 객체
 ```
 
@@ -91,11 +96,11 @@ NestJS_Controller의 @Req() = NodeJS_HTTP_Request의 Express Request 객체
 
 ## 📡 실시간 · WebSocket
 
-| |노트|
-|---|---|
-|**NestJS**|[[NestJS_WebSocket]]|
-|**Next.js**|[[NextJS_WebSocket]] (→ JS_Ecosystem 폴더)|
-|**패턴**|[[WebSocket_Patterns]]|
+|             | 노트                                       |
+| ----------- | ---------------------------------------- |
+| **NestJS**  | [[NestJS_WebSocket]]                     |
+| **Next.js** | [[NextJS_WebSocket]] (→ JS_Ecosystem 폴더) |
+| **패턴**   | [[WebSocket_Patterns]]                   |
 
 ```txt
 NestJS_WebSocket    Gateway · 룸 · 인증 · REST+WS 브로드캐스트 · Gateway 책임 분리
@@ -116,9 +121,10 @@ WebSocket_Patterns  서버+클라이언트 코드 나란히 — 연결·룸·브
 |**트랜잭션**|[[NestJS_Transaction]]|
 |**DB 전체**|[[00_DB_HomePage]]|
 
+
 ```txt
-NestJS_Prisma          레퍼런스 — Model · CRUD · where · select/include · namespace 타입
-NestJS_Prisma_Patterns 패턴 — 관계 필터(some/every/none) · 원자적 업데이트 · 토글
+NestJS_Prisma          레퍼런스 — CRUD · where · select/include · Prisma.XxxWhereInput · 중첩 where
+NestJS_Prisma_Patterns 패턴 — 조건부 where 조립 · 관계 필터 · 원자적 업데이트 · 토글 · 복합 커서
 NestJS_Migration       설치 · 반복 루프 · migrate 명령 전체 (dev/deploy/reset/seed)
 NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 00_DB_HomePage         순수 SQL · MySQL · Redis
@@ -133,7 +139,10 @@ NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 |**NestJS**|[[NestJS_Module]] · [[NestJS_Service_Provider]]|
 |**이벤트**|[[NodeJS_EventEmitter]]|
 
----
+```txt
+NestJS_Module           기능 상자 · imports/exports · @Global · forwardRef · 공통 모듈 분리
+NestJS_Service_Provider Service · @Injectable · DI · 커스텀 Provider(useValue/useFactory/useClass)
+```
 
 ## 📋 요청 · 응답 처리
 
@@ -142,8 +151,8 @@ NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 |**DTO · 유효성**|[[NestJS_DTO]] · [[NestJS_Pipe]]|
 
 ```txt
-NestJS_DTO   Data Transfer Object — 요청 데이터 형태 정의 · class-validator · PartialType
-NestJS_Pipe  파이프 — ParseUUIDPipe · ValidationPipe 옵션 · 커스텀 파이프
+NestJS_DTO   요청 데이터 정의 · class-validator · @ValidateIf 조건부 검증 · PartialType
+NestJS_Pipe  ParseUUIDPipe · ParseIntPipe · ValidationPipe 옵션 · 커스텀 파이프
 → 프론트 타입 자동 생성으로 [[NextJS_Types]]와 연결
 → Swagger 문서화 → [[NestJS_Swagger]] (📄 API 문서화 섹션)
 ```
@@ -161,6 +170,7 @@ NestJS_Pipe  파이프 — ParseUUIDPipe · ValidationPipe 옵션 · 커스텀 �
 |**페이지네이션**|[[NestJS_Pagination]]|
 |**멱등성**|[[NestJS_Idempotency]]|
 |**시드**|[[NestJS_Seed]]|
+
 
 ```txt
 NestJS_Email       Resend · Nodemailer · Amazon SES · SMTP 설정 · MailService 패턴
@@ -193,11 +203,15 @@ NestJS_Seed        테스트 데이터 생성 · @seed.local · DRY_RUN · clean
 
 ## 📦 기초 개념
 
-|            | 노트                 |
-| ---------- | ------------------ |
-| **NestJS** | [[NestJS_Concept]] |
+| |노트|
+|---|---|
+|**NestJS**|[[NestJS_Concept]]|
 
----
+```txt
+NestJS_Concept  NestJS란 · Module/Controller/Service 역할 · 요청 처리 순서 · DI 개념 · 설치 · CLI
+                → 각 개념의 상세 노트 링크 모음 (지도 역할)
+```
+
 
 ```txt
 폴더 합친 이유:

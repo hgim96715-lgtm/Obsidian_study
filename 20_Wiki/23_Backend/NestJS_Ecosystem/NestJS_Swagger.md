@@ -1,21 +1,53 @@
 ---
-aliases: [API 문서화, OpenAPI, Swagger]
+aliases:
+  - API 문서화
+  - OpenAPI
+  - Swagger
+  - JWT 토큰 설정
+  - "@ApiBearerAuth()"
 tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_DTO]]"
   - "[[NestJS_JwtGuard]]"
+  - "[[NextJS_Types]]"
 ---
-# NestJS_Swagger — Swagger API 문서 자동 생성
+# NestJS_Swagger — Swagger · OpenAPI 문서화
 
 > [!info] 
-> `@nestjs/swagger`로 코드에 데코레이터를 추가하면 `/api` 에서 인터랙티브 API 문서가 자동 생성된다. 
-> 별도 문서 작성 없이 실제 코드가 문서의 단일 출처(single source of truth)가 된다.
+> Swagger(OpenAPI) = 코드에 데코레이터를 달면 API 문서와 테스트 UI를 자동 생성. 
+> `/api`에서 UI로 직접 테스트, `/api-json`에서 OpenAPI 스펙으로 프론트 타입 자동 생성(`openapi-typescript`)에 활용.
+>  프론트 타입 연결 → [[NextJS_Types]]
 
 ---
 
-# 설치 & 설정 ⭐️⭐️⭐️
+# Swagger란 — 왜 쓰는가 ⭐️⭐️⭐️⭐️
+
+```txt
+API를 만들면 "이 API는 어떻게 쓰는가"를 문서로 남겨야 함
+Word/Notion에 수동으로 쓰면:
+  코드가 바뀔 때 문서도 수동으로 업데이트해야 함
+  까먹으면 문서와 실제 API가 달라짐
+
+Swagger = 코드에 데코레이터를 달면 자동으로 문서 생성
+  코드가 곧 문서 — 동기화 문제 없음
+
+두 가지 결과물:
+  /api      → Swagger UI (웹 브라우저에서 API 직접 테스트 가능)
+  /api-json → OpenAPI JSON 스펙 (기계가 읽는 API 명세)
+```
+
+```txt
+/api-json을 쓰는 이유:
+  프론트엔드에서 openapi-typescript로 이 JSON을 읽어
+  TypeScript 타입을 자동 생성 → ApiUser, ApiPost 등
+  → 수동으로 타입 정의 안 해도 됨 → [[NextJS_Types]] 방법 1
+```
+
+---
+
+# 설치 및 기본 설정 ⭐️⭐️⭐️⭐️
 
 ```bash
 pnpm add @nestjs/swagger
@@ -28,303 +60,267 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Swagger 문서 설정
   const config = new DocumentBuilder()
-    .setTitle('My API')
-    .setDescription('API 설명')
-    .setVersion('1.0')
-    .addBearerAuth()   // JWT Bearer 토큰 인증 버튼 추가
+    .setTitle('Music Community API')       // Swagger UI 제목
+    .setDescription('API 설명')            // Swagger UI 설명
+    .setVersion('1.0')                     // API 버전
+    .addBearerAuth(                        // JWT 인증 설정 (아래 섹션 참고)
+      {
+        type:         'http',
+        scheme:       'bearer',
+        bearerFormat: 'JWT',
+        description:  'POST /auth/login 후 발급받은 토큰을 입력하세요.',
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);  // /api 에서 접근
+  SwaggerModule.setup('api', app, document);
+  //                   ↑ 이 경로로 Swagger UI 접근: http://localhost:3000/api
 
   await app.listen(3000);
 }
 ```
 
 ```txt
-개발 환경에서만 활성화하고 싶다면:
-if (process.env.NODE_ENV !== 'production') {
-  SwaggerModule.setup('api', app, document);
-}
+SwaggerModule.setup('api', app, document):
+  'api' → Swagger UI 경로: /api
+  → http://localhost:3000/api 에서 브라우저로 접근
+
+  /api-json → OpenAPI JSON 스펙 자동 생성
+  → 프론트에서 openapi-typescript로 타입 생성에 사용
 ```
 
 ---
 
-# DTO 필드 문서화 ⭐️⭐️⭐️⭐️
-
-## @ApiProperty vs @ApiPropertyOptional
+# @ApiTags — 컨트롤러 그룹화 ⭐️⭐️⭐️
 
 ```typescript
-import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
+@ApiTags('posts')        // Swagger UI에서 'posts' 그룹으로 묶임
+@Controller('posts')
+export class PostsController { ... }
+```
 
+```txt
+태그가 없으면 모든 API가 한 목록에 나열됨 — 찾기 어려움
+@ApiTags로 컨트롤러 단위로 그룹화 → UI에서 폴더처럼 접기/펼치기 가능
+
+리소스 이름을 복수형으로 쓰는 게 관례:
+  'posts', 'users', 'rooms', 'auth'
+```
+
+---
+
+# @ApiOperation — 엔드포인트 설명 ⭐️⭐️⭐️⭐️
+
+```typescript
+@Get(':id')
+@ApiOperation({
+  summary:     '게시글 단건 조회',          // 짧은 한 줄 설명 (목록에 표시)
+  description: '게시글 ID로 단건 조회. 삭제된 게시글은 404 반환.',  // 상세 설명
+})
+findOne(@Param('id', ParseUUIDPipe) id: string) { ... }
+```
+
+```txt
+summary    → Swagger UI 목록에서 바로 보이는 짧은 설명
+description → 클릭해서 펼쳤을 때 보이는 상세 설명
+
+summary만 써도 충분한 경우가 많음
+```
+
+---
+
+# @ApiProperty — DTO 필드 문서화 ⭐️⭐️⭐️⭐️
+
+```typescript
 export class CreatePostDto {
   @ApiProperty({
     description: '게시글 제목',
-    example:     '안녕하세요',
-    minLength:   2,
+    example:     '오늘의 날씨',      // Swagger UI에서 예시값으로 채워짐
+    minLength:   1,
     maxLength:   100,
   })
   @IsString()
+  @MinLength(1)
+  @MaxLength(100)
   title: string;
 
-  @ApiPropertyOptional({      // 선택 필드 — Swagger에서 required: false 로 표시
-    description: '게시글 내용',
-    example:     '본문 내용입니다.',
+  @ApiProperty({
+    description: '공개 여부',
+    example:     true,
+    default:     true,
+  })
+  @IsBoolean()
+  isPublic: boolean;
+
+  @ApiPropertyOptional({           // = @ApiProperty({ required: false })
+    description: '태그 목록',
+    example:     ['NestJS', 'TypeScript'],
+    type:        [String],          // 배열 타입은 [String] 또는 () => [String]
   })
   @IsOptional()
-  @IsString()
-  content?: string;
-
-  @ApiHideProperty()          // Swagger 문서에서 완전히 숨김
-  internalFlag?: boolean;
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 }
 ```
 
-## nullable 옵션 ⭐️⭐️⭐️
-
-```typescript
-@ApiProperty({
-  description: 'Top 3 순위, null이면 미순위',
-  nullable:    true,   // null 값이 올 수 있음을 Swagger에 명시
-  example:     1,
-})
-@IsOptional()
-@IsInt()
-rank: number | null;
-```
-
-
 ```txt
-nullable: true 가 하는 일:
-  Swagger UI에서 이 필드의 타입을 number | null 처럼 표시
-  "이 필드에 null이 올 수 있다"는 것을 API 문서에 명시
+@ApiProperty가 없으면:
+  Swagger UI에서 이 필드가 안 보이거나 unknown으로 표시됨
+  /api-json 스펙에도 포함 안 됨 → 프론트 타입 자동 생성 시 누락
 
-nullable vs @ApiPropertyOptional:
-  @ApiPropertyOptional   → required: false — 필드 자체가 없어도 됨 (undefined)
-  nullable: true         → 필드는 있지만 값이 null일 수 있음
-  둘 다 쓰면 — required: false + null 가능
+required: false vs @ApiPropertyOptional:
+  @ApiProperty({ required: false })  = @ApiPropertyOptional()
+  optional 필드는 @ApiPropertyOptional을 쓰면 더 간결
 
-  예:
-  patch 요청에서 null로 보내서 "값을 지운다"는 의미로 쓸 때
-  → @ApiPropertyOptional({ nullable: true })
-  → @IsOptional()
-  → type: number | null
-
-class-validator와 세트:
-  @IsOptional()     → undefined 허용
-  @IsInt()          → number 검증
-  → null은 @IsOptional()이 통과시켜줌 (null도 empty로 취급)
+example:
+  Swagger UI에서 "Try it out" 버튼 클릭 시 자동으로 채워지는 예시값
+  실제 검증에는 영향 없음 — 문서용
 ```
 
-|데코레이터|Swagger 표시|언제|
+## 자주 쓰는 @ApiProperty 옵션
+
+|옵션|설명|예시|
 |---|---|---|
-|`@ApiProperty()`|required: true (필수)|항상 있어야 하는 필드|
-|`@ApiPropertyOptional()`|required: false (선택)|`@IsOptional()`과 세트|
-|`@ApiHideProperty()`|문서에서 숨김|비밀번호 해시, 내부 상태 등|
+|`description`|필드 설명|`'게시글 제목'`|
+|`example`|예시값|`'오늘의 날씨'`|
+|`required`|필수 여부 (기본 true)|`false`|
+|`nullable`|null 허용 여부|`true`|
+|`type`|타입 명시 (배열·중첩 DTO)|`[String]`, `() => UserDto`|
+|`enum`|열거형|`['draft', 'published']`|
+|`default`|기본값|`true`|
+|`minimum`/`maximum`|숫자 범위|`1`, `100`|
+|`minLength`/`maxLength`|문자열 길이|`1`, `500`|
 
-```txt
-@ApiPropertyOptional({ description: '...' })
-=
-@ApiProperty({ required: false, description: '...' })
-→ 완전히 동일한 축약 표현
+## 중첩 DTO · 배열
+
+```typescript
+// 중첩 DTO
+@ApiProperty({ type: () => UserDto })   // 순환 참조 방지를 위해 () => 사용
+owner: UserDto;
+
+// 배열
+@ApiProperty({ type: [String] })        // string 배열
+tags: string[];
+
+@ApiProperty({ type: () => [PostDto] }) // DTO 배열
+posts: PostDto[];
 ```
 
 ---
 
-# type: [String] — 배열 타입 표현 ⭐️⭐️⭐️⭐️
+# @ApiResponse — 응답 타입 지정 ⭐️⭐️⭐️
 
 ```typescript
-// Swagger에서 배열을 표현하는 방법
-@ApiPropertyOptional({
-  type:    [String],              // string[] — 가장 흔한 방법
-  example: ['react', 'nestjs'],
-})
-tags?: string[];
-
-@ApiProperty({
-  type:    [Number],              // number[]
-})
-scores?: number[];
-
-@ApiProperty({
-  type: [CreateCommentDto],       // 객체 배열
-})
-comments?: CreateCommentDto[];
-
-// isArray 플래그 방식 (같은 결과)
-@ApiProperty({ type: String, isArray: true })
-names?: string[];
+@Post()
+@ApiResponse({ status: 201, description: '생성 성공', type: CreatePostDto })
+@ApiResponse({ status: 400, description: '유효성 검사 실패' })
+@ApiResponse({ status: 401, description: '인증 필요' })
+create(@Body() dto: CreatePostDto) { ... }
 ```
 
-```txt
-왜 type: [String] 이고 type: [string]이 아닌가:
-
-  string (소문자) = TypeScript 타입
-    컴파일 후 JS에서 사라짐 → Swagger가 런타임에 읽을 수 없음
-
-  String (대문자) = JavaScript 내장 생성자 함수
-    런타임에 존재 → Swagger가 읽을 수 있음
-
-  [String] = "String 생성자를 담은 배열"
-    → Swagger가 "이건 배열이고, 요소 타입은 String" 으로 해석
-
-  Swagger 데코레이터에서 타입 지정 시 항상 대문자:
-    String / Number / Boolean / Date / 클래스 이름
+```typescript
+// 자주 쓰는 응답 데코레이터 단축형
+@ApiOkResponse({ type: PostDto })           // 200
+@ApiCreatedResponse({ type: PostDto })      // 201
+@ApiBadRequestResponse()                    // 400
+@ApiUnauthorizedResponse()                  // 401
+@ApiForbiddenResponse()                     // 403
+@ApiNotFoundResponse()                      // 404
 ```
 
 ---
 
-# enum 타입 ⭐️⭐️⭐️
-
-```typescript
-export enum UserRole { ADMIN = 'admin', USER = 'user' }
-
-export class CreateUserDto {
-  @ApiProperty({
-    enum:     UserRole,
-    enumName: 'UserRole',       // Swagger UI에서 표시할 enum 이름
-    example:  UserRole.USER,
-  })
-  @IsEnum(UserRole)
-  role: UserRole;
-}
-```
+# @ApiBearerAuth — JWT 인증 표시 ⭐️⭐️⭐️⭐️
 
 ```txt
-enumName을 지정하는 이유:
-  없으면 Swagger 스키마에 enum 값이 inline으로 반복됨
-  있으면 $ref로 참조해서 한 곳에서 관리 가능
+Swagger UI에서 JWT 토큰으로 인증 후 API 테스트하기 위한 설정
+두 곳이 연결되어야 함 — 이름이 반드시 일치
+
+  main.ts:    .addBearerAuth({ ... }, 'access-token')
+  Controller: @ApiBearerAuth('access-token')
+                               ↑ 같아야 함
 ```
 
----
-
-# 컨트롤러 — 응답 타입 & 에러 코드 ⭐️⭐️⭐️⭐️
-
 ```typescript
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiNotFoundResponse,
-} from '@nestjs/swagger';
+// 컨트롤러 전체에 인증 필요 표시
+@ApiTags('posts')
+@ApiBearerAuth('access-token')   // 🔒 자물쇠 아이콘 표시
+@Controller('posts')
+export class PostsController {
 
-@ApiTags('users')             // Swagger UI에서 그룹핑
-@ApiBearerAuth()              // 이 컨트롤러 전체에 JWT 인증 필요
-@Controller('users')
-export class UserController {
-
-  @ApiCreatedResponse({ type: UserResponseDto })
-  @ApiBadRequestResponse({ description: '유효성 검사 실패' })
-  @Post()
-  create(@Body() dto: CreateUserDto) {}
-
-  @ApiOkResponse({ type: UserResponseDto })      // 단건 응답
-  @ApiNotFoundResponse({ description: '사용자 없음' })
-  @Get(':id')
-  findOne(@Param('id') id: string) {}
-
-  @ApiOkResponse({ type: [UserResponseDto] })    // 배열 응답
   @Get()
-  findAll() {}
+  findAll() { ... }   // 이 메서드도 인증 필요 (컨트롤러에서 상속)
 
-  @ApiOkResponse({ type: UserResponseDto })
-  @ApiUnauthorizedResponse({ description: '인증 필요' })
-  @ApiBearerAuth()            // 이 라우트만 인증 필요
-  @Get('me')
-  getMe() {}
+  @Post()
+  create() { ... }
+}
+
+// 일부 메서드만 인증 필요
+@ApiTags('posts')
+@Controller('posts')
+export class PostsController {
+
+  @Get()
+  // @ApiBearerAuth 없음 → 공개 API
+  findAll() { ... }
+
+  @Post()
+  @ApiBearerAuth('access-token')  // 이 메서드만 🔒
+  create() { ... }
 }
 ```
 
-## 자주 쓰는 응답 데코레이터
+```txt
+@ApiBearerAuth의 역할:
+  Swagger UI에 자물쇠(🔒) 아이콘 표시
+  "Authorize" 버튼으로 토큰 입력 후 이 API 테스트 가능
+  실제 인증은 JwtAuthGuard가 담당 — @ApiBearerAuth는 문서화만
 
-|데코레이터|HTTP 상태|
-|---|---|
-|`@ApiOkResponse`|200|
-|`@ApiCreatedResponse`|201|
-|`@ApiNoContentResponse`|204|
-|`@ApiBadRequestResponse`|400|
-|`@ApiUnauthorizedResponse`|401|
-|`@ApiForbiddenResponse`|403|
-|`@ApiNotFoundResponse`|404|
-|`@ApiConflictResponse`|409|
-
----
-
-# Response DTO 문서화 ⭐️⭐️⭐️
-
-```typescript
-export class UserResponseDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
-  id: string;
-
-  @ApiProperty({ example: 'user@example.com' })
-  email: string;
-
-  @ApiProperty({ example: '닉네임' })
-  nickname: string;
-
-  @ApiPropertyOptional({ example: '자기 소개' })
-  bio?: string;
-
-  @ApiProperty()
-  createdAt: Date;
-
-  @ApiHideProperty()
-  passwordHash?: string;   // 응답에 포함되지 않도록 숨김
-}
+Swagger UI에서 테스트 흐름:
+  1. POST /auth/login → access token 발급
+  2. 상단 "Authorize" 버튼 클릭
+  3. 발급받은 토큰 입력 (Bearer 접두사 없이)
+  4. @ApiBearerAuth API 호출 시 Authorization 헤더 자동 추가
 ```
 
 ---
 
-# PartialType 등에서 import 위치 ⭐️⭐️⭐️
+# 자주 쓰는 데코레이터 한눈에
 
-```typescript
-// Swagger를 쓰는 프로젝트 → @nestjs/swagger에서 import
-// → 상속 관계가 Swagger 문서에도 올바르게 반영됨
-import { PartialType, OmitType, PickType } from '@nestjs/swagger';
+|데코레이터|위치|역할|
+|---|---|---|
+|`@ApiTags('name')`|Controller|그룹화|
+|`@ApiOperation({ summary })`|Method|엔드포인트 설명|
+|`@ApiProperty({ ... })`|DTO 필드|필드 문서화 (필수)|
+|`@ApiPropertyOptional({ ... })`|DTO 필드|선택 필드 문서화|
+|`@ApiBearerAuth('name')`|Controller/Method|JWT 인증 필요 표시|
+|`@ApiResponse({ status, type })`|Method|응답 타입 지정|
+|`@ApiParam({ name, description })`|Method|경로 파라미터 설명|
+|`@ApiQuery({ name, description })`|Method|쿼리 파라미터 설명|
+|`@ApiBody({ type })`|Method|요청 body 타입 명시|
+|`@ApiExcludeEndpoint()`|Method|Swagger에서 숨기기|
 
-// Swagger를 쓰지 않는 경우 → @nestjs/mapped-types에서 import
-import { PartialType } from '@nestjs/mapped-types';
+---
+
+# 프론트와 연결 — 타입 자동 생성
+
+```bash
+# /api-json 에서 타입 자동 생성
+npx openapi-typescript http://localhost:3000/api-json -o src/types/api.ts
 ```
 
 ```txt
-⚠️ @nestjs/swagger와 @nestjs/mapped-types를 동시에 설치하고 혼용하면
-   두 패키지가 서로 충돌해서 예상치 못한 동작이 생길 수 있음
-   → 하나만 선택해서 사용
-```
+이 명령어가 하는 것:
+  NestJS Swagger가 생성한 /api-json (OpenAPI 스펙)을 읽어서
+  TypeScript 타입 파일(api.ts)을 자동 생성
 
----
+  @ApiProperty가 달린 DTO → ApiUser, ApiPost 등의 타입 자동 생성
+  수동으로 타입 정의하지 않아도 됨
 
-# 한눈에
-
-```txt
-설정:
-  DocumentBuilder → SwaggerModule.createDocument → SwaggerModule.setup('api', ...)
-  .addBearerAuth() → Swagger UI에 JWT 인증 버튼 추가
-
-DTO 필드:
-  @ApiProperty()          필수 (required: true)
-  @ApiPropertyOptional()  선택 (required: false) — @IsOptional()과 세트
-  @ApiHideProperty()      문서에서 숨김
-
-배열 타입:
-  type: [String]   string[]
-  type: [Number]   number[]
-  type: [MyDto]    MyDto[]
-  대문자 생성자 함수를 배열에 넣는 것 — 소문자 string/number는 런타임에 없음
-
-컨트롤러:
-  @ApiTags('그룹명')      Swagger UI에서 라우트 그룹핑
-  @ApiBearerAuth()       JWT 인증 필요 표시
-  @ApiOkResponse({ type: Dto })         단건 응답
-  @ApiOkResponse({ type: [Dto] })       배열 응답
-
-PartialType / OmitType / PickType:
-  Swagger 쓰면 @nestjs/swagger에서 import (문서에 상속 반영됨)
-
-유효성 검사 로직 → [[NestJS_DTO]]
+→ [[NextJS_Types]] 방법 1 참고
 ```

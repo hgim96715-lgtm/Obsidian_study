@@ -93,17 +93,17 @@ classList 조작 → [[JS_DOM]] / style 직접 조작 → [[JS_BrowserAPI]] (�
 
 ## ⚛️ React 훅
 
-| 훅 / 역할        | 노트                                      |
-| ------------- | --------------------------------------- |
-| **타입**        | [[React_Types]]                         |
-| 기본 3대장        | [[React_useMemo_useCallback_useEffect]] |
-| DOM 접근 · 값 보관 | [[React_useRef]]                        |
-| 전역 상태 공유      | [[React_Context_Provider]]              |
-| 비동기 UI 패턴     | [[React_AsyncUI]]                       |
-| 고유 ID         | [[React_useId]]                         |
-| Portal        | [[React_Portal]]                        |
-| Suspense      | [[React_Suspense]]                      |
-| 외부 스토어        | [[React_useSyncExternalStore]]          |
+| 훅 / 역할 | 노트 |
+|---|---|
+| **타입** | [[React_Types]] |
+| 기본 3대장 | [[React_useMemo_useCallback_useEffect]] |
+| DOM 접근 · 값 보관 | [[React_useRef]] |
+| 전역 상태 공유 | [[React_Context_Provider]] |
+| 비동기 UI 패턴 | [[React_AsyncUI]] |
+| 고유 ID | [[React_useId]] |
+| Portal | [[React_Portal]] |
+| Suspense | [[React_Suspense]] |
+| 외부 스토어 | [[React_useSyncExternalStore]] |
 
 ```txt
 React_Types      children · ReactNode · 이벤트 타입 · Ref 타입 · 컴포넌트 타입
@@ -175,9 +175,9 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 | 노트 | 내용 |
 |---|---|
 | [[TS_Type_Guards]] | typeof · instanceof · in · is · never · any vs unknown · as const |
-| [[TS_Generics]] | `<T>` · keyof · Partial 패치 · readonly T[] · `&` 교차 타입 |
+| [[TS_Generics]] | `<T>` · keyof · Partial · readonly T[] · `&` 교차 타입 |
 | [[TS_Utility_Types]] | Record · Partial · Omit · ReturnType · Awaited |
-| [[TS_TypeAssertion]] | `as` — 언제 쓰고 왜 위험한가 |
+| [[TS_TypeAssertion]] | `as` · `!` non-null · `property!` 확정 할당 · `satisfies` |
 | [[TS_ImportType]] | import type · type as alias · .d.ts · 경로 별칭 |
 | [[TS_TsConfig]] | API vs Web 옵션 비교 |
 | [[TS_Class_Patterns]] | implements · extends · readonly |
