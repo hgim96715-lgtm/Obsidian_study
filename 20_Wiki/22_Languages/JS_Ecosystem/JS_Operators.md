@@ -19,6 +19,7 @@ aliases:
   - 조건부 스프레드
   - Truthy
   - Falsy
+  - _접두사
 tags:
   - JavaScript
 related:
@@ -33,6 +34,7 @@ related:
 
 >[!info]
 >구조분해 · 스프레드 · 논리 연산자처럼 매일 쓰는 문법이지만 `{ user: me }` 같은 이름 바꾸기나 `??=` 같은 할당 단축형은 처음 보면 헷갈린다.
+> `focusCommentId: _focusCommentId`처럼 `_` 접두사는 "의도적으로 안 쓰는 변수" 표시. 
 > Truthy/Falsy 전체 목록도 이 파일에 정리.
 
 ---
@@ -110,6 +112,58 @@ const { name = '익명', role = 'user' } = person;
 ```typescript
 const { user: me = null } = useAuth();
 // user를 me로 꺼내는데, undefined면 null로 대체
+```
+
+## _ 접두사 — 의도적으로 안 쓰는 변수 ⭐️⭐️⭐️⭐️
+
+```typescript
+// focusCommentId prop은 받아야 하지만 이 컴포넌트에서는 안 씀
+export function FeedCard({
+  recommendation,
+  onDeleted,
+  focusCommentId: _focusCommentId,  // 이름을 _로 시작하게 바꿈
+}: FeedCardProps) {
+  // _focusCommentId는 이 안에서 사용 안 함
+}
+```
+
+```txt
+왜 _를 붙이는가:
+  "이 변수는 의도적으로 사용하지 않는다"는 관례적 표시
+
+  TypeScript에는 noUnusedLocals, noUnusedParameters 옵션이 있음
+  → 사용 안 하는 변수·파라미터가 있으면 에러 또는 경고
+  → 이름이 _로 시작하는 변수는 이 규칙에서 제외
+
+  focusCommentId: _focusCommentId 읽는 법:
+    focusCommentId props를 꺼내서 _focusCommentId라는 이름으로 받음
+    _ 접두사 = "나는 이걸 받기는 하지만 쓰지 않을 것"
+
+왜 props에 있는데 안 쓰는가:
+  부모 컴포넌트가 넘겨주는 props라서 props 타입에 포함됨
+  이 컴포넌트에서는 직접 안 쓰지만 삭제하면 타입 에러
+  또는 나중에 쓸 수 있어서 props 타입에는 남겨둔 것
+
+  대안 — 사용하지 않을 거면 props에서 아예 제외:
+  단, 부모가 spread로 전달하거나 타입 호환을 위해 남겨둬야 할 때는 _로 표시
+```
+
+
+```typescript
+// 배열에서도 동일한 패턴
+const [_first, second] = [1, 2];  // 첫 번째는 안 씀
+const [, second2] = [1, 2];       // 쉼표로 건너뛰는 방법도 있음
+
+// 함수 파라미터에서
+function handleEvent(_event: MouseEvent, id: string) {
+  // event는 안 쓰지만 파라미터 위치 때문에 받아야 함
+  doSomething(id);
+}
+
+// 콜백에서
+items.forEach((_item, index) => {
+  console.log(index);  // item은 필요 없고 index만 필요
+});
 ```
 
 ## 중첩 구조분해

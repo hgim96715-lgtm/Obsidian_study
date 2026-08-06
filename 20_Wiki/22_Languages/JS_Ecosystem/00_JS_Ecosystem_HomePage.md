@@ -60,18 +60,18 @@ API 클라이언트 · 토큰 첨부 → [[NextJS_API_Client]] (📡 API 통신 
 
 ## 🌐 브라우저 · DOM · Canvas
 
-| | 노트 |
+| |노트|
 |---|---|
-| **JS** | [[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]] |
-| **TS** | [[TS_DOM_Events]] |
-| **Next.js** | [[NextJS_ServerClient]] |
+|**JS**|[[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]|
+|**TS**|[[TS_DOM_Events]]|
+|**HTML**|[[HTML_ARIA]]|
+|**Next.js**|[[NextJS_ServerClient]]|
 
 ```txt
-JS_BrowserAPI  window · navigator · Clipboard · ResizeObserver · style 직접 조작
-JS_DOM         querySelector · classList · Pointer Events · scrollIntoView · textarea 패턴
-JS_Canvas      Canvas 2D · StrokeLayer 패턴 · 정규화 좌표(0~1)
-JS_FileAPI     File 객체 · FileReader · dataURL · 파일 검증
-DOM 요소 접근(useRef) → [[React_useRef]] (⚛️ React 훅 섹션)
+JS_BrowserAPI  window · addEventListener/removeEventListener cleanup · setTimeout(fn,0) · visualViewport
+JS_DOM         querySelector · classList · Pointer Events · scrollIntoView
+HTML_ARIA      aria-hidden · aria-label · role · sr-only · 키보드 접근성
+URL/URLSearchParams → [[JS_URL_Encoding]] · DOM 요소 접근 → [[React_useRef]] (⚛️ 섹션)
 ```
 
 ---
@@ -93,18 +93,18 @@ classList 조작 → [[JS_DOM]] / style 직접 조작 → [[JS_BrowserAPI]] (�
 
 ## ⚛️ React 훅
 
-| 훅 / 역할            | 노트                             |
-| ----------------- | ------------------------------ |
-| **타입**            | [[React_Types]]                |
-| 메모이제이션            | [[React_useMemo_useCallback]]  |
-| 사이드 이펙트           | [[React_useEffect]]            |
-| DOM 접근 · 값 보관     | [[React_useRef]]               |
-| 전역 상태 공유          | [[React_Context_Provider]]     |
-| 비동기 UI 패턴         | [[React_AsyncUI]]              |
-| 고유 ID             | [[React_useId]]                |
-| Portal · 모달 다이얼로그 | [[React_Portal_Dialog]]        |
-| Suspense          | [[React_Suspense]]             |
-| 외부 스토어            | [[React_useSyncExternalStore]] |
+| 훅 / 역할            | 노트                                  |
+| ----------------- | ----------------------------------- |
+| **타입**            | [[React_Types]]                     |
+| 메모이제이션            | [[React_useMemo_useCallback]]       |
+| 사이드 이펙트           | [[React_useEffect]]                 |
+| DOM 접근 · 값 보관     | [[React_useRef]]                    |
+| 전역 상태 공유          | [[React_Context_Provider]]          |
+| 비동기 UI 패턴         | [[React_AsyncUI]]                   |
+| 고유 ID             | [[React_useId]]                     |
+| Portal · 모달 다이얼로그 | [[React_Portal_Dialog]]             |
+| Suspense · 지연 로딩  | [[React_Suspense]] · [[React_Lazy]] |
+| 외부 스토어            | [[React_useSyncExternalStore]]      |
 
 ```txt
 React_Types               children · ReactNode · 이벤트 타입 · Ref 타입

@@ -1,613 +1,309 @@
 ---
 aliases:
-  - import
+  - Barrel
   - import type
-  - declare module
-  - declare global
-  - 타입 확장
-  - .d.ts
-  - TypeScript Declaration File
-  - 트리플 슬래시 reference types
+  - export type
+  - 경로 별칭
 tags:
   - TypeScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_Auth]]"
-  - "[[NestJS_Controller]]"
-  - "[[TS_Generics]]"
   - "[[TS_TsConfig]]"
 ---
-# TS_ImportType — `import type` vs `import`
+# TS_ImportType — import · export · 경로 별칭
 
-> [!info]
->  `import type`은 타입 정보만 가져오는 import — 컴파일 후 JS 출력에서 완전히 사라진다. 
->  `import`는 값(클래스, 함수, 객체)을 가져오는 import — JS 출력에 남는다.
->   `isolatedModules`가 켜진 프로젝트에서 타입만 필요한 걸 `import`로 쓰면 에러가 난다.
-
----
-# 흐름도
-
-```mermaid
-flowchart TD
-    W1["상황 · 파라미터·변수 타입만 필요"]
-    W2["상황 · new · instanceof · 함수 호출"]
-    W3["상황 · 라이브러리/전역에 필드 추가"]
-
-    Q{"언제 · 런타임에 값이 필요한가?"}
-
-    W1 --> Q
-    W2 --> Q
-    W3 --> Q
-
-    Q -->|No · 타입만| A
-    Q -->|Yes · 값 필요| B
-    Q -->|타입 확장| C
-
-    A["import type"]
-    A1["컴파일 후 JS에서 사라짐"]
-    A2["isolatedModules · emitDecoratorMetadata 충돌 회피"]
-    A --> A1 --> A2
-
-    B["import"]
-    B1["JS 출력에 남음"]
-    B2["new · instanceof · 호출"]
-    B --> B1 --> B2
-
-    C[".d.ts + declare"]
-    C1["declare module — 패키지 타입 확장"]
-    C2["declare global — Express.Request 등"]
-    C --> C1 --> C2
-```
-
-> Nest 예 — `import type { Request } from 'express'`  
-> `export {}` — declare global이 동작하려면 파일을 모듈로 만들기
+>[!info]
+>`import type` = 타입만 import — 컴파일 후 런타임 번들에서 완전히 제거됨.
+> 값(함수·클래스)과 타입을 구분해서 import하면 번들 크기가 줄고 순환 참조 문제도 예방된다. 
+> `@/` 경로 별칭은 tsconfig.json의 `paths`로 설정.
+>  Barrel(index.ts) = 여러 모듈을 하나로 묶어 export.
 
 ---
-# import type — 타입 전용 import ⭐️⭐️⭐️⭐️
+
+# import type — 타입만 import ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 값이 아닌 타입만 import — JS 출력에서 완전히 사라짐
-import type { User } from './user';
-import { type User } from './user';  // 인라인 type (일부만 타입으로)
-```
+// 일반 import — 값과 타입 모두
+import { User, fetchUser } from './users';
+//       ↑타입  ↑함수(값)
 
-## type X as Y — 이름 충돌 방지 ⭐️⭐️⭐️⭐️
-
-```typescript
-import {
-  useId,
-  type PointerEvent as ReactPointerEvent,  // 별칭으로 이름 변경
-  type ReactNode,
-} from 'react';
+// import type — 타입만 (런타임에 존재하지 않음)
+import type { User } from './users';
+import { fetchUser }  from './users';
 ```
 
 ```txt
-왜 as 로 이름을 바꾸는가:
-  브라우저 전역에 PointerEvent 타입이 이미 존재 (Web API)
-  React도 자체 PointerEvent 타입을 export함
-  둘을 같은 파일에서 쓰면 이름 충돌 → 컴파일 에러 또는 혼란
+TypeScript의 타입은 컴파일 후 사라짐:
+  TypeScript 코드 → tsc 컴파일 → JavaScript 코드
+  타입 정보는 컴파일 타임에만 존재, 런타임(JS)에는 없음
 
-  as ReactPointerEvent 로 별칭을 붙이면:
-    PointerEvent       → 브라우저 전역 타입
-    ReactPointerEvent  → React의 합성 이벤트 타입
-  → 같은 파일에서 둘 다 명확하게 구분해서 사용 가능
+  import { User } from './users'
+  → JS로 컴파일되면 이 줄이 남아있음 (번들에 포함)
+  → User가 실제 값(클래스 등)이 아니라면 빈 import가 됨
 
-문법:
-  import { type 원래이름 as 새이름 } from 'module'
-  값 import도 가능: import { original as alias } from 'module'
+  import type { User } from './users'
+  → 컴파일 후 이 줄 자체가 완전히 제거됨 (번들에 포함 안 됨)
 ```
+
+## 언제 import type을 쓰는가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 사용
-const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-  e.currentTarget.setPointerCapture(e.pointerId);
-};
+// ✅ 타입만 사용할 때 — import type
+import type { User }        from './types';
+import type { ApiResponse }  from './api';
+import type { ButtonProps }  from './Button';
+
+// ✅ 값도 사용할 때 — 일반 import
+import { fetchUser }         from './api';     // 함수 (런타임에 실행됨)
+import { UserService }       from './service'; // 클래스 (런타임에 인스턴스화)
+import { STATUS }            from './const';   // 상수 (런타임에 값을 읽음)
+
+// ✅ 같은 파일에서 타입과 값을 같이 가져올 때
+import { fetchUser }         from './api';
+import type { ApiUser }      from './api';
+
+// 또는 한 줄에서 구분
+import { fetchUser, type ApiUser } from './api';
+//                  ↑ 인라인 type 키워드
 ```
-
----
-
-
-
-
-
-
-
----
-# @types/* 자동 인식 안 될 때 ⭐️⭐️⭐️
 
 ```txt
-Next.js + moduleResolution: "bundler" 환경에서
-@types/* 패키지가 자동으로 인식 안 되는 경우가 있음
+구분 기준:
+  타입 선언에만 쓰인다면  → import type
+  런타임에 실제로 호출/참조한다면 → 일반 import
 
-증상:
-  YT, google, kakao 같은 전역 ambient 타입이 갑자기 빨간 줄
-  또는 타입 에러가 난 뒤 연쇄적으로 멀쩡한 코드도 빨간 줄이 퍼짐
+  type ApiUser = { ... }           → import type
+  const user: ApiUser = ...        → import type
+  const service = new UserService  → 일반 import (런타임에 new 호출)
+  fetchUser(id)                    → 일반 import (런타임에 함수 호출)
+  if (status === STATUS.ACTIVE)    → 일반 import (런타임에 값 참조)
 ```
 
-**원인 1 — 다른 타입 에러가 파일 전체를 "깨짐"으로 만들 때:**
+## import type의 장점
+
+```txt
+① 번들 크기 절감:
+  타입 전용 파일을 import type으로 가져오면
+  해당 파일이 번들에 포함되지 않음
+
+② 순환 참조 방지:
+  A가 B를, B가 A를 서로 import하면 순환 참조 에러
+  타입만 필요하면 import type → 런타임 의존성을 끊음
+
+③ 의도 명확화:
+  "이건 타입으로만 쓴다"는 것을 코드로 표현
+  팀원이 읽을 때 런타임 영향 없음을 바로 파악
+```
+
+---
+
+# export type — 타입만 재수출 ⭐️⭐️⭐️
 
 ```typescript
-// e: any 에러가 나면 IDE가 파일을 "타입 깨짐"으로 다시 그림
-// → 원래 잘 되던 YT, google 같은 전역 타입도 못 찾는 것처럼 보임
-// → 먼저 e: any 에러를 고치면 빨간 줄이 같이 사라지는 경우가 많음
+// 타입만 export
+export type { User, ApiResponse };
+
+// 선언과 동시에 export
+export type UserId = string;
+export type Status = 'active' | 'inactive';
+
+// 다른 파일에서 타입 재수출
+export type { WithdrawResult } from './apiTypes';
+export type { ButtonProps }    from './Button';
 ```
 
-**원인 2 — tsconfig include 범위 밖:**
+---
+
+# 경로 별칭 — @/ ⭐️⭐️⭐️⭐️
+
+```typescript
+// 상대 경로 — 깊이에 따라 ../../../ 가 계속 늘어남
+import { fetchUser } from '../../../lib/api/users';
+import { Button }    from '../../components/Button';
+
+// 경로 별칭 — 어디서 import해도 동일한 경로
+import { fetchUser } from '@/lib/api/users';
+import { Button }    from '@/components/Button';
+```
+
+## tsconfig.json 설정
 
 ```json
-// tsconfig.json
-{
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ]
-}
-```
-
-```txt
-@types/youtube 같은 ambient 타입은 타입스크립트가 자동으로 로드함
-하지만 types 또는 typeRoots 옵션이 명시되면 그것만 로드함
-
-// tsconfig.json에 아래처럼 특정 패키지만 명시하면
-"compilerOptions": {
-  "types": ["node"]  // node만 로드 → youtube, google 등 누락
-}
-
-→ 해결: 필요한 @types 패키지를 추가하거나 types 옵션 제거
-```
-
-**원인 3 — 설치 자체가 안 된 경우:**
-
-```bash
-pnpm add -D @types/youtube
-pnpm add -D @types/google.maps
-```
-
-```txt
-@types/* 패키지가 아예 설치 안 됐으면 당연히 인식 안 됨
-→ node_modules/@types 폴더에 해당 패키지 있는지 확인
-```
-
-**원인 4 — IDE 캐시 문제:**
-
-```txt
-패키지를 설치했는데 여전히 빨간 줄이면:
-  VSCode: Cmd+Shift+P → "TypeScript: Restart TS Server"
-  또는 VSCode 재시작
-  → TS 서버가 캐시된 타입 정보를 다시 읽음
-```
-
-## 해결 — 트리플 슬래시 reference types ⭐️⭐️⭐️⭐️
-
-```typescript
-/// <reference types="youtube" />
-```
-
-```txt
-트리플 슬래시 지시어(triple-slash directive):
-  파일 최상단에 두는 특수 주석
-  TypeScript 컴파일러에게 "이 파일에서 @types/youtube 타입을 포함해라"를 직접 명령
-
-언제 쓰는가:
-  tsconfig의 include/typeRoots 설정으로 @types/*가 자동 인식이 안 될 때
-  Next.js + moduleResolution: "bundler" 환경에서 파일 단위로 타입이 안 잡힐 때
-  전역 ambient 타입(YT, kakao, google 등)이 특정 파일에서만 빨간 줄일 때
-
-파일 전역에 영향:
-  이 한 줄이 있는 파일에서는 @types/youtube의 모든 타입(YT.Player 등)이 인식됨
-```
-
-## ⚠️ declare global YT stub을 컴포넌트에 넣으면 안 되는 이유
-
-```typescript
-// ❌ 이렇게 하면 안 됨 — @types/youtube의 YT.Player와 중복 선언 충돌
-declare global {
-  namespace YT {
-    class Player {
-      // ...
-    }
-  }
-}
-
-// ✅ 이렇게 해야 함 — 파일 최상단에 reference 지시어
-/// <reference types="youtube" />
-```
-
-```txt
-왜 중복이 문제인가:
-  @types/youtube에 이미 namespace YT { class Player { ... } } 가 선언돼 있음
-  컴포넌트 파일에 또 선언하면 → "중복 식별자" 에러
-
-  declare global stub을 쓰는 경우:
-  @types/* 패키지가 아예 없을 때 직접 타입을 만드는 방법
-  → @types/youtube가 설치돼 있으면 stub 대신 reference 지시어 사용
-
-/// <reference types="youtube" /> 의 동작:
-  컴파일러에 "이 파일은 node_modules/@types/youtube 를 직접 참조한다"고 알림
-  → 전역 설정 없이도 이 파일에서 YT 네임스페이스 사용 가능
-  → declare global 없이 깔끔하게 해결
-```
----
-# 경로 별칭 (Path Alias) — `@/lib/redirect` ⭐️⭐️⭐️⭐️
-
-```typescript
-// 상대 경로 — 파일 위치마다 depth가 달라짐
-import { sanitizeRedirectPath } from '../../lib/redirect';
-
-// @/ 별칭 — 어디서든 동일
-import { sanitizeRedirectPath } from '@/lib/redirect';
-```
-
-```txt
-@/ = 프로젝트 루트(또는 src/)를 가리키는 별칭
-tsconfig.json의 paths 옵션으로 설정
-
-// apps/web/tsconfig.json (Next.js)
-"paths": { "@/*": ["./*"] }
-
-Next.js는 Turbopack이 paths를 읽어서 번들 시 자동 치환 → 추가 설정 불필요
-NestJS는 빌드 후 dist/에 @가 그대로 남아서 Node.js가 못 찾음 → 상대 경로 권장
-
-tsconfig 옵션 전체 설명 → [[TS_TsConfig]]
-
-```
-
----
-# d.ts 파일이란 ⭐️⭐️⭐️⭐️
-
-```txt
-.d.ts = TypeScript Declaration File (선언 파일)
-런타임 코드가 전혀 없음 — 타입 정보만 담는 파일
-컴파일 후 JS 출력에 포함되지 않음 — TS 컴파일러가 타입 체크에만 사용
-```
-
-## 세 가지 역할
-
-|역할|예시 파일|용도|
-|---|---|---|
-|라이브러리 타입 제공|`node_modules/@types/express/index.d.ts`|JS 라이브러리에 타입을 붙여주는 `@types/*` 패키지|
-|외부 모듈 타입 확장|`src/types/express.d.ts`|기존 라이브러리 타입에 필드 추가|
-|전역 타입 선언|`src/types/global.d.ts`|`window`, `process.env`, `Express.Request` 등 전역 확장|
-
-## @types/* 패키지 — 자동으로 설치되는 .d.ts
-
-```bash
-pnpm add -D @types/express
-# node_modules/@types/express/index.d.ts 가 설치됨
-# → import { Request } from 'express' 에 타입이 붙는 이유
-```
-
-```txt
-JS로 만들어진 라이브러리(express, lodash 등)는 자체적으로 타입이 없음
-@types/xxx 패키지가 "이 라이브러리의 모양은 이렇다"는 .d.ts를 제공
-→ devDependency — 런타임에 불필요, 개발 중 타입 체크에만 사용
-
-라이브러리가 TypeScript로 작성됐거나 타입을 내장하면(@nestjs/* 등)
-@types 없이도 타입이 자동으로 제공됨
-```
-
-## express.d.ts — 직접 만드는 .d.ts ⭐️⭐️⭐️⭐️
-
-```txt
-@types/express가 정의한 Request 타입에는 user, session이 없음
-"이런 필드도 있다"고 TS에게 알려주는 파일을 직접 만들어 추가
-```
-
-```typescript
-// src/types/express.d.ts
-import type { JwtPayload }    from '../auth/jwt-payload';
-import type { OAuthProfile }  from '../auth/oauth-profile';
-import type { Session }       from 'express-session';
-
-// express-session 라이브러리 타입 확장
-declare module 'express-session' {
-  interface SessionData {
-    oauthNext?: string;  // OAuth next 파라미터 임시 저장
-  }
-}
-
-// Express.Request 전역 확장
-declare global {
-  namespace Express {
-    interface Request {
-      user?:   JwtPayload | OAuthProfile;  // JwtStrategy 또는 OAuth Strategy가 담아줌
-      session: Session;                    // express-session이 담아줌
-    }
-  }
-}
-
-export {};  // ← 반드시 필요 (아래 설명)
-```
-
-## 스크립트 vs 모듈 .d.ts — export {}가 왜 필요한가 ⭐️⭐️⭐️
-
-```txt
-TypeScript가 .d.ts 파일을 두 가지로 구분:
-
-  스크립트 .d.ts (export/import 없음):
-    선언이 자동으로 전역에 추가됨
-    declare const x: string  → 어디서나 x에 접근 가능
-
-  모듈 .d.ts (export/import 있음):
-    선언이 전역에 추가되지 않음 — 명시적 import 필요
-    전역 확장이 필요하면 declare global { } 로 감싸야 함
-
-express.d.ts가 모듈인 이유:
-  import type { JwtPayload } ... 가 있으므로 자동으로 "모듈"로 분류됨
-  → declare global 없이 선언하면 전역에 추가 안 됨
-  → declare global로 감싸야 전역 확장이 적용됨
-
-export {}:
-  아무것도 export 안 해도 "이 파일은 모듈이다"를 선언하는 역할
-  import가 있으면 이미 모듈이라 사실 불필요하지만
-  명시적으로 남겨두면 나중에 import가 없어져도 모듈 동작을 유지
-  → 관례적으로 항상 붙임
-```
-
-## tsconfig에서 포함 확인
-
-```json
-// tsconfig.json
-{
-  "include": ["src/**/*"]
-  // src/types/express.d.ts가 이 glob에 포함되어야 함
-  // 포함 안 되면 선언이 적용 안 됨
-}
-```
-
-```txt
-.d.ts 확장이 적용 안 될 때 체크리스트:
-  ① tsconfig의 include/files에 포함됐는지
-  ② export {}가 있는지 (모듈이어야 declare global이 동작)
-  ③ IDE를 재시작했는지 (캐시 문제)
-  ④ 파일 경로가 실제 타입 경로와 맞는지 (import 경로 오타)
-```
-
----
-
-# 차이 — 컴파일 후 뭐가 남는가 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 값 import — JS 출력에 남음 (런타임에 실제로 필요한 것)
-import { Request, Response } from 'express';
-
-// 타입 import — JS 출력에서 완전히 사라짐 (컴파일 타임에만 필요한 것)
-import type { Request, Response } from 'express';
-```
-
-```txt
-컴파일 전 (TypeScript):
-  import type { Request, Response } from 'express';
-  function handler(@Req() req: Request, @Res() res: Response) { ... }
-
-컴파일 후 (JavaScript):
-  // import가 사라짐 — Request, Response는 타입이었으므로 JS에 흔적 없음
-  function handler(req, res) { ... }
-```
-
----
-
-# isolatedModules — 왜 충돌이 생기는가 ⭐️⭐️⭐️⭐️
-
-```txt
-isolatedModules: true (tsconfig.json)
-  각 파일을 독립적으로(isolated) 컴파일 가능하게 강제하는 옵션
-  Vite, esbuild, SWC 같은 빠른 번들러가 TS를 변환할 때 사용
-  → 파일 하나만 보고 변환할 수 있어야 함
-
-문제:
-  import { Request } from 'express'; 로 가져온 Request가
-  "타입으로만 쓰이는지" vs "값으로도 쓰이는지"를
-  그 파일만 봐서는 판단할 수 없음
-
-  → isolatedModules는 "혹시 값처럼 쓰일 수도 있으니 이 import를 지워도 되는지 모르겠다"
-    → 에러로 막음
-
-해결:
-  import type을 쓰면 "이건 타입으로만 씀" 이라고 명시
-  → isolatedModules가 "이건 지워도 됨"을 확실히 알 수 있음
-```
-
-```json
-// tsconfig.json
 {
   "compilerOptions": {
-    "isolatedModules": true,   // Vite/SWC/esbuild를 쓰면 대부분 true
-    "emitDecoratorMetadata": true  // NestJS 데코레이터에 필요
-  }
-}
-```
-
----
-
-# emitDecoratorMetadata — NestJS에서 충돌이 생기는 이유 ⭐️⭐️⭐️⭐️
-
-```txt
-emitDecoratorMetadata: true
-  데코레이터(@Get, @Post, @Req 등)가 파라미터 타입 정보를 런타임에 유지하게 함
-  NestJS의 DI(의존성 주입)가 이 메타데이터를 보고 어떤 타입을 주입할지 결정함
-
-문제가 생기는 상황:
-  import { Request } from 'express';    ← 값 import
-  handler(@Req() req: Request) { }
-
-  emitDecoratorMetadata가 "@Req() 파라미터의 타입은 Request" 라는 메타데이터를 생성
-  이 메타데이터가 런타임에 Request를 참조 → Request가 값으로 필요해짐
-  하지만 isolatedModules 입장에서는 Request가 타입인지 값인지 불명확 → 충돌
-
-해결:
-  import type { Request } from 'express';  ← 타입 import
-  → "Request는 타입으로만 쓴다"고 명시
-  → emitDecoratorMetadata도, isolatedModules도 둘 다 만족
-```
-
----
-
-# NestJS에서 자주 보이는 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// ❌ 값 import — isolatedModules와 충돌 가능
-import { Request, Response, NextFunction } from 'express';
-
-// ✅ 타입 import — 타입으로만 쓰므로 type import가 맞음
-import type { Request, Response, NextFunction } from 'express';
-```
-
-```typescript
-// NestJS 컨트롤러에서 올바른 사용
-import type { Request, Response } from 'express';
-
-@Controller('auth')
-export class AuthController {
-  @Get('google/callback')
-  googleCallback(
-    @Req() req: Request,          // 파라미터 타입으로만 사용 → import type
-    @Res() res: Response,
-  ) {
-    res.redirect('/');
-  }
-}
-```
-
----
-
-# 언제 `import type`을 써야 하는가 ⭐️⭐️⭐️
-
-|상황|`import type`|일반 `import`|
-|---|---|---|
-|함수/메서드 파라미터 타입으로만 사용|✅|—|
-|변수 타입 선언으로만 사용|✅|—|
-|제네릭 타입 인자로만 사용|✅|—|
-|`instanceof` 검사 (런타임에 값 필요)|❌|✅|
-|`new 클래스()` 로 인스턴스 생성|❌|✅|
-|함수·상수 등 값으로 직접 사용|❌|✅|
-
-```typescript
-// ✅ 타입으로만 — import type
-import type { JwtPayload } from './types';
-const payload: JwtPayload = ...;
-
-// ❌ 값으로 사용 — 일반 import 필요
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();  // new → 값이 필요 → import type 불가
-
-// ❌ instanceof → 런타임에 값 필요 — 일반 import 필요
-import { HttpException } from '@nestjs/common';
-if (err instanceof HttpException) { ... }  // instanceof → import type 불가
-```
-
----
-
-# 인라인 타입 import ⭐️⭐️
-
-```typescript
-// 파일 전체가 아니라 특정 항목만 type import — 섞어 쓸 때 유용
-import { Injectable } from '@nestjs/common';                     // 값
-import type { Request } from 'express';                           // 타입만
-
-// 또는 한 줄에서 섞어 쓰기
-import { Injectable, type NestMiddleware } from '@nestjs/common';
-//                   ↑ 이 항목만 type import
-```
-
----
-# declare module / declare global — 타입 확장 ⭐️⭐️⭐️⭐️
-
-```txt
-외부 라이브러리나 전역 타입에 "내가 직접 필드를 추가"하는 패턴
-설치만 해서는 타입이 안 붙는 경우, 직접 .d.ts 파일을 만들어 확장
-```
-
-## declare module — 라이브러리 타입 확장
-
-```typescript
-// express-session의 SessionData에 커스텀 필드 추가
-declare module 'express-session' {
-  interface SessionData {
-    oauthNext?: string;
-  }
-}
-```
-
-```txt
-선언 병합(Declaration Merging):
-  TypeScript는 같은 이름의 interface를 여러 곳에서 선언하면 자동으로 합쳐줌
-  → 라이브러리의 SessionData에 우리가 필드를 "추가"하는 것처럼 동작
-  → 기존 SessionData의 내용은 그대로 유지됨
-```
-
-## declare global — 전역 네임스페이스 확장
-
-```typescript
-declare global {
-  namespace Express {
-    interface Request {
-      user?:   JwtPayload;  // req.user 타입 추가
-      session: Session;     // req.session 타입 추가
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
     }
   }
 }
-
-export {}; // ← 반드시 필요 — 이 파일을 모듈로 만들어야 declare global 동작
 ```
 
 ```txt
-declare global은 파일이 "모듈"일 때만 동작함
-  모듈 = import 또는 export 문이 하나라도 있는 파일
-  export {}로 아무것도 export 안 해도 "나는 모듈"이라고 선언 가능
+@/* → ./src/* 매핑:
+  @/lib/api     → src/lib/api
+  @/components  → src/components
+  @/types       → src/types
 
-NestJS에서 자주 쓰는 패턴:
-  apps/api/src/types/express.d.ts 파일에 Request 확장
-  → @Req() req: Request에서 req.user 자동완성 동작
-  → 상세 구현은 [[NestJS_Auth]] 참고
+Next.js:
+  next.config.js와 tsconfig.json 둘 다 설정해야 할 수 있음
+  Next.js는 기본으로 @/를 지원하는 경우도 있음 (버전에 따라 다름)
 
-declare module vs declare global:
-  declare module '라이브러리'  외부 패키지 타입 확장
-  declare global { ... }       전역 타입(Express, Window, NodeJS 등) 확장
-```
+NestJS:
+  tsconfig.json + webpack/esbuild 설정이 필요할 수 있음
+  nest-cli.json에 webpack 옵션 추가
 
----
-
-# IDE 자동 수정 ⭐️
-
-```txt
-VSCode + TypeScript Language Server:
-  import를 추가할 때 타입인지 값인지 자동으로 판단해서
-  import type으로 제안해주는 경우가 많음
-
-ESLint 규칙:
-  @typescript-eslint/consistent-type-imports
-  → 타입으로만 쓰이는 import를 import type으로 자동 교체 제안
-  → 프로젝트 전체에서 일관되게 적용 가능
-
-자동 수정:
-  VSCode에서 노란 줄 뜬 import에 커서 올리고
-  "Convert to type-only import" 클릭 → 자동으로 바꿔줌
+모노레포:
+  각 앱의 tsconfig.json에서 별도 설정
+  루트 tsconfig에서 extends해서 공통 설정 관리
 ```
 
 ---
 
-# 한눈에
+# Barrel — index.ts로 묶어서 export ⭐️⭐️⭐️⭐️
 
 ```txt
-import type { X } from '...'
-  컴파일 후 JS에서 완전히 사라짐
-  타입으로만 쓰이는 것 (파라미터 타입, 변수 타입, 제네릭 인자)
+Barrel = 여러 모듈의 export를 index.ts 하나에서 다시 내보내는 패턴
+여러 파일에서 각각 import하는 대신 하나의 경로에서 전부 가져올 수 있음
+```
 
-import { X } from '...'
-  JS에 남음 — 런타임에도 실제로 필요한 것
-  new X(), instanceof X, X() 같이 값으로 쓸 때
+```typescript
+// ❌ Barrel 없이
+import { fetchUser }           from '@/lib/api/users';
+import { fetchFriends }        from '@/lib/api/friends';
+import { login }               from '@/lib/api/auth';
+import { fetchNotifications }  from '@/lib/api/notifications';
 
-NestJS에서 자주 나오는 import type:
-  import type { Request, Response, NextFunction } from 'express'
-  → 파라미터 타입으로만 쓰이므로 type import가 맞음
+// ✅ Barrel 사용
+import { fetchUser, fetchFriends, login, fetchNotifications } from '@/lib/api';
+```
 
-충돌이 생기는 이유:
-  isolatedModules: true    파일 하나만 보고 "이 import 지워도 되나?" 판단해야 함
-  emitDecoratorMetadata    데코레이터 파라미터 타입을 런타임에 참조
-  → 값 import로 된 타입을 지워야 하는지 알 수 없음 → 에러
+## index.ts 작성
 
-instanceof, new 는 런타임에 값이 필요 → 일반 import 유지
+```typescript
+// src/lib/api/index.ts
+/**
+ * API client barrel — 도메인은 @/lib/api/users 등으로도 import 가능.
+ * 기존 @/lib/api import 호환 유지.
+ */
+export * from './auth';
+export * from './friends';
+export * from './recommendations';
+export * from './users';
+export * from './notifications';
+export * from './support';
+
+export type { WithdrawResult } from './apiTypes';  // 타입만 재수출
+```
+
+```txt
+export type { WithdrawResult } from './apiTypes':
+  WithdrawResult는 임의 이름이 아님
+  apiTypes.ts 안에 실제로 이렇게 정의된 타입:
+    export type WithdrawResult = { success: boolean; message: string; }
+
+  export * from './apiTypes' 대신 export type { WithdrawResult }만 쓰는 이유:
+  → apiTypes.ts 전체를 노출하고 싶지 않고, 필요한 타입만 선택적으로 공개
+  → "이 파일에서 꺼낼 수 있는 것은 WithdrawResult 타입뿐이야"를 명확히
+
+  자신의 코드에서 쓸 때:
+    export type { MyResult }   from './myTypes';  // myTypes.ts에 정의된 타입
+    export type { LoginResult } from './auth';     // auth.ts에 정의된 타입
+```
+
+
+```txt
+export * from './module':
+  해당 파일의 모든 named export를 그대로 재수출
+  default export는 포함 안 됨
+
+export type { Xxx }:
+  타입만 재수출 — 런타임 번들에 포함 안 됨
+
+파일 구조:
+  src/lib/api/
+  ├── index.ts        ← barrel
+  ├── auth.ts
+  ├── users.ts
+  ├── friends.ts
+  └── apiTypes.ts     ← 공통 타입
+```
+
+## 이름 충돌 처리
+
+```typescript
+// ❌ 두 파일에서 같은 이름을 export하면 충돌
+export * from './users';  // fetchAll 포함
+export * from './posts';  // fetchAll 포함 → 충돌!
+
+// ✅ 별칭으로 해결
+export { fetchAll as fetchAllUsers } from './users';
+export { fetchAll as fetchAllPosts } from './posts';
+
+// ✅ 또는 필요한 것만 명시
+export { fetchUser, updateUser }  from './users';
+export { fetchPost, createPost }  from './posts';
+```
+
+---
+
+# .d.ts — 타입 선언 파일 ⭐️⭐️
+
+```typescript
+// types.d.ts 또는 global.d.ts — 전역 타입 선언
+declare global {
+  interface Window {
+    analytics: Analytics;  // window.analytics 타입 추가
+  }
+}
+
+// 외부 모듈 타입 추가
+declare module 'some-library' {
+  export function doSomething(): void;
+}
+```
+
+```txt
+.d.ts 파일:
+  TypeScript 타입 정보만 담은 파일 (실제 코드 없음)
+  라이브러리에 타입이 없을 때 직접 작성
+  전역 타입을 추가할 때 (Window, process.env 등)
+
+@types/ 패키지:
+  pnpm add -D @types/node       → Node.js 타입
+  pnpm add -D @types/react       → React 타입
+  → 라이브러리의 .d.ts를 담은 패키지
+```
+
+---
+
+# 자주 쓰는 패턴
+
+```typescript
+// 1. 타입 파일 따로 분리
+// types/api.ts
+export type ApiUser = { id: string; nickname: string; };
+export type ApiPost = { id: string; title: string; };
+
+// 사용처
+import type { ApiUser, ApiPost } from '@/types/api';
+
+// 2. 컴포넌트 props 타입
+// Button.tsx
+export type ButtonProps = {
+  children: React.ReactNode;
+  onClick:  () => void;
+  variant?: 'primary' | 'secondary';
+};
+export function Button({ children, onClick, variant = 'primary' }: ButtonProps) { ... }
+
+// 사용처
+import { Button }           from '@/components/Button';
+import type { ButtonProps } from '@/components/Button';  // 타입만 필요할 때
+// 또는
+import { Button, type ButtonProps } from '@/components/Button';
+
+// 3. 서드파티 타입 re-export
+import type { Transporter } from 'nodemailer';
+export type { Transporter };  // 내부 모듈에서 쓸 수 있게 재수출
 ```
