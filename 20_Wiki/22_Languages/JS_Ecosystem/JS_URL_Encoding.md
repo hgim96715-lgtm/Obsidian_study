@@ -4,6 +4,7 @@ aliases:
   - URL
   - 인코딩
   - 디코딩
+  - window.location.search
 tags:
   - JavaScript
   - NextJS
@@ -11,13 +12,14 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_Routing]]"
   - "[[NestJS_Pagination]]"
+  - "[[JS_BrowserAPI]]"
 ---
 # JS_URL_Encoding — URL 인코딩 · URLSearchParams
 
-> [!info] 
-> URL에는 특수문자(&, =, 공백, # 등)를 그대로 쓸 수 없다 — URL 구조를 깨뜨리기 때문. 
-> URLSearchParams = 쿼리스트링을 안전하게 조합하는 도구. 
-> 특수문자를 자동으로 인코딩해줘서 값에 무엇이 들어오든 URL이 올바르게 유지된다.
+>[!info]
+>URL에는 특수문자(&, =, 공백, # 등)를 그대로 쓸 수 없다 — URL 구조를 깨뜨리기 때문. 
+>`URLSearchParams` = 쿼리스트링을 안전하게 조합하거나 파싱하는 도구.
+> `window.location.search`로 현재 URL의 쿼리스트링을 읽고 URLSearchParams로 파싱한다.
 
 ---
 
@@ -274,6 +276,58 @@ function SearchComponent() {
   const q      = searchParams.get('q')      ?? '';
   const cursor = searchParams.get('cursor') ?? undefined;
 }
+```
+
+## window.location.search — 현재 URL 쿼리스트링 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 현재 URL이 /search?q=홍길동&cursor=abc&limit=20 라면
+
+window.location.search   // "?q=%ED%99%8D%EA%B8%B8%EB%8F%99&cursor=abc&limit=20"
+//                           ↑ ? 포함, 인코딩된 상태
+```
+
+```txt
+window.location.search란:
+  현재 브라우저 URL에서 ? 이후 쿼리스트링 부분을 문자열로 반환
+  인코딩된 상태 그대로 옴 → 직접 쓰면 깨진 문자열
+  → URLSearchParams에 넘겨서 파싱해야 함
+```
+
+```typescript
+// URLSearchParams로 파싱 — 자동 디코딩
+const params = new URLSearchParams(window.location.search);
+
+params.get('q')       // '홍길동'  (디코딩됨)
+params.get('cursor')  // 'abc'
+params.get('limit')   // '20'     (항상 string)
+params.get('없는키')   // null
+
+// 한 줄로 특정 파라미터만
+const id = new URLSearchParams(window.location.search).get('id')?.trim();
+//                                                              ↑ null이면 undefined
+```
+
+```typescript
+// window.location 전체 구조
+window.location.href      // "https://example.com/search?q=홍길동#top"
+window.location.origin    // "https://example.com"
+window.location.pathname  // "/search"
+window.location.search    // "?q=홍길동&cursor=abc"   ← 쿼리스트링
+window.location.hash      // "#top"                   ← 해시
+```
+
+```txt
+⚠️ SSR(Next.js) 주의:
+  window.location은 브라우저에만 있음
+  서버(SSR)에서는 ReferenceError 발생
+  → useEffect 안에서만 사용, 또는 Next.js의 useSearchParams() 훅 사용
+
+Next.js에서 쿼리 파라미터를 읽는 방법 비교:
+  Server Component  → page.tsx의 searchParams prop
+  Client Component  → useSearchParams() 훅 (Next.js)
+  순수 JS           → new URLSearchParams(window.location.search)
+                       (useEffect 안에서만, SSR 없는 환경)
 ```
 
 ## URL 직접 조합이 괜찮은 경우

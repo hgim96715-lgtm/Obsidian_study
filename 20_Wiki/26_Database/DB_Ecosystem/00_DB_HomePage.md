@@ -18,141 +18,119 @@ cssclasses:
 ---
 # 00_DB_HomePage — 데이터베이스
 
-> [!info] 
-> PostgreSQL · MySQL 실무 SQL과 공통 DB 개념을 모아두는 홈페이지
->  NestJS와 연결된 ORM/환경 설정은 [[00_NestJS_Ecosystem_HomePage]]의 데이터베이스 클러스터에, 순수 SQL 개념과 DB 내부 원리는 여기에 모이고 ,  Redis(캐시/인메모리) 계열은 같은 폴더에서 확장 예정.
-
-```txt
-왜 SQL_HomePage가 아니라 DB_HomePage인가:
-  Redis는 SQL이 아니지만 "데이터를 어디에 어떻게 저장하는가"를 다루는 건 같음
-  SQL(PostgreSQL · MySQL) → 영속 저장, 정형 데이터, 복잡한 쿼리
-  Redis                   → 인메모리, TTL, 캐시 · 세션 · rate-limiting
-  → 지금은 하나로 모아 관리하고, Redis가 많아지면 00_Redis_HomePage로 분리
-```
-
-```mermaid-beautiful
-flowchart TB
-    NEST["00_NestJS_Ecosystem_HomePage<br/>ORM · 환경 설정 — 이 폴더 밖"]
-
-    subgraph SQL["SQL 계열"]
-        PG["PostgreSQL<br/>NestJS_PostgreSQL · PG_xxx"]
-        MY["MySQL<br/>MySQL_xxx (예정)"]
-    end
-
-    subgraph COMMON["공통 DB 개념"]
-        C1["ACID · 트랜잭션"]
-        C2["인덱스 원리"]
-        C3["정규화"]
-    end
-
-    subgraph CACHE["캐시 / 인메모리 (예정)"]
-        RD["Redis<br/>Redis_xxx"]
-    end
-
-    NEST -.->|"NestJS_Prisma · NestJS_PostgreSQL"| PG
-    COMMON --> PG
-    COMMON --> MY
-    COMMON -.->|"TTL · 만료 전략"| RD
-    PG -.->|"스로틀링 Map→TTL 대체"| RD
-```
+>[!info]
+>주 DB: PostgreSQL. DDL(테이블 정의)·DML(데이터 조작)·Aggregate(집계)는 SQL의 핵심.
+> 트랜잭션·격리·패턴은 PG 전용 노트에. 
+> Prisma ORM·마이그레이션은 NestJS 폴더 → [[00_NestJS_Ecosystem_HomePage]] 🗄️ 섹션.
 
 ---
 
-# 공통 DB 개념 클러스터 ⭐️⭐️⭐️
+## 빠른 찾기
 
-```txt
-PostgreSQL이든 MySQL이든 Redis든 공통으로 알아야 하는 개념들
-특정 DB에 종속되지 않는 원리 — 먼저 개념을 잡고, 각 DB 노트에서 구체적인 문법을 봄
-```
-
-| 개념            | 노트                      | 핵심                                              |
-| ------------- | ----------------------- | ----------------------------------------------- |
-| ACID · 트랜잭션   | [[DB_Transaction]]      | BEGIN · COMMIT · ROLLBACK · Isolation Level 4단계 |
-| 인덱스 원리        | [[DB_Index]]            | B-Tree 구조 · 복합 인덱스 컬럼 순서 · 언제 안 타는가             |
-| 정규화           | [[DB_Normalization]]    | 1NF · 2NF · 3NF · 반정규화 트레이드오프                   |
-| N+1 문제        | [[DB_N_Plus_1]]         | ORM include 전략 → [[NestJS_Prisma]] 연결           |
-| 무중단 마이그레이션 패턴 | [[DB_MigrationPattern]] | Expand-Contract · 무중단 DDL · 백필 전략               |
-
-
----
-
-# PostgreSQL ⭐️⭐️⭐️⭐️
-
-## NestJS 연동 / 환경 설정 — NestJS_Ecosystem 폴더
-
-```txt
-아래 노트들은 NestJS_Ecosystem 폴더에 있지만 PostgreSQL과 직접 연결됨
-"NestJS에서 PostgreSQL을 어떻게 쓰는가"에 초점 — 순수 SQL 원리는 아래 PG_xxx 노트에 분리
-```
-
-| 노트                         | 핵심 내용                                                            |
-| -------------------------- | ---------------------------------------------------------------- |
-| [[NestJS_PostgreSQL]]      | Docker Compose · DataGrip 연결 · timestamp vs timestamptz · KST 집계 |
-| [[NestJS_Prisma]]          | Prisma ORM · migrate dev/deploy · select/include/omit · as const |
-| [[NestJS_StatsBucket]]     | GROUP BY 빈 구간 누락 문제 · 버킷 생성 → DB 집계 → 배열 변환                      |
-
-
-## 순수 PostgreSQL 개념 — 이 폴더 (DB_Ecosystem)
-
-| 노트                 | 핵심 내용                                                    |
-| ------------------ | -------------------------------------------------------- |
-| [[PG_DDL]]         | CREATE TABLE · ALTER · UNIQUE · CHECK · FK 제약            |
-| [[PG_DML]]         | SELECT · JOIN(INNER/LEFT/FULL) · 서브쿼리 · CTE(WITH)        |
-| [[PG_Aggregate]]   | GROUP BY · HAVING · 빈 구간 채우기(generate_series)            |
-| [[PG_Window]]      | ROW_NUMBER · RANK · DENSE_RANK · LAG/LEAD · PARTITION BY |
-| [[PG_Index]]       | B-Tree · GIN(JSONB) · EXPLAIN ANALYZE 읽는 법 · 복합 인덱스      |
-| [[PG_Transaction]] | BEGIN · SAVEPOINT · Isolation Level · DEADLOCK           |
-| [[PG_Types]]       | timestamp vs timestamptz · JSONB · uuid · ARRAY · ENUM   |
-| [[PG_Performance]] | EXPLAIN ANALYZE · seq scan vs index scan · 쿼리 튜닝         |
-
-```txt
-[[PG_Types]]의 timestamp vs timestamptz 원리는 [[NestJS_PostgreSQL]]에 이미 정리됨
-→ [[PG_Types]] 만들 때 역링크 추가하면 됨, 중복 작성 필요 없음
-```
-
----
-
-# MySQL ⭐️⭐️
-
-## NestJS 연동 / 환경 설정
-
-|노트|핵심 내용|
+| 찾는 것 | 노트 |
 |---|---|
-|[[MySQL_Setup]]|Docker Compose · DataGrip · charset(utf8mb4) · Prisma 연동|
+| CREATE · ALTER · DROP · 제약조건 | [[PG_DDL]] |
+| SELECT · INSERT · UPDATE · DELETE · JOIN | [[PG_DML]] |
+| COUNT · SUM · GROUP BY · 윈도우 함수 | [[PG_Aggregate]] |
+| NULL UNIQUE 함정 · ON CONFLICT · 인덱스 | [[PG_Patterns]] |
+| 트랜잭션 · 격리 수준 · DEADLOCK | [[PG_Transaction]] |
+| ACID · BASE · CAP 이론 | [[DB_Transaction]] |
+| 캐싱 · TTL · Pub/Sub | [[Redis_Patterns]] |
+| Prisma 쿼리 · migrate | → [[NestJS_Prisma]] |
 
-## 순수 MySQL 개념
+---
 
-|노트|핵심 내용|
+## 🐘 PostgreSQL — SQL
+
+| 노트 | 내용 |
 |---|---|
-|[[MySQL_vs_PG]]|PostgreSQL과 차이 — AUTO_INCREMENT · ENGINE · 대소문자 민감도 · JSON|
-|[[MySQL_DML]]|MySQL 특유 문법 · LIMIT · ON DUPLICATE KEY UPDATE · GROUP_CONCAT|
-|[[MySQL_Index]]|InnoDB B-Tree · EXPLAIN · 복합 인덱스 · covering index|
-|[[MySQL_Transaction]]|InnoDB 락 · MVCC · Isolation Level(MySQL 기본: REPEATABLE READ)|
+| [[PG_DDL]] | CREATE TABLE · ALTER · DROP · 제약조건 · 인덱스 DDL |
+| [[PG_DML]] | SELECT · INSERT · UPDATE · DELETE · JOIN · 서브쿼리 |
+| [[PG_Aggregate]] | COUNT · SUM · AVG · GROUP BY · HAVING · 윈도우 함수 |
 
 ```txt
-PostgreSQL을 먼저 깊게 파고, MySQL은 "PG와 어디가 다른가" 관점으로 보는 게 효율적임
-[[MySQL_vs_PG]]를 먼저 만들고, 차이가 있는 부분만 별도 노트로 분리
+PG_DDL (Data Definition Language) — 구조 정의:
+  CREATE TABLE — 컬럼 타입 · NOT NULL · DEFAULT · PRIMARY KEY
+  ALTER TABLE  — 컬럼 추가/삭제/타입 변경
+  DROP TABLE   — 테이블 삭제
+  제약조건      — UNIQUE · CHECK · FOREIGN KEY · ON DELETE CASCADE
+  인덱스 DDL   — CREATE INDEX · UNIQUE INDEX · Partial Index
+
+PG_DML (Data Manipulation Language) — 데이터 조작:
+  SELECT      — WHERE · ORDER BY · LIMIT · OFFSET
+  JOIN        — INNER · LEFT · RIGHT · FULL OUTER
+  INSERT      — 단건 · 다건 · ON CONFLICT
+  UPDATE      — SET · WHERE · FROM
+  DELETE      — WHERE · RETURNING
+  서브쿼리     — IN · EXISTS · 스칼라 서브쿼리
+
+PG_Aggregate — 집계:
+  COUNT · SUM · AVG · MIN · MAX
+  GROUP BY · HAVING
+  윈도우 함수 — ROW_NUMBER · RANK · LAG · LEAD · OVER(PARTITION BY)
+  DISTINCT · FILTER
 ```
 
 ---
 
-# Redis / 캐시 · 인메모리 — 예정 ⭐️
+## 🐘 PostgreSQL — 고급
 
-```txt
-현재 노트 없음 — 아래 주제가 생기면 여기에 추가
-지금도 NestJS에서 Redis 패턴이 언급되는 부분은 각 노트에 cross-reference로 연결됨
-```
-
-|노트|핵심 내용|
+| 노트 | 내용 |
 |---|---|
-|[[Redis_Basics]]|데이터 구조 — String · List · Set · Hash · Sorted Set · TTL|
-|[[Redis_Pattern]]|캐시 · 세션 · rate-limiting · Pub/Sub · 캐시 무효화 전략|
-|[[Redis_NestJS]]|ioredis · @nestjs/cache-manager · NestJS에서 연동|
+| [[PG_Patterns]] | NULL UNIQUE · ON CONFLICT · RETURNING · 인덱스 전략 · EXPLAIN |
+| [[PG_Transaction]] | BEGIN/COMMIT · 격리 수준 · DEADLOCK · SAVEPOINT · FOR UPDATE |
 
 ```txt
-Redis와 이미 연결된 NestJS 노트:
-  스로틀링 Map → Redis TTL 대체 시점    → [[NestJS_Throttle]] "스케일아웃 한계" 섹션
-  세션/토큰 블랙리스트                   → [[Auth_Concept]] (예정)
+PG_Patterns:
+  UNIQUE + NULL 함정 — NULL끼리 중복 허용되는 이유 · 센티넬 값(-1)으로 해결
+  ON CONFLICT — upsert (없으면 INSERT, 있으면 UPDATE · DO NOTHING)
+  RETURNING   — INSERT/UPDATE/DELETE 결과 즉시 반환 (추가 SELECT 불필요)
+  인덱스 전략  — 복합 인덱스 순서 · Partial Index · 언제 만드는가
+  EXPLAIN ANALYZE — Seq Scan vs Index Scan · 실행 계획 읽는 법
+
+PG_Transaction:
+  격리 수준   — READ COMMITTED(기본) · REPEATABLE READ · SERIALIZABLE
+  DEADLOCK   — 자동 감지 · 예방 원칙 (항상 같은 순서로 잠금)
+  MVCC       — 읽기-쓰기 비충돌 동작 원리
+  SAVEPOINT  — 부분 롤백 패턴
+  FOR UPDATE — 배타적 잠금 · SKIP LOCKED (작업 큐 패턴)
 ```
 
 ---
+
+## 📚 DB 이론
+
+| 노트 | 내용 |
+|---|---|
+| [[DB_Transaction]] | ACID · BASE · CAP 이론 · 트랜잭션 개념 · 격리 수준 이론 |
+
+```txt
+DB_Transaction:
+  ACID — 원자성(Atomicity) · 일관성(Consistency) · 격리성(Isolation) · 영속성(Durability)
+  BASE — 분산 DB에서 완화된 일관성 (Basically Available · Soft state · Eventually consistent)
+  CAP  — Consistency · Availability · Partition tolerance 중 2가지만 보장
+  격리 수준 이론 — Dirty Read · Non-Repeatable Read · Phantom Read
+
+→ PostgreSQL에서의 실제 적용 → [[PG_Transaction]]
+```
+
+---
+
+## 🔴 Redis
+
+| 노트 | 내용 |
+|---|---|
+| [[Redis_Patterns]] | String · Hash · List · Set · Sorted Set · TTL · 캐싱 · Pub/Sub |
+
+---
+
+## 🔗 Prisma ORM · 마이그레이션
+
+```txt
+Prisma는 NestJS 폴더에서 관리 (NestJS와 함께 쓰는 ORM이므로)
+
+Prisma 쿼리 레퍼런스     → [[NestJS_Prisma]]
+where 조립 · 토글 패턴   → [[NestJS_Prisma_Patterns]]
+migrate 명령어           → [[NestJS_Migration]]
+$transaction            → [[NestJS_Transaction]]
+```

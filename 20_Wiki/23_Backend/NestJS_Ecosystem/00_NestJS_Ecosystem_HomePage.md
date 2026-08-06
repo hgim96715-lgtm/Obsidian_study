@@ -115,7 +115,7 @@ WebSocket_Patterns  서버+클라이언트 코드 나란히 — 연결·룸·브
 | |노트|
 |---|---|
 |**Prisma**|[[NestJS_Prisma]] · [[NestJS_Prisma_Patterns]]|
-|**PostgreSQL**|[[NestJS_PostgreSQL]]|
+|**PostgreSQL**|[[PG_Transaction]] · [[PG_Patterns]]|
 |**통계**|[[NestJS_StatsBucket]]|
 |**마이그레이션**|[[NestJS_Migration]]|
 |**트랜잭션**|[[NestJS_Transaction]]|
@@ -126,6 +126,8 @@ WebSocket_Patterns  서버+클라이언트 코드 나란히 — 연결·룸·브
 NestJS_Prisma          레퍼런스 — CRUD · where · select/include · Prisma.XxxWhereInput · 중첩 where
 NestJS_Prisma_Patterns 패턴 — 조건부 where 조립 · 관계 필터 · 원자적 업데이트 · 토글 · 복합 커서
 NestJS_Migration       설치 · 반복 루프 · migrate 명령 전체 (dev/deploy/reset/seed)
+PG_Transaction         격리 수준 · DEADLOCK · SAVEPOINT · FOR UPDATE
+PG_Patterns            NULL UNIQUE 함정 · ON CONFLICT(upsert) · RETURNING · 인덱스 · EXPLAIN
 NestJS_StatsBucket     통계 집계 → [[React_Charts]]와 연결
 00_DB_HomePage         순수 SQL · MySQL · Redis
 ```

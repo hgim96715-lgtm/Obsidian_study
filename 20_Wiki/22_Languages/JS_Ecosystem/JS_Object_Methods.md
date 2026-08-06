@@ -8,6 +8,7 @@ aliases:
   - entries
   - keys
   - fromEntries
+  - O(1) vs O(n) — 탐색 속도 차이
 tags:
   - JavaScript
 related:
@@ -208,6 +209,47 @@ cache[userId] = user;
 // ✅ Map — 더 명확하고 안전
 const cache = new Map<string, User>();
 cache.set(userId, user);
+```
+
+## O(1) vs O(n) — 탐색 속도 차이 ⭐️⭐️⭐️⭐️
+
+```txt
+O(Big O) = 데이터가 늘어날 때 작업 시간이 얼마나 늘어나는가
+
+O(1) — 상수 시간:
+  데이터가 100개든 100만 개든 걸리는 시간이 같음
+  Map.get(key) → 키를 직접 해시로 계산해서 즉시 찾음
+
+O(n) — 선형 시간:
+  데이터가 n개이면 최악의 경우 n번 확인
+  Array.find() → 앞에서부터 하나씩 비교하며 찾음
+
+실제 차이:
+  데이터 100개  → find() 최대 100번 비교, Map.get() 1번
+  데이터 100만 개 → find() 최대 100만 번 비교, Map.get() 1번
+```
+
+```typescript
+const users = [/* 100만 개 */];
+
+// O(n) — 매번 처음부터 찾음
+users.find(u => u.id === targetId);   // 100만 번 비교할 수 있음
+
+// O(1) — 키로 즉시 찾음
+const userMap = new Map(users.map(u => [u.id, u]));
+userMap.get(targetId);   // 항상 1번 (해시 계산)
+```
+
+```txt
+Map이 O(1)인 이유 — 해시 테이블:
+  key를 해시 함수로 계산 → 값이 있는 위치(주소)를 바로 계산
+  "홍길동"을 찾으려면 → 해시("홍길동") → 위치 → 즉시 반환
+  몇 개가 있든 이 계산 과정은 동일
+
+배열이 O(n)인 이유:
+  순서대로 저장된 것들을 앞에서부터 하나씩 비교
+  운 좋으면 첫 번째에서 찾고, 운 나쁘면 마지막에서 찾음
+  평균적으로 n/2번 비교
 ```
 
 ## ID 인덱싱 패턴 — 빠른 탐색 테이블 ⭐️⭐️⭐️⭐️

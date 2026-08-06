@@ -43,6 +43,7 @@ Intl.NumberFormat     숫자·통화 포맷
   'en-US'  영어 / 미국
   'ja-JP'  일본어 / 일본
   'de-DE'  독일어 / 독일
+  'sv-SE'  스웨덴어 / 스웨덴  ← 날짜가 YYYY-MM-DD HH:mm:ss 형태라 로그·타임스탬프에 활용
 
 Intl의 모든 클래스는 첫 번째 인자로 로케일을 받음
 로케일을 생략하면 브라우저/시스템의 기본 설정을 따름
@@ -216,6 +217,62 @@ new Intl.NumberFormat('ko-KR', { style: 'percent' }).format(0.857)
 ```
 
 ---
+# sv-SE 트릭 — 타임존 적용된 읽기 좋은 날짜 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 처음 보면 의아한 코드 — 왜 스웨덴어 로케일?
+new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Seoul',
+  year:   'numeric',
+  month:  '2-digit',
+  day:    '2-digit',
+  hour:   '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+}).format(new Date())
+// "2024-01-15 02:30:00"
+```
+
+```txt
+sv-SE (스웨덴 로케일)를 쓰는 이유:
+  sv = 스웨덴어(Swedish), SE = 스웨덴(Sweden) → 로케일 코드 형식: 언어-국가
+  로케일 코드 개념 → 위 "로케일(locale)이란" 섹션 참고
+
+  스웨덴 날짜 형식이 "YYYY-MM-DD HH:mm:ss" 형태
+  = 사람이 읽기 좋은 ISO 8601 형식과 동일
+
+  toISOString()과의 차이:
+    toISOString()       → "2024-01-15T02:30:00.000Z"  (항상 UTC, T와 Z 포함)
+    sv-SE + timeZone    → "2024-01-15 02:30:00"         (지정 타임존 기준, 공백 구분)
+
+  왜 유용한가:
+    로그에 남길 때, ops 메일에 넣을 때, DB에 사람이 읽는 형태로 저장할 때
+    한국 시간 기준으로 "2024-01-15 02:30:00" 형태를 원하면 sv-SE + KST가 가장 간단
+```
+
+```typescript
+// 유틸 함수로 만들어두면 편함
+const KST = 'Asia/Seoul';
+
+export function formatKstDateTime(date = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: KST,
+    year:   'numeric',
+    month:  '2-digit',
+    day:    '2-digit',
+    hour:   '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+// formatKstDateTime() → "2024-01-15 02:30:00"
+
+// 날짜만 필요하면 slice
+formatKstDateTime().slice(0, 10)  // "2024-01-15"
+```
+---
 
 # 자주 쓰는 유틸 함수 정리
 
@@ -265,3 +322,5 @@ function formatCurrency(amount: number, currency = 'KRW'): string {
   // "₩50,000"
 }
 ```
+
+---

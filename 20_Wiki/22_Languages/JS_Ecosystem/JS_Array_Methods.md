@@ -7,6 +7,8 @@ aliases:
   - map
   - reduce
   - Set
+  - sort
+  - localcompare
 tags:
   - JavaScript
 related:
@@ -417,6 +419,63 @@ messages.sort((a, b) =>
 // 문자열 (한국어 포함)
 names.sort((a, b) => a.localeCompare(b, 'ko'));  // 오름차순
 ```
+
+
+## localeCompare — 문자열 비교 ⭐️⭐️⭐️⭐️
+
+```typescript
+'apple'.localeCompare('banana')     // -1  (apple이 banana보다 앞)
+'banana'.localeCompare('apple')     // 1   (banana가 apple보다 뒤)
+'apple'.localeCompare('apple')      // 0   (같음)
+
+// sort와 조합
+names.sort((a, b) => a.localeCompare(b, 'ko'))  // 오름차순 (가나다순)
+names.sort((a, b) => b.localeCompare(a, 'ko'))  // 내림차순
+```
+
+```txt
+localeCompare란:
+  두 문자열을 비교해서 -1 · 0 · 1을 반환
+  sort의 비교 함수가 기대하는 음수/0/양수를 그대로 반환
+  → sort((a, b) => a.localeCompare(b))로 바로 사용 가능
+
+왜 a - b 대신 localeCompare를 쓰는가:
+  a - b는 숫자에서만 작동
+  문자열을 < > 로 비교하면 유니코드 코드 포인트 순서 → 한글·특수문자가 이상하게 정렬됨
+  localeCompare는 언어 규칙에 맞게 비교 (한국어는 'ko')
+
+두 번째 인자 로케일:
+  a.localeCompare(b)        → 브라우저/시스템 언어 기준
+  a.localeCompare(b, 'ko')  → 한국어 정렬 규칙 (가나다순)
+  a.localeCompare(b, 'en')  → 영어 정렬 규칙 (abc순)
+```
+
+## ISO 날짜 문자열 정렬 — localeCompare ⭐️⭐️⭐️⭐️
+
+```typescript
+// "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ss.sssZ" 형식은
+// 문자열 사전순 = 날짜 순서가 일치
+
+messages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+//                       ↑ b가 앞 → 최신순 (내림차순)
+
+messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+//                       ↑ a가 앞 → 오래된 순 (오름차순)
+```
+
+```txt
+b.createdAt.localeCompare(a.createdAt) 읽는 법:
+  localeCompare는 "호출한 것 vs 인자"를 비교
+  b.localeCompare(a) → b가 a보다 크면(최신이면) 양수 → b가 앞 → 최신순
+
+  new Date().getTime() 방식과의 차이:
+    getTime() 방식  → Date 객체를 두 번 생성 → 약간 느림
+    localeCompare   → 문자열 직접 비교 → 더 빠름
+
+  단, ISO 형식이 아닌 날짜 문자열 ("2024년 1월 15일" 등)은 localeCompare로 정렬 불가
+  → 반드시 "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ssZ" 형식이어야 함
+```
+
 
 ## 다중 조건 정렬 ⭐️⭐️⭐️⭐️
 

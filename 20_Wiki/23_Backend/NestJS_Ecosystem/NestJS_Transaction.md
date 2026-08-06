@@ -243,7 +243,7 @@ return this.prisma.$transaction(async (tx) => {
 
 # 배치 vs 인터랙티브 — 선택 기준 ⭐️⭐️⭐️
 
-||배치 `$transaction([...])`|인터랙티브 `$transaction(async tx => {})`|
+| |배치 `$transaction([...])`|인터랙티브 `$transaction(async tx => {})`|
 |---|---|---|
 |작업 간 의존성|없음|있음 (앞 결과로 뒤를 결정)|
 |조건 분기|불가|가능|

@@ -242,17 +242,17 @@ async remove() {
 
 ## 자주 쓰는 상태 코드 ⭐️⭐️⭐️⭐️
 
-|상황|코드|HttpStatus|
-|---|---|---|
-|조회 성공|200|`HttpStatus.OK`|
-|생성 성공|201|`HttpStatus.CREATED`|
-|삭제·처리 완료 (body 없음)|204|`HttpStatus.NO_CONTENT`|
-|요청 형식 오류|400|`HttpStatus.BAD_REQUEST`|
-|인증 안 됨 (로그인 필요)|401|`HttpStatus.UNAUTHORIZED`|
-|권한 없음 (로그인 했지만 거부)|403|`HttpStatus.FORBIDDEN`|
-|리소스 없음|404|`HttpStatus.NOT_FOUND`|
-|중복·충돌|409|`HttpStatus.CONFLICT`|
-|서버 에러|500|`HttpStatus.INTERNAL_SERVER_ERROR`|
+| 상황                 | 코드  | HttpStatus                         |
+| ------------------ | --- | ---------------------------------- |
+| 조회 성공              | 200 | `HttpStatus.OK`                    |
+| 생성 성공              | 201 | `HttpStatus.CREATED`               |
+| 삭제·처리 완료 (body 없음) | 204 | `HttpStatus.NO_CONTENT`            |
+| 요청 형식 오류           | 400 | `HttpStatus.BAD_REQUEST`           |
+| 인증 안 됨 (로그인 필요)    | 401 | `HttpStatus.UNAUTHORIZED`          |
+| 권한 없음 (로그인 했지만 거부) | 403 | `HttpStatus.FORBIDDEN`             |
+| 리소스 없음             | 404 | `HttpStatus.NOT_FOUND`             |
+| 중복·충돌              | 409 | `HttpStatus.CONFLICT`              |
+| 서버 에러              | 500 | `HttpStatus.INTERNAL_SERVER_ERROR` |
 
 ```txt
 기본값:

@@ -159,14 +159,14 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 
 ## 📅 날짜 · 문자열 · 유틸
 
-| 노트 | 내용 |
-|---|---|
-| [[JS_Date]] | Date 객체 내부(ms) · 계산 · 비교 · 타임존 주의 |
-| [[JS_JSON]] | stringify · parse · unknown 패턴 |
-| [[JS_WebStorage]] | localStorage · sessionStorage · Set 직렬화 |
-| [[JS_Intl]] | DateTimeFormat · 상대시간("5분 전") · NumberFormat · 통화 |
-| [[JS_Regex]] | test · match · 캡처그룹 · 시간 파싱 |
-| [[JS_URL_Encoding]] | encodeURIComponent · new URL · URLSearchParams |
+| 노트                | 내용                                                      |
+| ------------------- | --------------------------------------------------------- |
+| [[JS_Date]]         | Date 객체 내부(ms) · 계산 · 비교 · 타임존 주의            |
+| [[JS_Intl]]         | DateTimeFormat · 상대시간("5분 전") · NumberFormat · 통화 |
+| [[JS_JSON]]         | stringify · parse · unknown 패턴                          |
+| [[JS_WebStorage]]   | localStorage · sessionStorage · Set 직렬화                |
+| [[JS_Regex]]        | test · match · 캡처그룹 · 시간 파싱                       |
+| [[JS_URL_Encoding]] | encodeURIComponent · new URL · URLSearchParams            |
 
 ---
 

@@ -3,10 +3,7 @@ aliases:
   - Date 객체
   - format
   - ISO
-  - JavaScript Date
-  - JS 날짜
-  - parseYmd
-  - toLocaleDateString
+  - toISOString()
 tags:
   - JavaScript
 related:

@@ -5,6 +5,7 @@ aliases:
   - force=false
   - Early Return
   - 내부 함수 추출
+  - 화살표 함수 암시적 반환
 tags:
   - JavaScript
 related:
@@ -16,9 +17,10 @@ related:
 ---
 # JS_FunctionPatterns — 함수 설계 패턴
 
-> [!info] 
-> 여러 곳에서 반복되는 함수 설계 패턴 모음. 
-> 옵션 객체(`{ force = false }`), 조기 반환(early return), async 래퍼 등 문법이 아닌 "어떻게 구성할 것인가"의 패턴들.
+>[!info]
+>함수 설계 패턴 모음. 
+>옵션 객체, 조기 반환, async 래퍼, 화살표 함수 암시적 반환(`=>{}` vs `=>`) 등. 
+>중괄호 없으면 자동 return, 중괄호 있으면 return 키워드 필수 — map 콜백에서 자주 실수.
 
 ---
 
@@ -193,14 +195,15 @@ runAction이 적합한 경우:
   대상별 pending id를 각자 관리해야 할 때
   → [[React_AsyncUI]] 이벤트 핸들러 섹션 참고
 ```
+
 ---
+
 # 내부 함수 추출 — 즉시 실행 vs 참조로 전달 ⭐️⭐️⭐️⭐️
 
 ```txt
 같은 코드를 두 가지 시점에 실행해야 할 때
 내부 함수로 추출하면 중복 없이 두 경우 모두 처리 가능
 ```
-
 
 ```typescript
 // ❌ 내부 함수 없이 — 같은 코드가 두 번 반복
@@ -234,7 +237,6 @@ execute     → 소괄호 없음 → "나중에 실행할 함수를 참조로 �
 ```
 
 ## 실전 예 — WebSocket 연결 대기
-
 
 ```typescript
 // 연결이 됐으면 지금 emit, 아직이면 연결 완료 후 emit
@@ -270,4 +272,107 @@ if (isApiReady) {
   JavaScript에서 함수는 일급 객체 — 변수에 담거나, 인자로 넘기거나, 반환할 수 있음
   execute 처럼 이름을 붙여두면 여러 곳에서 참조로 전달 가능
   → [[JS_Promise]] 비동기 흐름과 같이 자주 나오는 패턴
+```
+
+---
+
+# 화살표 함수 암시적 반환 — 중괄호 유무 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 중괄호 없음 — 암시적 반환 (expression이 자동으로 return됨)
+const double = (x: number) => x * 2;
+//                            ↑ 자동으로 return
+
+// 중괄호 있음 — 명시적 반환 (return 키워드 필수)
+const double = (x: number) => {
+  return x * 2;  // return 없으면 undefined 반환
+};
+
+// 중괄호 있는데 return 빠진 경우 ❌
+const double = (x: number) => {
+  x * 2;  // return 없음 → undefined 반환 (계산 결과가 버려짐)
+};
+```
+
+```txt
+중괄호의 의미:
+  {} 없음 → "=> 뒤의 식(expression) 하나를 바로 반환"
+  {} 있음 → "함수 본문 블록 시작, return을 직접 써야 값 반환"
+
+  이 차이가 map, filter 등 콜백에서 가장 자주 문제가 됨
+```
+
+## map에서의 함정 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ✅ 중괄호 없음 — upsert Promise가 자동 반환됨
+await this.prisma.$transaction(
+  rows.map(({ metric, count }) =>
+    this.prisma.snapshot.upsert({ ... })  // 자동으로 return
+  )
+);
+// $transaction에 Promise[]가 전달됨
+
+// ❌ 중괄호 있는데 return 없음
+await this.prisma.$transaction(
+  rows.map(({ metric, count }) => {
+    this.prisma.snapshot.upsert({ ... })  // return 없음 → undefined
+  })
+);
+// $transaction에 undefined[]가 전달됨 → 오류!
+```
+
+```txt
+이 실수가 발생하는 이유:
+  "중괄호 = 함수 본문"이라는 건 알지만
+  "중괄호 없음 = 자동 return"이라는 것을 잊어버림
+
+  중괄호를 쓰고 싶다면 반드시 return 추가:
+  rows.map(({ metric, count }) => {
+    return this.prisma.snapshot.upsert({ ... });
+  })
+```
+
+## 객체를 반환할 때 추가 주의 ⭐️⭐️⭐️
+
+```typescript
+// ❌ 객체 리터럴의 {}가 함수 블록으로 해석됨
+const toObj = (x: number) => { value: x };
+//                             ↑ 함수 블록으로 해석 → undefined 반환
+
+// ✅ 객체를 암시적 반환하려면 소괄호로 감싸기
+const toObj = (x: number) => ({ value: x });
+//                             ↑ 객체 리터럴임을 명시
+
+// 실전
+items.map(item => ({
+  id:    item.id,
+  label: item.name,
+}));
+```
+
+```txt
+({ ... }) 패턴:
+  소괄호로 감싸면 "이건 블록이 아니라 객체야"라고 JS에게 알림
+  map, reduce에서 객체를 반환할 때 필수
+```
+
+## 한눈에 비교
+
+```typescript
+// ① 암시적 반환 — 단일 식
+x => x * 2
+x => fetch(url)                   // Promise 반환
+x => ({ id: x.id, name: x.name }) // 객체 반환 (소괄호 필요)
+
+// ② 명시적 반환 — 블록 본문
+x => {
+  const result = x * 2;
+  return result;     // ← 필수
+}
+
+// ③ 흔한 실수 — return 없는 블록
+x => {
+  x * 2;             // ← 계산은 하지만 반환 안 함 → undefined
+}
 ```
