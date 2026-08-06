@@ -1,13 +1,8 @@
 ---
 aliases:
-  - includes
-  - indexOf
-  - Math
-  - Number
-  - padStart
-  - slice
   - String
-  - toFixed
+  - Number
+  - Math
 tags:
   - JavaScript
 related:
@@ -94,6 +89,9 @@ slice vs substring:
   slice(-3)     → 뒤에서 3번째 (음수 지원)
   substring(0, -3) → 음수는 0으로 처리
   → slice를 쓰는 게 대부분 더 직관적
+
+배열에도 slice가 있음 — thread.slice(1), arr.slice(0, N)
+→ [[JS_Array_Methods]] # slice 섹션
 ```
 
 ## 변환

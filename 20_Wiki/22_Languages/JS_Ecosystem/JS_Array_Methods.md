@@ -1,7 +1,5 @@
 ---
 aliases:
-  - array methods
-  - Array.from
   - filter
   - forEach
   - map
@@ -9,18 +7,25 @@ aliases:
   - Set
   - sort
   - localcompare
+  - ReadonlySet
+  - find
+  - slice
+  - splice
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Object_Methods]]"
+  - "[[JS_Primitive_Methods]]"
 ---
-# JS_Array_Methods — 배열 메서드
+# JS_Array_Methods — 배열 메서드 · Set
 
-> [!info] 
-> 배열 메서드 = 함수를 인자로 받아, 그 함수를 각 요소에 실행하는 것.
->  `filter` · `map` · `some` · `find` — 전부 이 하나의 구조다.
->  Set은 중복 없는 값의 모음으로 배열과 자주 함께 쓰인다.
+>[!info]
+>배열 메서드 = 함수를 인자로 받아 각 요소에 실행하는 것. 
+>`filter` · `map` · `some` · `find` — 전부 이 하나의 구조다.
+> `sort`는 비교 함수의 반환값(음수/0/양수)으로 순서를 결정하며, 문자열·날짜 정렬엔 `localeCompare`를 쓴다. 
+> `slice(1)` · `slice(0, N)` · `slice(-N)`으로 배열 일부를 추출한다. 
+> Set은 중복 없는 값의 모음 — `ReadonlySet<T>`으로 읽기 전용을 표현한다.
 
 ---
 
@@ -232,6 +237,62 @@ nested.flat(2);  // 2단계 중첩까지 펼치기
 
 ---
 
+# slice — 배열 일부 추출 ⭐️⭐️⭐️⭐️
+
+```typescript
+const arr = ['a', 'b', 'c', 'd', 'e'];
+//           [0]  [1]  [2]  [3]  [4]
+
+arr.slice(1)       // ['b', 'c', 'd', 'e']  — 1번 인덱스부터 끝까지
+arr.slice(1, 3)    // ['b', 'c']             — 1번부터 3번 앞까지 (3 미포함)
+arr.slice(0, 3)    // ['a', 'b', 'c']        — 처음 3개
+arr.slice(-2)      // ['d', 'e']             — 뒤에서 2개
+arr.slice(0, -1)   // ['a', 'b', 'c', 'd']  — 마지막 제외
+```
+
+```txt
+slice(start, end):
+  start → 시작 인덱스 (포함)
+  end   → 끝 인덱스 (미포함) — 생략하면 끝까지
+  음수  → 뒤에서부터 (-1 = 마지막)
+
+  원본 배열을 바꾸지 않음 → 새 배열 반환 (안전)
+```
+
+## 자주 쓰는 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 첫 번째 요소 제외 (나머지만)
+const replies = thread.slice(1);
+// thread = [원글, 답글1, 답글2, ...]
+// replies = [답글1, 답글2, ...]  (인덱스 0 제거)
+
+// 처음 N개만
+const preview = thread.slice(0, REPLY_PREVIEW_COUNT);
+// REPLY_PREVIEW_COUNT = 3 → 앞에서 3개
+
+// 마지막 N개만
+const recent = messages.slice(-5);  // 최근 5개
+
+// 배열 전체 복사 (원본 변경 방지)
+const copy = arr.slice();   // [...arr]과 동일
+```
+
+```txt
+slice(1) 읽는 법:
+  "인덱스 1번부터 끝까지"
+  = 첫 번째 요소(인덱스 0)를 건너뛰고 나머지
+
+  thread[0] = 원글, thread[1]~ = 답글들 구조라면:
+  thread.slice(1) = 답글들만 추출
+
+splice와 헷갈리지 말 것:
+  slice  → 원본 변경 없음, 새 배열 반환 (안전)
+  splice → 원본을 직접 변경 (React state에서 쓰면 안 됨)
+```
+
+---
+
 # React state에서 배열 다루기 ⭐️⭐️⭐️⭐️
 
 ## 불변성 — setState 안에서 원본 변경 금지
@@ -420,7 +481,6 @@ messages.sort((a, b) =>
 names.sort((a, b) => a.localeCompare(b, 'ko'));  // 오름차순
 ```
 
-
 ## localeCompare — 문자열 비교 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -476,8 +536,26 @@ b.createdAt.localeCompare(a.createdAt) 읽는 법:
   → 반드시 "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ssZ" 형식이어야 함
 ```
 
-
 ## 다중 조건 정렬 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 방장을 항상 앞에, 나머지는 입장 시각 순
+members.sort((a, b) => {
+  if (a.role === 'owner' && b.role !== 'owner') return -1;  // a 앞
+  if (b.role === 'owner' && a.role !== 'owner') return 1;   // b 앞
+  return a.joinedAt - b.joinedAt;  // 둘 다 같은 역할 → 시각 순
+});
+```
+
+```txt
+다중 조건 정렬 읽는 법:
+  return -1 → a, b 순서 그대로 (a 앞)
+  return 1  → b, a로 바꿈 (b 앞)
+  마지막 return → 1차 조건이 같을 때 2차 기준으로 결정
+
+⚠️ sort는 원본 배열을 직접 바꿈
+  React state에서는 [...prev].sort(...)로 복사 후 정렬
+```
 
 ```typescript
 // 방장을 항상 앞에, 나머지는 입장 시각 순
@@ -637,6 +715,53 @@ const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 return items.map(item => (
   <Item key={item.id} isSelected={selectedSet.has(item.id)} />
 ));
+```
+
+## Set TypeScript 타입 — Set\<T\> · ReadonlySet\<T\> ⭐️⭐️⭐️⭐️
+
+```typescript
+// Set<T> — 일반 Set, 추가·삭제 가능
+const roomIds = new Set<string>();
+roomIds.add('room-1');     // ✅
+roomIds.delete('room-1'); // ✅
+
+// ReadonlySet<T> — 읽기 전용, 추가·삭제 불가
+const expandedIds: ReadonlySet<string> = new Set(['id-1', 'id-2']);
+expandedIds.has('id-1');   // ✅ 읽기는 가능
+expandedIds.add('id-3');   // ❌ TypeScript 에러 — 수정 불가
+```
+
+```txt
+ReadonlySet<T>란:
+  Set의 읽기 전용 버전 — has()·size·순회는 가능, add()·delete()·clear()는 불가
+  "이 Set을 받은 쪽에서는 수정하면 안 된다"를 타입으로 표현
+
+언제 ReadonlySet을 쓰는가:
+  함수의 인자로 Set을 받을 때 — "이 함수는 Set을 수정하지 않는다"는 계약
+  Context나 props로 Set을 전달할 때 — 받는 쪽이 원본을 바꾸는 것을 막음
+
+  function visibleCommentIds(
+    flat: ApiComment[],
+    expandedRootIds: ReadonlySet<string>,  // ← 이 함수 안에서 expandedRootIds를 수정 안 함
+  ): Set<string> { ... }
+  // 반환은 Set<string> — 호출한 쪽에서 자유롭게 수정 가능
+```
+
+```typescript
+// Set<T> → ReadonlySet<T> 할당 가능 (더 좁은 → 더 넓은 타입)
+const mutable = new Set<string>(['a', 'b']);
+const readonly: ReadonlySet<string> = mutable;  // ✅ OK
+
+// ReadonlySet<T> → Set<T> 불가 (더 넓은 → 더 좁은)
+const readonly2: ReadonlySet<string> = new Set(['a']);
+const mutable2: Set<string> = readonly2;  // ❌ 에러 — 강제 변환 필요
+```
+
+```txt
+함수 인자 타입 선언 요령:
+  인자로 받은 Set을 수정하지 않는다면 → ReadonlySet<T>
+  인자로 받은 Set에 값을 추가해야 한다면 → Set<T>
+  반환 타입은 호출한 쪽에서 수정 여부에 따라 결정
 ```
 
 ---

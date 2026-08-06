@@ -4,6 +4,8 @@ aliases:
   - children
   - ReactNode
   - 이벤트타입
+  - Fragment
+  - Ref
 tags:
   - React
 related:
@@ -11,13 +13,13 @@ related:
   - "[[TS_Generics]]"
   - "[[TS_Type_Guards]]"
 ---
-
 # React_Types — React TypeScript 타입
 
-> [!info] 
-> React 컴포넌트에서 자주 쓰는 TypeScript 타입 모음.
->  `children?: ReactNode`, 이벤트 타입(`ChangeEvent`, `MouseEvent`), Ref 타입, 컴포넌트 타입 등. 
->  순수 TypeScript 타입 → [[TS_Generics]] · [[TS_Type_Guards]]
+>[!info]
+>React 컴포넌트에서 자주 쓰는 TypeScript 타입 모음. 
+>`children?: ReactNode`, 이벤트 타입(`ChangeEvent`, `MouseEvent`), Ref 타입, 컴포넌트 타입. 
+>`<Fragment key={id}>`는 map() 렌더링에서 DOM 노드 없이 key를 붙일 때 사용. 
+>순수 TypeScript 타입 → [[TS_Generics]] · [[TS_Type_Guards]]
 
 ---
 
@@ -249,4 +251,110 @@ React.FC를 잘 안 쓰는 이유:
   children을 자동으로 포함했지만 React 18부터 제거됨
   제네릭 컴포넌트 작성이 불편함
   → 그냥 함수 선언 방식이 더 유연
+```
+
+---
+
+# Fragment — 불필요한 DOM 없이 여러 요소 반환 ⭐️⭐️⭐️⭐️
+
+```tsx
+// ❌ React 컴포넌트는 하나의 루트 요소를 반환해야 함
+function Component() {
+  return (
+    <h1>제목</h1>
+    <p>내용</p>   // ❌ 에러
+  );
+}
+
+// ❌ div로 감싸면 불필요한 DOM 노드 생성
+function Component() {
+  return (
+    <div>   // ← 레이아웃에 영향을 줄 수 있는 불필요한 div
+      <h1>제목</h1>
+      <p>내용</p>
+    </div>
+  );
+}
+
+// ✅ Fragment — DOM 노드 없이 여러 요소를 하나로 묶음
+function Component() {
+  return (
+    <>
+      <h1>제목</h1>
+      <p>내용</p>
+    </>
+  );
+}
+```
+
+```txt
+Fragment란:
+  "여러 JSX 요소를 묶지만 실제 DOM에는 아무것도 추가하지 않는 것"
+  React는 하나의 루트 요소 반환 규칙이 있음
+  div로 감싸면 HTML 구조가 지저분해지거나 flex/grid가 깨질 수 있음
+  → Fragment로 감싸면 DOM에 흔적 없이 규칙 충족
+```
+
+## `<>` 단축형 vs `<Fragment>` ⭐️⭐️⭐️⭐️
+
+```tsx
+import { Fragment } from 'react';
+
+// <> 단축형 — 대부분의 경우
+function Simple() {
+  return (
+    <>
+      <dt>이름</dt>
+      <dd>홍길동</dd>
+    </>
+  );
+}
+
+// <Fragment key={...}> — key가 필요한 경우에만
+function List({ comments }: { comments: Comment[] }) {
+  return (
+    <>
+      {comments.map(comment => (
+        <Fragment key={comment.id}>   {/* key를 붙여야 해서 Fragment 사용 */}
+          <CommentItem comment={comment} />
+          <CommentDivider />
+        </Fragment>
+      ))}
+    </>
+  );
+}
+```
+
+```txt
+<> 와 <Fragment>의 차이:
+
+  <>...</>       → props 없음 (key 포함) — 대부분 이걸 씀
+  <Fragment>     → key prop 붙일 수 있음
+
+key가 필요한 이유:
+  map()으로 목록을 렌더링할 때 React가 각 항목을 추적하기 위해 필요
+  <div key={id}> 처럼 감싸면 불필요한 div가 DOM에 생김
+  → <Fragment key={id}>로 DOM 없이 key만 붙임
+```
+
+## 실전 — dl/dt/dd 패턴
+
+```tsx
+// 정의 목록(dl) — dt와 dd가 쌍으로 나와야 함
+// <div>로 감싸면 dl > div > dt, dd 구조 → HTML 규칙 위반
+
+function DefinitionList({ items }: { items: { term: string; desc: string }[] }) {
+  return (
+    <dl>
+      {items.map(item => (
+        <Fragment key={item.term}>
+          <dt>{item.term}</dt>
+          <dd>{item.desc}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+// DOM: <dl><dt>...</dt><dd>...</dd><dt>...</dt><dd>...</dd></dl>
+// div 없이 dl의 직접 자식으로 dt, dd 위치
 ```
