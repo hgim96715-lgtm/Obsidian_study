@@ -3,12 +3,17 @@ aliases:
   - useMemo
   - useCallback
   - 메모이제이션
+  - useState 지연 초기화
 tags:
   - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[React_useRef]]"
-  - "[[React_useEffect]]"
+  - "[[NestJS_WebSocket]]"
+  - "[[JS_Promise]]"
+  - "[[React_AsyncUI]]"
+  - "[[JS_Promise]]"
+  - "[[React_Types]]"
+  - "[[TS_Generics]]"
 ---
 # React_useMemo_useCallback — 메모이제이션
 
@@ -17,6 +22,7 @@ related:
 >`useMemo`는 값을, `useCallback`은 함수를 기억한다. 
 >`React.memo`로 감싼 자식에게 함수를 넘길 때, 또는 `useEffect` 의존성에 함수가 들어갈 때 `useCallback`이 필요하다.
 > deps를 빠뜨리면 stale closure 버그 발생.
+> `useState(() => new Set())`처럼 함수를 넘기면 초기값 계산을 마운트 시 한 번만 실행한다.
 
 ---
 
@@ -234,6 +240,60 @@ const handleClick = useCallback(() => {
   일반적인 경우엔 그냥 deps에 넣는 게 더 단순
 ```
 
+---
+# useState 지연 초기화 — () => 함수 전달 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 방법 1 — 값 직접 전달
+const [ids, setIds] = useState(new Set<string>());
+//                              ↑ 렌더링마다 new Set() 생성 → 첫 렌더에만 쓰고 나머지는 버림
+
+// 방법 2 — 함수 전달 (지연 초기화)
+const [ids, setIds] = useState<Set<string>>(() => new Set());
+//                                           ↑ 마운트 시 한 번만 실행
+```
+
+```txt
+차이:
+  useState(new Set())     → 컴포넌트가 렌더링될 때마다 new Set()을 실행
+                            첫 렌더에만 초기값으로 사용되고 이후 렌더에서는 무시됨
+                            → 버려질 객체를 매 렌더마다 만드는 낭비
+
+  useState(() => new Set()) → 함수를 넘기면 React가 마운트 시 딱 한 번만 호출
+                              이후 렌더링에서는 함수를 실행하지 않음
+```
+
+
+```typescript
+// Set, Map처럼 새 객체 생성이 필요한 경우
+const [expandedRootIds, setExpandedRootIds] = useState<Set<string>>(
+  () => new Set(),
+);
+
+// 무거운 계산이 초기값일 때
+const [data, setData] = useState(() => {
+  return expensiveCalculation();  // 마운트 시 한 번만 실행
+});
+
+// localStorage에서 초기값을 읽을 때 (SSR 주의)
+const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+  if (typeof window === 'undefined') return 'light';  // SSR 안전
+  return (localStorage.getItem('theme') as 'light' | 'dark') ?? 'light';
+});
+```
+
+```txt
+언제 () => 형태를 쓰는가:
+  new Set(), new Map()처럼 새 객체 생성이 초기값일 때
+  무거운 계산 결과가 초기값일 때
+  localStorage, sessionStorage 등 브라우저 API에서 읽을 때
+
+단순 원시값은 굳이 안 써도 됨:
+  useState(0)        → ✅ 그냥 써도 됨 (숫자 생성 비용 없음)
+  useState('')       → ✅ 그냥 써도 됨
+  useState(false)    → ✅ 그냥 써도 됨
+  useState(new Set()) → () => new Set()으로 쓰는 게 더 좋음
+```
 ---
 
 # 함께 쓰는 패턴

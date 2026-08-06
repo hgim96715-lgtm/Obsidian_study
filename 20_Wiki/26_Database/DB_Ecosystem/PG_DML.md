@@ -9,449 +9,365 @@ related:
   - "[[PG_DDL]]"
   - "[[PG_Types]]"
 ---
-# PG_DML — 데이터 조작 & 조회
+# PG_DML — PostgreSQL 데이터 조작 언어
 
-> [!info]
->  SELECT · JOIN · 서브쿼리 · CTE(WITH) · INSERT / UPDATE / DELETE. RETURNING과 ON CONFLICT는 PostgreSQL 특화 — Prisma도 내부적으로 이 SQL을 생성
-
----
-
-# 따옴표 규칙 ⭐️⭐️⭐️
-
-```txt
-작은따옴표 '  → 문자열 값 (string literal)
-큰따옴표   "  → 식별자 (테이블명, 컬럼명)
-
-PostgreSQL에서 따옴표 없는 식별자 → 자동으로 소문자 변환
-  User   → user  (다른 테이블로 인식될 수 있음)
-  "User" → User  (대소문자 그대로 유지)
-
-Prisma가 생성한 테이블명은 PascalCase → DataGrip에서 쓸 때 항상 "User"처럼 " 로 감싸기
-```
-
-```sql
--- ❌ 잘못됨 — 큰따옴표로 값을 지정
-UPDATE "User" SET nickname = "공이" WHERE email = "admin@example.com";
--- "공이" → 컬럼명으로 해석 → 에러
-
--- ✅ 올바름 — 값은 항상 작은따옴표
-UPDATE "User" SET nickname = '공이' WHERE email = 'admin@example.com';
-```
+>[!info]
+>DML(Data Manipulation Language) = 데이터를 조회·삽입·수정·삭제하는 SQL.
+> `SELECT`·`INSERT`·`UPDATE`·`DELETE`. 
+> DDL이 테이블 구조(그릇)를 만든다면 DML은 그 안의 데이터를 다룬다 → [[PG_DDL]]. 
+> 집계(GROUP BY·윈도우 함수) → [[PG_Aggregate]]
 
 ---
 
-# SELECT 기본 ⭐️
-
-```sql
-SELECT id, title, created_at
-FROM post
-WHERE is_active = TRUE
-  AND created_at >= '2025-01-01'
-ORDER BY created_at DESC
-LIMIT 10
-OFFSET 20;   -- OFFSET = (page - 1) * limit
-```
+# DML이란 ⭐️⭐️⭐️⭐️
 
 ```txt
-실행 순서 (중요):
-  FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT/OFFSET
+DDL (Data Definition Language) — 구조 정의
+  CREATE TABLE, ALTER TABLE, DROP TABLE
 
-  SELECT에서 정의한 별칭(AS)은 WHERE에서 사용 불가 (아직 SELECT가 실행 안 됨)
-  → WHERE price * 0.9 > 1000  (직접 표현식 써야 함)
-  → CTE나 인라인 뷰로 우회 가능
+DML (Data Manipulation Language) — 데이터 다루기
+  SELECT  → 조회
+  INSERT  → 삽입
+  UPDATE  → 수정
+  DELETE  → 삭제
+
+비유:
+  DDL = 창고를 만들고 선반을 설치
+  DML = 창고에 물건을 넣고 꺼내고 바꾸고 버리는 것
 ```
 
 ---
 
-# JOIN ⭐️⭐️⭐️⭐️
+# SELECT — 조회 ⭐️⭐️⭐️⭐️
 
-## JOIN 종류
-
-|JOIN|포함하는 행|
-|---|---|
-|`INNER JOIN`|양쪽 모두 매칭되는 행만|
-|`LEFT JOIN`|왼쪽 전부 + 오른쪽 매칭 (없으면 NULL)|
-|`RIGHT JOIN`|오른쪽 전부 + 왼쪽 매칭 (없으면 NULL)|
-|`FULL JOIN`|양쪽 전부 (없으면 NULL)|
-|`CROSS JOIN`|모든 조합 (카테시안 곱)|
+## 기본 구조
 
 ```sql
--- INNER JOIN: 게시글 + 작성자 (작성자 없으면 게시글도 안 나옴)
-SELECT p.title, u.nickname
-FROM post p
-INNER JOIN "user" u ON p.user_id = u.id;
-
--- LEFT JOIN: 모든 게시글 + 작성자 (작성자 정보 없어도 게시글 나옴)
-SELECT p.title, u.nickname
-FROM post p
-LEFT JOIN "user" u ON p.user_id = u.id;
-
--- 다중 JOIN
-SELECT p.title, u.nickname, COUNT(c.id) AS comment_count
-FROM post p
-LEFT JOIN "user" u    ON p.user_id = u.id
-LEFT JOIN comment c   ON c.post_id = p.id
-GROUP BY p.id, p.title, u.nickname;
+SELECT 컬럼들
+FROM 테이블
+WHERE 조건
+ORDER BY 정렬
+LIMIT 개수 OFFSET 건너뛸 수;
 ```
-
-## ON vs WHERE — LEFT JOIN에서의 함정 ⭐️⭐️⭐️
 
 ```sql
--- ❌ WHERE에 오른쪽 테이블 조건 → NULL 행이 사라짐 (INNER JOIN처럼 동작)
-SELECT p.product_id, AVG(p.price * u.units)
-FROM price p
-LEFT JOIN units_sold u ON p.product_id = u.product_id
-WHERE u.sale_date BETWEEN p.start_date AND p.end_date;  -- NULL 행 제거됨
+-- 전체 컬럼
+SELECT * FROM posts;
 
--- ✅ ON에 AND로 조건 → NULL 행 유지 (LEFT JOIN 의도대로)
-SELECT p.product_id, AVG(p.price * u.units)
-FROM price p
-LEFT JOIN units_sold u
-    ON  p.product_id = u.product_id
-    AND u.sale_date BETWEEN p.start_date AND p.end_date;  -- 조건 불만족 시 u = NULL
-```
+-- 특정 컬럼만
+SELECT id, title, created_at FROM posts;
 
-```txt
-판단 기준:
-  조건 불만족 시 오른쪽 테이블을 NULL로 남기고 싶다 → ON + AND
-  조건 불만족 시 그 행 자체를 제거하고 싶다         → WHERE
-```
-
-## Anti-Join — 매칭 안 된 행 찾기 ⭐️⭐️⭐️
-
-```sql
--- 댓글 없는 게시글 찾기
-SELECT p.id, p.title
-FROM post p
-LEFT JOIN comment c ON c.post_id = p.id
-WHERE c.id IS NULL;   -- c.id = PK 컬럼 (일반 컬럼이면 안 됨)
-```
-
-```txt
-⚠️ IS NULL 검사는 반드시 오른쪽 테이블의 PK(또는 NOT NULL 컬럼)에 걸어야 함
-  일반 컬럼에 걸면 "매칭은 됐지만 그 컬럼이 원래 NULL인 경우"와
-  "매칭 자체가 안 된 경우"를 구분 못 함
-
-동작 원리:
-  LEFT JOIN → 댓글 없는 게시글의 c.* 자리는 NULL로 채워짐
-  WHERE c.id IS NULL → 그 NULL인 행 = 댓글이 없는 게시글만 남김
-```
-
-## CROSS JOIN + LEFT JOIN — 빈 조합도 0으로 ⭐️⭐️
-
-```sql
--- 학생별 × 과목별 응시 횟수 (안 본 과목도 0으로 표시)
+-- 별칭(alias)
 SELECT
-    s.student_id,
-    sub.subject_name,
-    COUNT(e.subject_name) AS attended
-FROM student s
-CROSS JOIN subject sub                      -- 모든 학생 × 과목 조합 생성
-LEFT JOIN exam e
-    ON  s.student_id = e.student_id
-    AND sub.subject_name = e.subject_name   -- ON에! (WHERE에 넣으면 0이 사라짐)
-GROUP BY s.student_id, sub.subject_name;
+  u.id,
+  u.nickname  AS name,     -- name이라는 별칭
+  p.title     AS post_title
+FROM users u                -- users를 u로 줄임
+JOIN posts p ON p.author_id = u.id;
+```
+
+## WHERE — 조건 필터링 ⭐️⭐️⭐️⭐️
+
+```sql
+-- 기본 비교
+WHERE status = 'active'
+WHERE view_count > 100
+WHERE created_at >= '2024-01-01'
+
+-- 여러 조건
+WHERE status = 'active' AND author_id = 'uuid'   -- 둘 다
+WHERE status = 'draft'  OR  status = 'active'    -- 하나라도
+
+-- NULL 체크 (= NULL은 안 됨)
+WHERE deleted_at IS NULL      -- 삭제 안 된 것만
+WHERE deleted_at IS NOT NULL  -- 삭제된 것만
+
+-- 범위
+WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31'
+WHERE id IN ('uuid1', 'uuid2', 'uuid3')
+WHERE id NOT IN ('uuid1', 'uuid2')
+
+-- 문자열 패턴
+WHERE title LIKE '%검색어%'         -- 대소문자 구분
+WHERE title ILIKE '%검색어%'        -- 대소문자 무시 (PostgreSQL 전용)
+WHERE title ILIKE '검색어%'         -- 시작하는 것
+```
+
+## ORDER BY · LIMIT · OFFSET ⭐️⭐️⭐️⭐️
+
+```sql
+-- 정렬
+ORDER BY created_at DESC          -- 최신순
+ORDER BY created_at ASC           -- 오래된 순
+ORDER BY created_at DESC, id DESC -- 같은 시각이면 id로 정렬 (안정적 정렬)
+
+-- 개수 제한
+LIMIT 20                          -- 20개만
+LIMIT 20 OFFSET 40                -- 41번째부터 20개 (페이지 3)
+
+-- OFFSET 페이지네이션의 한계:
+-- 데이터가 많을수록 느려짐 → 커서 페이지네이션 권장 → [[NestJS_Pagination]]
+```
+
+---
+
+# JOIN — 테이블 연결 ⭐️⭐️⭐️⭐️
+
+```txt
+JOIN = 두 테이블을 연결해서 함께 조회
+FK(외래 키) 관계를 기준으로 연결
+
+posts.author_id → users.id 라면:
+  JOIN users ON users.id = posts.author_id
+```
+
+## INNER JOIN
+
+```sql
+-- 두 테이블 모두에 일치하는 행만 반환
+SELECT
+  p.title,
+  u.nickname AS author
+FROM posts p
+INNER JOIN users u ON u.id = p.author_id;
+-- author_id가 NULL이거나 해당 user가 없는 posts는 결과에서 제외
+```
+
+## LEFT JOIN
+
+```sql
+-- 왼쪽 테이블(posts)은 전부, 오른쪽(users)은 일치하면 붙임
+SELECT
+  p.title,
+  u.nickname AS author   -- user가 없으면 NULL
+FROM posts p
+LEFT JOIN users u ON u.id = p.author_id;
+-- author_id가 NULL이어도 post는 반드시 포함됨
+```
+
+```txt
+INNER JOIN vs LEFT JOIN:
+  INNER JOIN → 양쪽 다 있는 것만 (교집합)
+  LEFT JOIN  → 왼쪽은 전부, 오른쪽은 있으면 붙임
+
+  게시글 목록을 가져오는데 작성자 정보도 같이:
+  작성자가 탈퇴해서 없어도 게시글은 보여야 한다 → LEFT JOIN
+  작성자 없는 게시글은 보여줄 필요 없다 → INNER JOIN
+```
+
+## 여러 테이블 JOIN
+
+```sql
+SELECT
+  p.title,
+  u.nickname                AS author,
+  COUNT(c.id)               AS comment_count,
+  COUNT(DISTINCT l.user_id) AS like_count
+FROM posts p
+LEFT JOIN users    u ON u.id = p.author_id
+LEFT JOIN comments c ON c.post_id = p.id AND c.deleted_at IS NULL
+LEFT JOIN likes    l ON l.post_id = p.id
+WHERE p.deleted_at IS NULL
+GROUP BY p.id, u.nickname
+ORDER BY p.created_at DESC
+LIMIT 20;
 ```
 
 ---
 
 # 서브쿼리 ⭐️⭐️⭐️
 
-## 위치별 종류
-
-|위치|이름|용도|
-|---|---|---|
-|SELECT 절|스칼라 서브쿼리|행마다 단일 값 계산|
-|FROM 절|인라인 뷰|가상 테이블|
-|WHERE 절|조건 서브쿼리|동적 필터|
-
 ```sql
--- 스칼라 서브쿼리 — 전체 평균과 비교
-SELECT title, price,
-    (SELECT AVG(price) FROM product) AS avg_price   -- 모든 행에 같은 값
-FROM product
-WHERE price > (SELECT AVG(price) FROM product);
+-- IN 서브쿼리 — 친구의 게시글만
+SELECT * FROM posts
+WHERE author_id IN (
+  SELECT friend_id FROM friendships
+  WHERE user_id = 'my-uuid' AND status = 'accepted'
+);
 
--- 인라인 뷰 — FROM 안에서 가상 테이블로 (반드시 AS 필요)
-SELECT dept, avg_salary
-FROM (
-    SELECT dept, AVG(salary)::numeric AS avg_salary
-    FROM employee
-    GROUP BY dept
-) AS dept_stats
-WHERE avg_salary > 5000000;
-
--- IN 서브쿼리
-SELECT nickname FROM "user"
-WHERE id IN (SELECT user_id FROM post WHERE is_active = TRUE);
-```
-
-## EXISTS / NOT EXISTS ⭐️⭐️
-
-```sql
--- 게시글이 하나라도 있는 유저
-SELECT u.nickname
-FROM "user" u
+-- EXISTS 서브쿼리 — 댓글 달린 게시글만
+SELECT * FROM posts p
 WHERE EXISTS (
-    SELECT 1 FROM post p WHERE p.user_id = u.id
+  SELECT 1 FROM comments c
+  WHERE c.post_id = p.id
 );
 
--- 게시글이 없는 유저
-SELECT u.nickname
-FROM "user" u
-WHERE NOT EXISTS (
-    SELECT 1 FROM post p WHERE p.user_id = u.id
-);
-```
-
-```txt
-EXISTS:
-  서브쿼리 결과가 하나라도 있으면 TRUE → 즉시 중단 (성능 효율적)
-  반환 값이 중요하지 않아서 SELECT 1 관례
-  Anti-Join(LEFT JOIN + IS NULL)과 결과는 같음 — 의도가 명확할 때 EXISTS가 더 읽기 쉬움
-```
-
----
-
-# CTE — WITH ⭐️⭐️⭐️⭐️
-
-```txt
-CTE(Common Table Expression) = 쿼리에 이름을 붙여서 재사용
-인라인 뷰(FROM 서브쿼리)와 결과는 같지만 → 읽기가 훨씬 쉬워짐
-복잡한 쿼리를 단계별로 쪼개서 쓸 수 있음
-```
-
-## 기본 문법
-
-```sql
-WITH 이름 AS (
-    SELECT ...
-)
-SELECT * FROM 이름 WHERE ...;
-```
-
-## 실전 — 단계별로 쪼개기
-
-```sql
--- 월별 게시글 수 + 이전 달 대비 증감
-WITH monthly_count AS (
-    SELECT
-        DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Seoul') AS month,
-        COUNT(*) AS cnt
-    FROM post
-    WHERE is_active = TRUE
-    GROUP BY month
-),
-with_prev AS (
-    SELECT
-        month,
-        cnt,
-        LAG(cnt) OVER (ORDER BY month) AS prev_cnt  -- 이전 달 값
-    FROM monthly_count
-)
+-- 스칼라 서브쿼리 — 단일 값 반환
 SELECT
-    month,
-    cnt,
-    cnt - COALESCE(prev_cnt, 0) AS diff
-FROM with_prev
-ORDER BY month;
-```
-
-## 여러 CTE 연결
-
-```sql
-WITH
-active_users AS (
-    SELECT id FROM "user" WHERE is_active = TRUE
-),
-recent_posts AS (
-    SELECT user_id, COUNT(*) AS cnt
-    FROM post
-    WHERE created_at >= NOW() - INTERVAL '30 days'
-      AND user_id IN (SELECT id FROM active_users)  -- 앞의 CTE 참조
-    GROUP BY user_id
-)
-SELECT u.nickname, rp.cnt
-FROM "user" u
-JOIN recent_posts rp ON rp.user_id = u.id
-ORDER BY rp.cnt DESC;
-```
-
-```txt
-CTE vs 인라인 뷰:
-  (SELECT ... FROM ...) AS alias  → 인라인 뷰, 중첩되면 읽기 어려움
-  WITH name AS (SELECT ...)       → CTE, 단계별로 이름 붙여서 읽기 쉬움
-
-재귀 CTE(WITH RECURSIVE):
-  트리 구조(카테고리 계층, 조직도 등) 조회에 사용
-  → 별도 노트에서 다룰 내용
+  p.*,
+  (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comment_count
+FROM posts p;
 ```
 
 ---
 
-# INSERT ⭐️
+# INSERT ⭐️⭐️⭐️⭐️
 
 ```sql
--- 단건
-INSERT INTO post (user_id, title, is_active)
-VALUES (1, '첫 번째 게시글', TRUE);
+-- 단건 삽입
+INSERT INTO posts (title, content, author_id)
+VALUES ('제목', '내용', 'uuid');
 
--- 여러 행 한 번에 (batch insert — 개별 INSERT보다 훨씬 빠름)
-INSERT INTO post (user_id, title)
-VALUES
-    (1, '게시글 1'),
-    (1, '게시글 2'),
-    (2, '게시글 3');
+-- 여러 건 삽입
+INSERT INTO posts (title, content, author_id) VALUES
+  ('제목1', '내용1', 'uuid1'),
+  ('제목2', '내용2', 'uuid2'),
+  ('제목3', '내용3', 'uuid3');
 
--- 다른 테이블에서 복사
-INSERT INTO post_archive (user_id, title, created_at)
-SELECT user_id, title, created_at
-FROM post
-WHERE created_at < NOW() - INTERVAL '1 year';
+-- 삽입 후 결과 반환 (RETURNING)
+INSERT INTO posts (title, author_id)
+VALUES ('제목', 'uuid')
+RETURNING id, created_at;  -- 생성된 id와 created_at 즉시 반환
 ```
 
----
-
-# UPDATE ⭐️⭐️
+## ON CONFLICT — Upsert ⭐️⭐️⭐️⭐️
 
 ```sql
--- 기본
-UPDATE post
-SET title = '수정된 제목', updated_at = NOW()
-WHERE id = 1;
+-- 충돌 시 업데이트 (Upsert)
+INSERT INTO stats (date, hour, count)
+VALUES ('2024-01-15', -1, 100)
+ON CONFLICT (date, hour)
+DO UPDATE SET
+  count      = EXCLUDED.count,    -- EXCLUDED = 삽입하려던 새 값
+  updated_at = NOW();
 
--- 계산식 적용
-UPDATE product
-SET price = price * 1.1      -- 10% 인상
-WHERE category = 'premium';
-
--- 다른 테이블 값으로 UPDATE (PostgreSQL: FROM 절)
-UPDATE post p
-SET view_count = stats.cnt
-FROM post_stats stats
-WHERE stats.post_id = p.id;
-```
-
-```txt
-⚠️ WHERE 없으면 전체 행 수정 → 항상 WHERE 먼저 확인
-  UPDATE post SET is_active = FALSE;  -- 모든 게시글 비활성화 ← 위험
-```
-
----
-
-# DELETE ⭐️
-
-```sql
--- 기본
-DELETE FROM post WHERE id = 1;
-
--- 삭제 전 SELECT로 먼저 확인하는 습관 ⭐️
-SELECT * FROM post WHERE created_at < '2024-01-01' AND is_active = FALSE;
--- 확인 후 DELETE
-DELETE FROM post WHERE created_at < '2024-01-01' AND is_active = FALSE;
-```
-
-```txt
-⚠️ WHERE 없으면 전체 삭제 → TRUNCATE와 달리 롤백은 가능하지만 그래도 위험
-  실서버에서 DELETE 전 SELECT로 반드시 확인
-```
-
----
-
-# RETURNING — 변경 결과 바로 반환 ⭐️⭐️⭐️ (PostgreSQL 전용)
-
-```sql
--- INSERT 후 생성된 id 즉시 확인
-INSERT INTO post (user_id, title)
-VALUES (1, '새 게시글')
-RETURNING id, title, created_at;
-
--- UPDATE 후 변경된 값 확인
-UPDATE "user"
-SET last_active_at = NOW()
-WHERE id = 1
-RETURNING id, last_active_at;
-
--- DELETE 후 삭제된 행 데이터 보존
-DELETE FROM post
-WHERE id = 1
-RETURNING *;
-```
-
-```txt
-RETURNING의 실용적 가치:
-  별도 SELECT 없이 한 번에 처리 → DB 왕복 횟수 감소
-  INSERT 후 DB가 생성한 id, default 값 등 즉시 확인
-
-Prisma에서는 내부적으로 RETURNING을 사용:
-  create() → INSERT ... RETURNING *
-  update() → UPDATE ... RETURNING *
-  → 반환 타입이 정확한 이유
-```
-
----
-
-# ON CONFLICT — UPSERT ⭐️⭐️⭐️ (PostgreSQL 전용)
-
-```sql
 -- 충돌 시 무시
-INSERT INTO user_follow (follower_id, following_id)
-VALUES (1, 2)
-ON CONFLICT (follower_id, following_id) DO NOTHING;
-
--- 충돌 시 UPDATE
-INSERT INTO post_stat (post_id, view_count)
-VALUES (1, 1)
-ON CONFLICT (post_id) DO UPDATE
-    SET view_count = post_stat.view_count + EXCLUDED.view_count,
-        --                 ↑ 기존 값              ↑ 새로 넣으려던 값
-        updated_at = NOW();
+INSERT INTO room_members (room_id, user_id)
+VALUES ('room-uuid', 'user-uuid')
+ON CONFLICT (room_id, user_id)
+DO NOTHING;
 ```
 
 ```txt
 EXCLUDED:
-  INSERT하려다 충돌된 "새 값"을 담은 가상 테이블
-  EXCLUDED.view_count = 방금 넣으려던 값 (1)
-  post_stat.view_count = 현재 DB에 있는 값 → 더해서 누적
-
-ON CONFLICT (컬럼):
-  어떤 컬럼이 충돌할 때 처리할지 지정
-  해당 컬럼에 UNIQUE 또는 PK 제약 필요
-
-Prisma upsert()와의 관계:
-  this.prisma.xxx.upsert({ where, create, update })
-  → 내부적으로 INSERT ... ON CONFLICT ... DO UPDATE 실행
+  ON CONFLICT DO UPDATE에서 쓰는 특수 테이블
+  "삽입하려고 했던 새 값"을 가리킴
+  EXCLUDED.count = 삽입하려던 count 값
 ```
 
 ---
 
-# 한눈에
+# UPDATE ⭐️⭐️⭐️⭐️
+
+```sql
+-- 기본 업데이트
+UPDATE posts
+SET view_count = view_count + 1
+WHERE id = 'uuid';
+
+-- 여러 컬럼 동시 수정
+UPDATE posts
+SET
+  title      = '새 제목',
+  updated_at = NOW()
+WHERE id = 'uuid' AND author_id = 'user-uuid';
+
+-- 업데이트 후 결과 반환
+UPDATE posts
+SET view_count = view_count + 1
+WHERE id = 'uuid'
+RETURNING view_count;  -- 업데이트된 값 즉시 반환
+
+-- 다른 테이블 값으로 업데이트 (FROM)
+UPDATE posts
+SET author_name = u.nickname
+FROM users u
+WHERE posts.author_id = u.id;
+```
 
 ```txt
-따옴표 규칙:
-  '값'    → 문자열 항상 작은따옴표
-  "테이블" → Prisma 생성 테이블(PascalCase) + 예약어 포함 시 큰따옴표
+⚠️ WHERE 없이 UPDATE하면 전체 행이 변경됨
+  UPDATE posts SET status = 'deleted'   ← WHERE 없음 → 모든 게시글이 삭제됨!
+  → WHERE를 항상 확인하고 실행
+```
 
-SELECT 실행 순서:
-  FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT
+---
 
-JOIN 선택:
-  양쪽 다 있는 것만 → INNER
-  왼쪽 무조건 전부 → LEFT
-  LEFT JOIN + WHERE 오른쪽.PK IS NULL → Anti-Join (매칭 안 된 것 찾기)
-  LEFT JOIN + ON AND 조건 → 조건 불만족 시 NULL로 유지
-  CROSS JOIN + LEFT JOIN → 빈 조합도 0으로
+# DELETE ⭐️⭐️⭐️⭐️
 
-서브쿼리:
-  SELECT절 → 스칼라 / FROM절 → 인라인 뷰 / WHERE절 → 조건
-  EXISTS/NOT EXISTS → 존재 여부 확인 (상관 서브쿼리)
+```sql
+-- 특정 행 삭제
+DELETE FROM posts
+WHERE id = 'uuid';
 
-CTE (WITH):
-  이름 붙인 가상 테이블 → 인라인 뷰보다 읽기 쉬움
-  여러 CTE 연결 → 앞의 CTE를 다음 CTE에서 참조 가능
+-- 조건부 삭제
+DELETE FROM sessions
+WHERE expires_at < NOW();
 
-PostgreSQL 전용:
-  RETURNING  → INSERT/UPDATE/DELETE 후 바로 결과 반환
-  ON CONFLICT → UPSERT (충돌 시 DO NOTHING 또는 DO UPDATE SET)
-  UPDATE ... FROM → 다른 테이블 값으로 업데이트
+-- 삭제 후 반환
+DELETE FROM notifications
+WHERE user_id = 'uuid' AND is_read = true
+RETURNING id;
+
+-- 관련 데이터 함께 삭제 (서브쿼리)
+DELETE FROM comments
+WHERE post_id IN (
+  SELECT id FROM posts WHERE author_id = 'user-uuid'
+);
+```
+
+```txt
+DELETE vs TRUNCATE:
+  DELETE FROM posts WHERE ...  → 조건부 삭제, 느림, ROLLBACK 가능
+  TRUNCATE posts               → 전체 삭제, 매우 빠름, ROLLBACK 불가 (주의)
+
+소프트 삭제 패턴 (deleted_at):
+  실제로 행을 지우지 않고 deleted_at 타임스탬프를 기록
+  복구 가능, 감사 로그 유지
+  UPDATE posts SET deleted_at = NOW() WHERE id = 'uuid'
+  조회 시: WHERE deleted_at IS NULL
+```
+
+---
+
+# 자주 쓰는 패턴
+
+## 최신 N개 페이지네이션
+
+```sql
+-- Offset 방식 (단순하지만 느려질 수 있음)
+SELECT * FROM posts
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC, id DESC
+LIMIT 20 OFFSET 0;
+
+-- Cursor 방식 (더 빠름)
+SELECT * FROM posts
+WHERE
+  deleted_at IS NULL
+  AND (
+    created_at < '2024-01-15T09:30:00Z'
+    OR (created_at = '2024-01-15T09:30:00Z' AND id < 'last-uuid')
+  )
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+```
+
+## 소프트 삭제 + 조회
+
+```sql
+-- 삭제 안 된 것만 조회
+SELECT * FROM posts
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC;
+
+-- 삭제 포함 전체 조회 (관리자용)
+SELECT
+  *,
+  CASE WHEN deleted_at IS NOT NULL THEN '삭제됨' ELSE '활성' END AS status
+FROM posts
+ORDER BY created_at DESC;
+```
+
+## EXISTS vs COUNT
+
+```sql
+-- 존재 여부 확인 — EXISTS가 더 빠름
+SELECT EXISTS(
+  SELECT 1 FROM likes
+  WHERE post_id = 'uuid' AND user_id = 'user-uuid'
+) AS is_liked;
+
+-- COUNT는 전체를 세므로 단순 존재 여부엔 과함
+SELECT COUNT(*) > 0 FROM likes  -- ← 비효율
 ```

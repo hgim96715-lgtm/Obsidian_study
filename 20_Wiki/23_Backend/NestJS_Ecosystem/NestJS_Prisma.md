@@ -11,14 +11,15 @@ related:
   - "[[NestJS_Migration]]"
   - "[[NestJS_Prisma_Patterns]]"
   - "[[NestJS_Service_Provider]]"
+  - "[[PG_DDL]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
-> [!info] 
-> Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 
-> schema.prisma에 모델을 정의하면 `migrate dev` 한 번으로 DB 반영 + Client 자동 생성까지 된다. 
+>[!info]
+>Prisma는 타입 안전한 쿼리 + 마이그레이션 ORM이다. 
+>schema.prisma에 모델을 정의하면 `migrate dev` 한 번으로 DB 반영 + Client 자동 생성까지 된다.
 > `Prisma.RoomWhereInput` 같은 namespace 타입으로 조건을 타입 안전하게 조립하고, 중첩 where로 관계 테이블 필드까지 필터링할 수 있다. 
-> 설치·워크플로우·migrate → [[NestJS_Migration]], 패턴 → [[NestJS_Prisma_Patterns]]
+> 설치·워크플로우·migrate → [[NestJS_Migration]], 패턴 → [[NestJS_Prisma_Patterns]], Prisma가 생성하는 DDL 개념 → [[PG_DDL]]
 
 ---
 
@@ -358,11 +359,54 @@ fields:     내가 들고 있는 FK 컬럼
 references: 상대 테이블 PK
 ```
 
-|onDelete|동작|
-|---|---|
-|`Cascade`|부모 삭제 → 자식도 삭제|
-|`SetNull`|부모 삭제 → FK를 NULL로|
-|`Restrict` (기본)|참조 중이면 삭제 불가|
+|onDelete|동작|언제 쓰는가|
+|---|---|---|
+|`Cascade`|부모 삭제 → 자식도 삭제|게시글 삭제 시 댓글도 함께 삭제|
+|`SetNull`|부모 삭제 → FK를 NULL로|작성자 탈퇴 시 게시글을 익명으로 유지|
+|`Restrict`|참조 중이면 삭제 불가 (에러)|자식이 있는 부모는 삭제 못 하게 막음|
+|`NoAction`|참조 중이면 삭제 불가 (지연 체크)|`Restrict`과 비슷, PostgreSQL에서는 사실상 동일|
+|`SetDefault`|부모 삭제 → FK를 기본값으로|기본값이 설정된 경우에만 유효|
+
+```prisma
+// Cascade — 부모 삭제 시 자식도 삭제
+model Post {
+  comments Comment[]
+}
+model Comment {
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+}
+// Post 삭제 → 해당 Post의 모든 Comment 자동 삭제
+
+// Restrict — 자식이 있으면 부모 삭제 불가
+model Comment {
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  parentId String?
+  replies  Comment[] @relation("CommentReplies")
+}
+// 답글이 있는 댓글은 삭제 불가 → 먼저 답글을 삭제해야 함
+
+// SetNull — 부모 삭제 시 FK를 NULL로
+model Post {
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId String? // NULL 허용이어야 함
+}
+// 유저 탈퇴 시 Post.authorId = NULL (게시글은 남김)
+```
+
+```txt
+기본값:
+  onDelete를 명시 안 하면 → Restrict (참조 중이면 삭제 불가)
+
+Restrict vs Cascade 선택 기준:
+  부모 삭제 시 자식도 함께 사라져야 함  → Cascade
+  자식이 있으면 부모를 못 지우게 막아야 함 → Restrict
+  자식은 남기되 연결만 끊음             → SetNull
+
+self-relation에서 Restrict (댓글-답글):
+  답글이 달린 댓글을 삭제하려면 → 먼저 답글을 모두 삭제해야 함
+  → 소프트 삭제(deletedAt)를 함께 고려하는 경우가 많음
+```
 
 ## 관계 이름 — `@relation("이름")` ⭐️⭐️⭐️
 
@@ -671,7 +715,7 @@ include 안의 관계 필드도 findMany와 같은 옵션(where/orderBy/take/ski
 → "관계 = 또 하나의 작은 조회"로 생각하면 됨
 ```
 
-## `_count` — 개수만 필요할 때
+## _count — 개수만 필요할 때
 
 ```typescript
 this.prisma.user.findUnique({
@@ -742,7 +786,7 @@ const userCountInclude = {
 } as const;
 ```
 
-## `_count`는 select 안에서도 쓸 수 있음 — 재사용 트릭
+## _count는 select 안에서도 쓸 수 있음 — 재사용 트릭
 
 ```typescript
 this.prisma.user.findMany({

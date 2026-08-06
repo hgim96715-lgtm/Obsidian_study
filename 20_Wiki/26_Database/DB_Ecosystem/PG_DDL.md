@@ -1,313 +1,343 @@
 ---
-aliases: [CREATE, DDL]
-tags: [SQL, PostgreSQL]
+aliases:
+  - CREATE
+  - DDL
+tags:
+  - SQL
+  - PostgreSQL
 related:
   - "[[00_DB_HomePage]]"
   - "[[NestJS_PostgreSQL]]"
   - "[[NestJS_Prisma]]"
   - "[[PG_DML]]"
   - "[[PG_Types]]"
+  - "[[NestJS_Migration]]"
 ---
-# PG_DDL — 테이블 구조 관리
+# PG_DDL — PostgreSQL 데이터 정의 언어
 
-> [!info] 
-> DDL(Data Definition Language) — 테이블을 만들고, 고치고, 지운다. 
-> Prisma를 쓴다면 schema.prisma → migrate dev가 DDL을 대신 생성해주지만, DataGrip에서 직접 쿼리 날릴 때나 migrate 파일을 직접 수정할 때 필요
+>[!info]
+>DDL(Data Definition Language) = 테이블·인덱스·제약조건 등 데이터베이스 **구조**를 정의하는 SQL.
+> `CREATE`·`ALTER`·`DROP`이 핵심. 
+> DML(SELECT·INSERT 등)이 데이터를 다룬다면 DDL은 데이터가 담길 **그릇**을 만드는 것.
+>  Prisma에서는 schema.prisma가 DDL을 대신 생성 → [[NestJS_Migration]]
 
 ---
 
-# CREATE TABLE ⭐️⭐️⭐️
+# DDL이란 ⭐️⭐️⭐️⭐️
 
-## 기본 구조
+```txt
+SQL은 크게 두 가지:
+
+  DDL (Data Definition Language) — 구조 정의
+    CREATE TABLE   테이블 생성
+    ALTER TABLE    테이블 수정 (컬럼 추가/변경/삭제)
+    DROP TABLE     테이블 삭제
+    CREATE INDEX   인덱스 생성
+
+  DML (Data Manipulation Language) — 데이터 조작  → [[PG_DML]]
+    SELECT   조회
+    INSERT   삽입
+    UPDATE   수정
+    DELETE   삭제
+
+비유:
+  DDL = 건물 설계·건축 (구조를 만듦)
+  DML = 건물 안에서 물건을 넣고 꺼내고 수정하는 것
+```
+
+---
+
+# CREATE TABLE ⭐️⭐️⭐️⭐️
 
 ```sql
-CREATE TABLE item (
-    id           BIGSERIAL PRIMARY KEY,
-    title        VARCHAR(200)  NOT NULL,
-    description  TEXT,
-    price        NUMERIC(10,2) NOT NULL DEFAULT 0,
-    is_active    BOOLEAN       NOT NULL DEFAULT TRUE,
-    created_at   TIMESTAMPTZ(3) NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ(3) NOT NULL DEFAULT NOW()
+CREATE TABLE posts (
+  id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  title      VARCHAR(200) NOT NULL,
+  content    TEXT,                          -- NULL 허용
+  view_count INTEGER      NOT NULL DEFAULT 0,
+  author_id  UUID         NOT NULL,
+  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ                    -- 소프트 삭제용, NULL 허용
 );
 ```
 
 ```txt
-BIGSERIAL:
-  SERIAL   → INTEGER(4바이트) 자동 증가 — 약 21억까지
-  BIGSERIAL → BIGINT(8바이트) 자동 증가 — 약 922경까지
-  서비스 규모 모를 때는 처음부터 BIGSERIAL 선택이 안전
+CREATE TABLE 구조:
+  컬럼명 → 타입 → 제약조건 순서
 
-NUMERIC(10, 2):
-  정밀 소수 — 금액/비율에 사용
-  NUMERIC(전체자릿수, 소수점이하)
-  FLOAT/REAL 은 부동소수점 오차 있어서 금액에 사용 금지
-
-TIMESTAMPTZ(3):
-  timezone-aware — UTC로 저장, 어떤 환경에서도 같은 instant
-  안 붙이면 기본이 TIMESTAMP(timezone-naive) → 쓰지 말 것
-  ([[PG_Types]] "timestamp vs timestamptz" 참고)
-```
-
-## FK 포함
-
-```sql
-CREATE TABLE post (
-    id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-    title       VARCHAR(300) NOT NULL,
-    created_at  TIMESTAMPTZ(3) NOT NULL DEFAULT NOW()
-);
-```
-
-```txt
-ON DELETE 옵션:
-  CASCADE   → 부모 삭제 시 자식도 삭제
-  SET NULL  → 부모 삭제 시 FK를 NULL로 (컬럼이 nullable이어야 함)
-  RESTRICT  → 자식이 있으면 부모 삭제 불가 (기본값)
-  NO ACTION → RESTRICT와 거의 같음 (트랜잭션 끝에 체크)
-```
-
-## IF NOT EXISTS — 에러 방지
-
-```sql
-CREATE TABLE IF NOT EXISTS item (
-    id BIGSERIAL PRIMARY KEY,
-    ...
-);
--- 이미 있으면 조용히 무시, 없으면 생성
+  타입을 먼저 정하고, 그 다음 제약조건을 붙임
+  여러 제약조건은 공백으로 나열
+  컬럼마다 쉼표로 구분, 마지막 컬럼엔 쉼표 없음
 ```
 
 ---
 
-# 제약조건 ⭐️⭐️⭐️
+# 주요 컬럼 타입 ⭐️⭐️⭐️⭐️
 
-## 종류 한눈에
+```txt
+문자열:
+  VARCHAR(n)   최대 n글자 문자열 (초과 시 에러)
+  TEXT         길이 제한 없는 문자열 (PostgreSQL에서 VARCHAR와 성능 차이 없음)
+  CHAR(n)      정확히 n글자 (짧으면 공백 채움 — 거의 안 씀)
 
-|제약조건|역할|예시|
+숫자:
+  INTEGER      4바이트 정수 (-21억 ~ +21억)
+  BIGINT       8바이트 정수 (매우 큰 수)
+  SMALLINT     2바이트 정수 (-32768 ~ +32767)
+  NUMERIC(p,s) 정확한 소수 (p=전체 자리, s=소수 자리) — 금액에 사용
+  FLOAT        부동소수 (정확도 낮음 — 금액에 쓰면 안 됨)
+
+불린:
+  BOOLEAN      true / false / NULL
+
+날짜·시간:
+  DATE         날짜만 (2024-01-15)
+  TIME         시간만
+  TIMESTAMP    날짜+시간 (타임존 없음)
+  TIMESTAMPTZ  날짜+시간+타임존 ← 권장 (UTC로 저장, 조회 시 변환)
+
+식별자:
+  UUID         128비트 고유 ID (gen_random_uuid()로 생성)
+  SERIAL       자동 증가 정수 (구식 — 요즘은 GENERATED ALWAYS AS IDENTITY)
+
+기타:
+  JSONB        JSON 저장 + 인덱스 가능 (JSON보다 빠름)
+  TEXT[]       텍스트 배열
+```
+
+---
+
+# 제약조건 (Constraints) ⭐️⭐️⭐️⭐️
+
+## PRIMARY KEY
+
+```sql
+-- 방법 1 — 컬럼에 직접 (단일 컬럼)
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+
+-- 방법 2 — 테이블 레벨 (복합 키)
+CREATE TABLE room_members (
+  room_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  PRIMARY KEY (room_id, user_id)   -- 두 컬럼을 합쳐서 PK
+);
+```
+
+```txt
+PRIMARY KEY:
+  NOT NULL + UNIQUE를 동시에 보장
+  테이블당 하나만 가능
+  자동으로 인덱스 생성됨
+```
+
+## NOT NULL
+
+```sql
+title VARCHAR(200) NOT NULL   -- 반드시 값 있어야 함
+body  TEXT                    -- NULL 허용 (기본)
+```
+
+## DEFAULT
+
+```sql
+view_count INTEGER      NOT NULL DEFAULT 0
+status     VARCHAR(20)  NOT NULL DEFAULT 'active'
+created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+id         UUID         PRIMARY KEY DEFAULT gen_random_uuid()
+```
+
+## UNIQUE
+
+```sql
+-- 단일 컬럼 UNIQUE
+email VARCHAR(200) UNIQUE
+
+-- 복합 UNIQUE (두 컬럼 조합이 유일)
+UNIQUE (date, hour)    -- 같은 날짜+시간 조합 중복 불가
+```
+
+```txt
+⚠️ UNIQUE + NULL 함정:
+  NULL은 중복으로 취급되지 않음 → NULL이 여러 개 들어갈 수 있음
+  → 센티넬 값(-1) 또는 NULLS NOT DISTINCT (PG 15+) 사용
+  → [[PG_Patterns]] NULL UNIQUE 섹션 참고
+```
+
+## FOREIGN KEY
+
+```sql
+CREATE TABLE comments (
+  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id   UUID NOT NULL,
+  author_id UUID NOT NULL,
+
+  FOREIGN KEY (post_id)   REFERENCES posts(id)   ON DELETE CASCADE,
+  FOREIGN KEY (author_id) REFERENCES users(id)    ON DELETE RESTRICT
+);
+
+-- 컬럼에 직접 쓰는 방법
+post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE
+```
+
+## ON DELETE 옵션
+
+|옵션|동작|예시|
 |---|---|---|
-|`PRIMARY KEY`|기본키 (UNIQUE + NOT NULL 자동)|`id BIGSERIAL PRIMARY KEY`|
-|`NOT NULL`|NULL 불가|`title VARCHAR(200) NOT NULL`|
-|`UNIQUE`|중복 불가|`email TEXT UNIQUE`|
-|`CHECK`|값 조건|`CHECK (price >= 0)`|
-|`DEFAULT`|기본값|`DEFAULT NOW()`|
-|`REFERENCES`|FK (외래키)|`REFERENCES "user"(id)`|
+|`CASCADE`|부모 삭제 → 자식도 삭제|게시글 삭제 시 댓글 삭제|
+|`RESTRICT`|자식 있으면 부모 삭제 불가|답글 있는 댓글 삭제 불가|
+|`SET NULL`|부모 삭제 → FK를 NULL로|작성자 탈퇴 시 게시글 유지|
+|`SET DEFAULT`|부모 삭제 → FK를 기본값으로|기본값이 설정된 경우|
+|`NO ACTION`|기본값 — RESTRICT와 유사|명시 안 하면 이 동작|
 
-## CHECK — 조건 제약
+## CHECK
 
 ```sql
-CREATE TABLE product (
-    id       BIGSERIAL PRIMARY KEY,
-    price    NUMERIC(10,2) CHECK (price >= 0),
-    discount NUMERIC(5,2)  CHECK (discount BETWEEN 0 AND 100),
-    -- 여러 컬럼에 걸친 CHECK
-    CONSTRAINT price_check CHECK (sale_price <= price)
+CREATE TABLE products (
+  price    NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+  quantity INTEGER       NOT NULL CHECK (quantity >= 0),
+  status   VARCHAR(20)   CHECK (status IN ('active', 'inactive', 'deleted'))
 );
-```
-
-## 복합 UNIQUE — 쌍으로 유니크
-
-```sql
-CREATE TABLE user_follow (
-    follower_id  BIGINT NOT NULL REFERENCES "user"(id),
-    following_id BIGINT NOT NULL REFERENCES "user"(id),
-    UNIQUE (follower_id, following_id)   -- 같은 쌍 중복 방지
-);
-```
-
-```txt
-Prisma에서의 복합 UNIQUE → @@unique([follower_id, following_id])
-조회 시 → findUnique({ where: { follower_id_following_id: { follower_id, following_id } } })
-([[NestJS_Prisma]] "@@unique" 섹션 참고)
-```
-
-## 인덱스 — CREATE INDEX
-
-```sql
--- 단일 인덱스
-CREATE INDEX idx_post_user_id ON post(user_id);
-
--- 복합 인덱스 (순서 중요 — 앞 컬럼으로 단독 검색도 인덱스 탐)
-CREATE INDEX idx_post_user_created ON post(user_id, created_at DESC);
-
--- UNIQUE 인덱스 (= UNIQUE 제약과 동일 효과)
-CREATE UNIQUE INDEX idx_user_email ON "user"(email);
-
--- 부분 인덱스 (조건 만족하는 행만) — PostgreSQL 특화
-CREATE INDEX idx_active_item ON item(created_at) WHERE is_active = TRUE;
-```
-
-```txt
-부분 인덱스(Partial Index):
-  WHERE 조건을 붙여서 일부 행에만 인덱스 생성
-  → 전체 행 중 is_active=TRUE인 것만 자주 검색한다면
-    전체 인덱스보다 훨씬 작고 빠른 인덱스가 만들어짐
-  → Prisma에서 직접 지원 안 됨 → migrate dev 후 SQL 직접 추가
 ```
 
 ---
 
-# ALTER TABLE — 테이블 수정 ⭐️⭐️
+# ALTER TABLE — 구조 변경 ⭐️⭐️⭐️⭐️
 
 ```sql
 -- 컬럼 추가
-ALTER TABLE item ADD COLUMN thumbnail_url TEXT;
+ALTER TABLE posts ADD COLUMN is_pinned BOOLEAN NOT NULL DEFAULT false;
 
 -- 컬럼 삭제
-ALTER TABLE item DROP COLUMN thumbnail_url;
+ALTER TABLE posts DROP COLUMN old_field;
 
--- 타입 변경 (데이터 변환 가능한 경우)
-ALTER TABLE item ALTER COLUMN title TYPE TEXT;
+-- 컬럼 타입 변경
+ALTER TABLE posts ALTER COLUMN title TYPE TEXT;
 
--- 타입 변경 + 명시적 USING (변환 방법 지정)
-ALTER TABLE item ALTER COLUMN price TYPE NUMERIC(12,2)
-    USING price::NUMERIC(12,2);
+-- NOT NULL 추가
+ALTER TABLE posts ALTER COLUMN author_id SET NOT NULL;
+
+-- NOT NULL 제거
+ALTER TABLE posts ALTER COLUMN description DROP NOT NULL;
+
+-- 기본값 추가
+ALTER TABLE posts ALTER COLUMN status SET DEFAULT 'draft';
+
+-- 기본값 제거
+ALTER TABLE posts ALTER COLUMN status DROP DEFAULT;
 
 -- 컬럼 이름 변경
-ALTER TABLE item RENAME COLUMN title TO name;
-
--- NOT NULL 추가 / 제거
-ALTER TABLE item ALTER COLUMN price SET NOT NULL;
-ALTER TABLE item ALTER COLUMN price DROP NOT NULL;
-
--- DEFAULT 설정 / 제거
-ALTER TABLE item ALTER COLUMN is_active SET DEFAULT TRUE;
-ALTER TABLE item ALTER COLUMN is_active DROP DEFAULT;
+ALTER TABLE posts RENAME COLUMN old_name TO new_name;
 
 -- 테이블 이름 변경
-ALTER TABLE item RENAME TO product;
-
--- FK 추가
-ALTER TABLE post
-    ADD CONSTRAINT fk_post_user
-    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE;
-
--- 제약조건 삭제
-ALTER TABLE post DROP CONSTRAINT fk_post_user;
+ALTER TABLE posts RENAME TO articles;
 ```
 
 ```txt
-timestamp → timestamptz 마이그레이션 (Prisma schema 수정 후 migrate dev가 생성하는 SQL):
-  ALTER TABLE "User"
-    ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ(3)
-    USING "createdAt" AT TIME ZONE 'UTC';
-  
-  USING ... AT TIME ZONE 'UTC': 기존 데이터가 UTC로 들어갔다고 가정
-  ([[NestJS_PostgreSQL]] 참고)
+ALTER TABLE 주의사항:
+  운영 중인 테이블에 NOT NULL 컬럼 추가 시:
+    기존 행의 값이 NULL → 에러 발생
+    → DEFAULT를 함께 지정하거나, 먼저 NULL 허용으로 추가 후 데이터 채우고 NOT NULL 추가
+
+  타입 변경 시:
+    기존 데이터가 변환 가능해야 함 (TEXT → INTEGER는 숫자 문자열만 가능)
+    운영 중 대용량 테이블 타입 변경은 락(lock) 발생 → 서비스 중단 가능
 ```
 
 ---
 
-# DROP TABLE ⭐️
+# DROP — 삭제 ⭐️⭐️⭐️
 
 ```sql
--- 기본 삭제
-DROP TABLE item;
+-- 테이블 삭제
+DROP TABLE posts;
 
--- 없으면 무시 (에러 방지) — 스크립트에서 자주 씀
-DROP TABLE IF EXISTS item;
+-- 존재할 때만 삭제 (없으면 에러 없음)
+DROP TABLE IF EXISTS posts;
 
--- FK로 참조되는 테이블도 함께 삭제
-DROP TABLE item CASCADE;
--- ⚠️ CASCADE: 이 테이블을 참조하는 다른 테이블의 FK 제약까지 같이 삭제됨
---             데이터가 삭제되는 건 아님, 제약조건이 삭제됨
+-- 참조 관계 있어도 강제 삭제 (FOREIGN KEY도 함께 삭제)
+DROP TABLE posts CASCADE;
+
+-- 컬럼 삭제
+ALTER TABLE posts DROP COLUMN description;
+ALTER TABLE posts DROP COLUMN IF EXISTS description;
+
+-- 인덱스 삭제
+DROP INDEX idx_posts_user_id;
+DROP INDEX IF EXISTS idx_posts_user_id;
+```
+
+```txt
+⚠️ DROP은 되돌릴 수 없음
+  트랜잭션 안에서 DROP 후 확인하고 COMMIT하는 것이 안전
+  운영 DB에서는 백업 후 실행
 ```
 
 ---
 
-# TRUNCATE — 전체 초기화 ⭐️⭐️⭐️
-
-## DELETE vs TRUNCATE
-
-|
-|`DELETE`|`TRUNCATE`|
-|---|---|---|
-|속도|느림 (행마다 로그 기록)|빠름 (통째로 비움)|
-|롤백|가능|불가 (PostgreSQL에서도)|
-|WHERE 조건|가능|불가 — 항상 전체|
-|SERIAL/ID 초기화|❌ 이어서 증가|✅ RESTART IDENTITY로 가능|
-|용도|일부 삭제|전체 초기화|
-
-## PostgreSQL TRUNCATE 옵션
+# CREATE INDEX — 인덱스 ⭐️⭐️⭐️⭐️
 
 ```sql
--- 기본 (데이터 삭제, id는 이어서 증가)
-TRUNCATE TABLE item;
+-- 기본 인덱스
+CREATE INDEX idx_posts_user_id ON posts (user_id);
 
--- id를 1부터 다시 시작
-TRUNCATE TABLE item RESTART IDENTITY;
+-- 내림차순
+CREATE INDEX idx_posts_created_at ON posts (created_at DESC);
 
--- FK로 연결된 자식 테이블도 같이 비움
-TRUNCATE TABLE item CASCADE;
+-- UNIQUE 인덱스 (UNIQUE 제약과 동일 효과)
+CREATE UNIQUE INDEX idx_users_email ON users (email);
 
--- 둘 다 ⭐️ — 개발 중 가장 많이 씀
-TRUNCATE TABLE item RESTART IDENTITY CASCADE;
+-- 복합 인덱스 (순서 중요!)
+CREATE INDEX idx_posts_user_created ON posts (user_id, created_at DESC);
+-- → WHERE user_id = ? ORDER BY created_at DESC 쿼리에 최적
+
+-- Partial Index (조건부 인덱스)
+CREATE INDEX idx_active_posts ON posts (created_at DESC)
+WHERE deleted_at IS NULL;
+-- → 삭제 안 된 게시글만 인덱스 → 더 작고 빠름
 ```
 
 ```txt
-언제 쓰나:
-  개발 중 테스트 데이터가 쌓여 id가 1, 5, 12...처럼 뒤죽박죽될 때
-  → 데이터 전부 지우고 id를 1부터 다시 시작하고 싶을 때
+복합 인덱스 순서 규칙:
+  (user_id, created_at) 인덱스는:
+    WHERE user_id = ?                    ← 사용 가능 (앞 컬럼만)
+    WHERE user_id = ? AND created_at > ? ← 사용 가능 (앞+뒤)
+    WHERE created_at > ?                 ← 비효율 (앞 컬럼 없음)
 
-여러 테이블 한꺼번에 초기화:
-  TRUNCATE TABLE post, comment, tag RESTART IDENTITY CASCADE;
-  (순서는 FK 관계 무관 — CASCADE가 처리해줌)
+  → 등호(=) 조건 컬럼을 앞에, 범위 조건 컬럼을 뒤에
 
-⚠️ 롤백 불가 + CASCADE는 연관 데이터 전부 삭제
-  → 로컬 개발 / 테스트 환경에서만
-  → 프로덕션 절대 금지
-```
-
----
-
-# Prisma와의 관계 ⭐️⭐️
-
-```txt
-Prisma를 쓰면 DDL을 직접 쓸 일이 많이 줄어듦:
-  schema.prisma 수정 → prisma migrate dev → DDL SQL 자동 생성 + 실행
-
-그래도 DDL 직접 필요한 경우:
-  ① 부분 인덱스(Partial Index) — Prisma가 직접 지원 안 함
-     → migrate dev로 빈 마이그레이션 파일 생성 후 SQL 직접 작성
-
-  ② 기존 컬럼 타입 변경 (timestamp → timestamptz 같은 경우)
-     → migrate dev가 생성하는 SQL을 검토/수정
-
-  ③ DataGrip에서 직접 구조 확인하거나 임시 수정이 필요할 때
-
-생성된 마이그레이션 SQL은 prisma/migrations/ 폴더에 저장됨
-→ Git에 커밋해서 팀원과 공유, 운영 배포 시 prisma migrate deploy로 적용
-([[NestJS_Prisma]] "migrate dev / migrate deploy" 섹션 참고)
+Prisma schema에서:
+  @@index([userId])
+  @@index([userId, createdAt(sort: Desc)])
 ```
 
 ---
 
-# 한눈에
+# Prisma와 DDL ⭐️⭐️⭐️
+
+```prisma
+// schema.prisma가 DDL을 대신 작성
+model Post {
+  id        String   @id @default(cuid())          // PRIMARY KEY + DEFAULT
+  title     String   @db.VarChar(200)              // VARCHAR(200) NOT NULL
+  content   String?                                // TEXT NULL
+  viewCount Int      @default(0)                   // INTEGER DEFAULT 0
+  authorId  String                                 // UUID NOT NULL
+  createdAt DateTime @default(now())               // TIMESTAMPTZ DEFAULT NOW()
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])                              // CREATE INDEX
+  @@unique([date, hour])                           // UNIQUE(date, hour)
+}
+```
 
 ```txt
-CREATE TABLE:
-  BIGSERIAL → 큰 서비스 고려하면 SERIAL 대신 BIGSERIAL
-  TIMESTAMPTZ(3) → timezone 포함 필수 (TIMESTAMP 쓰지 말 것)
-  NUMERIC(10,2) → 금액/비율 (FLOAT 사용 금지)
-  IF NOT EXISTS → 스크립트에서 에러 방지
+prisma migrate dev 를 실행하면:
+  schema.prisma의 변경사항을 분석해서
+  필요한 DDL(ALTER TABLE, CREATE INDEX 등)을 자동 생성·실행
+  → 직접 DDL을 쓸 일이 많지 않음
 
-제약조건:
-  PRIMARY KEY / NOT NULL / UNIQUE / CHECK / DEFAULT / REFERENCES
-  복합 UNIQUE → UNIQUE (col1, col2)
-  부분 인덱스 → CREATE INDEX ... WHERE 조건 (Prisma 직접 지원 안 됨)
-
-ALTER TABLE:
-  ADD COLUMN / DROP COLUMN / ALTER COLUMN TYPE / RENAME COLUMN
-  SET NOT NULL / DROP NOT NULL / SET DEFAULT / DROP DEFAULT
-  ADD CONSTRAINT FK / DROP CONSTRAINT
-
-TRUNCATE:
-  RESTART IDENTITY → id 1부터 재시작
-  CASCADE → FK 연결된 자식 테이블도 같이 비움
-  둘 다: TRUNCATE TABLE xxx RESTART IDENTITY CASCADE
-  ⚠️ 롤백 불가 — 개발/테스트 환경에서만
-
-Prisma 연결:
-  schema.prisma → migrate dev → SQL 자동 생성
-  부분 인덱스 등 Prisma 미지원 → 마이그레이션 SQL 직접 작성
+직접 DDL을 쓰는 경우:
+  Prisma가 지원 안 하는 PostgreSQL 기능 (Partial Index, NULLS NOT DISTINCT 등)
+  prisma/migrations/*.sql 파일에 직접 추가
+  데이터 마이그레이션 (기존 데이터를 변환하면서 구조 변경)
 ```

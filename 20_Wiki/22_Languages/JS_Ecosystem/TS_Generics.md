@@ -18,7 +18,10 @@ related:
 # TS_Generics — 제네릭
 
 >[!info]
->제네릭 = 타입을 나중에 결정할 수 있게 하는 것. `<T>`를 선언하면 함수를 호출할 때 T에 어떤 타입이 들어갈지 결정된다. TypeScript가 대부분 자동으로 추론하므로 `fn<string>('hello')`처럼 직접 명시하지 않아도 되는 경우가 많다.
+>제네릭 = 타입을 나중에 결정할 수 있게 하는 것. 
+>`<T>`를 선언하면 호출 시 타입이 결정된다.
+> 대부분 자동 추론되지만 `useState<Set<string>>(() => new Set())`처럼 빈 객체·null이 초기값이면 명시해야 한다.
+>  `Set<string>` · `Map<string, User>` · `Promise<User>` 같은 중첩 제네릭도 같은 원리.
 
 ---
 
@@ -165,21 +168,35 @@ const [count, setCount] = useState(0);          // T = number 자동 추론
 const [name, setName]   = useState('');          // T = string 자동 추론
 
 // 초기값이 null이거나 복잡한 경우 — 명시 필요
-const [user, setUser]   = useState<User | null>(null);  // null만 보고는 User를 모름
-const [items, setItems] = useState<Post[]>([]);          // 빈 배열만 보고는 Post를 모름
+const [user, setUser]   = useState<User | null>(null);   // null만 보고는 User를 모름
+const [items, setItems] = useState<Post[]>([]);           // 빈 배열만 보고는 Post를 모름
 
-// useRef
-const inputRef = useRef<HTMLInputElement>(null);
-const divRef   = useRef<HTMLDivElement>(null);
+// Set · Map — 초기값이 비어있으면 반드시 명시
+const [ids, setIds] = useState<Set<string>>(new Set());
+//                             ↑ 없으면 Set<unknown>으로 추론됨
+const [map, setMap] = useState<Map<string, User>>(new Map());
+
+// 지연 초기화 + 타입 명시
+const [expandedRootIds, setExpandedRootIds] = useState<Set<string>>(
+  () => new Set(),
+);
 ```
 
 ```txt
-useState<User | null>(null):
-  null만으로는 TypeScript가 "나중에 User가 들어올 것"을 알 수 없음
-  → 제네릭으로 직접 알려줘야 함
+useState<Set<string>> 읽는 법:
+  useState → React 훅 (제네릭 함수)
+  <Set<string>> → "이 state의 타입은 Set<string>이야"
+  () => new Set() → 초기값 (지연 초기화)
 
-useState([])와 useState<Post[]>([]):
-  [] 만으로는 어떤 배열인지 모름 → Post[]임을 명시
+  Set<string> = string 값들의 집합
+  new Set()만 전달하면 TypeScript가 Set<unknown>으로 추론
+  → <Set<string>>을 명시해야 setIds에서 타입 안전하게 쓸 수 있음
+
+중첩 제네릭:
+  Set<string>       → string을 담는 Set
+  Map<string, User> → string 키, User 값의 Map
+  Array<Post>       → Post를 담는 배열 (= Post[])
+  Promise<User>     → resolve되면 User를 반환하는 Promise
 ```
 
 ```typescript
