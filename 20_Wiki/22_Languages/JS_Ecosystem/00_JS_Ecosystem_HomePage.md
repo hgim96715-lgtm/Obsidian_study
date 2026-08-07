@@ -220,6 +220,11 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 | **TS** | [[TS_YouTube]] |
 | **도구** | [[Monorepo_PNPM]] · [[00_Deployment_HomePage]] |
 
+```txt
+React_Concept  SPA · 컴포넌트 · JSX · State · Props · Virtual DOM · React vs Next.js
+NextJS_Concept SSR · CSR · SSG · ISR · Server/Client Component · Hydration · window 없음
+```
+
 ---
 
 ```txt

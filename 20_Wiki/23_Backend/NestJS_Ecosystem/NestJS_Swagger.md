@@ -15,8 +15,8 @@ related:
 ---
 # NestJS_Swagger — Swagger · OpenAPI 문서화
 
-> [!info] 
-> Swagger(OpenAPI) = 코드에 데코레이터를 달면 API 문서와 테스트 UI를 자동 생성. 
+>[!info]
+>Swagger(OpenAPI) = 코드에 데코레이터를 달면 API 문서와 테스트 UI를 자동 생성.
 > `/api`에서 UI로 직접 테스트, `/api-json`에서 OpenAPI 스펙으로 프론트 타입 자동 생성(`openapi-typescript`)에 활용.
 >  프론트 타입 연결 → [[NextJS_Types]]
 
@@ -191,10 +191,54 @@ example:
 |`required`|필수 여부 (기본 true)|`false`|
 |`nullable`|null 허용 여부|`true`|
 |`type`|타입 명시 (배열·중첩 DTO)|`[String]`, `() => UserDto`|
-|`enum`|열거형|`['draft', 'published']`|
+|`format`|문자열 형식 힌트|`'uuid'`, `'date-time'`, `'email'`|
+|`enum`|열거형 값 목록|`['private', 'public']`|
 |`default`|기본값|`true`|
 |`minimum`/`maximum`|숫자 범위|`1`, `100`|
 |`minLength`/`maxLength`|문자열 길이|`1`, `500`|
+
+## format · enum 실전 예시 ⭐️⭐️⭐️⭐️
+
+```typescript
+export class CreateRoomDto {
+  // format: 'uuid' — Swagger UI에서 이 필드가 UUID 형식임을 표시
+  @ApiProperty({ format: 'uuid', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsUUID()
+  hostId: string;
+
+  // enum — 허용되는 값 목록을 Swagger UI에 드롭다운으로 표시
+  @ApiProperty({ enum: ['private', 'public'], example: 'public' })
+  @IsEnum(['private', 'public'])
+  visibility: 'private' | 'public';
+
+  // enum + TypeScript enum 타입
+  @ApiProperty({ enum: RoomStatus, example: RoomStatus.ACTIVE })
+  @IsEnum(RoomStatus)
+  status: RoomStatus;
+}
+```
+
+```txt
+format: 'uuid':
+  Swagger UI에서 이 필드가 UUID 형식이라고 표시
+  실제 유효성 검사는 class-validator의 @IsUUID()가 담당
+  format은 문서화 힌트 — 강제하지 않음
+
+  자주 쓰는 format 값:
+  'uuid'      → UUID v4 형식 (550e8400-...)
+  'date-time' → ISO 8601 날짜+시간 (2024-01-15T09:30:00Z)
+  'email'     → 이메일 형식
+  'password'  → Swagger UI에서 마스킹 처리
+
+enum:
+  Swagger UI에서 드롭다운으로 선택 가능하게 표시
+  [ ] 배열 형태로 전달
+  → 문서 보는 사람이 어떤 값을 넣어야 하는지 바로 파악
+
+enum + format 없이 그냥 string이면:
+  Swagger UI에서 빈 텍스트 입력창만 나옴
+  → 어떤 값을 넣어야 하는지 모름
+```
 
 ## 중첩 DTO · 배열
 

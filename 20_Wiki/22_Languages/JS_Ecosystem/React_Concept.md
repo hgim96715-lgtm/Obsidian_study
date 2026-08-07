@@ -5,6 +5,7 @@ aliases:
   - Concept
   - CSR
   - SSR
+  - SPA
 tags:
   - React
 related:
@@ -12,254 +13,290 @@ related:
   - "[[NextJS_Concept]]"
   - "[[React_Component]]"
   - "[[NestJS_Concept]]"
+  - "[[NextJS_Routing]]"
 ---
-# React_Concept — React란
+# React_Concept — React 핵심 개념
 
-> [!info] 
-> React = UI를 만들기 위한 JavaScript 라이브러리 (Facebook/Meta 제작, 오픈소스)
->  컴포넌트 단위로 UI를 쪼개서 조립하고, 상태(state)가 바뀌면 UI가 자동으로 업데이트된다.
+>[!info]
+>React = UI를 컴포넌트 단위로 만드는 JavaScript 라이브러리. 
+>SPA 방식으로 페이지 전환 시 새로고침 없이 화면만 교체한다. 
+>상태(state)가 바뀌면 React가 변경된 부분만 다시 그린다.
+> Next.js는 React 위에 라우팅·SSR을 얹은 프레임워크 → [[NextJS_Concept]]
 
 ---
 
-# React가 나온 이유 ⭐️
+# SPA란 — Single Page Application ⭐️⭐️⭐️⭐️
 
 ```txt
-기존 방식 (Vanilla JS / jQuery):
-  DOM을 직접 조작
-  document.getElementById('title').innerText = '변경'
-  상태가 많아질수록 코드가 복잡해지고 추적이 어려움
+전통적인 방식 (MPA — Multi Page Application):
+  링크 클릭 → 서버에 새 페이지 요청 → 서버가 HTML 전체를 응답
+  → 브라우저가 페이지 전체를 다시 그림 (깜빡임, 느림)
+  → 매번 서버에 요청
+
+SPA — 단일 페이지 앱:
+  처음에 HTML·JS를 한 번만 받음
+  이후 링크 클릭 → 서버에 요청 안 함
+  → JavaScript가 화면의 일부만 교체 (새로고침 없음)
+  → 빠른 화면 전환, 앱처럼 느껴짐
+
+  데이터가 필요하면? → API(JSON)만 서버에 요청
+  → HTML 전체가 아닌 데이터만 받아서 JS가 화면에 반영
+```
+
+```txt
+SPA의 장점:
+  페이지 전환이 빠름 (새로고침 없음)
+  앱처럼 부드러운 UX
+  서버 부하 감소 (HTML이 아닌 JSON만 응답)
+
+SPA의 단점:
+  첫 로딩이 느림 (JS 번들을 전부 받아야 함)
+  SEO 불리 (처음에 빈 HTML)
+  → Next.js의 SSR이 이 단점을 보완 → [[NextJS_Concept]]
+```
+
+---
+
+# React가 없던 시절 ⭐️⭐️⭐️⭐️
+
+```txt
+jQuery 시대:
+  "id가 'count'인 요소의 텍스트를 숫자+1로 바꿔라"
+  → DOM을 직접 조작
+
+  document.getElementById('count').textContent = count + 1;
+  document.getElementById('btn').addEventListener('click', handler);
+  ...
+
+문제:
+  앱이 커질수록 "어떤 상태일 때 어떤 DOM을 어떻게 바꿔야 하는가"를
+  개발자가 전부 직접 추적해야 함
+  → 코드가 복잡해지고 버그가 늘어남
+  → 상태와 UI가 불일치하는 문제 발생
 
 React의 해결:
-  상태(state)가 바뀌면 UI가 자동으로 업데이트
-  개발자는 "어떻게 바꿀지"가 아닌 "무엇을 보여줄지"에 집중
-  → 선언형(Declarative) 프로그래밍
+  "상태(state)를 바꾸면 UI는 React가 알아서 업데이트"
+  개발자는 "이 상태일 때 UI가 이렇게 보여야 한다"만 선언
+  DOM 직접 조작 없음
 ```
 
 ---
 
-# 설치하기 ⭐️
+# React의 핵심 아이디어 ⭐️⭐️⭐️⭐️
 
-```bash
-# Vite로 시작 (현재 권장 방식) ⭐️
-pnpm create vite my-app --template react-ts
-cd my-app
-pnpm install
-pnpm dev
+```typescript
+// React의 핵심:
+// UI = f(state)
+// "상태(state)를 함수에 넣으면 UI가 나온다"
 
-# Next.js로 시작 (SSR/라우팅까지 한 번에 필요할 때)
-pnpm create next-app my-app
+function Counter() {
+  const [count, setCount] = useState(0);
+  //     ↑ 상태           ↑ 상태 변경 함수
 
-# ⚠️ create-react-app(CRA)는 2025년 공식 deprecated
-# → 신규 프로젝트에는 권장되지 않음
+  return (
+    <div>
+      <p>{count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
+    </div>
+  );
+  // count가 바뀌면 → React가 이 컴포넌트를 다시 실행
+  // → 새 JSX를 반환 → React가 바뀐 부분만 DOM에 반영
+}
 ```
 
 ```txt
-어떤 걸로 시작할지:
-  순수 React(SPA)만 필요         → Vite
-  SSR / 폴더 기반 라우팅까지 필요 → Next.js
+개발자가 하는 것:
+  "count가 3일 때 UI가 이렇게 생겼어" → JSX로 선언
+
+React가 하는 것:
+  count가 바뀌면 컴포넌트를 다시 실행
+  이전 UI와 새 UI를 비교 (Virtual DOM)
+  바뀐 부분만 실제 DOM에 반영
+
+개발자는 DOM을 직접 건드리지 않음
 ```
 
 ---
 
-# 프로젝트 구조 & 진입점 ⭐️
+# 컴포넌트 ⭐️⭐️⭐️⭐️
 
 ```txt
-my-app/
-├── index.html      브라우저가 맨 처음 받는 HTML (진입점)
-├── src/
-│   ├── main.jsx    React가 시작되는 자바스크립트 코드
-│   ├── App.jsx     최상위 컴포넌트
-│   └── ...
-└── package.json
+컴포넌트 = UI를 만드는 함수
+  입력: props (외부에서 전달받는 데이터)
+  출력: JSX (화면에 그릴 내용)
+
+  작은 컴포넌트들을 조합해서 큰 UI를 만듦
+  레고 블록처럼
 ```
 
-```html
-<!-- index.html -->
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
-</body>
-```
-
-```jsx
-// src/main.jsx — React 앱이 실제로 시작되는 지점 ⭐️
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
-```
-
-```txt
-실행 흐름:
-  1. 브라우저가 index.html 로딩 → <div id="root"></div> 라는 빈 박스만 있는 상태
-  2. <script src="/src/main.jsx"> 실행
-  3. document.getElementById('root') → 그 빈 박스를 JS로 찾음
-  4. createRoot(그 박스) → "여기에 React로 UI를 그릴 거야" 자리 생성
-     (React 18+의 새로운 렌더링 방식 — 이전엔 ReactDOM.render 사용)
-  5. .render(<App />) → App 컴포넌트(전체 앱)를 그 박스 안에 그려넣음
-
-  결과: 빈 div였던 곳에 우리가 만든 화면 전체가 채워짐
-
-App.jsx는 또 무엇인가:
-  실제 UI를 구성하는 첫 번째(최상위) 컴포넌트
-  여기서부터 다른 컴포넌트들을 import해서 조립해나감
-  → [[React_Component]] 참고
-```
-
-## StrictMode가 뭔지 ⭐️
-
-```txt
-<StrictMode>로 감싸는 이유:
-  개발 중에만 동작하는 "검사 모드" (빌드 결과물엔 영향 없음)
-  컴포넌트를 의도적으로 두 번 렌더링해서
-  → 부작용(side effect)이 있는 잘못된 코드를 미리 발견하게 도와줌
-  사용 안 해야 할 옛 API 사용 시 경고 표시
-
-  실제 화면엔 영향 없음 — 순수히 "개발할 때 도움 주는 도구"
-  뺄 수도 있지만 보통 그대로 둠 (버그 조기 발견에 유용)
-```
-
----
-
-# 컴포넌트 기반 ⭐️
-
-```txt
-UI를 독립적인 조각(컴포넌트)으로 쪼개서 조립
-각 컴포넌트는 자신의 상태와 UI를 관리
-
-장점:
-  재사용   Button 컴포넌트 하나로 여러 곳에 사용
-  분리     컴포넌트별로 독립적으로 개발 / 테스트
-  유지보수  특정 컴포넌트만 수정하면 됨
-```
-
-```jsx
-function Button({ label, onClick }) {
+```typescript
+// 컴포넌트 = JSX를 반환하는 함수
+function Button({ label, onClick }: { label: string; onClick: () => void }) {
   return <button onClick={onClick}>{label}</button>;
 }
 
-function App() {
+// 사용
+<Button label="저장" onClick={handleSave} />
+<Button label="취소" onClick={handleCancel} />
+// 같은 컴포넌트를 다른 props로 재사용
+```
+
+```txt
+컴포넌트 이름은 반드시 대문자로 시작:
+  <Button>  → React 컴포넌트 (대문자)
+  <button>  → HTML 태그 (소문자)
+  → React가 이걸로 구분
+
+컴포넌트는 순수 함수처럼 동작해야 함:
+  같은 props → 항상 같은 JSX
+  렌더링 중에 외부를 변경하면 안 됨 (사이드이펙트 금지)
+  사이드이펙트는 useEffect로 처리 → [[React_useEffect]]
+```
+
+---
+
+# JSX ⭐️⭐️⭐️⭐️
+
+```tsx
+// JSX = JavaScript 안에서 HTML처럼 쓰는 문법
+function Welcome({ name }: { name: string }) {
   return (
-    <div>
-      <Button label="저장" onClick={handleSave} />
-      <Button label="취소" onClick={handleCancel} />
+    <div className="wrapper">   {/* class 대신 className */}
+      <h1>안녕하세요, {name}!</h1>   {/* {} 안에 JS 표현식 */}
+      <p>{1 + 2}</p>             {/* 3 */}
     </div>
   );
 }
 ```
 
----
-
-# Virtual DOM ⭐️
-
 ```txt
-DOM(Document Object Model):
-  브라우저가 HTML을 파싱해서 만드는 트리 구조
-  직접 조작하면 느림 (렌더링 비용 높음)
+JSX는 HTML이 아님:
+  React.createElement() 호출로 변환됨
+  <h1>제목</h1> → React.createElement('h1', null, '제목')
 
-Virtual DOM:
-  React가 메모리 안에 유지하는 가상의 DOM 복사본
-  상태 변경 → 새 Virtual DOM 생성
-  이전 Virtual DOM과 비교 (diffing)
-  실제로 바뀐 부분만 실제 DOM에 반영 (reconciliation)
-  → 불필요한 DOM 조작 최소화 → 성능 향상
-
-흐름:
-  state 변경 → 새 Virtual DOM 생성 → 이전 것과 diff → 변경된 부분만 실제 DOM 업데이트
-```
-
----
-
-# JSX ⭐️
-
-```txt
-JSX = JavaScript + XML
-JavaScript 안에서 HTML처럼 UI를 작성하는 문법
-브라우저가 직접 이해 못 함 → Babel/Vite가 JavaScript로 변환
-```
-
-```jsx
-// JSX
-const element = <h1 className="title">Hello</h1>;
-
-// 변환 후 (브라우저가 실제로 이해하는 형태)
-const element = React.createElement('h1', { className: 'title' }, 'Hello');
-```
-
-```txt
 JSX 규칙:
-  class → className   (JS 예약어 충돌)
-  for   → htmlFor
-  반드시 하나의 루트 요소로 감싸기 → <div> 또는 <> (Fragment) 사용
-  표현식은 {} 안에 → {name} / {1 + 1} / {isLoggedIn ? '로그아웃' : '로그인'}
+  하나의 루트 요소만 반환 → 여러 개면 <> </> (Fragment)로 감싸기
+  모든 태그는 닫아야 함 → <br /> (self-closing)
+  class → className, for → htmlFor (JS 예약어 충돌 방지)
+  {} 안에 JS 표현식 사용 가능 (문은 불가 — if 문 안 됨, 삼항 연산자 사용)
 ```
 
 ---
 
-# CSR vs SSR ⭐️
+# State — 상태 ⭐️⭐️⭐️⭐️
 
-```txt
-CSR (Client Side Rendering):
-  브라우저가 빈 HTML을 받고 JavaScript를 다운로드·실행해서 화면을 그림
-  → 첫 로딩이 느림 / SEO 불리 / React 기본 방식 (Vite 등)
-
-SSR (Server Side Rendering):
-  서버가 이미 완성된 HTML을 만들어서 브라우저에 전송
-  → 첫 로딩이 빠름 / SEO 유리 / Next.js가 지원
-
-SSG (Static Site Generation):
-  빌드 시점에 HTML을 미리 생성 → 가장 빠름 / 정적 콘텐츠에 적합 / Next.js가 지원
+```typescript
+const [value, setValue] = useState(초기값);
+//     ↑ 현재 값  ↑ 변경 함수
 ```
 
-||CSR|SSR|SSG|
-|---|---|---|---|
-|렌더링 시점|브라우저|요청마다 서버|빌드 시|
-|첫 로딩|느림|빠름|가장 빠름|
-|SEO|불리|유리|유리|
-|사용|React SPA (Vite)|Next.js|Next.js|
-
----
-
-# SPA vs MPA
-
 ```txt
-SPA (Single Page Application):
-  HTML 파일 1개 / JavaScript로 화면 전환 / 페이지 이동 시 새로고침 없음
-  React / Vue / Angular
+State:
+  컴포넌트가 기억하는 값
+  바뀌면 → React가 컴포넌트를 다시 렌더링
 
-MPA (Multi Page Application):
-  페이지마다 별도 HTML / 페이지 이동 시 새로고침 / 전통적인 웹사이트
+일반 변수와 다른 점:
+  let count = 0;
+  count = count + 1;   // 화면 안 바뀜 — React가 모름
+
+  const [count, setCount] = useState(0);
+  setCount(count + 1);  // 화면 바뀜 — React가 알고 다시 렌더링
+
+State를 직접 수정하면 안 됨:
+  state.name = '홍길동'     // ❌ React가 변경 감지 못함
+  setState({ ...state, name: '홍길동' })  // ✅ 새 객체로 교체
 ```
 
 ---
 
-# React vs NestJS ⭐️
+# Props — 외부에서 전달받는 데이터 ⭐️⭐️⭐️⭐️
+
+```tsx
+// Props = 부모 → 자식으로 데이터 전달
+function PostCard({ title, author, onClick }: {
+  title:   string;
+  author:  string;
+  onClick: () => void;
+}) {
+  return (
+    <div onClick={onClick}>
+      <h2>{title}</h2>
+      <p>{author}</p>
+    </div>
+  );
+}
+
+// 사용
+<PostCard title="게시글 제목" author="홍길동" onClick={() => ...} />
+```
 
 ```txt
-React:   브라우저에서 실행 (프론트엔드) — UI 렌더링 담당
-NestJS:  서버에서 실행 (백엔드) — API / DB / 비즈니스 로직 담당
+Props vs State:
+  Props → 부모가 내려주는 것 (읽기 전용, 바꾸면 안 됨)
+  State → 컴포넌트 자신이 관리하는 것 (변경 가능)
 
-둘의 관계:
-  React → NestJS API 호출 → 데이터 받아서 화면 표시
-  React는 클라이언트 / NestJS는 서버
+  Props는 위에서 아래로만 흐름 (단방향 데이터 흐름)
+  자식이 부모 데이터를 바꾸려면 → 부모가 콜백 함수를 props로 내려줌
 ```
 
 ---
 
-# 한눈에
+# 렌더링 ⭐️⭐️⭐️⭐️
 
 ```txt
-설치:   pnpm create vite my-app --template react-ts (또는 Next.js)
-진입점: index.html → main.jsx → App.jsx
-        <div id="root">에 createRoot().render(<App />)로 채워넣음
+렌더링 = React가 컴포넌트 함수를 실행해서 JSX를 만드는 것
 
-StrictMode:   개발 중 버그 조기 발견용 (운영 빌드엔 영향 없음)
-Virtual DOM:  실제 DOM 직접 조작 대신 메모리에서 비교 후 변경분만 반영
-JSX:          className(class 아님) / htmlFor(for 아님) / 루트 하나로 감싸기
-CSR/SSR/SSG:  React 기본=CSR / Next.js=SSR·SSG 지원
+언제 렌더링이 발생하는가:
+  ① 처음 화면에 나타날 때 (마운트)
+  ② state가 바뀔 때 (setState 호출)
+  ③ 부모가 다시 렌더링될 때 (props가 바뀌지 않아도)
+
+  → React는 바뀐 부분만 실제 DOM에 반영 (전체 다시 그리지 않음)
+
+마운트 / 언마운트:
+  마운트 = 컴포넌트가 화면에 처음 나타남
+  언마운트 = 컴포넌트가 화면에서 사라짐
+  useEffect cleanup이 언마운트 시 실행됨 → [[React_useEffect]]
+```
+
+## Virtual DOM ⭐️⭐️⭐️
+
+```txt
+Virtual DOM = 실제 DOM의 가벼운 사본 (메모리에 있는 JS 객체)
+
+렌더링 과정:
+  ① 상태 변경 → 컴포넌트 함수 다시 실행 → 새 Virtual DOM 생성
+  ② 이전 Virtual DOM과 새 Virtual DOM을 비교 (Diffing)
+  ③ 실제로 바뀐 부분만 실제 DOM에 반영 (Reconciliation)
+
+왜 Virtual DOM을 쓰는가:
+  실제 DOM 조작은 비쌈 (레이아웃 계산, 화면 다시 그리기)
+  Virtual DOM은 메모리에서 비교 → 최소한의 DOM 조작만
+```
+
+---
+
+# React와 Next.js의 관계 ⭐️⭐️⭐️⭐️
+
+```txt
+React:
+  UI 라이브러리
+  컴포넌트, 상태, 렌더링을 담당
+  라우팅, 서버 렌더링 기능 없음
+
+Next.js:
+  React 위에 만든 프레임워크
+  React의 컴포넌트·상태를 그대로 사용
+  + 파일 기반 라우팅 → [[NextJS_Routing]]
+  + SSR/SSG → [[NextJS_Concept]]
+  + 이미지 최적화, API Routes 등
+
+  React만으로 충분한 경우:
+    서버 렌더링 불필요한 앱 (관리자 도구, 대시보드)
+    SEO가 중요하지 않은 경우
+
+  Next.js를 쓰는 경우:
+    SEO가 필요한 공개 페이지
+    초기 로딩 속도가 중요한 경우
+    풀스택 (API Routes 활용)
 ```

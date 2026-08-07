@@ -13,11 +13,8 @@ related:
 ---
 # NestJS_DTO — Data Transfer Object
 
-> [!info] 
-> DTO = "이 엔드포인트는 이런 형태의 데이터를 받는다"는 계약. 
-> class-validator 데코레이터가 자동으로 형식·필수·범위를 검증하고, ValidationPipe가 이를 실행한다. 
-> `@ValidateIf`로 다른 필드 값에 따라 조건부 검증도 가능.
->  `req.body`가 `any`가 되는 것을 막고 타입 안전성과 자동 검증을 모두 제공한다
+>[!info]
+>DTO = "이 엔드포인트는 이런 형태의 데이터를 받는다"는 계약. class-validator 데코레이터가 자동으로 형식·필수·범위를 검증하고, ValidationPipe가 이를 실행한다. `@ValidateIf`로 다른 필드 값에 따라 조건부 검증도 가능. `@ApiProperty({ format: 'uuid' })`·`@ApiProperty({ enum: [...] })` 같은 Swagger 옵션 → [[NestJS_Swagger]] `@ApiProperty` 섹션.
 
 ---
 
@@ -178,7 +175,72 @@ transform: true 가 중요한 이유:
 |`@IsUrl()`|URL 형식|
 |`@IsUUID()`|UUID 형식|
 |`@IsDateString()`|ISO 날짜 문자열|
-|`@IsEnum(MyEnum)`|열거형 값 중 하나|
+|`@IsEnum(MyEnum)`|TypeScript enum 값 중 하나|
+|`@IsIn([...])`|배열에 포함된 값 중 하나|
+
+## @IsIn vs @IsEnum — 열거형 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+// @IsEnum — TypeScript enum 객체가 있을 때
+enum RoomStatus { ACTIVE = 'active', CLOSED = 'closed' }
+
+@IsEnum(RoomStatus)
+status: RoomStatus;
+
+// @IsIn — 리터럴 유니온 타입일 때 (enum 객체 없음)
+@IsIn(['active', 'closed', 'archived'])
+status?: 'active' | 'closed' | 'archived';
+```
+
+```txt
+@IsEnum(RoomStatus):
+  TypeScript enum 객체를 인자로 받음
+  enum의 value들 중 하나인지 검증
+  → enum 객체가 있을 때 사용
+
+@IsIn(['active', 'closed', 'archived']):
+  배열을 직접 전달
+  배열에 포함된 값인지 검증
+  → 리터럴 유니온 타입처럼 enum 객체 없이 문자열 목록만 있을 때 사용
+
+선택 기준:
+  TypeScript enum을 정의해서 쓰고 있다면  → @IsEnum(MyEnum)
+  'a' | 'b' | 'c' 같은 리터럴 유니온이면 → @IsIn(['a', 'b', 'c'])
+```
+
+## @ApiProperty({ enum }) + @IsIn — 세트로 사용 ⭐️⭐️⭐️⭐️
+
+```typescript
+export class UpdateAdminReportDto {
+  // @ApiProperty({ enum }) = Swagger 문서화 (드롭다운 표시)
+  // @IsIn([])             = 실제 값 검증
+  // 둘은 역할이 달라서 항상 함께 써야 함
+  @ApiProperty({ enum: ['resolved', 'dismissed'] })
+  @IsIn(['resolved', 'dismissed'])
+  status!: 'resolved' | 'dismissed';
+}
+```
+
+```txt
+@ApiProperty({ enum: [...] }):
+  Swagger UI에서 이 필드를 드롭다운으로 표시
+  문서화 역할 — 실제 검증 안 함
+  → 없으면 Swagger에서 빈 텍스트 입력창만 나옴
+
+@IsIn([...]):
+  실제 요청이 왔을 때 값이 배열 안에 있는지 검증
+  → 없으면 이상한 값이 들어와도 통과
+
+둘 다 없으면:
+  검증도 없고 문서화도 없음 → status: string 으로만 처리
+
+@ApiProperty만 있고 @IsIn 없으면:
+  Swagger에서는 드롭다운 보이지만 실제로는 아무 값이나 들어와도 통과
+
+@IsIn만 있고 @ApiProperty 없으면:
+  검증은 되지만 Swagger에 enum 힌트가 없음
+  → 문서 보는 사람이 어떤 값 넣어야 하는지 모름
+```
 
 ## 범위 검증
 
@@ -206,6 +268,7 @@ transform: true 가 중요한 이유:
 ```
 
 ---
+
 # @ValidateIf — 조건부 검증 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -285,53 +348,6 @@ export class ContactDto {
   { phone: '010-1234-5678' }  → email 검증 안 함 → 통과
   {}                           → 둘 다 검증 실패 → 400
 ```
-
-```typescript
-// list-users-query.dto.ts
-import { IsOptional, IsString, IsInt, IsEnum, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class ListUsersQueryDto {
-  @IsOptional()
-  @IsString()
-  q?: string;            // 검색어
-
-  @IsOptional()
-  @IsEnum(UserStatus)
-  status?: UserStatus;   // 상태 필터
-
-  @IsOptional()
-  @IsString()
-  cursor?: string;       // 페이지네이션 cursor
-
-  @IsOptional()
-  @Type(() => Number)    // 쿼리스트링은 string → Number로 변환 필요
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  take?: number = 20;    // 기본값 20
-}
-```
-
-```typescript
-// 컨트롤러에서
-@Get()
-findAll(@Query() query: ListUsersQueryDto) {
-  return this.usersService.findAll(query);
-}
-```
-
-```txt
-@Type(() => Number) 이 필요한 이유:
-  URL 쿼리스트링은 전부 문자열: ?take=20 → "20" (string)
-  @IsInt()는 숫자를 기대하는데 "20"은 문자열 → 검증 실패
-  @Type(() => Number)을 붙이면 transform: true 설정 시 "20" → 20으로 변환
-
-  @IsString()인 q?, cursor?는 이미 문자열이라 @Type 불필요
-```
----
-
-# 쿼리 파라미터 DTO ⭐️⭐️⭐️⭐️
 
 ```typescript
 // list-users-query.dto.ts
