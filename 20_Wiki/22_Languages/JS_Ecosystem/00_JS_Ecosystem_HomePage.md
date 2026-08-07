@@ -43,17 +43,18 @@ flowchart LR
 
 ## 🔐 인증 · 토큰
 
-| | 노트 |
+| |노트|
 |---|---|
-| **Next.js** | [[Auth_Concept]] · [[NextJS_TokenStorage]] · [[NextJS_AuthCache]] |
+|**개념**|[[Auth_Concept]]|
+|**Next.js**|[[NextJS_TokenStorage]] · [[NextJS_AuthCache]]|
 
 ```txt
-Auth_Concept        OAuth 흐름 · JWT vs 세션
+Auth_Concept        인증 vs 인가 · Session vs Token · JWT 구조 · Access+Refresh Token · OAuth · 저장 위치
 NextJS_TokenStorage 토큰 저장 전략 (메모리 · 쿠키)
 NextJS_AuthCache    캐시 + 인증 조합
+NestJS 구현 → [[NestJS_Auth]] (🔐 NestJS 인증 섹션)
 Context로 로그인 상태 공유 → [[React_Context_Provider]] (⚛️ React 훅 섹션)
 API 클라이언트 · 토큰 첨부 → [[NextJS_API_Client]] (📡 API 통신 섹션)
-로그인 라우팅 → [[NextJS_Routing]] (🗺️ 라우팅 섹션)
 ```
 
 ---
@@ -128,16 +129,18 @@ React_AsyncUI             이벤트 핸들러 비동기 · fire-and-forget · ap
 
 ## 📡 API 통신 · 타입 매핑
 
-| | 노트 |
+| |노트|
 |---|---|
-| **JS** | [[JS_Fetch_API]] |
-| **Next.js** | [[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_Types]] |
+|**JS**|[[JS_Fetch_API]]|
+|**Next.js**|[[NextJS_API_Client]] · [[NextJS_API_Mapper]] · [[NextJS_Types]]|
+|**OpenAPI**|[[OpenAPI_Codegen]]|
 
 ```txt
 NextJS_API_Client  apiFetch 래퍼 · 토큰 · 에러 처리 · FormData
 NextJS_API_Mapper  기능별 fetch 함수 · ApiXxx→UiXxx 변환 · 전체 흐름
 NextJS_Types       API 타입(ApiXxx) · UI 타입(UiXxx) · 매퍼 패턴 (개념)
-                   ← 백엔드 NestJS_DTO의 OpenAPI 타입 생성과 연결
+OpenAPI_Codegen    스펙 → 타입 자동 생성 · openapi-typescript · Orval · 백엔드 스택별 비교
+                   ← 업계 표준 패턴 (NestJS·FastAPI·Spring 공통)
 ```
 
 ---
@@ -174,16 +177,15 @@ WebSocket_Patterns 서버+클라이언트 패턴 — 연결·룸·브로드캐�
 
 ### TypeScript
 
-| 노트 | 내용 |
-|---|---|
-| [[TS_Type_Guards]] | typeof · instanceof · in · is · never · any vs unknown · as const |
-| [[TS_Generics]] | `<T>` · keyof · Partial · readonly T[] · `&` 교차 타입 |
-| [[TS_Utility_Types]] | Record · Partial · Omit · ReturnType · Awaited |
-| [[TS_TypeAssertion]] | `as` · `!` non-null · `property!` 확정 할당 · `satisfies` |
-| [[TS_ImportType]] | import type · type as alias · .d.ts · 경로 별칭 |
-| [[TS_TsConfig]] | API vs Web 옵션 비교 |
-| [[TS_Class_Patterns]] | implements · extends · readonly |
-| [[TS_PartialUpdate]] | PATCH 객체 만들기 |
+| 노트                    | 내용                                                                          |
+| --------------------- | --------------------------------------------------------------------------- |
+| [[TS_Type_Guards]]    | typeof · instanceof · in · is · never · any vs unknown · as const           |
+| [[TS_Generics]]       | `<T>` · keyof · Partial · readonly T[] · `&` 교차 타입                          |
+| [[TS_Utility_Types]]  | Partial · Required · Omit · Pick · Record · ReturnType · Awaited · PATCH 패턴 |
+| [[TS_TypeAssertion]]  | `as` · `!` non-null · `property!` 확정 할당 · `satisfies`                       |
+| [[TS_ImportType]]     | import type · type as alias · .d.ts · 경로 별칭                                 |
+| [[TS_TsConfig]]       | API vs Web 옵션 비교                                                            |
+| [[TS_Class_Patterns]] | implements · extends · readonly                                             |
 
 ### JavaScript
 

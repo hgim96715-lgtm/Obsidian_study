@@ -63,33 +63,30 @@ flowchart TB
 
 ## 🔐 인증 · JWT
 
-| |노트|
-|---|---|
-|**NodeJS**|[[NodeJS_Passport]] · [[NodeJS_Buffer]]|
-|**NestJS**|[[NestJS_Auth]] · [[NestJS_JwtGuard]] · [[NestJS_Bcrypt]] · [[Auth_Concept]]|
+|            | 노트                                    |
+| ---------- | ------------------------------------- |
+| **NestJS** | [[NestJS_Auth]] · [[NestJS_JwtGuard]] |
+| **개념**     | [[Auth_Concept]]                      |
 
 
 ```txt
-NodeJS_Passport  Passport.js 동작 원리 — Strategy · validate · req.user
-NodeJS_Buffer    JWT base64 인코딩 원리 · Basic Auth 인코딩
-NestJS_Auth      소셜 로그인 (Google · Kakao · Naver · Apple) · Passport 연동
-NestJS_JwtGuard  JWT 검증 · SetMetadata · Reflector · @Public · @Roles · @AllowWithdrawing
-NestJS_Bcrypt    hash · compare · 조건부 해싱 · 응답에서 제거
-Auth_Concept     OAuth 흐름 · JWT vs 세션 (→ JS_Ecosystem 폴더에 있음)
+Auth_Concept     인증 vs 인가 · Session vs Token · JWT 구조 · Base64 · Access+Refresh · OAuth
+NestJS_Auth      JwtModule 설정 · AuthService · login/register/refresh · bcrypt
+NestJS_JwtGuard  JWT 검증 Guard · @Public · @UserId · @OptionalUserId · @Roles
 ```
 
 ---
 
 ## 🌐 HTTP 요청 · 응답
 
-| | 노트                      |
-| ---------- | ----------------------- |
-|**NodeJS**| [[NodeJS_HTTP_Request]] |
-|**NestJS**| [[NestJS_Controller]]   |
+|            | 노트                    |
+| ---------- | --------------------- |
+| **HTTP**   | [[HTTP_Concept]]      |
+| **NestJS** | [[NestJS_Controller]] |
 
 ```txt
+HTTP_Concept       HTTP 요청/응답 구조 · 헤더(Authorization·Content-Type·Cookie) · HTTPS
 NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · 응답(return→JSON · @HttpCode · @Header · @Redirect · @Res) · Guard 적용 · CRUD 패턴
-NestJS_Controller의 @Req() = NodeJS_HTTP_Request의 Express Request 객체
 ```
 
 ---
@@ -189,6 +186,13 @@ NestJS_Seed        테스트 데이터 생성 · @seed.local · DRY_RUN · clean
 | |노트|
 |---|---|
 |**NestJS**|[[NestJS_Swagger]] · [[NestJS_Versioning]]|
+|**타입 생성**|[[OpenAPI_Codegen]]|
+
+```txt
+NestJS_Swagger   @ApiTags · @ApiProperty · @ApiBearerAuth · Bearer Auth 설정
+OpenAPI_Codegen  /api-json → openapi-typescript → 프론트 타입 자동 생성
+                 ← NestJS Swagger가 스펙을 생성하는 쪽, 프론트가 이걸 소비
+```
 
 ---
 

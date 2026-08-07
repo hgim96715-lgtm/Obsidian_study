@@ -1,236 +1,266 @@
 ---
 aliases:
-  - Security
-  - Session
-  - JWT
-  - OAuth
   - Auth
+  - OAuth
+  - Session
+  - Token
+  - JSON Web Token(JWT)
+  - Access Token
+  - Refresh Token
 tags:
   - NestJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[Web_XSS_CSRF]]"
-  - "[[Web_Cookie]]"
-  - "[[NextJS_TokenStorage]]"
   - "[[NestJS_Auth]]"
+  - "[[NestJS_JwtGuard]]"
 ---
-# Auth_Concept — 인증 개념
+# Auth_Concept — 인증 · 인가 개념
 
-> [!info] 
-> 인증(Authentication) = "너 누구야?" 
->  인가(Authorization) = "너 이거 해도 돼?" 
->  소셜 로그인은 OAuth 2.0 프로토콜로 동작하고, 토큰 저장 방식은 JWT와 세션 중 하나를 고른다.
+>[!info]
+>인증(Authentication) = "당신이 누구인지 확인". 인가(Authorization) = "당신이 무엇을 할 수 있는지 확인". JWT = 서버가 서명한 토큰으로 인증 상태를 증명. NestJS 구현 → [[NestJS_Auth]], Guard(인가) → [[NestJS_JwtGuard]]
 
 ---
 
-# 인증 vs 인가 ⭐️⭐️⭐️
-
-|구분|의미|예시|
-|---|---|---|
-|인증 (Authentication)|신원 확인 — "이 사람이 맞는가"|로그인, OAuth, 지문|
-|인가 (Authorization)|권한 확인 — "이 사람이 이 자원에 접근할 수 있는가"|RBAC, 관리자만 접근, 내 글만 수정|
+# 인증 vs 인가 ⭐️⭐️⭐️⭐️
 
 ```txt
-인증이 먼저, 인가가 나중
-로그인(인증) → "이 사람은 admin이다" → 관리자 페이지 접근 허용(인가)
+인증 (Authentication) = "너가 누구야?"
+  로그인 → 아이디·비밀번호 확인 → "홍길동이구나"
+  → 신원 확인
+
+인가 (Authorization) = "너가 이걸 해도 돼?"
+  게시글 수정 요청 → "홍길동이 이 게시글 작성자야?" → 허용/거부
+  → 권한 확인
+
+  인증 없이 인가 불가: 누구인지 모르면 권한 확인도 못 함
+  인증 ≠ 인가: 로그인했어도 다른 사람 글은 못 수정
 ```
 
 ---
 
-# 로컬 인증 — ID / 비밀번호 ⭐️⭐️⭐️⭐️
+# Session vs Token ⭐️⭐️⭐️⭐️
+
+## Session 방식 (전통적)
 
 ```txt
-흐름:
-  ① 회원가입: 이메일 + 비밀번호 입력
-  ② 서버: 비밀번호를 bcrypt로 해시 후 DB에 저장 (평문 저장 절대 금지)
-  ③ 로그인: 이메일로 사용자 조회 → bcrypt.compare(입력비번, 해시) → 일치하면 토큰 발급
+① 로그인 → 서버가 세션 저장소에 { sessionId: 'abc', userId: '123' } 저장
+② 브라우저에 sessionId='abc' 쿠키 전달
+③ 다음 요청 → 쿠키의 sessionId로 서버가 세션 조회 → userId 확인
+
+장점: 서버에서 세션 삭제로 즉시 로그아웃
+단점: 서버가 세션을 저장해야 함 → 서버를 여러 대 쓰면 세션 공유 문제
+     서버 부하 증가 (매 요청마다 DB/Redis 조회)
 ```
 
-## 비밀번호 해싱 — bcrypt ⭐️⭐️⭐️⭐️
+## Token(JWT) 방식
+
+```txt
+① 로그인 → 서버가 JWT 토큰 생성 (서버는 아무것도 저장 안 함)
+② 브라우저에 토큰 전달
+③ 다음 요청 → Authorization: Bearer {token} 헤더
+④ 서버가 서명 검증 → 유효하면 내용(userId) 꺼내서 사용
+
+장점: 서버가 아무것도 저장 안 해도 됨 → 서버 여러 대 써도 문제 없음
+단점: 토큰이 만료되기 전에 강제 로그아웃 어려움
+     토큰이 탈취되면 만료까지 사용 가능
+```
+
+---
+
+# JWT — JSON Web Token ⭐️⭐️⭐️⭐️
+
+```txt
+JWT = "서버가 서명한 JSON"
+  서버만 알고 있는 비밀키로 서명
+  → 위조 불가 (비밀키 없으면 서명 못 함)
+  → 서버는 서명만 검증하면 됨 (DB 조회 불필요)
+```
+
+## JWT 구조
+
+```txt
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEyMyIsImlhdCI6MTY5MDAwMDAwMH0.signature
+
+세 부분이 점(.)으로 구분:
+
+Header.Payload.Signature
+
+Header:   알고리즘 정보 (HS256, RS256 등)
+Payload:  실제 데이터 — userId, 만료시간 등 (암호화 아님! Base64 인코딩)
+Signature: Header+Payload를 비밀키로 서명한 값 (위조 방지)
+```
 
 ```typescript
-import * as bcrypt from 'bcrypt';
+// Payload (디코딩하면 읽을 수 있음 — 민감 정보 넣으면 안 됨)
+{
+  sub:  'user-uuid',    // Subject — 사용자 ID
+  iat:  1690000000,     // Issued At — 발급 시각 (Unix timestamp)
+  exp:  1690086400,     // Expiration — 만료 시각
+}
 
-// 회원가입 시 — 해시 생성
-const saltRounds = 10;  // 해시 강도 (숫자가 클수록 느리고 안전)
-const hash = await bcrypt.hash(plainPassword, saltRounds);
-// DB에는 hash만 저장 — 원본 비밀번호는 어디에도 남기면 안 됨
-
-// 로그인 시 — 검증
-const isMatch = await bcrypt.compare(plainPassword, hashedFromDB);
-// true → 로그인 허용 / false → 거부
+// sub, iat, exp는 JWT 표준 클레임(claim) 이름
 ```
 
 ```txt
-bcrypt의 원리:
-  단방향 해시 — 해시에서 원본을 역산할 수 없음
-  같은 비밀번호도 매번 다른 해시를 만듦 (salt 때문에)
-  → "비밀번호가 맞나?"는 compare로만 확인 가능
+⚠️ JWT Payload는 암호화가 아닌 Base64 인코딩
+  누구나 디코딩해서 내용을 볼 수 있음
+  → 비밀번호, 카드번호 등 민감 정보를 Payload에 넣으면 안 됨
+  → userId 정도만 넣는 것이 안전
 
-saltRounds = 10: 약 100ms — 로그인 1번에는 충분히 빠름, 무차별 대입은 느림
+서명(Signature)의 역할:
+  Payload가 바뀌면 Signature도 달라짐
+  서버는 Signature를 검증해서 위조 여부 확인
+  → userId를 '123'→'456'으로 바꾸면 Signature 불일치 → 거부
+```
+
+## Base64 — Payload가 보이는 이유 ⭐️⭐️⭐️⭐️
+
+```txt
+JWT의 Header·Payload는 Base64로 인코딩됨
+
+Base64:
+  바이너리/텍스트 데이터를 URL-safe 문자로 표현하는 방식
+  암호화가 아님 — 누구나 디코딩 가능
+
+eyJzdWIiOiJ1c2VyLTEyMyJ9
+→ atob 으로 디코딩 →
+{"sub":"user-123"}
+```
+
+```typescript
+// 브라우저 개발자 도구에서 직접 확인 가능
+const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyLTEyMyJ9.서명값';
+const payload = JSON.parse(atob(token.split('.')[1]));
+// { sub: 'user-123', iat: 1234, exp: 5678 }
+// → 토큰을 가진 누구나 Payload 내용을 볼 수 있음
+```
+
+```txt
+그럼 왜 안전한가:
+  Payload를 읽을 수는 있지만 바꿀 수 없음
+  Payload를 조작하면 Signature가 달라짐
+  JWT_SECRET 없이는 올바른 Signature를 만들 수 없음
+  → 서버가 Signature 검증에서 탈락시킴
+
+원칙:
+  Payload에는 "읽혀도 괜찮은 것"만 (userId 등)
+  비밀번호·카드번호 등은 절대 Payload에 넣지 않음
 ```
 
 ---
 
-# OAuth 2.0 — 소셜 로그인의 원리 ⭐️⭐️⭐️⭐️
+# Access Token · Refresh Token ⭐️⭐️⭐️⭐️
+
+## 각각 무엇인가
 
 ```txt
-OAuth = "제3자 앱이 사용자 데이터에 접근할 수 있도록 허가하는 개방형 프로토콜"
+Access Token:
+  API를 호출할 때 "나는 로그인한 사용자야"를 증명하는 토큰
+  모든 요청의 Authorization 헤더에 담아서 보냄
+  Authorization: Bearer {access_token}
+  → 서버가 이 토큰으로 누가 요청했는지 확인
 
-핵심 개념:
-  사용자가 우리 앱에 비밀번호를 직접 주지 않아도
-  "구글이 대신 신원을 보증해줌"
-  → 우리 서버는 구글로부터 "이 사용자가 인증됐다"는 확인을 받음
+Refresh Token:
+  Access Token이 만료됐을 때 새 Access Token을 발급받기 위한 토큰
+  API 호출에 직접 사용하지 않음 — 오직 재발급 요청에만 사용
+  POST /auth/refresh 엔드포인트에만 보냄
+  → "내 Access Token 만료됐는데 새로 줘"
 ```
 
-## Authorization Code Flow — 소셜 로그인 공통 흐름 ⭐️⭐️⭐️⭐️
+## 왜 두 가지가 필요한가
 
-```mermaid-beautiful
-sequenceDiagram
-    participant U as 사용자 브라우저
-    participant C as 우리 서버
-    participant P as 소셜 제공자(Google 등)
+```txt
+JWT를 하나만 쓰면:
+  만료 시간이 짧으면 → 자주 로그인해야 해서 불편
+  만료 시간이 길면  → 탈취 시 오래 사용 가능 → 위험
 
-    U->>C: GET /auth/google 클릭
-    C->>U: 구글 로그인 페이지로 redirect
-    U->>P: 구글 계정으로 로그인 + 권한 허용
-    P->>U: redirect_uri?code=AUTH_CODE
-    U->>C: GET /auth/google/callback?code=AUTH_CODE
-    C->>P: code + client_secret 으로 토큰 요청
-    P->>C: access_token + id_token
-    C->>P: access_token으로 사용자 정보 요청
-    P->>C: email, name, profile_image 등
-    C->>C: DB에 사용자 upsert
-    C->>U: JWT 발급 + 리다이렉트
+해결: 두 가지 토큰을 함께 사용
+  Access Token  → 실제 API 호출에 사용, 만료 짧음 (15분~1시간)
+  Refresh Token → Access Token 재발급에만 사용, 만료 김 (7일~30일)
+```
+
+## 흐름
+
+```txt
+① 로그인
+   → Access Token (15분) + Refresh Token (7일) 발급
+
+② API 호출 (15분 이내)
+   Authorization: Bearer {access_token}
+   → 서버가 Access Token 검증
+
+③ Access Token 만료
+   → Refresh Token으로 새 Access Token 요청
+   POST /auth/refresh
+   → 새 Access Token (15분) 발급
+
+④ Refresh Token도 만료
+   → 다시 로그인
+
+⑤ 로그아웃
+   → Refresh Token을 DB에서 삭제 or 블랙리스트 처리
+   → Access Token은 만료 기다리거나 짧은 만료시간으로 관리
 ```
 
 ```txt
-핵심 단계 4개:
-  ① 사용자를 소셜 제공자 로그인 페이지로 보냄
-  ② 사용자가 허용하면 redirect_uri로 code(인가 코드)가 돌아옴
-  ③ 서버가 code + client_secret으로 access_token 교환 (서버↔제공자, 사용자 관여 없음)
-  ④ access_token으로 사용자 정보 조회 → DB upsert → 우리 JWT 발급
-
-code는 단 한 번만 사용 가능, 수명이 짧음 (수분)
-access_token은 제공자 API 호출에 쓰는 것 — 우리 서비스 인증에는 우리 JWT를 따로 발급
-```
-
----
-
-# JWT vs 세션 ⭐️⭐️⭐️⭐️
-
-|구분|JWT|세션|
-|---|---|---|
-|상태 저장 위치|클라이언트(토큰 안에 정보 포함)|서버(세션 DB/메모리)|
-|서버 상태|Stateless — 서버가 기억 안 해도 됨|Stateful — 서버가 세션 유지|
-|검증 방법|서명 검증 (빠름)|DB 조회 (느릴 수 있음)|
-|로그아웃|클라이언트에서 토큰 삭제 (서버 강제 무효화 어려움)|세션 삭제로 즉시 무효화|
-|서버 확장|유리 (세션 공유 불필요)|서버 간 세션 공유 필요|
-
-```txt
-JWT 선택이 맞는 경우:
-  REST API + 모바일 앱 조합
-  여러 서버 인스턴스로 스케일아웃
-  NestJS + Next.js 분리 구조 (우리 프로젝트)
-
-세션 선택이 맞는 경우:
-  서버사이드 렌더링 위주의 전통적 웹앱
-  로그아웃 즉시 무효화가 중요한 경우 (금융 등)
-  Redis 등으로 세션 공유 인프라가 있을 때
+왜 Refresh Token은 DB에 저장하는가:
+  로그아웃 = Refresh Token 무효화
+  JWT는 서버가 아무것도 저장 안 하므로 강제 만료 불가
+  → Refresh Token만 DB에 저장해서 로그아웃 시 삭제
+  → Access Token은 짧은 만료로 자동 소멸에 의존
 ```
 
 ---
 
-# 액세스 토큰 + 리프레시 토큰 ⭐️⭐️⭐️
+# OAuth 2.0 — 소셜 로그인 ⭐️⭐️⭐️
 
 ```txt
-액세스 토큰 (Access Token):
-  API 호출에 쓰는 토큰 — Authorization: Bearer {token} 헤더
-  수명이 짧음 (15분~1시간)
-  탈취당해도 곧 만료됨
+OAuth = "내 비밀번호를 상대방에게 안 알려줘도 권한을 위임하는 프로토콜"
 
-리프레시 토큰 (Refresh Token):
-  액세스 토큰 재발급에만 쓰는 토큰
-  수명이 김 (7일~30일)
-  httpOnly 쿠키에 저장 (XSS 방어)
-  → 리프레시 토큰으로 새 액세스 토큰 발급
+구글 로그인 예시:
+  ① 사용자가 "구글로 로그인" 클릭
+  ② 구글 로그인 화면으로 이동 (구글이 인증 담당)
+  ③ 구글이 "이 앱이 당신의 이름·이메일을 보려 합니다" 동의 요청
+  ④ 동의 → 구글이 authorization code를 앱에 전달
+  ⑤ 앱이 구글에 code + 앱 비밀키로 access_token 요청
+  ⑥ 구글 access_token으로 사용자 정보 조회 (이름, 이메일)
+  ⑦ 앱이 자체 JWT 발급 → 이후 자체 인증 시스템 사용
+```
 
-흐름:
-  액세스 토큰 만료 → /auth/refresh 요청 (리프레시 토큰 포함)
-  서버: 리프레시 토큰 검증 → 새 액세스 토큰 발급
-  클라이언트: 새 토큰으로 재요청
+```txt
+핵심:
+  구글 비밀번호를 앱에 알려주지 않음
+  구글이 인증을 처리, 앱은 결과(사용자 정보)만 받음
+  구글 access_token ≠ 앱 JWT
+  → 앱은 구글 정보로 자체 사용자를 만들고 자체 JWT를 발급
+
+소셜 로그인이 필요한 이유:
+  비밀번호 관리 부담 없음
+  2FA, 보안 등을 구글/애플이 대신 처리
+  사용자 편의 (새 계정 안 만들어도 됨)
 ```
 
 ---
 
-# 소셜 로그인 제공자 비교 ⭐️⭐️⭐️
-
-|제공자|패키지|특이사항|
-|---|---|---|
-|Google|`passport-google-oauth20`|가장 표준적, 문서 풍부|
-|Naver|`passport-naver-v2`|한국 전용, scope 제한적|
-|Kakao|`passport-kakao`|kakao_account.email 경로 주의|
-|Apple|전용 패키지 없음|JWT 직접 검증 방식, 이메일 숨기기 기능|
+# 토큰 저장 위치 ⭐️⭐️⭐️
 
 ```txt
-Apple Sign In의 특이점:
-  다른 제공자와 달리 access_token으로 사용자 정보 API를 호출하지 않음
-  대신 id_token(JWT)을 Apple의 공개키로 직접 검증해서 사용자 정보 추출
-  사용자가 이메일 숨기기를 선택하면 릴레이 이메일(@privaterelay.appleid.com) 제공
-  첫 로그인 시에만 이름 정보가 옴 — 이후 요청엔 없음 (DB에 저장해야 함)
-```
+브라우저에서 토큰을 어디 저장하는가:
 
----
+localStorage:
+  JS로 쉽게 접근 가능
+  XSS 공격에 취약 (악성 스크립트가 토큰 탈취 가능)
+  → Access Token 저장에 주의 필요
 
-# OAuth 앱 등록 — 공통 절차 ⭐️⭐️⭐️
+httpOnly Cookie:
+  JS에서 접근 불가 (document.cookie로 못 읽음)
+  서버가 Set-Cookie로 설정
+  XSS에 안전, CSRF 주의 필요
+  → Refresh Token 저장에 적합
 
-```txt
-각 제공자에서 공통으로 해야 하는 것:
-  ① 개발자 콘솔에서 앱 등록
-  ② Client ID + Client Secret 발급 → .env에 저장
-  ③ redirect URI 등록 (콜백 URL)
-     예: https://my-api.railway.app/auth/google/callback
-
-redirect URI 규칙:
-  개발: http://localhost:3000/auth/google/callback
-  운영: https://api.example.com/auth/google/callback
-  → 양쪽 다 등록해야 함 (콘솔에서 여러 개 등록 가능)
-
-.env:
-  GOOGLE_CLIENT_ID=...
-  GOOGLE_CLIENT_SECRET=...
-  GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
-```
-
----
-
-# 한눈에
-
-```txt
-인증 vs 인가:
-  Authentication  신원 확인 ("누구야")
-  Authorization   권한 확인 ("이거 해도 돼?")
-
-로컬 인증:
-  비밀번호 → bcrypt.hash() → DB 저장
-  로그인 → bcrypt.compare() → 일치하면 JWT 발급
-
-OAuth 2.0 흐름 (소셜 로그인):
-  ① /auth/google → 구글 로그인 페이지
-  ② 사용자 허용 → redirect_uri?code=...
-  ③ 서버: code + secret → access_token 교환
-  ④ access_token → 사용자 정보 조회 → DB upsert → JWT 발급
-
-JWT vs 세션:
-  JWT     Stateless, 서버 확장 유리, 강제 만료 어려움
-  세션    Stateful, 즉시 무효화 가능, 세션 공유 필요
-
-액세스 + 리프레시:
-  액세스  짧은 수명 (15분~1시간) — API 호출에 사용
-  리프레시 긴 수명 (7~30일) — httpOnly 쿠키, 액세스 토큰 재발급에만
-
-NestJS 구현 → [[NestJS_Auth]]
-토큰 저장 위치 선택 → [[NextJS_TokenStorage]]
-쿠키 보안 속성 → [[Web_Cookie]]
+메모리 (React state):
+  페이지 새로고침 시 사라짐
+  가장 안전 (JS로도 못 탈취)
+  → Access Token 저장에 적합 (짧은 만료라 재발급으로 해결)
 ```

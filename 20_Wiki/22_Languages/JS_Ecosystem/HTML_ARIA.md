@@ -10,6 +10,7 @@ aliases:
   - tabIndex
 tags:
   - HTML
+  - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
 ---
@@ -87,12 +88,30 @@ aria-hidden이 필요한 경우:
 </button>
 // 스크린 리더: "닫기, 버튼"  (✕ 기호 대신)
 
+// 상태에 따라 동적으로 변경
+<button aria-label={notificationsUnread ? '알림 (안 읽음)' : '알림'}>
+  <BellIcon />
+</button>
+// 읽지 않은 알림 있을 때: "알림 (안 읽음), 버튼"
+// 전부 읽었을 때:         "알림, 버튼"
+
 // input — label 없을 때
 <input
   type="search"
   aria-label="게시글 검색"
   placeholder="검색어를 입력하세요"
 />
+```
+
+```txt
+동적 aria-label:
+  aria-label={조건 ? '상태 A' : '상태 B'}
+  상태가 바뀌면 스크린 리더가 새 label을 읽음
+
+  버튼의 시각적 모습이 같아도 상태가 다르면 aria-label로 구분:
+    기본:    aria-label="알림"
+    안읽음:  aria-label="알림 (안 읽음)"
+  → 시각 장애인도 알림이 있는지 파악 가능
 ```
 
 ```txt

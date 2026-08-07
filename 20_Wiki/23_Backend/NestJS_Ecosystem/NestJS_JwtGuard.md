@@ -1,17 +1,26 @@
 ---
-aliases: [Auth, Guard, JWT, JwtAuthGuard, request.user, RolesGuard]
-tags: [NestJS]
+aliases:
+  - Auth
+  - Guard
+  - JWT
+  - JwtAuthGuard
+  - request.user
+  - RolesGuard
+tags:
+  - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
-  - "[[NestJS_Bcrypt]]"
-  - "[[NodeJS_HTTP_Request]]"
-  - "[[NodeJS_Passport]]"
+  - "[[HTTP_Concept]]"
+  - "[[NestJS_Auth]]"
 ---
-# NestJS_JwtGuard — JWT 인증 파이프라인
+# NestJS_JwtGuard — JWT Guard · 인증 파이프라인
 
-> [!info]
->  Guard 인프라(CanActivate · Reflector · SetMetadata)는 NestJS가 제공하고, 실제 검증 로직(JwtAuthGuard · @Roles · @Public · @UserId 등)은 직접 만든다. 이 둘을 구분하는 것이 이 노트의 핵심.
+>[!info]
+>Guard = 컨트롤러 핸들러 실행 전에 "이 요청이 허용되는가"를 결정하는 레이어. 
+>`CanActivate` 인터페이스를 구현해서 만든다.
+> `JwtAuthGuard`·`@Public()`·`@UserId()`는 **NestJS가 제공하는 조립 도구로 직접 만드는 것** — 내장이 아니다. 
+> JWT 개념 → [[Auth_Concept]], HTTP 헤더·Authorization → [[HTTP_Concept]], JWT 발급 로직 → [[NestJS_Auth]]
 
 ---
 
@@ -19,466 +28,257 @@ related:
 
 ```txt
 헷갈림의 근본 원인:
-  @Roles · @Public · @AllowWithdrawing · JwtAuthGuard
+  @Roles · @Public · @UserId · JwtAuthGuard
   → 전부 "직접 만드는 것"인데 예제마다 당연하게 나와서 내장인 것처럼 보임
 
-  내장처럼 보이는 이유:
-  NestJS가 "조립 도구"(SetMetadata, Reflector, CanActivate 등)를 제공하고
-  개발자가 그 도구로 만든 패턴이 업계 관례로 굳어져서
-  어디서나 같은 이름, 같은 모양으로 나오는 것
-```
+NestJS가 제공하는 조립 도구:
+  CanActivate      → Guard를 만드는 인터페이스
+  ExecutionContext  → 현재 요청 정보에 접근하는 객체
+  SetMetadata      → 메타데이터를 붙이는 함수
+  Reflector        → 붙인 메타데이터를 읽는 도구
+  createParamDecorator → 파라미터 데코레이터 만드는 함수
+  APP_GUARD        → 전역 Guard 등록 토큰
 
-| |제공 주체|역할|
-|---|---|---|
-|`CanActivate`|NestJS|Guard가 구현해야 하는 인터페이스|
-|`ExecutionContext`|NestJS|현재 요청의 handler·class·request에 접근하는 객체|
-|`SetMetadata(key, value)`|NestJS|클래스/메서드에 "라벨"을 붙이는 함수|
-|`Reflector`|NestJS|붙인 라벨을 다시 읽는 헬퍼|
-|`APP_GUARD`|NestJS|전역 Guard 등록 토큰|
-|`@UseGuards()`|NestJS|특정 Guard를 라우트에 적용하는 데코레이터|
-|`createParamDecorator()`|NestJS|커스텀 파라미터 데코레이터를 만드는 함수|
-|`JwtModule` · `JwtService`|`@nestjs/jwt`|JWT 발급(signAsync) · 검증(verifyAsync)|
-|**`JwtAuthGuard`**|**직접 만듦**|Bearer 토큰 검증, request.user 채우기|
-|**`@Public()`**|**직접 만듦**|인증 건너뛰기 라벨 (SetMetadata 래퍼)|
-|**`@Roles()`**|**직접 만듦**|role 체크 라벨 (SetMetadata 래퍼)|
-|**`RolesGuard`**|**직접 만듦**|@Roles 라벨을 읽어서 role 검사|
-|**`@UserId()`**|**직접 만듦**|request.user.sub를 꺼내는 파라미터 데코레이터|
-|**`@AllowWithdrawing()`**|**직접 만듦**|특정 상태 예외 라벨 (SetMetadata 래퍼)|
+개발자가 그 도구로 만드는 것:
+  JwtAuthGuard     → CanActivate + JwtService로 직접 구현
+  @Public()        → SetMetadata로 직접 만든 데코레이터
+  @UserId()        → createParamDecorator로 직접 만든 데코레이터
+  @Roles()         → SetMetadata로 직접 만든 데코레이터
+
+"업계 관례"로 굳어진 것:
+  이름과 모양이 어디서나 같아서 내장처럼 보임
+  실제로는 NestJS 공식 문서의 패턴을 따라 만드는 것
+```
 
 ---
 
-# Guard — 요청을 가로막는 문지기 ⭐️⭐️⭐️
+# JWT 인증 흐름 요약 ⭐️⭐️⭐️⭐️
+
+```txt
+1. 클라이언트가 Authorization 헤더에 토큰을 담아 요청
+   Authorization: Bearer eyJhbGci...
+
+2. JwtAuthGuard가 가로챔
+   헤더에서 토큰 추출 → jwtService.verify() → payload 꺼냄
+   request.user = { sub: 'userId', iat: ..., exp: ... }
+
+3. @UserId() 데코레이터
+   request.user.sub를 컨트롤러 파라미터에 주입
+
+4. 컨트롤러
+   @UserId() userId: string 으로 바로 사용
+
+JWT 개념(토큰이란, 서명, Base64) → [[Auth_Concept]]
+Authorization 헤더 구조 → [[HTTP_Concept]]
+토큰 발급(login, issueTokens) → [[NestJS_Auth]]
+```
+
+---
+
+# Guard란 — CanActivate ⭐️⭐️⭐️⭐️
+
+```txt
+Guard = CanActivate 인터페이스를 구현한 클래스
+  canActivate() 메서드 하나만 구현하면 됨
+  true  → 요청 통과
+  false → 403 Forbidden 자동 반환
+  throw → 해당 예외로 응답
+
+요청 처리 순서에서의 위치:
+  요청 → 미들웨어 → Guard → Interceptor → Pipe → Controller → Service
+                  ↑
+              여기서 인증·인가 처리
+
+Guard가 Middleware보다 나중에 실행되는 이유:
+  미들웨어는 Express 레이어 (라우팅 전)
+  Guard는 NestJS 레이어 (라우팅 후, DI 컨테이너 활용 가능)
+
+Guard가 Pipe보다 먼저 실행되는 이유:
+  인증 안 된 요청에 데이터 변환·검증 비용을 쓸 필요 없음
+  DB 조회가 필요한 Pipe가 있다면 더욱 중요
+```
 
 ```typescript
-// Guard = CanActivate 인터페이스를 구현하는 클래스
-// canActivate가 true → 통과 / false (또는 throw) → 차단
+// Guard의 기본 구조
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
-@Injectable()
-export class SomeGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    // 여기서 request를 보고 통과시킬지 막을지 결정
-    return true; // 또는 false, 또는 throw new UnauthorizedException()
+@Injectable()   // ← DI 컨테이너에 등록 (JwtService 주입 받으려면 필수)
+export class MyGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    // 여기서 요청을 검사하고
+    // true(통과) 또는 false(거부) 또는 throw(예외) 반환
+    return true;
   }
 }
 ```
 
-```txt
-ExecutionContext — 현재 요청에 대한 모든 정보의 창구:
-  context.switchToHttp().getRequest()  → Express Request 객체 (토큰, body 등)
-  context.getHandler()                 → 지금 실행될 라우트 메서드 자체
-  context.getClass()                   → 지금 실행될 컨트롤러 클래스 자체
+---
 
-getHandler() · getClass()는 Reflector로 메타데이터를 읽을 때 씀 (아래 참고)
+# ExecutionContext — 현재 요청 정보의 창구 ⭐️⭐️⭐️⭐️
+
+```typescript
+canActivate(context: ExecutionContext): boolean {
+  // HTTP 요청 객체 (Express Request)
+  const request = context.switchToHttp().getRequest();
+  //    ↑ request.headers, request.user, request.body, request.cookies 등
+
+  // 현재 실행될 라우트 메서드 자체
+  const handler = context.getHandler();
+  // ex) PostsController의 create 메서드 함수
+
+  // 현재 실행될 컨트롤러 클래스 자체
+  const cls = context.getClass();
+  // ex) PostsController 클래스
+
+  // Reflector가 메타데이터를 읽을 때 이 두 가지를 씀
+  // getHandler() → 메서드에 붙은 @Public() 확인
+  // getClass()   → 클래스에 붙은 @Public() 확인
+}
+```
+
+```txt
+switchToHttp():
+  NestJS는 HTTP뿐 아니라 WebSocket, gRPC 등도 지원
+  switchToHttp()로 "이건 HTTP 요청"이라고 명시
+  → getRequest()로 Express Request 객체 반환
+
+getRequest()로 접근할 수 있는 것:
+  request.headers.authorization  → JWT 토큰
+  request.body                   → POST/PATCH body
+  request.params                 → URL 파라미터
+  request.query                  → 쿼리스트링
+  request.cookies                → 쿠키
+  request.user                   → Guard가 저장한 payload
 ```
 
 ---
+# 메타데이터 · SetMetadata · Reflector ⭐️⭐️⭐️⭐️
 
-# SetMetadata + Reflector — 공통 메커니즘 ⭐️⭐️⭐️⭐️
-
-```txt
-@Public · @Roles · @AllowWithdrawing — 이 셋이 전부 같은 방식으로 작동함
-먼저 이 메커니즘을 이해하면, 새 데코레이터가 나와도 "아, 이 패턴이구나"가 됨
-```
+## 메타데이터란
 
 ```txt
-메커니즘 두 단계:
-  1. SetMetadata(key, value)  →  클래스/메서드에 "라벨"을 저장해둠
-  2. Reflector                →  Guard 실행 시 그 라벨을 다시 읽어옴
+메타데이터 = "이 함수·클래스에 대한 부가 정보"
+  코드 실행에 직접 영향을 주지 않지만
+  다른 곳(Guard 등)에서 읽어서 동작을 결정하는 데 씀
 
-  라벨을 붙인다고 해서 실행 흐름이 바로 바뀌는 게 아님
-  Guard가 Reflector로 "이 라우트에 어떤 라벨이 붙었나?"를 확인하고 분기하는 것
+  SetMetadata('isPublic', true)
+  = "이 메서드/클래스에 isPublic=true라는 꼬리표를 붙인다"
+
+  Guard가 나중에 Reflector로 그 꼬리표를 읽어서
+  "isPublic이 true구나, 그럼 토큰 검증 건너뛰자" 결정
+
+비유:
+  SetMetadata = 파일에 스티커 붙이기 ("공개", "관리자 전용")
+  Reflector   = 스티커를 읽는 사람 (Guard)
+  → Guard가 스티커를 보고 통과/거부 결정
+
+@Public()·@Roles()·@AllowWithdrawing 전부 SetMetadata로 만들어짐
+→ "내장처럼 보이지만 직접 만드는 것"의 핵심 도구
 ```
 
-```typescript
-// 라벨 붙이기 — SetMetadata 래퍼 커스텀 데코레이터
-export const IS_PUBLIC_KEY = 'isPublic';
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-//                                       ↑ key          ↑ value
+## SetMetadata — 메타데이터 붙이기
 
-export const ROLES_KEY = 'roles';
-export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+```typescript
+// SetMetadata('키', 값) 형태로 메서드·클래스에 붙임
+@Get()
+@Public()           // 실제로는: SetMetadata('isPublic', true)
+findAll() { ... }
+
+// TypeScript Reflect API를 NestJS가 래핑한 것
+// Reflect.defineMetadata('isPublic', true, findAll_메서드)
 ```
 
+## Reflector.getAllAndOverride — 메타데이터 읽기
+
 ```typescript
-// 라벨 읽기 — Guard 안에서 Reflector 사용
 const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-  context.getHandler(),  // 메서드에 붙은 라벨 먼저 확인
-  context.getClass(),    // 없으면 클래스에 붙은 라벨 확인
+  context.getHandler(),  // 메서드(findAll)에 붙은 메타데이터
+  context.getClass(),    // 클래스(PostsController)에 붙은 메타데이터
 ]);
 ```
 
 ```txt
-getAllAndOverride:
-  이름 때문에 "합친다(All)"로 오해하기 쉬운데
-  "여러 곳을 확인(All)하되, 더 구체적인 쪽(메서드)이 있으면 그것만 쓰고 나머지는 버린다(Override)"
-  → 메서드에 @Roles('admin')이 있으면 클래스 레벨 @Roles는 무시
+getAllAndOverride(key, [handler, class]):
+  handler(메서드)를 먼저 확인
+  → 있으면 즉시 반환
+  → 없으면 class(컨트롤러)를 확인
+  → 둘 다 없으면 undefined 반환 → falsy → 토큰 검증 진행
 
-  여러 값을 합치고 싶으면 getAllAndMerge 사용
+왜 handler와 class 두 곳을 확인하는가:
+  @Public()을 메서드에 붙이면 → 그 메서드만 공개
+  @Public()을 클래스에 붙이면 → 컨트롤러 전체 공개
+```
+
+
+```typescript
+// 세 가지 Reflector 메서드 비교
+this.reflector.get<boolean>(IS_PUBLIC_KEY, context.getHandler())
+// handler 하나만 확인
+
+this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [handler, class])
+// handler 먼저, 없으면 class → 가장 많이 씀
+
+this.reflector.getAllAndMerge<string[]>(ROLES_KEY, [handler, class])
+// 둘 다 배열로 합침 — @Roles에서 활용
+// @Roles('user') + @Roles('admin') → ['user', 'admin']
 ```
 
 ---
 
-# 파이프라인 조립
-
-## 1단계 — JwtAuthGuard (인증 · Bearer 토큰 검증)
+# JwtAuthGuard — 완전한 구현 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// jwt-auth.guard.ts
+// auth/jwt-auth.guard.ts
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector }  from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import { IS_PUBLIC_KEY } from './decorators/public.decorator';
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
-    private jwtService: JwtService,
-    private configService: ConfigService,
-    private reflector: Reflector,
+    private readonly jwtService: JwtService,   // JWT 검증
+    private readonly reflector:  Reflector,    // 메타데이터 읽기
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // @Public() 라벨이 있으면 토큰 없이 통과
+  canActivate(context: ExecutionContext): boolean {
+    // ① @Public() 확인 — 공개 라우트면 토큰 없이 통과
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
+      context.getHandler(),  // 메서드 레벨 메타데이터
+      context.getClass(),    // 클래스 레벨 메타데이터
     ]);
     if (isPublic) return true;
 
-    // Bearer 토큰 추출
+    // ② Authorization 헤더에서 Bearer 토큰 추출
     const request = context.switchToHttp().getRequest();
-    const token = this.extractToken(request);
-    if (!token) throw new UnauthorizedException();
+    const token   = this.extractBearerToken(request);
+    if (!token) throw new UnauthorizedException('토큰이 없습니다.');
 
-    // 서명·만료 검증 → 통과하면 payload 반환
+    // ③ 토큰 검증 후 payload를 request.user에 저장
     try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret: this.configService.getOrThrow('JWT_SECRET'),
-      });
-      request.user = payload;  // ← 내가 직접 채우는 부분
+      const payload = this.jwtService.verify(token);
+      request.user  = payload;
+      // request.user = { sub: 'user-uuid', iat: 1700000000, exp: 1700003600 }
     } catch {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
     }
+
     return true;
   }
 
-  private extractToken(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' && token ? token : undefined;
+  private extractBearerToken(request: any): string | undefined {
+    const authHeader = request.headers?.authorization ?? '';
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : undefined;
+    // "Bearer eyJ..." → type='Bearer', token='eyJ...'
+    // type이 Bearer가 아니면 undefined
   }
 }
-```
-
-```txt
-request.user = payload 를 직접 써야 하는 이유:
-  request.user는 Express 기본 타입에 없는 속성
-  Passport를 쓰면 Passport가 자동으로 채워주지만
-  Passport 없이 직접 구현하면 내가 한 줄 써야 함
-  → 이름은 관례(Passport에서 온 convention)를 따른 것, NestJS 강제 사항 아님
-```
-
-## 2단계 — request.user 타입 확장
-
-```typescript
-// src/types/express.d.ts
-import type { JwtPayload } from '../auth/jwt-payload';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
-export {};
-```
-
-```txt
-이 파일이 필요한 이유:
-  TypeScript는 request.user가 뭔지 모름 → 타입 에러 또는 any
-  Express의 Request 인터페이스에 Declaration Merging으로 user 필드를 추가
-
-  이 파일 = "타입만 알려주는 것"
-  실제 값을 넣는 건 JwtAuthGuard의 request.user = payload
-
-tsconfig의 include에 이 파일 경로가 포함돼야 적용됨
-```
-
-## 3단계 — @UserId() 커스텀 파라미터 데코레이터
-
-```typescript
-// user-id.decorator.ts
-export const UserId = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest<Request>();
-    const userId = request.user?.sub;
-    if (!userId) throw new UnauthorizedException('로그인이 필요합니다.');
-    return userId;
-  },
-);
-```
-
-```typescript
-// 사용 — @Req() 받아서 req.user.sub 꺼내는 반복을 없앰
-@Get('me')
-getMe(@UserId() userId: string) {
-  return this.usersService.findOne(userId);
-}
-```
-
-## @OptionalUserId() — 로그인 안 해도 되는 라우트 ⭐️⭐️⭐️⭐️
-
-```typescript
-// user-id.decorator.ts — 같은 파일에 함께 선언
-export const OptionalUserId = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): string | undefined => {
-    const request = ctx.switchToHttp().getRequest<Request>();
-    return request.user?.sub;  // 로그인 안 했으면 undefined, 했으면 userId
-  },
-);
-```
-
-```txt
-@UserId() vs @OptionalUserId():
-
-  @UserId()          반환 타입: string
-                     user.sub 없으면 UnauthorizedException 던짐
-                     → 반드시 로그인해야 하는 라우트
-
-  @OptionalUserId()  반환 타입: string | undefined
-                     user.sub 없으면 undefined 반환 (에러 없음)
-                     → 비로그인도 가능하지만 로그인하면 개인화되는 라우트
-```
-
----
-
-# 선택적 인증 — OptionalJwtAuthGuard ⭐️⭐️⭐️⭐️
-
-```txt
-전체 공개 피드처럼:
-  비로그인 → 전체 피드 볼 수 있음
-  로그인   → 내 친구 피드 필터링 가능 (개인화)
-
-JwtAuthGuard    → 토큰 없으면 401 (로그인 필수)
-@Public()       → 토큰을 아예 확인 안 함 (항상 게스트 취급)
-OptionalJwtAuth → 토큰 있으면 검증해서 user 채움, 없어도 통과 (게스트로 처리)
-```
-
-## Guard 구현
-
-```typescript
-// optional-jwt-auth.guard.ts
-@Injectable()
-export class OptionalJwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService:    JwtService,
-    private readonly configService: ConfigService,
-  ) {}
-
-  private extractToken(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' && token ? token : undefined;
-  }
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const token   = this.extractToken(request);
-
-    if (!token) return true;  // 토큰 없음 = 게스트 → 그냥 통과
-
-    try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret: this.configService.getOrThrow('JWT_SECRET'),
-      });
-      request.user = payload;  // 토큰 유효 → user 채움
-    } catch {
-      // 잘못된 토큰 = 게스트로 취급 → 에러 없이 통과
-      // 특정 기능(feed=friends)의 401은 서비스 레이어에서 처리
-    }
-
-    return true;  // 항상 true — 게스트든 로그인이든 통과
-  }
-}
-```
-
-```txt
-JwtAuthGuard와의 핵심 차이:
-  JwtAuthGuard: 토큰 없거나 잘못되면 → throw UnauthorizedException
-  OptionalJwtAuthGuard: 토큰 없거나 잘못되면 → 그냥 통과 (request.user = undefined)
-
-return true를 항상 하는 이유:
-  Guard의 역할은 "통과/차단"을 결정하는 것
-  OptionalJwtAuthGuard는 "항상 통과"하되 토큰이 있으면 request.user를 채워줌
-
-잘못된 토큰(만료, 변조)도 게스트 취급하는 이유:
-  토큰이 잘못됐다고 403을 던지면 비로그인 사용자와 구분이 안 됨
-  잘못된 토큰 = "내가 로그인 정보를 가져올 수 없음" → 게스트와 동일하게 처리
-  특정 기능(친구 피드)의 로그인 요구는 서비스에서 viewerUserId 여부로 확인
-```
-
-## 컨트롤러에서 사용
-
-```typescript
-@Get()
-@UseGuards(OptionalJwtAuthGuard)          // ① 선택적 인증 Guard 적용
-async findAll(
-  @Query() query: ListFeedQueryDto,
-  @OptionalUserId() viewerUserId?: string, // ② undefined일 수 있음을 타입으로 표현
-) {
-  return this.feedService.findAll(query, viewerUserId);
-}
-```
-
-## 서비스에서 활용
-
-```typescript
-async findAll(query: ListFeedQueryDto, viewerUserId?: string) {
-  let feedWhere: object = {};
-
-  if (query.feed === 'friends') {
-    // 친구 피드는 로그인 필수 — Guard가 아닌 서비스에서 체크
-    if (!viewerUserId) {
-      throw new UnauthorizedException('친구 피드는 로그인이 필요합니다.');
-    }
-    feedWhere = { authorId: { in: friendIds } };
-  }
-
-  // viewerUserId 있으면 개인화 로직 추가 가능
-}
-```
-
-```txt
-로그인 체크를 Guard가 아닌 서비스에서 하는 이유:
-  같은 GET /feed 라우트인데
-  feed=all    → 비로그인 OK
-  feed=friends → 로그인 필수
-
-  Guard는 라우트 단위로 동작 → 쿼리 파라미터에 따라 다르게 할 수 없음
-  서비스에서 query.feed와 viewerUserId를 함께 보고 판단
-
-APP_GUARD로 전역 등록된 JwtAuthGuard가 있어도:
-  @UseGuards(OptionalJwtAuthGuard)를 명시하면 이 Guard가 우선 적용됨
-  → 해당 라우트만 선택적 인증으로 동작
-```
-
-```txt
-인증(누구야?) 은 JwtAuthGuard가 끝냄
-인가(해도 돼?) 는 아래 패턴들이 담당 — 전부 SetMetadata+Reflector 메커니즘
-
-패턴이 3개지만 동작 방식은 완전히 같음:
-  라벨을 붙이는 커스텀 데코레이터 → Guard가 Reflector로 라벨을 읽어서 분기
-```
-
-### @Public() — 인증 자체를 건너뜀
-
-```typescript
-// public.decorator.ts
-export const IS_PUBLIC_KEY = 'isPublic';
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-```
-
-```typescript
-// 읽는 곳: JwtAuthGuard 안 (위 1단계 코드 참고)
-// 라벨이 있으면 토큰 없이 통과
-
-@Public()
-@Post('login')
-login(@Body() dto: LoginDto) { ... }  // 로그인은 토큰 없이 접근 가능
-```
-
-### @Roles() + RolesGuard — role 기반 인가
-
-```typescript
-// roles.decorator.ts
-export const ROLES_KEY = 'roles';
-export type Role = 'user' | 'admin';
-export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
-
-// roles.guard.ts
-@Injectable()
-export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!requiredRoles?.length) return true;  // @Roles() 없는 라우트는 role 제한 없음
-
-    const { user } = context.switchToHttp().getRequest<Request>();
-    if (!user || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('권한이 없습니다.');
-    }
-    return true;
-  }
-}
-```
-
-```typescript
-@Roles('admin')
-@Delete(':id')
-remove(@Param('id') id: string) { ... }  // admin만 접근 가능
-```
-
-```txt
-⚠️ ROLES_KEY 오타 주의:
-  ROLES_KEY를 다른 파일에서 import할 때 오타(ROLLES_KEY 등)가 나면
-  Reflector가 메타데이터를 못 찾아서 requiredRoles가 항상 undefined
-  → !requiredRoles?.length 가 항상 true → 모든 role이 통과되는 조용한 버그
-  → export하는 쪽과 import하는 쪽이 같은 상수를 참조하는지 확인
-```
-
-### @AllowWithdrawing() — 사용자 상태 기반 예외
-
-```typescript
-// allow-withdrawing.decorator.ts — 직접 만드는 것, 내장 아님
-export const ALLOW_WITHDRAWING_KEY = 'allowWithdrawing';
-export const AllowWithdrawing = () => SetMetadata(ALLOW_WITHDRAWING_KEY, true);
-
-// withdrawing.guard.ts
-@Injectable()
-export class WithdrawingGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const allow = this.reflector.getAllAndOverride<boolean>(
-      ALLOW_WITHDRAWING_KEY,
-      [context.getHandler(), context.getClass()],
-    );
-    if (allow) return true;  // @AllowWithdrawing()이 있으면 통과
-
-    const { user } = context.switchToHttp().getRequest<Request>();
-    if (user?.status === 'withdrawing') {
-      throw new ForbiddenException('탈퇴 처리 중인 계정입니다.');
-    }
-    return true;
-  }
-}
-```
-
-```typescript
-@Controller('me')
-export class MeController {
-  @AllowWithdrawing()
-  @Get()
-  getMe() {}           // 탈퇴 유예 중에도 내 정보 조회 가능
-
-  @AllowWithdrawing()
-  @Post('withdraw/cancel')
-  cancelWithdraw() {}  // 탈퇴 취소도 허용
-
-  @Get('profile')
-  getProfile() {}      // @AllowWithdrawing() 없음 → 탈퇴 유예 중이면 403
-}
-```
-
-```txt
-세 가지 패턴 비교:
-
-  @Public()          → JwtAuthGuard가 읽음  → 인증 자체를 건너뜀
-  @Roles()           → RolesGuard가 읽음    → role 기반 인가
-  @AllowWithdrawing() → WithdrawingGuard가 읽음 → 상태 기반 예외 허용
-
-  동작 방식은 완전히 동일: SetMetadata로 라벨 → Guard가 Reflector로 읽어서 분기
-  "어떤 라벨을", "어떤 Guard가 읽는지"만 다름
 ```
 
 ---
@@ -486,83 +286,262 @@ export class MeController {
 # 전역 적용 — APP_GUARD ⭐️⭐️⭐️
 
 ```typescript
-// auth.module.ts
+// app.module.ts
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
+  imports:   [AuthModule, ...],   // AuthModule이 JwtModule을 export해야 함
   providers: [
-    { provide: APP_GUARD, useClass: JwtAuthGuard },    // 모든 라우트에 인증
-    { provide: APP_GUARD, useClass: WithdrawingGuard }, // 탈퇴 유예 체크
-    { provide: APP_GUARD, useClass: RolesGuard },       // role 체크
+    {
+      provide:  APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
-export class AuthModule {}
+export class AppModule {}
 ```
 
 ```txt
-APP_GUARD로 등록하면 @UseGuards()를 매 컨트롤러마다 안 붙여도 자동 적용
+APP_GUARD:
+  NestJS가 제공하는 Provider 토큰
+  이 토큰으로 등록한 Guard는 모든 라우트에 자동 적용
 
-Guard 실행 순서: 등록 순서대로
-  JwtAuthGuard   → request.user 채움 (인증)
-  WithdrawingGuard → request.user 읽어서 탈퇴 상태 체크 (JwtAuthGuard 다음이어야 함)
-  RolesGuard     → request.user 읽어서 role 체크 (JwtAuthGuard 다음이어야 함)
+전역 등록 후의 규칙:
+  토큰 없이 요청 → 자동 401
+  @Public() 붙은 라우트 → 통과
+  @Public() 없는 라우트 → 토큰 필수
 
-  JwtAuthGuard가 반드시 먼저 → 뒤따르는 Guard들이 request.user를 읽을 수 있음
-
-전략: "기본적으로 전부 막고, 공개 라우트만 @Public()으로 예외 처리"
+AuthModule 설정 필요:
+  JwtAuthGuard가 JwtService를 주입받으려면
+  JwtModule이 AuthModule에서 export 되어야 함
+  → [[NestJS_Auth]] AuthModule 설정 참고
 ```
 
 ---
 
-# JwtModule 설치 및 설정 ⭐️
-
-```bash
-pnpm add @nestjs/jwt --filter api
-```
-
-```typescript
-// auth.module.ts
-@Module({
-  imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '15m' },
-    }),
-  ],
-  providers: [AuthService, JwtAuthGuard],
-})
-export class AuthModule {}
-```
-
-```typescript
-// JwtPayload — signAsync로 담는 것 = verifyAsync로 꺼내는 것
-export type JwtPayload = {
-  sub:  string;           // 표준 클레임 — userId를 담는 관례
-  role: 'user' | 'admin'; // 커스텀 클레임 — 이 서비스가 직접 정의
-};
-```
+# 파이프라인 전체 조립 ⭐️⭐️⭐️⭐️
 
 ```txt
-JWT 구조: header.payload.signature
+Guard를 만들어서 실제로 사용하기까지:
 
-표준 클레임(RFC 7519에서 미리 정해둔 것):
-  sub  누구에 대한 토큰인지 (보통 userId)
-  exp  만료 시각 (signOptions.expiresIn이 자동 생성)
-  iat  발급 시각
+① Guard 클래스 작성
+   jwt-auth.guard.ts
+   CanActivate 구현, @Injectable() 붙이기
 
-커스텀 클레임:
-  role 같은 서비스 전용 필드 — 표준에 없고, 내가 직접 추가한 것
+② 데코레이터 작성
+   public.decorator.ts (@Public)
+   user-id.decorator.ts (@UserId)
 
-payload는 Base64 디코딩하면 그냥 JSON이 보임 — 민감한 정보(비밀번호 등) 넣지 않음
-서명(signature)이 위변조를 막는 것이지, payload 자체가 암호화된 건 아님
+③ AuthModule에서 JwtModule export
+   다른 모듈에서 JwtService를 쓸 수 있게
+
+④ AppModule에서 APP_GUARD 등록
+   전역 적용
+
+⑤ 컨트롤러에서 사용
+   @Public(), @UserId() 사용
+```
+
+```typescript
+// 파일 구조
+src/
+├── auth/
+│   ├── auth.module.ts          ← JwtModule 설정 + export
+│   ├── auth.service.ts         ← login, issueTokens
+│   ├── auth.controller.ts      ← /auth/login, /auth/register
+│   ├── jwt-auth.guard.ts       ← JwtAuthGuard 클래스
+│   └── decorators/
+│       ├── public.decorator.ts    ← @Public()
+│       ├── user-id.decorator.ts   ← @UserId()
+│       └── roles.decorator.ts     ← @Roles()
+└── app.module.ts               ← APP_GUARD 전역 등록
+```
+
+---
+
+# @Public() 만드는 법 ⭐️⭐️⭐️⭐️
+
+```typescript
+// auth/decorators/public.decorator.ts
+import { SetMetadata } from '@nestjs/common';  // NestJS 제공
+
+// IS_PUBLIC_KEY: 메타데이터를 읽을 때 사용할 키
+export const IS_PUBLIC_KEY = 'isPublic';
+
+// @Public() = SetMetadata('isPublic', true)의 단축 데코레이터
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+```
+
+
+---
+
+# @UserId() 만드는 법 ⭐️⭐️⭐️⭐️
+
+```typescript
+// auth/decorators/user-id.decorator.ts
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const UserId = createParamDecorator(
+  // _data: @UserId('something') 처럼 인자 전달 시 사용 (여기선 사용 안 함)
+  (_data: unknown, ctx: ExecutionContext): string => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user.sub;
+    // JwtAuthGuard가 request.user = { sub: 'userId', ... } 저장했음
+  },
+);
+```
+
+```typescript
+// 사용
+@Post()
+create(
+  @UserId()    userId: string,  // request.user.sub 값이 주입됨
+  @Body() dto: CreatePostDto,
+) {
+  return this.postsService.create(userId, dto);
+}
+```
+
+---
+
+# OptionalJwtAuthGuard + @OptionalUserId() ⭐️⭐️⭐️⭐️
+
+```txt
+"로그인 안 해도 되지만, 로그인하면 userId를 알고 싶다"
+
+예시:
+  게시글 목록 — 비로그인도 볼 수 있지만
+  로그인했으면 내가 좋아요 눌렀는지, 북마크했는지 함께 표시
+```
+
+```typescript
+// 토큰 있으면 검증, 없어도 통과 — 에러 throw 하지 않음
+@Injectable()
+export class OptionalJwtAuthGuard implements CanActivate {
+  constructor(private readonly jwtService: JwtService) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const token   = this.extractBearerToken(request);
+
+    if (token) {
+      try {
+        request.user = this.jwtService.verify(token);
+      } catch {
+        // 토큰 있지만 유효하지 않음 → 무시하고 그냥 통과
+        // request.user는 undefined 상태로 유지
+      }
+    }
+    // 토큰 없어도 return true
+    return true;
+  }
+  // ...extractBearerToken 동일
+}
+
+// @OptionalUserId() — 없으면 undefined
+export const OptionalUserId = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): string | undefined => {
+    return ctx.switchToHttp().getRequest().user?.sub;
+  },
+);
+
+// 사용
+@Get()
+@UseGuards(OptionalJwtAuthGuard)      // APP_GUARD 대신 직접 지정
+findAll(
+  @Query()          query:     ListPostsQueryDto,
+  @OptionalUserId() viewerId?: string,  // 비로그인이면 undefined
+) {
+  return this.postsService.findAll(query, viewerId);
+}
+```
+
+---
+
+# @Roles() — 역할 기반 접근 제어 ⭐️⭐️⭐️
+
+```typescript
+// auth/decorators/roles.decorator.ts
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+
+// auth/roles.guard.ts
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const required = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (!required) return true;  // @Roles() 없으면 통과
+
+    const { user } = context.switchToHttp().getRequest();
+    return required.some(role => user?.roles?.includes(role));
+  }
+}
+
+// 사용
+@Delete('messages/:messageId')
+@Roles('admin')            // admin만 가능
+deleteMessage(...) { ... }
+```
+
+---
+
+# 실전 컨트롤러 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+@ApiTags('posts')
+@ApiBearerAuth('access-token')
+@Controller('posts')
+export class PostsController {
+
+  // 비로그인 가능 — @Public()
+  @Get()
+  @Public()
+  findAll(@Query() query: ListPostsQueryDto) { ... }
+
+  // 비로그인 가능 + 로그인하면 개인화 — OptionalJwtAuthGuard
+  @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @OptionalUserId()           viewerId?: string,
+  ) { ... }
+
+  // 로그인 필수 — 기본값 (APP_GUARD가 처리)
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  create(
+    @UserId()    userId: string,
+    @Body() dto: CreatePostDto,
+  ) { ... }
+
+  // 로그인 + 본인만 — 서비스에서 userId로 소유권 검증
+  @Patch(':id')
+  update(
+    @UserId()                   userId: string,
+    @Param('id', ParseUUIDPipe) id:     string,
+    @Body() dto:                UpdatePostDto,
+  ) { ... }
+
+  // 어드민만 — @Roles
+  @Delete('admin/:id')
+  @Roles('admin')
+  adminDelete(@Param('id', ParseUUIDPipe) id: string) { ... }
+}
 ```
 
 ---
 
 # 자주 만나는 에러
 
-| 증상                 | 원인                                                  | 해결                                      |
-| ------------------ | --------------------------------------------------- | --------------------------------------- |
-| 모든 라우트가 401        | JwtAuthGuard가 전역 등록됐는데 @Public() 없음                 | 로그인 라우트에 @Public() 추가                   |
-| role 체크가 항상 통과     | ROLES_KEY 오타로 Reflector가 라벨을 못 찾음                   | 상수 import 경로와 철자 확인                     |
-| request.user 타입 에러 | express.d.ts가 tsconfig include에 없음                  | tsconfig include 경로 확인                  |
-| Guard 실행 순서 문제     | WithdrawingGuard나 RolesGuard가 JwtAuthGuard보다 먼저 등록됨 | APP_GUARD 등록 순서 확인                      |
-| 401 대신 500이 나옴     | Guard 안에서 throw 대신 return false를 사용                 | 명시적으로 throw new UnauthorizedException() |
+| 에러                              | 원인                    | 해결                                     |
+| ------------------------------- | --------------------- | -------------------------------------- |
+| `401 Unauthorized`              | 토큰 없음 또는 만료           | 로그인 후 유효한 Access Token 첨부              |
+| `403 Forbidden`                 | 토큰 유효하지만 권한 없음        | @Roles 확인, 또는 서비스에서 소유권 검증             |
+| `request.user` undefined        | Guard 없이 @UserId() 사용 | APP_GUARD 등록 확인 / AuthModule export 확인 |
+| @Public()이 안 먹힘                 | IS_PUBLIC_KEY 불일치     | decorator의 key와 guard의 key가 같은지 확인     |
+| `Nest can't resolve JwtService` | JwtModule이 export 안 됨 | AuthModule에서 `exports: [JwtModule]` 추가 |
