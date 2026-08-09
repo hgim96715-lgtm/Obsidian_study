@@ -8,234 +8,340 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[TS_ImportType]]"
   - "[[NestJS_Concept]]"
-  - "[[NestJS_Prisma_Monorepo]]"
   - "[[Monorepo_PNPM]]"
 ---
-# TS_TsConfig — tsconfig.json
+# TS_TsConfig — tsconfig.json 설정
 
-> [!info] 
-> tsconfig.json = TypeScript 컴파일러에게 "이 프로젝트를 어떻게 컴파일할지" 알려주는 설정 파일.
->  NestJS(API)와 Next.js(Web)는 실행 환경이 달라서 tsconfig가 다르다.
-
----
-# 흐름도
-
-```mermaid
-flowchart TD
-    W1["상황 · NestJS API — Node가 실행"]
-    W2["상황 · Next.js Web — 번들러가 빌드"]
-
-    Q{"언제 · 어느 앱?"}
-
-    W1 --> Q
-    W2 --> Q
-
-    Q -->|api| A
-    Q -->|web| B
-
-    A["apps/api/tsconfig.json"]
-    A1["module · moduleResolution: nodenext"]
-    A2["emitDecoratorMetadata · experimentalDecorators"]
-    A3["outDir: dist — tsc가 JS 출력"]
-    A --> A1 --> A2 --> A3
-
-    B["apps/web/tsconfig.json"]
-    B1["module: esnext · moduleResolution: bundler"]
-    B2["noEmit · jsx · lib: dom · paths @/*"]
-    B3["tsc는 타입 체크만 — Turbopack이 빌드"]
-    B --> B1 --> B2 --> B3
-```
-
-> 공통 — `isolatedModules` · `skipLibCheck` · `incremental`  
-> API에 `@/*` 안 쓰는 이유 — dist 빌드 후 경로 치환 문제
+>[!info]
+>tsconfig.json = TypeScript 컴파일러(tsc)에게 "이 프로젝트를 어떻게 컴파일할지" 알려주는 설정 파일.
+> `strict`으로 타입 안전성 강도, `paths`로 `@/` 경로 별칭, `target`으로 출력 JS 버전 지정.
+>  경로 별칭(`@/`) → [[TS_ImportType]]
 
 ---
 
-# 모노레포 tsconfig 구조
+# tsconfig.json이란 ⭐️⭐️⭐️⭐️
 
 ```txt
-apps/
-  api/tsconfig.json   NestJS — Node.js 서버 환경
-  web/tsconfig.json   Next.js — 번들러(Turbopack/Webpack) 환경
-```
+TypeScript = JavaScript를 타입 안전하게 만드는 언어
+실제로 실행되는 것은 JavaScript
+→ TypeScript 코드를 JavaScript로 변환(컴파일)하는 과정이 필요
 
-```txt
-같은 TypeScript지만 실행 환경이 달라서 별도 설정:
-  API  → Node.js가 직접 실행 (또는 dist/ 빌드 후 실행)
-  Web  → Turbopack/Webpack이 번들링 후 브라우저/SSR 실행
-  → 모듈 시스템, 해석 방식, 빌드 방식이 전부 다름
+tsconfig.json:
+  TypeScript 컴파일러(tsc)에게 전달하는 설정
+  "어떤 파일을 컴파일할지"
+  "어떤 버전의 JS로 변환할지"
+  "얼마나 엄격하게 타입 검사할지"
+  "경로 별칭(@/)을 어떻게 해석할지"
+  등을 정의
 ```
 
 ---
 
-# 두 파일 비교 ⭐️⭐️⭐️⭐️
+# 핵심 옵션 ⭐️⭐️⭐️⭐️
 
-|옵션|API (NestJS)|Web (Next.js)|이유|
-|---|---|---|---|
-|`module`|`nodenext`|`esnext`|API는 Node.js CJS/ESM 호환, Web은 번들러가 처리|
-|`moduleResolution`|`nodenext`|`bundler`|API는 Node.js 해석 규칙, Web은 번들러 규칙|
-|`target`|`ES2023`|`ES2017`|API는 최신 Node.js, Web은 구형 브라우저 대응|
-|`noEmit`|없음 (dist/ 생성)|`true`|Web은 번들러가 빌드 담당, tsc는 타입 체크만|
-|`outDir`|`./dist`|없음|API는 컴파일된 JS를 dist/에 저장|
-|`jsx`|없음|`react-jsx`|Web만 JSX가 필요|
-|`emitDecoratorMetadata`|`true`|없음|NestJS DI에 필요, [[TS_ImportType]] 참고|
-|`experimentalDecorators`|`true`|없음|NestJS 데코레이터에 필요|
-|`paths (@/*)`|없음|`"@/*": ["./*"]`|API는 빌드 후 경로 치환 문제로 비권장|
-|`lib`|없음 (기본)|`["dom", "esnext", ...]`|Web은 브라우저 DOM API 타입 필요|
-|`strict`|없음 (개별 설정)|`true`|모든 strict 규칙을 한 번에|
-|`isolatedModules`|`true`|`true`|둘 다 — 파일 단위 변환 가능하게|
-|`skipLibCheck`|`true`|`true`|둘 다 — node_modules 타입 검사 스킵|
+## compilerOptions — 컴파일러 동작 설정
 
----
+### target — 출력 JS 버전
 
-# apps/api/tsconfig.json — NestJS ⭐️⭐️⭐️
-
-```jsonc
+```json
 {
   "compilerOptions": {
-    "module":                    "nodenext",   // Node.js ESM/CJS 호환 모듈 시스템
-    "moduleResolution":          "nodenext",   // Node.js 방식으로 모듈 경로 해석
-    "resolvePackageJsonExports": true,         // package.json exports 필드 존중
-    "esModuleInterop":           true,         // CommonJS를 ES Module처럼 import 가능
-    "isolatedModules":           true,         // 파일 단위 변환 가능 (SWC 등 사용 시 필요)
-    "declaration":               true,         // .d.ts 타입 선언 파일 생성
-    "removeComments":            true,         // 빌드 출력에서 주석 제거
-    "emitDecoratorMetadata":     true,         // NestJS DI용 데코레이터 메타데이터 생성
-    "experimentalDecorators":    true,         // @Injectable(), @Get() 등 데코레이터 활성화
-    "allowSyntheticDefaultImports": true,      // default export 없어도 import 가능
-    "target":                    "ES2023",     // 출력 JS 문법 버전
-    "sourceMap":                 true,         // 디버깅용 소스맵 생성
-    "outDir":                    "./dist",     // 컴파일 결과 출력 위치
-    "baseUrl":                   "./",         // 경로 계산 기준 (src/ 아니라 루트)
-    "incremental":               true,         // 변경된 파일만 재컴파일 (빌드 속도)
-    "skipLibCheck":              true,         // node_modules 타입 검사 스킵
-    "strictNullChecks":          true,         // null/undefined를 타입으로 엄격히 구분
-    "noImplicitAny":             false,        // any 타입 암묵적 허용 (레거시 코드 대응)
-    "forceConsistentCasingInFileNames": true   // 파일명 대소문자 일관성 강제
+    "target": "ES2022"
   }
 }
 ```
 
-## API 핵심 옵션 설명
-
 ```txt
-module: "nodenext"
-  Node.js 18+의 ESM/CJS 혼합 환경을 지원하는 모듈 시스템
-  .mts/.cts 확장자 구분, package.json type 필드 존중
-  import { X } from './file' 대신 import { X } from './file.js' 처럼 확장자 명시 필요
+target:
+  TypeScript를 어떤 버전의 JavaScript로 변환할지
+  "ES5"   → 구형 브라우저 지원 (화살표 함수, const 등이 구문으로 변환됨)
+  "ES2020"→ 최신 브라우저/Node 지원 (대부분 그대로 유지)
+  "ES2022"→ 더 최신 (class fields, top-level await 등)
 
-emitDecoratorMetadata: true
-  @Injectable(), @Get()처럼 데코레이터가 파라미터 타입 정보를 런타임에 유지하게 함
-  NestJS DI가 이 메타데이터로 "어떤 타입을 주입할지" 결정
-  → isolatedModules와 충돌 가능 → import type 사용 권장 ([[TS_ImportType]])
-
-outDir: "./dist"
-  tsc가 .ts → .js 변환 결과를 dist/에 저장
-  배포 시 node dist/main.js 로 실행
-  (Next.js는 noEmit: true라서 dist/가 없음)
-
-paths 없음:
-  @/* 경로 별칭을 dist/ 빌드 후에도 유지하려면 추가 도구 필요
-  → 그냥 상대 경로 또는 src/ 직접 참조 사용
+  Node.js 18+ → ES2022 이상 사용 가능
+  Next.js → Next.js가 내부적으로 번들링하므로 상대적으로 덜 중요
 ```
 
----
+### strict — 타입 검사 엄격도
 
-# apps/web/tsconfig.json — Next.js ⭐️⭐️⭐️
-
-```jsonc
+```json
 {
   "compilerOptions": {
-    "target":             "ES2017",     // 브라우저 호환 — 구형 브라우저 지원
-    "lib":                ["dom", "dom.iterable", "esnext"], // 브라우저 DOM API 타입
-    "allowJs":            true,         // .js 파일도 타입 체크 대상
-    "skipLibCheck":       true,
-    "strict":             true,         // 모든 strict 규칙 한 번에 (권장)
-    "noEmit":             true,         // tsc는 타입 체크만, JS 출력은 Turbopack이 담당
-    "esModuleInterop":    true,
-    "module":             "esnext",     // 번들러가 처리할 ESM 모듈 문법
-    "moduleResolution":   "bundler",    // 번들러(Webpack/Turbopack) 방식으로 모듈 해석
-    "resolveJsonModule":  true,         // .json 파일 import 가능
-    "isolatedModules":    true,
-    "jsx":                "react-jsx",  // <div /> → React.createElement 변환
-    "incremental":        true,
-    "plugins":            [{ "name": "next" }], // Next.js 언어 서버 플러그인
-    "paths": {
-      "@/*": ["./*"]    // @/lib/xxx → 프로젝트 루트 기준 경로 별칭
-    }
-  },
-  "include": [
-    "next-env.d.ts",            // Next.js 자동 생성 타입 선언
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",      // Next.js 빌드 생성 타입
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
-  "exclude": ["node_modules"]
+    "strict": true
+  }
 }
 ```
 
-## Web 핵심 옵션 설명
+```txt
+strict: true — 아래 옵션들을 한 번에 켬:
+  strictNullChecks       null/undefined를 별도 타입으로 취급
+  noImplicitAny          타입 추론 불가 시 any 금지
+  strictFunctionTypes    함수 타입 엄격 검사
+  strictPropertyInitialization  클래스 프로퍼티 초기화 강제
+  strictBindCallApply    bind/call/apply 타입 검사
+
+strict: false면:
+  null, undefined가 모든 타입에 할당 가능
+  → 런타임 에러 방지를 TypeScript가 못 해줌
+  → 항상 true 권장
+```
+
+### moduleResolution — 모듈 찾는 방식
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler"
+  }
+}
+```
 
 ```txt
-noEmit: true
-  tsc가 JS 파일을 출력하지 않음
-  Next.js의 Turbopack/Webpack이 번들링 담당
-  tsc는 타입 체크 역할만 — 타입 에러가 있으면 빌드 실패
+moduleResolution:
+  import { x } from './utils' 처럼 경로를 쓸 때
+  실제 파일을 어떻게 찾을지 결정
 
-moduleResolution: "bundler"
-  번들러(Webpack/Turbopack)가 모듈을 어떻게 찾는지 따름
-  package.json의 exports/imports 필드를 번들러 방식으로 해석
-  nodenext처럼 .js 확장자를 명시하지 않아도 됨 (번들러가 알아서 찾음)
+  "node"    → Node.js 방식 (구형, .js 확장자 없어도 찾음)
+  "bundler" → 번들러(Vite, webpack) 방식 (최신 권장)
+  "node16"  → Node.js ESM 방식 (.js 확장자 명시 필요)
+```
 
-paths: { "@/*": ["./*"] }
-  @/lib/redirect → 프로젝트 루트의 lib/redirect
-  Next.js(Turbopack/Webpack)가 tsconfig의 paths를 읽어서 번들 시 경로 치환
-  → API와 달리 추가 설정 없이 동작
+### paths — 경로 별칭 (@/)
 
-plugins: [{ "name": "next" }]
-  VSCode에서 Next.js 전용 타입 오류/경고를 더 정확하게 표시
-  Server Component / Client Component 경계 위반 감지 등
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
 
-target: "ES2017"
-  브라우저 호환을 위해 낮춤 — 최신 문법이 구형 브라우저에서도 실행되도록 변환
-  API(ES2023)보다 낮은 이유: 사용자 브라우저 환경이 다양함
+```txt
+paths:
+  "@/components/Button" → "./src/components/Button"로 해석
+  → import 경로에서 ../../../ 대신 @/ 사용 가능
+
+  baseUrl:
+  paths의 기준 경로 (paths에서 . = 이 파일이 있는 위치)
+
+→ 자세한 내용 [[TS_ImportType]] 경로 별칭 섹션
+```
+
+### 자주 쓰는 옵션 한눈에
+
+|옵션|설명|일반값|
+|---|---|---|
+|`target`|출력 JS 버전|`ES2022`|
+|`strict`|타입 검사 엄격도|`true`|
+|`moduleResolution`|모듈 찾는 방식|`bundler`|
+|`baseUrl`|경로 별칭 기준|`.`|
+|`paths`|경로 별칭 매핑|`{"@/*": ["./src/*"]}`|
+|`outDir`|컴파일 출력 폴더|`./dist`|
+|`rootDir`|소스 루트 폴더|`./src`|
+|`esModuleInterop`|CommonJS 모듈 import 편의|`true`|
+|`skipLibCheck`|.d.ts 파일 타입 검사 생략|`true`|
+|`declaration`|.d.ts 파일 생성|`true` (라이브러리)|
+|`emitDecoratorMetadata`|데코레이터 메타데이터|`true` (NestJS 필수)|
+|`experimentalDecorators`|데코레이터 사용|`true` (NestJS 필수)|
+
+---
+
+# include · exclude — 컴파일 대상 파일
+
+```json
+{
+  "include": ["src/**/*"],        // 컴파일할 파일
+  "exclude": ["node_modules", "dist"]  // 제외할 파일
+}
+```
+
+```txt
+include:
+  컴파일할 파일 glob 패턴
+  "src/**/*" = src 폴더 안의 모든 파일
+
+exclude:
+  포함하지 않을 파일/폴더
+  node_modules는 기본으로 제외되지만 명시하는 것이 관례
+  dist = 이미 컴파일된 결과물을 다시 컴파일하지 않도록
 ```
 
 ---
 
-# 자주 보이는 옵션 한눈에
+# extends — 설정 상속 ⭐️⭐️⭐️
 
-|옵션|역할|
-|---|---|
-|`strict`|`strictNullChecks` + `noImplicitAny` 등 모든 엄격 규칙 한 번에|
-|`strictNullChecks`|`null`/`undefined`를 별도 타입으로 — 없으면 모든 타입에 null이 허용됨|
-|`noImplicitAny`|타입 추론 불가 시 any 허용(false) vs 에러(true)|
-|`esModuleInterop`|`import fs from 'fs'` 처럼 CJS를 default import로 쓸 수 있게|
-|`isolatedModules`|파일 단위 변환 가능하게 — import type 필요성과 연결 ([[TS_ImportType]])|
-|`skipLibCheck`|node_modules의 .d.ts 타입 오류 무시 — 빌드 속도 향상|
-|`incremental`|이전 빌드 정보 캐시 → 변경분만 재컴파일|
-|`sourceMap`|디버거에서 TS 원본 코드로 매핑|
-|`declaration`|라이브러리 배포용 .d.ts 생성|
-|`noEmit`|JS 파일 출력 안 함 — 타입 체크만|
+```json
+// tsconfig.json (공통 기반)
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true
+  }
+}
+
+// apps/web/tsconfig.json
+{
+  "extends": "../../tsconfig.json",   // 루트 설정 상속
+  "compilerOptions": {
+    "target": "ES2022",
+    "paths": { "@/*": ["./src/*"] }   // 추가·덮어쓰기
+  }
+}
+```
+
+```txt
+모노레포에서 extends 활용:
+  루트 tsconfig.json → 공통 설정 (strict, esModuleInterop 등)
+  apps/api/tsconfig.json → extends 루트 + API 전용 설정
+  apps/web/tsconfig.json → extends 루트 + Web 전용 설정
+
+  공통 설정은 한 곳에서 관리 → 변경 시 전체 적용
+```
 
 ---
 
-# 한눈에
+# API(NestJS) vs Web(Next.js) 설정 비교 ⭐️⭐️⭐️⭐️
+
+```json
+// apps/api/tsconfig.json (NestJS — TypeScript 6 기준)
+{
+  "compilerOptions": {
+    "module":                       "nodenext",
+    "moduleResolution":             "nodenext",
+    "resolvePackageJsonExports":    true,
+    "esModuleInterop":              true,
+    "isolatedModules":              true,
+    "declaration":                  true,
+    "removeComments":               true,
+    "emitDecoratorMetadata":        true,
+    "experimentalDecorators":       true,
+    "allowSyntheticDefaultImports": true,
+    "target":                       "ES2023",
+    "sourceMap":                    true,
+    "outDir":                       "./dist",
+    "rootDir":                      "./src",
+    "incremental":                  true,
+    "skipLibCheck":                 true,
+    "strictNullChecks":             true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny":                false,
+    "strictBindCallApply":          false,
+    "noFallthroughCasesInSwitch":   false
+  }
+}
+```
 
 ```txt
-API(NestJS):
-  module: nodenext         Node.js 호환 모듈
-  emitDecoratorMetadata    NestJS DI 필수 → import type 조심
-  outDir: ./dist           빌드 결과물 생성
-  경로 별칭(@/*) 없음     빌드 후 경로 치환 문제로 상대 경로 사용
+outDir + rootDir — 왜 둘 다 필요한가:
+  outDir: "./dist"   → 컴파일 결과물을 dist 폴더에 저장
+  rootDir: "./src"   → 소스 파일의 루트가 src 폴더임을 명시
 
-Web(Next.js):
-  module: esnext           번들러가 처리
-  moduleResolution: bundler 번들러 방식으로 모듈 해석
-  noEmit: true             tsc는 타입 체크만, 빌드는 Turbopack이
-  paths: { "@/*": ["./*"] } 경로 별칭 — Turbopack이 알아서 처리
-  jsx: react-jsx           JSX 변환
-  lib: ["dom", ...]        브라우저 API 타입
+  TypeScript 6부터 outDir만 있고 rootDir이 없으면 에러:
+  "Option 'outDir' requires 'rootDir'"
+  → rootDir을 추가해야 해결
+
+  이유: outDir가 있으면 TS가 src 구조를 그대로 dist에 복사
+  rootDir을 알아야 "dist 안에 src 폴더를 만들지 않고" 올바른 경로 생성 가능
+
+module + moduleResolution — "nodenext":
+  Node.js의 ESM(ECMAScript Module) 방식 사용
+  .js 확장자를 import 경로에 명시해야 하는 엄격한 규칙
+  NestJS는 과거 "commonjs"를 썼지만 최신 Node.js + ESM 지원으로 nodenext 사용
+
+strictNullChecks: true vs strict: false:
+  strict: true를 쓰면 아래 옵션들이 전부 켜짐
+  이 설정은 strict 대신 필요한 것만 선택적으로 켬:
+    strictNullChecks: true     → null/undefined 타입 분리 (필요)
+    noImplicitAny: false       → any 추론 허용 (DTO 등에서 유연하게)
+    strictBindCallApply: false → bind/call/apply 타입 검사 완화
+  → NestJS의 데코레이터·DI 패턴과 충돌 없이 타입 안전성 확보
 ```
+
+```txt
+나머지 옵션 설명:
+
+  resolvePackageJsonExports: true
+    패키지의 exports 필드를 우선 따름 (최신 Node.js 방식)
+
+  isolatedModules: true
+    각 파일을 독립적으로 변환 가능하도록 강제 (esbuild/SWC 호환)
+    const enum, namespace 등 일부 TypeScript 전용 문법 금지
+
+  declaration: true
+    .d.ts 타입 선언 파일 생성 → 다른 패키지에서 타입 참조 가능
+
+  removeComments: true
+    컴파일된 JS에서 주석 제거 → dist 파일 크기 감소
+
+  sourceMap: true
+    .js.map 파일 생성 → 디버깅 시 원본 TS 코드 위치 추적
+
+  incremental: true
+    이전 컴파일 정보를 캐싱 → 재컴파일 시 변경된 파일만 처리 (빌드 속도 향상)
+    .tsbuildinfo 파일 생성
+
+  forceConsistentCasingInFileNames: true
+    import 경로의 대소문자가 실제 파일과 일치해야 함
+    macOS(대소문자 무시)에서 개발 → Linux(대소문자 구분) 배포 시 에러 방지
+```
+
+
+```json
+// apps/web/tsconfig.json (Next.js)
+{
+  "compilerOptions": {
+    "target":           "ES2022",
+    "lib":              ["dom", "dom.iterable", "esnext"],
+    "module":           "esnext",     // 번들러가 처리
+    "moduleResolution": "bundler",    // Vite/Webpack 방식
+    "strict":           true,
+    "esModuleInterop":  true,
+    "skipLibCheck":     true,
+    "baseUrl":          ".",
+    "paths": {
+      "@/*": ["./src/*"]              // 경로 별칭
+    },
+    "jsx":              "preserve",   // Next.js가 JSX 처리
+    "plugins": [{ "name": "next" }]   // Next.js TypeScript 플러그인
+  }
+}
+```
+
+```txt
+핵심 차이:
+
+  module:
+  NestJS → "commonjs"   (Node.js 런타임, require() 방식)
+  Next.js → "esnext"    (번들러가 처리, import 방식)
+
+  moduleResolution:
+  NestJS → "node"       (Node.js 모듈 해석 규칙)
+  Next.js → "bundler"   (번들러 모듈 해석 규칙)
+
+  emitDecoratorMetadata + experimentalDecorators:
+  NestJS에서 필수 — @Injectable(), @Controller() 같은 데코레이터가
+  의존성 주입(DI)에서 타입 정보를 읽으려면 이 두 옵션이 켜져 있어야 함
+
+  lib: ["dom", ...]:
+  Next.js에 필요 — 브라우저 API(window, document 등)의 타입 정의 포함
+  NestJS는 브라우저 API 불필요 → lib 생략
+
+  jsx: "preserve":
+  Next.js — JSX 변환을 Next.js(SWC)가 담당 → tsc는 건드리지 않음
+```
+
+---
+
+# 흔히 만나는 설정 관련 에러
+
+| 에러                                   | 원인                              | 해결                                    |
+| ------------------------------------ | ------------------------------- | ------------------------------------- |
+| `Cannot find module '@/...'`         | paths 설정 없음 또는 baseUrl 누락       | tsconfig.json에 baseUrl + paths 추가     |
+| `Option 'outDir' requires 'rootDir'` | TS 6에서 outDir만 있고 rootDir 없음    | `"rootDir": "./src"` 추가               |
+| `Decorators are not enabled`         | experimentalDecorators 없음       | `"experimentalDecorators": true` 추가   |
+| `Cannot use namespace 'X' as type`   | skipLibCheck 꺼져 있고 .d.ts 충돌     | `"skipLibCheck": true` 추가             |
+| `Property has no initializer`        | strictPropertyInitialization 충돌 | NestJS DTO는 `false`로 설정 또는 `!` 사용     |
+| `baseUrl` deprecation 경고             | TS 6 → 7에서 baseUrl 제거 예정        | `"ignoreDeprecations": "6.0"` 추가 (임시) |

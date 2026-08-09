@@ -9,11 +9,12 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_WebSocket]]"
   - "[[Web_Cookie]]"
+  - "[[NestJS_Concept]]"
 ---
 # NestJS_CORS — CORS 설정
 
-> [!info] 
-> CORS(Cross-Origin Resource Sharing) = 브라우저의 기본 보안 정책(Same-Origin Policy)이 차단하는 cross-origin 요청을, 서버가 명시적으로 허용하는 메커니즘. 
+>[!info]
+>CORS(Cross-Origin Resource Sharing) = 브라우저의 기본 보안 정책(Same-Origin Policy)이 차단하는 cross-origin 요청을, 서버가 명시적으로 허용하는 메커니즘.
 > 프론트(Vercel) + API(Railway)처럼 도메인이 다른 구조에서 로그인·API 호출이 안 되는 이유가 대부분 여기에 있다.
 
 ---
@@ -144,24 +145,19 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService  = app.get(ConfigService);
-  const frontendUrl    = configService.get<string>('FRONTEND_URL');
+  const frontendUrl    = configService.get<string>(EnvKeys.FRONTEND_URL);
   const frontendOrigin = frontendUrl
     ? new URL(frontendUrl).origin  // 경로 제거 → origin만
     : undefined;
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000',    // 로컬 개발
-      'http://127.0.0.1:3000',   // 로컬 개발 (127.0.0.1 접근 시)
-      frontendOrigin,             // 운영 프론트엔드 도메인
-    ].filter(Boolean),            // undefined 제거
+    origin: frontendOrigin
+      ? ['http://localhost:3031', 'http://127.0.0.1:3031', frontendOrigin]
+      : undefined,    // frontendOrigin이 없으면 모든 출처 허용
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 86400,                // Preflight 24시간 캐싱
   });
 
-  await app.listen(3000);
+  await app.listen(configService.get<number>(EnvKeys.PORT) ?? 3030);
 }
 ```
 
@@ -181,9 +177,10 @@ new URL('https://my-app.vercel.app').origin
   환경변수 FRONTEND_URL에 경로가 포함되어 있으면 origin 비교가 실패함
   → new URL(url).origin으로 경로를 제거한 도메인만 사용
 
-.filter(Boolean):
-  frontendOrigin이 undefined면 배열에 undefined가 들어감
-  → filter(Boolean)으로 falsy 값(undefined, null, '') 전부 제거
+삼항 연산자로 undefined 처리:
+  frontendOrigin이 있으면 → 로컬 + 운영 origin 배열로 허용
+  frontendOrigin이 없으면 → undefined → 모든 출처 허용 (로컬 개발용)
+  값이 하나뿐이라 filter(Boolean)보다 삼항이 더 명확
 ```
 
 ---

@@ -11,6 +11,7 @@ related:
   - "[[NextJS_API_Mapper]]"
   - "[[JS_Fetch_API]]"
   - "[[NestJS_Swagger]]"
+  - "[[OpenAPI_Codegen]]"
 ---
 # NextJS_Types — API 타입 · UI 타입 · 매퍼
 

@@ -3,6 +3,8 @@ aliases:
   - NestJS 설치
   - Concept
   - DI
+  - main.ts
+  - 패키지 설치
 tags:
   - NestJS
 related:
@@ -12,14 +14,16 @@ related:
   - "[[NestJS_Module]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_Service_Provider]]"
+  - "[[NestJS_CORS]]"
 ---
 # NestJS_Concept — NestJS 핵심 개념
- 
+
 >[!info]
 >NestJS = Express 위에 TypeScript·OOP 구조를 얹은 프레임워크. 
 >Module·Controller·Service 계층 구조와 의존성 주입(DI)으로 큰 앱을 체계적으로 조립한다. 
 >요청은 Middleware → Guard → Pipe → Controller → Service 순서로 처리된다. 
->설치·CLI 명령어도 이 파일에 정리.
+>설치·CLI 명령어도 이 파일에 정리. 
+>main.ts에서 쓰는 ConfigService·EnvKeys → [[NestJS_Env_Config]]
 
 ---
 
@@ -236,7 +240,6 @@ NestJS가 하는 일:
 
 ## IoC — 제어 역전
 
-
 ```txt
 Inversion of Control (제어의 역전)
 
@@ -253,7 +256,6 @@ IoC (DI):
 ```
 
 ## NestJS DI 동작 방식
-
 
 ```typescript
 // 1. @Injectable() — "나는 DI 컨테이너에 등록 가능해"
@@ -311,7 +313,6 @@ const module = await Test.createTestingModule({
 // PostsService의 동작을 원하는 대로 제어 가능
 ```
 
-
 ```txt
 DI가 주는 것:
   ① 느슨한 결합 — Controller가 Service 구현 방법을 몰라도 됨
@@ -319,6 +320,7 @@ DI가 주는 것:
   ③ 테스트 용이 — 가짜 객체로 쉽게 교체
   ④ 코드 변경 최소화 — Service 내부가 바뀌어도 주입받는 쪽 수정 불필요
 ```
+
 ---
 
 # 전체 아키텍처 — 파일 구조
@@ -344,6 +346,130 @@ src/
 │       ├── update-post.dto.ts
 │       └── list-posts-query.dto.ts
 └── rooms/ ...               다른 기능도 같은 패턴
+```
+
+---
+
+# main.ts — 앱 진입점 · 전역 설정 ⭐️⭐️⭐️⭐️
+
+```txt
+main.ts = NestJS 앱이 시작되는 파일
+  NestFactory로 앱 인스턴스 생성
+  전역 설정(CORS, Pipe, Swagger, 세션 등) 등록
+  포트 열고 서버 시작
+
+이 파일에 등록한 설정은 모든 요청에 적용됨
+모듈·컨트롤러가 아니라 main.ts에서 하는 이유:
+  앱 전체에 공통 적용되는 것이라 한 곳에서 관리
+```
+
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
+import { EnvKeys } from './config/env.keys';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+async function bootstrap() {
+  // ① 앱 생성
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // ② ConfigService 꺼내기 (main.ts는 DI 불가 → app.get으로 직접 접근)
+  const configService  = app.get(ConfigService);
+
+  // ③ 프론트엔드 URL에서 origin 추출
+  const frontendUrl    = configService.get<string>(EnvKeys.FRONTEND_URL);
+  const frontendOrigin = frontendUrl ? new URL(frontendUrl).origin : undefined;
+  //    → 'http://localhost:3031' → origin = 'http://localhost:3031'
+  //    → 'https://myapp.com'    → origin = 'https://myapp.com'
+
+  // ④ body 크기 제한
+  app.useBodyParser('json', { limit: '600kb' });
+
+  // ⑤ CORS 설정 — 허용할 프론트엔드 출처
+  app.enableCors({
+    origin: frontendOrigin
+      ? ['http://localhost:3031', 'http://127.0.0.1:3031', frontendOrigin]
+      : undefined,     // frontendOrigin이 없으면 모든 출처 허용
+    credentials: true, // 쿠키·Authorization 헤더 포함 요청 허용
+  });
+
+  // ⑥ 세션 미들웨어 (OAuth 플로우용)
+  app.use(session({ ... }));
+  app.use(passport.initialize());
+
+  // ⑦ 전역 ValidationPipe — 모든 DTO 자동 검증
+  app.useGlobalPipes(new ValidationPipe({
+    transform:            true,  // string → number 등 자동 변환
+    whitelist:            true,  // DTO에 없는 필드 자동 제거
+    forbidNonWhitelisted: true,  // DTO에 없는 필드가 오면 400 에러
+  }));
+
+  // ⑧ Swagger 문서 설정
+  const config = new DocumentBuilder()
+    .setTitle('Music Community API')
+    .addBearerAuth({ ... }, 'access-token')
+    .build();
+  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
+
+  // ⑨ 포트 열고 시작
+  const port = configService.get<number>(EnvKeys.PORT) ?? 3030;
+  await app.listen(port);
+}
+bootstrap();
+```
+
+## main.ts의 각 설정이 하는 일
+
+```txt
+NestFactory.create<NestExpressApplication>(AppModule):
+  Express 기반으로 NestJS 앱 생성
+  <NestExpressApplication>을 붙이면 Express 전용 메서드 사용 가능
+  → app.useBodyParser(), app.set() 등
+
+app.setGlobalPrefix('api'):
+  모든 라우트 앞에 공통 접두사를 붙임
+  설정 전: /posts, /users, /auth/login
+  설정 후: /api/posts, /api/users, /api/auth/login
+
+  쓰는 이유:
+  같은 서버에서 프론트(/)와 API(/api)를 나눌 때
+  또는 API 버전관리(/api/v1)를 위한 기반
+
+  Swagger는 별도 경로(/api)에 두므로 prefix 제외 필요:
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
+
+app.enableCors():
+  다른 origin(도메인)에서 API 호출 허용
+  credentials: true = 쿠키·Authorization 헤더 포함 요청 허용
+  → [[NestJS_CORS]]
+
+app.useGlobalPipes(new ValidationPipe()):
+  모든 컨트롤러의 DTO를 자동으로 검증
+  transform: true = @Param('id') id: string → 실제로 string으로 변환
+  whitelist: true = DTO에 없는 필드를 자동으로 제거 (보안)
+  → [[NestJS_Pipe]]
+
+SwaggerModule.setup('api', ...):
+  /api 경로에 Swagger UI 자동 생성
+  → [[NestJS_Swagger]]
+
+app.listen(port):
+  HTTP 서버를 포트에 열고 요청 수신 시작
+  포트는 환경변수에서 읽는 것이 일반적
+```
+
+```txt
+main.ts에 없는 것들은 각 파일에서 처리:
+  인증·Guard     → [[NestJS_JwtGuard]]
+  DTO 검증 규칙  → [[NestJS_DTO]]
+  Swagger 데코레이터 → [[NestJS_Swagger]]
+  환경변수       → [[NestJS_Env_Config]]
 ```
 
 # NestJS 설치 및 프로젝트 생성 ⭐️⭐️⭐️

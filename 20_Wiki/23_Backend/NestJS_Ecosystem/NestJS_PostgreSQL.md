@@ -12,304 +12,515 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
   - "[[NestJS_Prisma]]"
-  - "[[NestJS_StatsBucket]]"
-  - "[[Deploy_CloudMVP]]"
   - "[[NestJS_Migration]]"
 ---
-# NestJS_PostgreSQL — 로컬 개발 환경 & 기초
+# NestJS_PostgreSQL — PostgreSQL 연결 · 로컬 환경
 
-> [!info]
->  NestJS 백엔드에서 PostgreSQL을 사용할 때의 로컬 환경 구성(Docker Compose), DataGrip 연결, timestamp 타입 선택, KST 집계 패턴까지
+>[!info]
+>NestJS에서 PostgreSQL 연결 = Prisma를 통한 연결이 표준. 
+>로컬 개발은 Docker로 PostgreSQL을 띄우고, DataGrip으로 DB를 시각적으로 관리한다.
+> `PrismaService`가 연결·해제를 담당하고 `PrismaModule @Global()`로 전역 등록한다.
+>  Prisma 쿼리·스키마 → [[NestJS_Prisma]], 마이그레이션 → [[NestJS_Migration]]
 
 ---
 
-# 로컬 개발 환경 — Docker Compose ⭐️⭐️⭐️⭐️
+# 용어 정리 ⭐️⭐️⭐️⭐️
 
-## docker-compose.yml 기본 구성
+|이름|역할|
+|---|---|
+|SQL|DB에 보내는 질의 언어 (`CREATE TABLE`, `INSERT` …)|
+|PostgreSQL|SQL을 실행하는 DB 서버 (여기선 Docker로 실행)|
+|Prisma|schema.prisma → 마이그레이션 SQL 생성 + TypeScript 클라이언트|
+|migration|스키마 변경을 DB에 적용하는 SQL 기록 (`prisma/migrations/`)|
+|generate|`schema.prisma` → `src/generated/prisma` 클라이언트 코드 생성|
+
+---
+
+# 설치 순서 ⭐️⭐️⭐️⭐️
+
+```bash
+# 1. 패키지 설치 (루트에서)
+pnpm --filter api add @prisma/client
+pnpm --filter api add -D prisma
+pnpm --filter api add dotenv
+# dotenv 필요: prisma.config.ts가 import "dotenv/config"를 사용
+
+# 2. Prisma 초기화
+pnpm --filter api exec prisma init
+```
+
+```txt
+prisma init이 만드는 것 (Prisma 7 기준):
+  apps/api/prisma/schema.prisma  → 모델 정의
+  apps/api/prisma.config.ts      → datasource URL 설정 (Prisma 7 변경사항)
+
+Prisma 7 변경사항:
+  이전: schema.prisma의 datasource db { url = env("DATABASE_URL") }
+  이후: prisma.config.ts에서 URL 관리
+  → schema.prisma에 url을 안 넣고 prisma.config.ts에서 읽음
+```
+
+---
+# NestJS에서 DB 연결 방법 선택 ⭐️⭐️⭐️⭐️
+
+```txt
+NestJS + PostgreSQL 연결 옵션:
+
+① Prisma (이 프로젝트 — 권장)
+  schema.prisma → PrismaClient 타입 자동 생성
+  쿼리 자동완성·타입 안전
+  마이그레이션이 직관적
+  현재 Node.js 생태계 표준
+
+② TypeORM (@nestjs/typeorm)
+  NestJS 공식 지원, 데코레이터 기반
+  설정이 복잡하고 타입 안전성이 상대적으로 약함
+
+③ pg (직접 연결)
+  SQL 문자열 직접 작성 → 타입 안전성 없음
+  거의 안 씀
+```
+
+---
+
+# DATABASE_URL — DB 연결 문자열 ⭐️⭐️⭐️⭐️
+
+```bash
+DATABASE_URL="postgresql://유저:비밀번호@호스트:포트/DB이름?schema=public"
+```
+
+```bash
+# 로컬 Docker (포트 5444 — Mac 기본 5432 충돌 회피)
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5444/DB?schema=public&sslmode=disable"
+POSTGRES_USER=USER
+POSTGRES_PASSWORD=PASSWORD
+POSTGRES_DB=DB
+POSTGRES_PORT=5444
+
+# Neon (클라우드)
+DATABASE_URL="postgresql://user:pass@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+
+# Railway (배포)
+DATABASE_URL="postgresql://postgres:AbCdEf@containers-us-west-xxx.railway.app:1234/railway"
+```
+
+```txt
+DATABASE_URL vs POSTGRES_*:
+  DATABASE_URL       → Prisma가 DB에 접속할 때 사용
+  POSTGRES_USER/PASSWORD/DB → Docker가 컨테이너 생성 시 DB 초기 설정에 사용
+
+  둘의 user·password·db 이름이 반드시 같아야 함
+  DATABASE_URL 포트 = docker-compose ports의 왼쪽(호스트) 포트
+
+  예시 (포트 5444):
+  docker-compose: ports: '5444:5432'   ← 호스트 5444, 컨테이너 5432
+  DATABASE_URL: ...@localhost:5444/...  ← 호스트 포트 5444로 접근
+```
+
+```txt
+각 부분 설명:
+  postgresql://  → 드라이버 (postgres:// 도 동일)
+  postgres       → DB 사용자 이름
+  password       → 비밀번호
+  localhost      → 호스트 (원격이면 도메인/IP)
+  5444           → 포트 (docker-compose hosts 포트)
+  myapp_dev      → 데이터베이스 이름
+  ?sslmode=disable → 로컬은 SSL 불필요, 클라우드는 require
+
+⚠️ DATABASE_URL은 .env에만 저장, 절대 git에 올리면 안 됨
+```
+
+---
+
+# Docker로 PostgreSQL 로컬 실행 ⭐️⭐️⭐️⭐️
+
+```txt
+로컬에 PostgreSQL을 직접 설치하는 대신 Docker로 실행하면:
+  설치 없이 바로 사용 가능
+  버전 변경 쉬움
+  팀원 모두 같은 환경
+  docker-compose.yml 하나로 공유
+```
+
+## docker-compose.yml
 
 ```yaml
+# docker-compose.yml ← 반드시 저장소 루트에 위치
+# apps/docker-compose.yml에 두면 루트에서 docker compose up 시 "not found" 에러
 services:
   db:
-    image: postgres:17-alpine
-    container_name: app-db
+    image: postgres:17-alpine          # PostgreSQL 17 경량 이미지
+    container_name: music-community-db
     env_file:
-      - apps/api/.env          # POSTGRES_USER · POSTGRES_PASSWORD · POSTGRES_DB 읽어옴
+      - apps/api/.env                  # .env에서 POSTGRES_USER, POSTGRES_DB 등을 읽음
     ports:
-      - '5433:5432'            # 호스트 5433 → 컨테이너 5432
+      - '5433:5432'                    # 호스트 5433 → 컨테이너 5432
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data  # 데이터 영구 보존
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 40s               # 컨테이너 시작 후 40초 뒤부터 체크
     networks:
-      - app-network
+      - music-community-network
 
 volumes:
   db_data:
 
 networks:
-  app-network:
+  music-community-network:
     driver: bridge
 ```
 
-## 포트 5433:5432를 쓰는 이유
-
 ```txt
-형식: "호스트포트:컨테이너포트"
-  컨테이너 내부 PostgreSQL은 항상 5432 사용
-  5432:5432로 하면 로컬에 PostgreSQL이 이미 설치된 경우 포트 충돌
-  → 호스트 쪽을 5433으로 올려서 회피
+env_file: apps/api/.env:
+  .env 파일에서 환경변수를 읽어 컨테이너에 주입
+  PostgreSQL은 다음 환경변수로 초기 설정:
+  POSTGRES_USER     → DB 사용자 이름
+  POSTGRES_PASSWORD → 비밀번호
+  POSTGRES_DB       → 생성할 DB 이름
+  → .env에 이 세 값이 있으면 컨테이너 시작 시 자동 설정
 
-접속 위치에 따라 포트가 달라짐:
-  로컬(호스트)에서 접속    → localhost:5433   ← DataGrip, .env
-  Docker 네트워크 내부     → db:5432          ← 같은 compose의 다른 서비스
+ports: '5433:5432':
+  왼쪽(5433) = 내 컴퓨터 포트  ← DATABASE_URL에서 이 포트 사용
+  오른쪽(5432) = 컨테이너 포트
+  5432가 아닌 5433을 쓰는 이유:
+  로컬에 PostgreSQL이 이미 설치돼 있으면 5432 충돌 → 5433으로 회피
+
+healthcheck:
+  pg_isready로 DB가 실제로 준비됐는지 주기적으로 확인
+  DB에 의존하는 서비스(api 등)가 DB 준비 전에 시작하는 것을 방지
+  start_period: 40s → 처음 시작 40초는 체크 안 함 (초기화 시간 여유)
+
+networks:
+  컨테이너끼리 통신하는 가상 네트워크
+  같은 네트워크 안의 컨테이너끼리 서비스 이름으로 통신 가능
+  (api 컨테이너에서 db 컨테이너를 'db' 이름으로 접근)
+```
+
+```bash
+# apps/api/.env — docker-compose가 읽는 PostgreSQL 환경변수
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=myapp_dev
+
+# Prisma가 읽는 DATABASE_URL (포트 5433 주의)
+DATABASE_URL="postgresql://postgres:password@localhost:5433/myapp_dev"
+```
+
+## 실행 명령어
+
+```bash
+# 반드시 저장소 루트에서 실행
+docker compose up -d
+
+# 특정 서비스만 실행
+docker compose up -d db
+
+# 중지
+docker compose down
+
+# 중지 + 데이터 삭제 (초기화)
+docker compose down -v
+
+# 로그 확인
+docker compose logs db
+docker compose logs -f db   # -f: 실시간 추적
+
+# 컨테이너 상태 확인 (healthy 뜨면 DB 준비 완료)
+docker ps
 ```
 
 ```txt
-DATABASE_URL 예시:
-  로컬 .env   → postgresql://user:pass@localhost:5433/mydb
-  운영(Neon)  → postgresql://user:pass@xxxx.neon.tech/mydb?sslmode=require
-```
-
-## env_file에 필요한 변수
-
-|변수|설명|예시|
-|---|---|---|
-|`POSTGRES_USER`|DB 접속 유저|`myuser`|
-|`POSTGRES_PASSWORD`|비밀번호|`mypassword`|
-|`POSTGRES_DB`|생성할 DB명|`mydb`|
-
-```txt
-PostgreSQL 공식 이미지는 컨테이너 첫 실행 시 위 세 변수를 읽어서 DB를 자동 생성함
-volume이 이미 존재하면 무시됨 — 이미 초기화된 상태로 판단
-
-env_file과 DATABASE_URL의 관계:
-  env_file  → Docker가 PostgreSQL 컨테이너를 초기화할 때 사용
-  DATABASE_URL → NestJS(Prisma)가 DB에 접속할 때 사용
-  두 값이 서로 맞아야 함 (같은 user/password/dbname)
-```
-
-## healthcheck 상세
-
-```txt
-test: pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-  → PostgreSQL 공식 CLI 도구 — DB가 연결 요청을 받을 준비가 됐는지 확인
-  컨테이너가 올라왔다(up) ≠ PostgreSQL 프로세스가 준비됐다(ready)
-  → healthcheck 없으면 NestJS가 너무 빨리 뜨면서 DB 연결 실패 가능
-
-$$POSTGRES_USER (달러 두 개):
-  Docker Compose YAML에서 $는 변수 보간 기호
-  $$로 이스케이프해야 쉘 변수 치환으로 전달됨 → 런타임에 $POSTGRES_USER로 해석
-
-start_period: 40s
-  → 컨테이너 기동 후 첫 40초는 healthcheck 실패해도 unhealthy로 집계 안 함
-  → PostgreSQL 기동 시간을 넉넉히 허용
-
-interval / timeout / retries:
-  10초마다 확인 · 5초 내 응답 없으면 한 번 실패 · 5번 실패하면 unhealthy
-```
-
-## 자주 쓰는 명령어
-
-|명령어|설명|
-|---|---|
-|`docker compose up -d`|백그라운드로 컨테이너 시작|
-|`docker compose down`|컨테이너 종료 (volume 유지, 데이터 안 날아감)|
-|`docker compose down -v`|컨테이너 + volume 삭제 → DB 완전 초기화|
-|`docker compose logs db`|DB 컨테이너 로그 확인|
-|`docker compose ps`|컨테이너 상태 및 healthcheck 결과 확인|
-|`docker compose restart db`|DB 컨테이너만 재시작|
-
----
-
-# DataGrip 연결 ⭐️⭐️⭐️
-
-## 연결 설정 순서
-
-```txt
-1. 왼쪽 Database 패널 → + 버튼 → Data Source → PostgreSQL
-2. 드라이버 설치 알림 → Download 클릭 (JDBC 드라이버 자동 다운로드)
-3. 연결 정보 입력:
-     Host     : localhost
-     Port     : 5433          ← docker-compose 호스트 포트
-     Database : (POSTGRES_DB 값)
-     User     : (POSTGRES_USER 값)
-     Password : (POSTGRES_PASSWORD 값)
-4. Test Connection → 초록 체크 확인 → OK
-```
-
-```txt
-스키마가 안 보일 때:
-  연결 후 Schemas 탭에서 보고 싶은 스키마 체크 (기본 public)
-  또는 Database 패널에서 해당 연결 우클릭 → Refresh
-
-Neon(운영 DB) 연결 시:
-  Host: xxxx.neon.tech, Port: 5432
-  SSL: require (Neon은 SSL 필수)
-  DataGrip → Advanced 탭 → sslmode=require
-```
-
-## 표시 시간대 주의 (UTC vs KST) ⭐️⭐️⭐️
-
-```txt
-증상: 7/1 오전 10:00 KST에 삽입했는데 DataGrip에서 7/1 01:00으로 보임
-원인: DataGrip/JVM이 UTC 기준으로 timestamptz를 표시하기 때문
-      → 저장값 자체는 올바름 (UTC instant로 정확히 저장됨)
-
-DataGrip 설정으로 KST 표시:
-  File → Settings → Database → Data Views → Timezone → Asia/Seoul
-
-쿼리로 직접 KST 확인:
-  SELECT created_at AT TIME ZONE 'Asia/Seoul' FROM "User" LIMIT 5;
-
-타입이 timestamp(timezone 없음)일 때는 더 혼란스러움:
-  timezone 정보 없이 naive하게 저장 → 세션 설정에 따라 해석이 달라짐
-  → timestamptz를 써야 이 문제가 없어짐 (아래 섹션 참고)
+docker compose 실행 위치:
+  루트에서 실행해야 docker-compose.yml을 찾음
+  apps/ 폴더에서 실행하면 "no configuration file provided" 에러
 ```
 
 ---
 
-# timestamp vs timestamptz ⭐️⭐️⭐️⭐
+# migrate · generate 워크플로우 ⭐️⭐️⭐️⭐️
 
->️각 타입의 상세 비교(JSONB · UUID · ARRAY · ENUM 포함) 
->→ [[PG_Types]]
+```bash
+# 1. 마이그레이션 실행 (스키마 → DB 적용)
+pnpm --filter api exec prisma migrate dev --name init
 
-## PostgreSQL 타입 차이
-
-|
-|`timestamp`|`timestamptz`|
-|---|---|---|
-|정식 명칭|`timestamp without time zone`|`timestamp with time zone`|
-|저장 방식|naive — TZ 정보 없이 "날짜+시간 문자열"처럼 저장|UTC epoch(ms)로 저장|
-|세션 TZ 영향|받음 — 환경마다 해석이 달라질 수 있음|받지 않음 — 항상 UTC로 변환|
-|꺼낼 때|저장한 그대로 반환|클라이언트 TZ 설정에 맞게 변환|
-|일관성|위험 — 서버/DB/앱 TZ가 다르면 값이 달라짐|안전 — 어디서 넣어도 같은 instant|
-|Prisma|`DateTime` (기본)|`DateTime @db.Timestamptz(3)`|
-
-```txt
-timestamptz 내부 동작:
-  INSERT할 때: 현재 세션 TZ 기준으로 받은 값을 UTC로 변환해서 저장
-  SELECT할 때: UTC 저장값을 세션 TZ에 맞게 변환해서 반환
-
-  → 어떤 TZ 환경에서 넣어도 동일한 UTC instant로 저장
-  → KST 서버에서 넣든 UTC 서버에서 넣든 같은 값
-
-precision (3):
-  소수점 이하 자릿수 = 밀리초 단위 (.000)
-  생략하면 PostgreSQL 기본값 6 (마이크로초) — 실용적으로 3이면 충분
-  timestamp(3) / timestamptz(3) 모두 동일하게 적용
+# 2. 클라이언트 생성 (스키마 → TypeScript 타입)
+pnpm --filter api exec prisma generate
+# migrate dev 실행 시 보통 generate도 함께 실행됨
+# client가 없으면 따로 한 번 더 실행
 ```
 
-## Prisma 스키마 적용
+```txt
+실행 후 생기는 것:
+  apps/api/prisma/migrations/20240101_init/migration.sql  → 적용된 SQL 기록
+  apps/api/src/generated/prisma/                         → Prisma 클라이언트
 
-```prisma
-model User {
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt      @db.Timestamptz(3)
-  lastActiveAt DateTime?                 @db.Timestamptz(3)
+migrate가 생성하는 SQL 예시 (migration.sql):
+  -- CreateTable
+  CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+  );
+  CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+  → schema.prisma의 model User { @@map("users") } 가 위 SQL로 변환됨
+
+앱 코드에서는:
+  prisma.user.create({ data: { email: 'a@b.com' } })
+  → Prisma Client가 SQL INSERT를 만들어 PostgreSQL에 전송
+```
+
+---
+
+---
+
+# Dockerfile — API 빌드 ⭐️⭐️⭐️
+
+```dockerfile
+# Dockerfile (apps/api 또는 루트)
+FROM node:20-alpine
+
+# pnpm 활성화 (corepack = Node.js 내장 패키지 매니저 관리 도구)
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+# 의존성 먼저 복사 (캐싱 활용 — 코드 변경 시 재설치 방지)
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api ./apps/api
+
+# api 앱만 설치 (frozen-lockfile = lockfile 변경 금지)
+RUN pnpm install --frozen-lockfile --filter api
+
+WORKDIR /app/apps/api
+
+# Prisma generate — DB 접속 없이 타입만 생성
+# 빌드 시에는 실제 DB가 없으므로 더미 DATABASE_URL 사용
+RUN DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public" \
+    pnpm exec prisma generate && pnpm build
+
+ENV NODE_ENV=production
+EXPOSE 3030
+
+CMD ["pnpm", "run", "start:deploy"]
+```
+
+```txt
+corepack enable && corepack prepare pnpm@9 --activate:
+  corepack = Node.js 20+ 내장 패키지 매니저 버전 관리 도구
+  pnpm을 별도 설치 없이 특정 버전으로 활성화
+
+COPY 순서가 중요한 이유 (Docker 레이어 캐싱):
+  1. lockfile·package.json 복사
+  2. pnpm install (의존성 설치)
+  3. 소스 코드 복사
+  → 소스만 바뀌면 1·2 단계를 캐시에서 재사용
+  → 소스 바뀔 때마다 전체 재설치 방지 → 빌드 속도 향상
+
+--frozen-lockfile:
+  pnpm-lock.yaml이 변경되는 것을 금지
+  lockfile과 package.json이 일치하지 않으면 에러
+  → 배포 환경에서 예상치 못한 버전 변경 방지
+
+prisma generate의 더미 DATABASE_URL:
+  prisma generate = schema.prisma → PrismaClient 타입 생성
+  DB에 실제 접속하지 않음 → 더미 URL이어도 됨
+  하지만 DATABASE_URL 환경변수 자체는 있어야 에러 안 남
+  → 빌드 시에만 쓰는 의미 없는 값으로 통과
+
+start:deploy:
+  운영 환경 시작 스크립트 (package.json에 정의)
+  보통 "node dist/main.js" 또는 "nest start --prod"
+```
+
+---
+
+# DataGrip — DB GUI 관리 도구 ⭐️⭐️⭐️
+
+```txt
+DataGrip (JetBrains):
+  PostgreSQL을 시각적으로 탐색·쿼리하는 IDE
+  테이블 구조 확인, SQL 실행, 데이터 편집
+  개발 중 DB 상태를 직접 확인할 때 편함
+```
+
+## DataGrip 연결 설정
+
+```txt
+New Connection → PostgreSQL 선택:
+
+  Host:     localhost
+  Port:     5432
+  Database: myapp_dev
+  User:     postgres
+  Password: password
+
+Test Connection 클릭 → 성공 확인 → OK
+```
+
+## 자주 쓰는 기능
+
+```txt
+DB Explorer (왼쪽 패널):
+  테이블 목록 → 컬럼 구조 확인
+  우클릭 → View Data → 현재 데이터 조회
+
+Console (SQL 실행):
+  Ctrl+Enter / Cmd+Enter → 선택한 쿼리 실행
+  SELECT * FROM "User" LIMIT 10;
+
+테이블 이름 주의:
+  Prisma가 생성한 테이블은 대소문자 구분
+  → "User"처럼 대문자가 있으면 따옴표로 감싸야 함
+  → SELECT * FROM "User" (O)
+  → SELECT * FROM User (X — user 예약어로 오해)
+```
+
+---
+
+# Prisma 설치 및 초기 설정 ⭐️⭐️⭐️⭐️
+
+```bash
+# Prisma 설치 (apps/api 에 추가)
+pnpm --filter api add @prisma/client
+pnpm --filter api add -D prisma
+
+# Prisma 초기화
+cd apps/api
+npx prisma init
+```
+
+```txt
+prisma init이 만드는 것:
+  prisma/schema.prisma  → 스키마 파일 (모델 정의)
+  .env에 DATABASE_URL 주석 추가
+
+apps/api/.env에 설정:
+  DATABASE_URL="postgresql://postgres:password@localhost:5432/myapp_dev"
+```
+
+---
+
+# PrismaService — DB 연결 담당 ⭐️⭐️⭐️⭐️
+
+```typescript
+// src/prisma/prisma.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  async onModuleInit() {
+    await this.$connect();
+    // 앱 시작 시 DB 연결
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+    // 앱 종료 시 연결 해제 (연결 누수 방지)
+  }
 }
 ```
 
 ```txt
-@default(now())  → DB 서버 시각(UTC)으로 자동 삽입
-@updatedAt       → Prisma가 UPDATE 시 자동으로 현재 시각 세팅
-lastActiveAt     → nullable: 한 번도 활동 안 한 유저는 null
+extends PrismaClient:
+  PrismaService가 PrismaClient를 상속
+  → this.user.findMany(), this.post.create() 등 직접 사용 가능
 
-Prisma DateTime만 쓰면 기본이 timestamp(3) → 반드시 @db.Timestamptz(3) 명시
-([[NestJS_Prisma]] 참고 — DateTime 필드 섹션)
-```
-
-## 기존 timestamp → timestamptz 마이그레이션
-
-```sql
--- schema.prisma만 고쳐서는 DB 타입이 바뀌지 않음 → migrate 필수
-ALTER TABLE "User"
-  ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ(3)
-  USING "createdAt" AT TIME ZONE 'UTC';
-```
-
-```txt
-USING "createdAt" AT TIME ZONE 'UTC':
-  기존 row를 "UTC 기준으로 넣었다"고 가정하고 타입을 변환
-  만약 KST로 저장된 데이터가 섞여 있다면 'Asia/Seoul'로 맞춰야 함
-
-적용 순서:
-  1. schema.prisma 수정 (@db.Timestamptz(3) 추가)
-  2. prisma migrate dev (로컬) — SQL 생성 + 실행
-  3. prisma migrate deploy (운영/Neon)
-  로컬과 운영 모두 migrate 실행해야 반영됨
+OnModuleInit / OnModuleDestroy:
+  NestJS 라이프사이클 훅
+  onModuleInit  → 앱이 시작될 때 자동 실행
+  onModuleDestroy → 앱이 꺼질 때 자동 실행
+  → 수동으로 connect/disconnect 호출 불필요
 ```
 
 ---
 
-# KST 기준 집계 쿼리 ⭐️⭐️⭐️
+# PrismaModule — @Global() 전역 등록 ⭐️⭐️⭐️⭐️
 
-```sql
--- timestamptz 컬럼을 KST 기준 날짜별 집계
-SELECT
-  DATE(created_at AT TIME ZONE 'Asia/Seoul') AS date_kst,
-  COUNT(*)                                    AS cnt
-FROM "User"
-GROUP BY date_kst
-ORDER BY date_kst;
+```typescript
+// src/prisma/prisma.module.ts
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+@Global()
+@Module({
+  providers: [PrismaService],
+  exports:   [PrismaService],
+})
+export class PrismaModule {}
 ```
 
-```sql
--- 월별 집계
-SELECT
-  DATE_TRUNC('month', created_at AT TIME ZONE 'Asia/Seoul') AS month_kst,
-  COUNT(*) AS cnt
-FROM "User"
-GROUP BY month_kst
-ORDER BY month_kst;
+```typescript
+// app.module.ts
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,   // 한 번만 등록 → 전체 앱에서 PrismaService 주입 가능
+    AuthModule,
+    PostsModule,
+    ...
+  ],
+})
+export class AppModule {}
 ```
 
 ```txt
-AT TIME ZONE 'Asia/Seoul':
-  UTC로 저장된 timestamptz를 KST로 변환한 뒤 날짜/월 추출
-  → 한국 서비스에서 "오늘 가입자 수", "이번 달 활동량" 등을 정확히 집계할 때 필수
+@Global() 효과:
+  AppModule에 한 번만 import하면
+  PostsModule, UsersModule 등 모든 모듈에서
+  imports: [PrismaModule] 없이 PrismaService 주입 가능
 
-저장 타입(timestamptz)과 집계 TZ는 별개:
-  저장은 항상 UTC
-  집계 기준 TZ는 쿼리에서 AT TIME ZONE으로 명시적으로 지정
+다른 서비스에서 사용:
+  @Injectable()
+  export class PostsService {
+    constructor(private readonly prisma: PrismaService) {}
 
-빈 날짜 구간(0건인 날)이 누락되는 문제:
-  GROUP BY만으로는 데이터 없는 날은 결과에 안 나옴
-  → generate_series + LEFT JOIN 또는 애플리케이션 레벨에서 버킷 채우기
-  ([[NestJS_StatsBucket]] 참고)
+    findAll() {
+      return this.prisma.post.findMany();
+    }
+  }
 ```
 
 ---
 
-# 한눈에
+# 연결 확인 방법
 
-```txt
-Docker Compose:
-  image: postgres:17-alpine
-  포트: 5433:5432 (로컬 충돌 회피 — 호스트:컨테이너)
-  env_file: POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
-  volume: down해도 데이터 유지, down -v로 초기화
-  healthcheck: pg_isready — 컨테이너 up ≠ DB ready
-  $$: YAML에서 $ 이스케이프 → 런타임에 $POSTGRES_USER로 해석
+```bash
+# 1. Prisma로 DB 연결 테스트
+pnpm --filter api exec prisma db pull
+# → DB에 연결해서 테이블을 schema.prisma로 가져옴
+# → 에러 없으면 연결 성공
 
-DataGrip:
-  localhost:5433으로 연결 (로컬)
-  시간 표시가 UTC처럼 보이는 건 DataGrip 설정 — 저장값은 올바름
-  SELECT col AT TIME ZONE 'Asia/Seoul'로 KST 확인
+# 2. 앱 실행 시 확인
+pnpm --filter api start:dev
+# → onModuleInit의 $connect()가 실행됨
+# → 연결 실패 시 에러 로그 + 앱 시작 안 됨
 
-timestamp vs timestamptz:
-  timestamp  → naive, TZ 영향 받음 → 쓰지 말 것
-  timestamptz → UTC instant, 항상 일관성 → 채택
-  Prisma: @db.Timestamptz(3)
-  기존 마이그레이션: ALTER COLUMN ... TYPE TIMESTAMPTZ USING ... AT TIME ZONE 'UTC'
-  schema.prisma 수정만으로는 부족 → migrate deploy 필수
-  PostgreSQL 타입 전체(JSONB · UUID · ARRAY · ENUM) → [[PG_Types]]
-
-KST 집계:
-  DATE(col AT TIME ZONE 'Asia/Seoul')
-  DATE_TRUNC('month', col AT TIME ZONE 'Asia/Seoul')
-  빈 구간 채우기는 NestJS_StatsBucket 참고
+# 3. Prisma Studio로 확인
+pnpm --filter api exec prisma studio
+# → 브라우저에서 DB 테이블 시각적으로 확인
 ```
+
+---
+
+# 자주 만나는 에러
+
+| 에러                                | 원인                            | 해결                                               |
+| --------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `Can't reach database server`     | Docker 미실행 또는 DATABASE_URL 틀림 | `docker ps` 확인, DATABASE_URL 재확인                 |
+| `Authentication failed`           | DB 사용자·비밀번호 틀림                | docker-compose.yml의 POSTGRES_PASSWORD 확인         |
+| `database "myapp" does not exist` | DB가 없음                        | `docker compose down -v && docker compose up -d` |
+| `SSL connection required`         | Neon 등 클라우드 DB는 SSL 필수        | DATABASE_URL 끝에 `?sslmode=require` 추가            |
+| `no configuration file provided`  | 루트가 아닌 곳에서 docker compose 실행  | 저장소 루트에서 `docker compose up -d` 실행               |
+| `Connection refused (포트 5444 등)`  | URL 포트 ≠ compose hosts 포트     | DATABASE_URL 포트와 compose ports 좌측 포트 일치 확인       |
+| user/password 인증 실패 (볼륨 있을 때)     | 기존 볼륨에 이전 비밀번호가 고정됨           | `docker compose down -v` 후 재생성                   |
+| DataGrip 연결 실패                    | Docker가 안 켜져 있음               | `docker compose up -d` 실행 후 재시도                  |

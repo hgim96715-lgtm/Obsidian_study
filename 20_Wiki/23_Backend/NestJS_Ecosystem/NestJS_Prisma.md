@@ -12,6 +12,7 @@ related:
   - "[[NestJS_Prisma_Patterns]]"
   - "[[NestJS_Service_Provider]]"
   - "[[PG_DDL]]"
+  - "[[NestJS_PostgreSQL]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
@@ -23,7 +24,7 @@ related:
 
 ---
 
-## 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
+# 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
 
 ```txt
 "지금 조회하는 모델" vs "relations로 연결된 다른 테이블" 한 가지만 기준으로 생각하면 됨
@@ -103,6 +104,38 @@ PrismaService는 거의 모든 기능 모듈이 필요로 하는 성격이라 @G
 ```
 
 ---
+# schema.prisma 기본 구조 (Prisma 7) ⭐️⭐️⭐️⭐️
+
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"   // 클라이언트 생성 위치
+  moduleFormat = "cjs"                        // NestJS는 CommonJS
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: url은 여기에 안 넣음 → prisma.config.ts에서 관리
+}
+```
+
+```txt
+moduleFormat = "cjs":
+  NestJS는 CommonJS(require 방식)로 빌드됨
+  이 옵션 없으면 → "exports is not defined in ES module scope" 에러
+
+output = "../src/generated/prisma":
+  Prisma Client가 생성되는 위치
+  기본값은 node_modules/.prisma/client
+  커스텀 경로로 지정하면 모노레포에서 위치 명확히 관리 가능
+
+Prisma 7 변경사항 — datasource url:
+  이전(Prisma 5/6): datasource db { url = env("DATABASE_URL") }
+  이후(Prisma 7):   url을 schema.prisma에서 제거
+                    prisma.config.ts에서 dotenv로 읽어서 관리
+```
+---
 
 # Model — 테이블 정의
 
@@ -118,17 +151,75 @@ model User {
 }
 ```
 
-|어노테이션|의미|
-|---|---|
-|`@id`|Primary Key|
-|`@default(autoincrement())`|숫자 ID 자동 증가|
-|`@default(uuid())`|UUID 자동 생성|
-|`@unique`|UNIQUE 제약|
-|`?`|nullable (없으면 `NOT NULL`)|
-|`@updatedAt`|수정 시 자동 갱신|
-|`@db.VarChar(n)`|`VARCHAR(n)` 명시|
-|`@db.Uuid`|PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)|
-|`@db.Timestamptz(n)`|PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`)|
+| 어노테이션                       | 의미                                                           |
+| --------------------------- | ------------------------------------------------------------ |
+| `@id`                       | Primary Key                                                  |
+| `@default(autoincrement())` | 숫자 ID 자동 증가                                                  |
+| `@default(uuid())`          | UUID 자동 생성                                                   |
+| `@unique`                   | UNIQUE 제약                                                    |
+| `?`                         | nullable (없으면 `NOT NULL`)                                    |
+| `@updatedAt`                | 수정 시 자동 갱신                                                   |
+| `@map("컬럼명")`               | 코드 필드명 ↔ DB 컬럼명 매핑                                           |
+| `@@map("테이블명")`             | 코드 모델명 ↔ DB 테이블명 매핑                                          |
+| `@db.VarChar(n)`            | `VARCHAR(n)` 명시                                              |
+| `@db.Uuid`                  | PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)                |
+| `@db.Timestamptz(n)`        | PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`) |
+
+## @map · @@map — 이름 매핑 ⭐️⭐️⭐️⭐️
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  //                                  ↑ 코드: createdAt / DB: created_at
+
+  @@map("users")
+  //    ↑ 코드: User 모델 / DB: users 테이블
+}
+```
+
+```txt
+@map("컬럼명"):
+  코드(Prisma)에서 쓰는 필드명 ↔ 실제 DB 컬럼명을 다르게 설정
+  코드: createdAt (camelCase — TypeScript 관례)
+  DB:  created_at (snake_case — DB 관례)
+
+@@map("테이블명"):
+  코드(Prisma)에서 쓰는 모델명 ↔ 실제 DB 테이블명을 다르게 설정
+  코드: User (PascalCase — TypeScript 관례)
+  DB:  users (snake_case, 소문자 복수 — DB 관례)
+
+언제 쓰는가:
+  DB 컨벤션(snake_case)과 코드 컨벤션(camelCase)을 동시에 지키고 싶을 때
+  기존 DB 테이블 이름이 정해져 있고 코드에서 다른 이름을 쓰고 싶을 때
+
+쓰지 않는다면:
+  Prisma는 기본적으로 model User → "User" 테이블 (PascalCase 그대로)
+  필드 createdAt → "createdAt" 컬럼 (camelCase 그대로)
+  → DataGrip에서 테이블이 "User", 컬럼이 "createdAt"으로 저장됨
+```
+
+```prisma
+// 실전 예시 — 전체 모델에 적용
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  authorId  String   @map("author_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+  deletedAt DateTime?                @map("deleted_at")
+
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("posts")
+}
+// DB 테이블: posts
+// DB 컬럼:  id, title, content, author_id, created_at, updated_at, deleted_at
+// 코드:    post.authorId, post.createdAt (camelCase 그대로 사용)
+```
+
 
 ## @db.Uuid — UUID 컬럼을 네이티브 타입으로 ⭐️⭐️
 

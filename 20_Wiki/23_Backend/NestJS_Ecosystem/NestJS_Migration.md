@@ -14,6 +14,7 @@ related:
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Prisma_Patterns]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_PostgreSQL]]"
 ---
 # NestJS_Migration — Prisma 마이그레이션
 
