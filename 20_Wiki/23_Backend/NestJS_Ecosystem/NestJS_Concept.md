@@ -5,6 +5,7 @@ aliases:
   - DI
   - main.ts
   - 패키지 설치
+  - nest CLI
 tags:
   - NestJS
 related:
@@ -24,6 +25,34 @@ related:
 >요청은 Middleware → Guard → Pipe → Controller → Service 순서로 처리된다. 
 >설치·CLI 명령어도 이 파일에 정리. 
 >main.ts에서 쓰는 ConfigService·EnvKeys → [[NestJS_Env_Config]]
+
+---
+## 흐름
+
+요청은 위에서 아래로. **DB 접근은 Service만** (Controller에서 Prisma/쿼리 직접 호출 금지).
+
+```mermaid
+flowchart TD
+  A[HTTP 요청] --> B[Controller]
+  B --> C["Pipe — ValidationPipe · ParseUUIDPipe"]
+  C --> D["DTO / @Body · @Param"]
+  D --> E[Service]
+  E --> F["ORM — 예: PrismaService"]
+  F --> G[(DB)]
+  G --> F --> E --> B --> H[HTTP 응답]
+```
+
+```txt
+Controller  라우트 + @Body/@Param 꺼내기 → Service 호출만
+Pipe        검증·변환 (실패 시 여기서 400, Service까지 안 감)
+Service     비즈니스 로직 + DB
+ORM/DB      Prisma·TypeORM 등 — Service 뒤에서만
+
+전체 파이프라인(Middleware → Guard → Interceptor → …)
+  → 아래 [[#요청 처리 순서 (Pipeline)]]
+Controller·@Body·@Param 상세 → [[NestJS_Controller]]
+Prisma CRUD → [[NestJS_Prisma]]
+```
 
 ---
 
@@ -531,9 +560,31 @@ nest g module posts          # posts.module.ts 생성
 nest g controller posts      # posts.controller.ts 생성
 nest g service posts         # posts.service.ts 생성
 nest g resource posts        # module + controller + service + dto 한 번에 생성
+nest g resource users --no-spec  # *.spec.ts(테스트 파일) 안 만듦
+```
+
+### 자주 쓰는 옵션
+
+| 옵션              | 의미                         |
+| --------------- | -------------------------- |
+| `--no-spec`     | 테스트 파일(`*.spec.ts`) 생성 생략  |
+| `--flat`        | 하위 폴더 없이 파일만 생성            |
+| `--skip-import` | `AppModule`에 자동 import 안 함 |
+
+```txt
+--no-spec 을 쓰는 이유:
+  nest g resource는 기본으로 *.spec.ts 테스트 파일을 같이 만듦
+  테스트를 아직 작성하지 않을 때 파일이 쌓이는 것을 방지
+  → 나중에 테스트를 작성할 준비가 되면 직접 생성
+
+--flat 을 쓰는 이유:
+  기본은 posts/posts.module.ts 처럼 폴더 안에 생성
+  --flat 이면 posts.module.ts 처럼 현재 위치에 바로 생성
+  이미 폴더가 있을 때 유용
 ```
 
 ```txt
+nest g = nest generate
 nest g resource posts 가 만들어 주는 것:
   posts/
   ├── posts.module.ts

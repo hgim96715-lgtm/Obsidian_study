@@ -1190,30 +1190,118 @@ Json 필드를 명시적으로 비워달라고 할 때는 이 전용 상수를 �
 ```
 
 ---
+# 에러 처리 ⭐️⭐️⭐️⭐️
 
-# 에러 처리
+## 방법 1 — try/catch로 개별 처리
 
 ```typescript
 try {
   await this.prisma.user.create({ data: { email } });
 } catch (error) {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
     throw new ConflictException('이미 사용 중인 이메일입니다.');
   }
   throw error;
 }
 ```
 
-|코드|의미|보통 던지는 예외|
-|---|---|---|
-|`P2002`|Unique 제약 위반|`ConflictException`|
-|`P2003`|FK 제약 위반|`BadRequestException`|
-|`P2025`|대상 없음|`NotFoundException`|
-
 ```txt
-error.meta → P2002면 { target: ['email'] } 처럼 어떤 컬럼이 중복인지 알려줌
+각 서비스에서 필요한 곳마다 직접 처리
+세밀한 제어 가능 (코드마다 다른 메시지 등)
+반복이 많아질 수 있음
 ```
 
+## 방법 2 — PrismaExceptionFilter (전역 처리) ⭐️⭐️⭐️⭐️
+
+```typescript
+// src/common/filters/prisma-exception.filter.ts
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+} from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
+
+@Catch(Prisma.PrismaClientKnownRequestError)
+export class PrismaExceptionFilter implements ExceptionFilter {
+  catch(
+    exception: Prisma.PrismaClientKnownRequestError,
+    host: ArgumentsHost,
+  ) {
+    const res = host.switchToHttp().getResponse();
+
+    if (exception.code === 'P2002') {
+      return res.status(409).json({
+        statusCode: 409,
+        message: '이미 사용 중입니다.',
+      });
+    }
+    
+     if (exception.code === 'P2025') {
+      return res.status(404).json({
+        statusCode: 404,
+        message: '리소스를 찾을 수 없습니다',
+      });
+    }
+
+    // 처리 안 된 Prisma 에러는 500
+    return res.status(500).json({
+      statusCode: 500,
+      message: 'Database error',
+    });
+  }
+}
+```
+
+```typescript
+// main.ts에 전역 등록
+app.useGlobalFilters(new PrismaExceptionFilter());
+```
+
+```txt
+@Catch(Prisma.PrismaClientKnownRequestError):
+  PrismaClientKnownRequestError가 throw되면 이 Filter가 가로챔
+  try/catch를 서비스마다 작성하지 않아도 됨
+
+ExceptionFilter:
+  NestJS가 제공하는 예외 처리 인터페이스
+  catch(exception, host) 하나만 구현
+
+ArgumentsHost:
+  현재 실행 컨텍스트에 대한 정보
+  host.switchToHttp().getResponse() → Express Response 객체 직접 접근
+  → res.status(409).json(...)으로 응답 직접 제어
+
+방법 1 vs 방법 2:
+  try/catch (방법 1) → 에러 메시지를 상황마다 다르게 할 때
+  ExceptionFilter (방법 2) → P2002 같은 공통 에러를 한 곳에서 처리
+  → 보통 두 가지를 혼용
+  ExceptionFilter로 공통 처리 + 특수한 경우만 try/catch
+```
+
+## Prisma 에러 코드
+
+|코드|의미|보통 던지는 응답|
+|---|---|---|
+|`P2002`|Unique 제약 위반 (중복)|`409 Conflict`|
+|`P2003`|FK 제약 위반|`400 Bad Request`|
+|`P2025`|대상 레코드 없음|`404 Not Found`|
+
+
+```typescript
+// exception.code와 meta 활용
+if (exception.code === 'P2002') {
+  // exception.meta.target → ['email'] 처럼 어떤 컬럼이 충돌인지
+  const field = (exception.meta?.target as string[])?.[0];
+  return res.status(409).json({
+    statusCode: 409,
+    message: `${field ?? '값'}이(가) 이미 사용 중입니다.`,
+  });
+}
+```
 ---
 
 # TypeORM ↔ Prisma 메서드 대조

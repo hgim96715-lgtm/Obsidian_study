@@ -14,14 +14,15 @@ tags:
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_JwtGuard]]"
+  - "[[NestJS_Controller]]"
+  - "[[NestJS_Service_Provider]]"
 ---
 # HTTP_Concept — HTTP 요청 · 응답 · 헤더
 
 >[!info]
 >HTTP = 클라이언트와 서버가 데이터를 주고받는 규약.
-> 요청(Request)과 응답(Response)이 한 쌍. 
-> 헤더(Header)는 "본문 외에 전달하는 메타 정보" — 인증 토큰·콘텐츠 타입·쿠키 등. 
-> NestJS에서 헤더 접근 → `@Req()` 또는 `@Headers()`, 인증 헤더 → [[NestJS_JwtGuard]]
+> 요청(Request)과 응답(Response)이 한 쌍. 헤더(Header)는 "본문 외에 전달하는 메타 정보" — 인증 토큰·콘텐츠 타입·쿠키 등.
+>  REST CRUD 메서드 매핑 → [[NestJS_Controller]], 헤더 접근 → `@Req()` 또는 `@Headers()`, 인증 헤더 → [[NestJS_JwtGuard]]
 
 ---
 
@@ -87,6 +88,70 @@ GET vs POST:
 PATCH vs PUT:
   PATCH → 변경할 필드만 보냄 (부분 수정)
   PUT   → 전체 데이터를 보냄 (전체 교체) — 거의 안 씀
+```
+
+## REST API CRUD — HTTP ↔ 경로 ↔ 서비스 메서드 매핑 ⭐️⭐️⭐️⭐️
+
+```txt
+REST API는 HTTP 메서드 + 경로로 "무엇을 어떻게 할지"를 표현하는 관례
+
+리소스 예시: users (/users)
+```
+
+|HTTP|경로|의미|서비스 메서드|
+|---|---|---|---|
+|`POST`|`/users`|새 사용자 생성|`create`|
+|`GET`|`/users`|전체 목록 조회|`findAll`|
+|`GET`|`/users/:id`|특정 사용자 조회|`findOne`|
+|`PATCH`|`/users/:id`|특정 사용자 수정|`update`|
+|`DELETE`|`/users/:id`|특정 사용자 삭제|`remove`|
+
+```txt
+:id — 경로 파라미터:
+  /users/abc-123  → id = 'abc-123'
+  /users/456      → id = '456'
+
+NestJS에서는 @Get(), @Post() 등 데코레이터로 매핑
+→ [[NestJS_Controller]]
+```
+
+## curl — HTTP 요청 직접 보내기 ⭐️⭐️⭐️
+
+```txt
+curl = 터미널에서 HTTP 요청을 직접 보내는 도구
+API가 제대로 동작하는지 테스트할 때 사용
+```
+
+```bash
+# POST — 생성
+curl -s -X POST http://localhost:3030/users \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"a@b.com"}'
+
+# GET — 전체 목록
+curl -s http://localhost:3030/users
+
+# GET — 단건 조회
+curl -s http://localhost:3030/users/<uuid>
+
+# PATCH — 수정
+curl -s -X PATCH http://localhost:3030/users/<uuid> \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"b@b.com"}'
+
+# DELETE — 삭제
+curl -s -X DELETE http://localhost:3030/users/<uuid>
+```
+
+```txt
+curl 옵션:
+  -s              → silent (진행 표시 숨김)
+  -X POST         → HTTP 메서드 지정 (기본값은 GET)
+  -H '헤더: 값'   → 헤더 추가 (Content-Type 등)
+  -d '{"key":"value"}' → 요청 Body (JSON 문자열)
+
+GET은 -X 없이 URL만 써도 됨:
+  curl -s http://localhost:3030/users   ← GET 요청
 ```
 
 ---
