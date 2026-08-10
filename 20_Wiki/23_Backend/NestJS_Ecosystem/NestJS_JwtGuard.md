@@ -13,6 +13,7 @@ related:
   - "[[Auth_Concept]]"
   - "[[HTTP_Concept]]"
   - "[[NestJS_Auth]]"
+  - "[[TS_ImportType]]"
 ---
 # NestJS_JwtGuard — JWT Guard · 인증 파이프라인
 
@@ -272,9 +273,8 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractBearerToken(request: any): string | undefined {
-    const authHeader = request.headers?.authorization ?? '';
-    const [type, token] = authHeader.split(' ');
-    return type === 'Bearer' ? token : undefined;
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' && token ? token : undefined;
     // "Bearer eyJ..." → type='Bearer', token='eyJ...'
     // type이 Bearer가 아니면 undefined
   }

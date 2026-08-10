@@ -9,6 +9,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[TS_TsConfig]]"
+  - "[[NestJS_JwtGuard]]"
 ---
 # TS_ImportType — import · export · 경로 별칭
 
@@ -17,6 +18,7 @@ related:
 > 값(함수·클래스)과 타입을 구분해서 import하면 번들 크기가 줄고 순환 참조 문제도 예방된다. 
 > `@/` 경로 별칭은 tsconfig.json의 `paths`로 설정.
 >  Barrel(index.ts) = 여러 모듈을 하나로 묶어 export.
+>  `express.d.ts`의 `declare global`·`declare module`로 라이브러리 타입을 프로젝트 안에서 확장한다.
 
 ---
 
@@ -275,6 +277,151 @@ declare module 'some-library' {
   → 라이브러리의 .d.ts를 담은 패키지
 ```
 
+---
+# 타입 선언 병합 — express.d.ts 패턴 ⭐️⭐️⭐️⭐️
+
+## 왜 필요한가
+
+```txt
+라이브러리(Express, express-session 등)의 타입이
+내 코드의 실제 동작과 맞지 않을 때 타입을 "확장"하는 방법
+
+예시:
+  request.user → Express는 타입을 Express.User로 정의
+  JwtAuthGuard가 request.user = { sub: userId } 로 저장
+  → request.user.sub를 쓰면 TypeScript 에러
+  → Express.User에 sub가 없기 때문
+
+해결:
+  express.d.ts 파일에서 Express.User 타입에 sub를 추가
+  → 이후 request.user.sub가 타입 에러 없이 작동
+```
+
+## declare global — 전역 타입 확장
+
+```typescript
+// src/types/express.d.ts
+import type { JwtPayload } from '../auth/jwt-payload';
+
+declare global {
+  namespace Express {
+    interface User extends JwtPayload {}
+    //              ↑ JwtPayload = { sub: string }
+    //                Express.User에 sub 필드가 추가됨
+  }
+}
+
+export {};  // ← 이게 없으면 작동 안 함 (아래 설명)
+```
+
+```typescript
+// auth/jwt-payload.ts
+export type JwtPayload {
+  sub: string;  // userId
+}
+```
+
+```txt
+declare global:
+  TypeScript에서 전역 스코프에 타입을 선언하는 방법
+  이 파일 안에서만이 아니라 프로젝트 전체에 적용됨
+
+namespace Express { interface User extends JwtPayload }:
+  Express.User라는 기존 타입에 JwtPayload를 병합
+  "선언 병합(Declaration Merging)" — 같은 이름의 interface는 합쳐짐
+  → Express.User가 { sub: string }을 갖게 됨
+  → request.user.sub 타입 에러 없음
+
+Passport / @types/express 관례:
+  request.user의 타입이 Express.User로 정해져 있음
+  JwtAuthGuard에서 request.user = payload 저장 시
+  payload 타입과 Express.User가 일치해야 에러 없음
+```
+
+## export {} — 왜 필요한가 ⭐️⭐️⭐️
+
+```typescript
+// export {}가 없으면
+declare global { ... }   // ← 이 경우 파일이 "ambient 모듈"
+                         // → declare global이 작동하지 않을 수 있음
+
+// export {}가 있으면
+export {};               // 이 파일이 "모듈"로 인식됨
+declare global { ... }   // → 모듈 안에서 declare global이 정상 작동
+```
+
+```txt
+TypeScript 파일 구분:
+  모듈:          import 또는 export가 하나라도 있는 파일
+  스크립트(전역): import/export가 전혀 없는 파일
+
+declare global은 모듈 안에서 써야 의도대로 작동
+export {}는 실제 export하는 것 없이 파일을 모듈로 만드는 트릭
+```
+
+## declare module — 서드파티 모듈 타입 확장
+
+```typescript
+// src/types/express.d.ts
+import type { JwtPayload }   from '../auth/jwt-payload';
+import type { OAuthProfile } from '../auth/oauth-profile';
+import type { Session }      from 'express-session';
+
+// express-session 모듈의 SessionData 타입 확장
+declare module 'express-session' {
+  interface SessionData {
+    oauthNext?: string;   // OAuth 완료 후 돌아갈 경로 저장용
+  }
+}
+
+// Express 전역 타입 확장
+declare global {
+  namespace Express {
+    interface User extends JwtPayload {}
+    interface Request {
+      session: Session;   // session 타입 명시
+    }
+  }
+}
+
+export {};
+```
+
+```txt
+declare module '모듈이름':
+  특정 라이브러리의 타입을 프로젝트 안에서만 확장
+  해당 모듈의 타입 파일을 직접 수정하는 게 아님 (npm 업데이트로 날아가니까)
+
+express-session의 SessionData에 oauthNext 추가:
+  기본 SessionData에는 oauthNext가 없음
+  declare module로 추가하면 → req.session.oauthNext 타입 에러 없음
+
+declare global vs declare module:
+  declare global   → 전역 네임스페이스(Express.User 등) 확장
+  declare module   → 특정 라이브러리의 타입 확장
+```
+
+## 파일 위치와 tsconfig 연결
+
+```typescript
+// src/types/express.d.ts 위치
+```
+
+```json
+// tsconfig.json — typeRoots 또는 include로 인식시킴
+{
+  "compilerOptions": {
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+  }
+}
+// 또는 include에 types 폴더가 포함되면 자동 인식
+// "include": ["src/**/*"]  ← src/types/*.d.ts 포함됨
+```
+
+```txt
+.d.ts 파일이 tsconfig include 범위 안에 있으면 자동으로 적용
+별도 import 없이도 프로젝트 전체에서 타입 확장이 반영됨
+```
 ---
 
 # 자주 쓰는 패턴

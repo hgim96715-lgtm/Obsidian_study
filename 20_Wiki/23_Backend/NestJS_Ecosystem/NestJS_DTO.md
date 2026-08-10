@@ -10,6 +10,7 @@ related:
   - "[[NestJS_Swagger]]"
   - "[[NestJS_Pipe]]"
   - "[[NextJS_Types]]"
+  - "[[TS_TsConfig]]"
 ---
 # NestJS_DTO — Data Transfer Object
 
@@ -127,6 +128,12 @@ DTO는 일반 클래스지만 두 가지를 결합:
   class 자체 (interface 아님):
     ValidationPipe가 런타임에 클래스를 보고 검증을 실행
     interface는 런타임에 사라지기 때문에 작동 안 함
+
+email: string — ! 없이도 되는 이유:
+  tsconfig.json에 "strictPropertyInitialization": false 설정
+  → DTO 프로퍼티를 constructor에서 초기화 안 해도 에러 없음
+  → false가 없으면 email!: string 처럼 ! 를 붙여야 함
+  → [[TS_TsConfig]] NestJS tsconfig 섹션 참고
 ```
 
 ---
@@ -519,3 +526,57 @@ enum 배열의 각 요소 검증:
 | Optional 필드인데 검증 실패              | `@IsOptional()` 누락 또는 순서 문제 | `@IsOptional()`을 다른 데코레이터보다 위에 선언                    |
 | whitelist 설정인데 필드가 사라짐           | DTO에 선언 안 된 필드              | DTO에 `@ApiProperty()` + 해당 필드 추가                     |
 | `class-validator` 데코레이터가 작동 안 함  | ValidationPipe 전역 설정 누락     | `main.ts`에 `useGlobalPipes(new ValidationPipe())` 추가 |
+
+---
+# Response DTO — 응답 형태 문서화 ⭐️⭐️⭐️
+
+```typescript
+// auth/dto/auth-response.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+
+// 중첩 타입 먼저 선언
+export class AuthUserDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ example: 'test@example.com' })
+  email: string;
+}
+
+export class AuthResponseDto {
+  @ApiProperty()
+  accessToken: string;
+
+  @ApiProperty({ type: AuthUserDto })  // 중첩 DTO
+  user: AuthUserDto;
+}
+```
+
+```typescript
+// Controller에서 응답 타입 명시
+@ApiCreatedResponse({ type: AuthResponseDto })  // 201
+@Post('register')
+register(@Body() dto: RegisterDto) { ... }
+
+@ApiOkResponse({ type: AuthResponseDto })       // 200
+@Post('login')
+login(@Body() dto: LoginDto) { ... }
+```
+
+
+```txt
+Request DTO vs Response DTO:
+  Request DTO → 입력 검증 (class-validator 데코레이터 필요)
+  Response DTO → 응답 문서화 (@ApiProperty만 있으면 됨)
+  → class-validator 불필요, ValidationPipe와 관계없음
+
+파일 위치:
+  auth/dto/auth-response.dto.ts
+  같은 도메인 dto/ 폴더 안에 위치
+
+Swagger에서 자동으로:
+  @ApiCreatedResponse({ type: AuthResponseDto })
+  → Swagger UI에 응답 Schema가 표시됨
+  → API 사용자가 어떤 값이 오는지 확인 가능
+  자세한 설명 → [[NestJS_Swagger]] @ApiResponse 섹션
+```

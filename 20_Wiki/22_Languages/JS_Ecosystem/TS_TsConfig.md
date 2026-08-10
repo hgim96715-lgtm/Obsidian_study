@@ -2,6 +2,7 @@
 aliases:
   - Monorepo
   - tsconfig.json
+  - "strictPropertyInitialization: false — NestJS DTO"
 tags:
   - TypeScript
 related:
@@ -9,6 +10,7 @@ related:
   - "[[TS_ImportType]]"
   - "[[NestJS_Concept]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_DTO]]"
 ---
 # TS_TsConfig — tsconfig.json 설정
 
@@ -258,6 +260,21 @@ strictNullChecks: true vs strict: false:
     noImplicitAny: false       → any 추론 허용 (DTO 등에서 유연하게)
     strictBindCallApply: false → bind/call/apply 타입 검사 완화
   → NestJS의 데코레이터·DI 패턴과 충돌 없이 타입 안전성 확보
+
+strictPropertyInitialization: false — NestJS DTO 때문에 필수:
+  TypeScript 기본(true)이면 클래스 프로퍼티를 constructor에서 반드시
+  초기화하거나 ! (definite assignment assertion)를 붙여야 함
+
+  NestJS DTO는 class-validator 데코레이터만 붙이고 초기화하지 않음
+  → true이면 모든 DTO 프로퍼티에 ! 를 붙여야 함
+
+  false 없이 (! 필요):           false 설정 (깔끔):
+  email!: string;                 email: string;
+  name!: string;                  name: string;
+
+  class-validator + ValidationPipe가 런타임에 값을 채워주기 때문에
+  TypeScript의 정적 검사에서만 "초기화 안 됨"처럼 보이는 것
+  → false로 설정해서 불필요한 ! 를 없앰
 ```
 
 ```txt

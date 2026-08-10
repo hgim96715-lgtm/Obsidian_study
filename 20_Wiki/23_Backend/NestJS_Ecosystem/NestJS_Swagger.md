@@ -277,6 +277,60 @@ create(@Body() dto: CreatePostDto) { ... }
 @ApiNotFoundResponse()                      // 404
 ```
 
+## Response DTO — 응답 형태 명시 ⭐️⭐️⭐️⭐️
+
+```typescript
+// auth/dto/auth-response.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+
+export class AuthUserDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ example: 'test@example.com' })
+  email: string;
+}
+
+export class AuthResponseDto {
+  @ApiProperty()
+  accessToken: string;
+
+  @ApiProperty({ type: AuthUserDto })   // 중첩 DTO는 type 옵션으로
+  user: AuthUserDto;
+}
+```
+
+```typescript
+// Controller에서 사용
+@ApiCreatedResponse({ type: AuthResponseDto })  // 201 응답 타입 명시
+@Post('register')
+register(@Body() dto: RegisterDto) { ... }
+
+@ApiOkResponse({ type: AuthResponseDto })       // 200 응답 타입 명시
+@Post('login')
+login(@Body() dto: LoginDto) { ... }
+```
+
+```txt
+Response DTO를 만드는 이유:
+  Swagger UI에서 응답 형태를 Schema로 보여줌
+  → API 사용자가 어떤 값이 오는지 문서로 파악 가능
+
+  Request DTO (class-validator 붙음) vs Response DTO:
+  Request DTO → 입력 검증용 (ValidationPipe가 사용)
+  Response DTO → 응답 문서화용 (@ApiProperty만 붙이면 됨)
+  → class-validator 데코레이터 불필요
+
+파일 위치 관례:
+  auth/dto/auth-response.dto.ts
+  posts/dto/post-response.dto.ts
+  같은 도메인 dto/ 폴더 안에
+
+@ApiProperty({ type: AuthUserDto }):
+  중첩 DTO를 Swagger에 표시할 때 type 옵션으로 클래스를 전달
+  배열이면 type: [AuthUserDto] 또는 isArray: true
+```
+
 ---
 
 # @ApiBearerAuth — JWT 인증 표시 ⭐️⭐️⭐️⭐️
