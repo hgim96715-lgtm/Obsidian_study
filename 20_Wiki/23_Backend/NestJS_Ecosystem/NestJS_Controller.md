@@ -8,6 +8,10 @@ aliases:
   - Query
   - "@HttpCode"
   - HttpStatus
+  - "@Req"
+  - "@Res"
+  - Req
+  - Res
 tags:
   - NestJS
 related:
@@ -21,10 +25,10 @@ related:
 # NestJS_Controller — 컨트롤러
 
 >[!info]
->컨트롤러 = HTTP 요청을 받아서 응답을 돌려주는 클래스.
-> URL 경로와 HTTP 메서드를 핸들러 함수에 연결한다. 
-> 비즈니스 로직은 Service에 위임하고, 컨트롤러는 "요청 받기 → 서비스 호출 → 응답 반환" 세 가지만 한다.
->  DTO → [[NestJS_DTO]], Pipe → [[NestJS_Pipe]], Guard/인증 → [[NestJS_JwtGuard]]
+>컨트롤러 = HTTP 요청을 받아서 응답을 돌려주는 클래스. 
+>URL 경로와 HTTP 메서드를 핸들러 함수에 연결한다. 
+>비즈니스 로직은 Service에 위임하고, 컨트롤러는 "요청 받기 → 서비스 호출 → 응답 반환" 세 가지만 한다.
+> DTO → [[NestJS_DTO]], Pipe → [[NestJS_Pipe]], Guard/인증 → [[NestJS_JwtGuard]]
 
 ---
 
@@ -242,17 +246,17 @@ async remove() {
 
 ## 자주 쓰는 상태 코드 ⭐️⭐️⭐️⭐️
 
-| 상황                 | 코드  | HttpStatus                         |
-| ------------------ | --- | ---------------------------------- |
-| 조회 성공              | 200 | `HttpStatus.OK`                    |
-| 생성 성공              | 201 | `HttpStatus.CREATED`               |
-| 삭제·처리 완료 (body 없음) | 204 | `HttpStatus.NO_CONTENT`            |
-| 요청 형식 오류           | 400 | `HttpStatus.BAD_REQUEST`           |
-| 인증 안 됨 (로그인 필요)    | 401 | `HttpStatus.UNAUTHORIZED`          |
-| 권한 없음 (로그인 했지만 거부) | 403 | `HttpStatus.FORBIDDEN`             |
-| 리소스 없음             | 404 | `HttpStatus.NOT_FOUND`             |
-| 중복·충돌              | 409 | `HttpStatus.CONFLICT`              |
-| 서버 에러              | 500 | `HttpStatus.INTERNAL_SERVER_ERROR` |
+|상황|코드|HttpStatus|
+|---|---|---|
+|조회 성공|200|`HttpStatus.OK`|
+|생성 성공|201|`HttpStatus.CREATED`|
+|삭제·처리 완료 (body 없음)|204|`HttpStatus.NO_CONTENT`|
+|요청 형식 오류|400|`HttpStatus.BAD_REQUEST`|
+|인증 안 됨 (로그인 필요)|401|`HttpStatus.UNAUTHORIZED`|
+|권한 없음 (로그인 했지만 거부)|403|`HttpStatus.FORBIDDEN`|
+|리소스 없음|404|`HttpStatus.NOT_FOUND`|
+|중복·충돌|409|`HttpStatus.CONFLICT`|
+|서버 에러|500|`HttpStatus.INTERNAL_SERVER_ERROR`|
 
 ```txt
 기본값:
@@ -310,6 +314,55 @@ getVersion() {
 }
 ```
 
+## @Req() — Express Request 직접 접근 ⭐️⭐️⭐️
+
+```typescript
+import { Req } from '@nestjs/common';
+import type { Request } from 'express';  // ← 반드시 express에서
+//            ↑ import type 권장 — 런타임 번들에서 제거됨
+
+@Get()
+findAll(@Req() req: Request) {
+  console.log(req.headers.authorization);  // 헤더
+  console.log(req.cookies.refreshToken);   // 쿠키
+  console.log(req.user);                   // Guard가 저장한 payload
+  console.log(req.ip);                     // 클라이언트 IP
+}
+```
+
+```txt
+⚠️ Request import 주의:
+  import type { Request } from 'express'   ← 올바름
+  import type { Request } from 'node-fetch' or 글로벌 Fetch Request ← 잘못됨
+
+  글로벌 Fetch API의 Request를 쓰면:
+  req.user, req.cookies 같은 Express 전용 속성이 타입에 없음
+  → TypeScript 에러 발생
+  반드시 'express'에서 import해야 함
+
+@Req()가 필요한 경우:
+  cookies — req.cookies로 직접 읽을 때
+  ip — req.ip, req.headers['x-forwarded-for']
+  headers — 커스텀 헤더를 읽을 때
+  session — req.session으로 세션 접근할 때
+
+보통은 @Req() 없이 전용 데코레이터로 해결:
+  req.user.sub   → @UserId() / @OptionalUserId()
+  req.body       → @Body()
+  req.params.id  → @Param('id')
+  req.query.page → @Query('page')
+  → @Req()는 전용 데코레이터가 없는 것을 꺼낼 때만
+
+@Req() vs @Headers():
+  @Req() req: Request → req.headers 전체 접근
+  @Headers('authorization') auth: string → 특정 헤더 하나만
+
+실전 사용 예:
+  쿠키에서 refreshToken 읽기 → req.cookies.refreshToken
+  클라이언트 IP 로깅 → req.ip
+  세션에서 OAuth 상태 읽기 → req.session.oauthNext
+```
+
 ## @Res() — Express Response 직접 (잘 안 씀) ⭐️⭐️
 
 ```typescript
@@ -324,6 +377,10 @@ findAll(@Res() res: Response) {
 ```
 
 ```txt
+@Req() vs @Res() 차이:
+  @Req() → 요청(Request)을 읽기만 함 → NestJS 동작에 영향 없음
+  @Res() → 응답(Response)을 직접 제어 → NestJS 자동 응답 처리가 꺼짐
+
 @Res()를 직접 쓰면:
   NestJS의 자동 응답 처리가 비활성화됨
   res.send() 또는 res.json()을 직접 호출해야 함
