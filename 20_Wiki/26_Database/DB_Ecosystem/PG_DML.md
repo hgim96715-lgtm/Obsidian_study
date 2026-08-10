@@ -249,8 +249,71 @@ EXCLUDED:
 
 # UPDATE ⭐️⭐️⭐️⭐️
 
+## 기본 구조
+
+
 ```sql
--- 기본 업데이트
+UPDATE 테이블명
+SET    컬럼 = 값
+WHERE  조건;
+```
+
+```txt
+UPDATE 다음에 오는 것:
+  테이블명 — 어느 테이블의 행을 수정할지
+  (FROM이나 JOIN이 아닌, 수정 대상 테이블)
+
+SET 다음에 오는 것:
+  컬럼 = 새값  형태로 변경할 컬럼과 값 나열
+  여러 컬럼은 쉼표로 구분
+
+WHERE 다음에 오는 것:
+  어떤 행을 수정할지 조건
+  없으면 모든 행이 수정됨 → 반드시 확인
+```
+
+## 테이블명 따옴표 — "users" vs users
+
+```sql
+-- Prisma의 @@map("users")로 생성된 테이블
+UPDATE "users"
+SET role = 'admin'
+WHERE email = 'test@example.com';
+
+-- 소문자 단순 이름이면 따옴표 없어도 됨
+UPDATE posts
+SET view_count = view_count + 1
+WHERE id = 'uuid';
+```
+
+```txt
+PostgreSQL 테이블명 따옴표 규칙:
+  따옴표 없음 → PostgreSQL이 자동으로 소문자로 변환
+    users, USERS, Users 전부 → users로 해석
+
+  따옴표 있음("") → 대소문자 그대로 유지
+    "Users" → Users (대문자 U)
+    "users" → users (소문자)
+
+Prisma의 @@map("users")로 만든 테이블:
+  테이블명이 소문자 "users"로 생성됨
+  → UPDATE "users" 또는 UPDATE users 둘 다 작동
+
+Prisma가 @@map 없이 model User로 만든 테이블:
+  테이블명이 "User" (대문자 U)로 생성됨
+  → UPDATE "User" (따옴표 필요)
+  → UPDATE User → user로 해석 → 테이블 없음 에러
+```
+
+## 예시들
+
+```sql
+-- 역할 변경 (DataGrip이나 터미널에서 직접 실행)
+UPDATE "users"
+SET role = 'admin'
+WHERE email = 'test@example.com';
+
+-- 단일 컬럼 수정
 UPDATE posts
 SET view_count = view_count + 1
 WHERE id = 'uuid';
@@ -268,7 +331,7 @@ SET view_count = view_count + 1
 WHERE id = 'uuid'
 RETURNING view_count;  -- 업데이트된 값 즉시 반환
 
--- 다른 테이블 값으로 업데이트 (FROM)
+-- 다른 테이블 값으로 업데이트
 UPDATE posts
 SET author_name = u.nickname
 FROM users u
@@ -277,10 +340,10 @@ WHERE posts.author_id = u.id;
 
 ```txt
 ⚠️ WHERE 없이 UPDATE하면 전체 행이 변경됨
-  UPDATE posts SET status = 'deleted'   ← WHERE 없음 → 모든 게시글이 삭제됨!
+  UPDATE "users" SET role = 'admin'   ← WHERE 없음 → 모든 유저가 admin!
   → WHERE를 항상 확인하고 실행
+  → DataGrip에서 실행 전 눈으로 한 번 더 확인
 ```
-
 ---
 
 # DELETE ⭐️⭐️⭐️⭐️
