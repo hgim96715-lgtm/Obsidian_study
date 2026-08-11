@@ -9,13 +9,16 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NextJS_AuthState]]"
 ---
 # React_Context_Provider — Context API
 
-> [!info]
->  Context = "이 트리 안 어디서든 꺼내 쓸 수 있는 공유 상자".
->   props를 중간 컴포넌트들을 거쳐 전달하지 않아도 된다. 
->   로그인 유저, 테마, 친구 목록처럼 **여러 컴포넌트가 공통으로 필요한 데이터**에 사용.
+>[!info]
+>Context = "이 트리 안 어디서든 꺼내 쓸 수 있는 공유 상자". 
+>props를 중간 컴포넌트들을 거쳐 전달하지 않아도 된다. 
+>로그인 유저, 테마, 친구 목록처럼 **여러 컴포넌트가 공통으로 필요한 데이터**에 사용.
+> Context 안의 함수는 `useCallback`, value 객체는 `useMemo`로 안정화해야 불필요한 리렌더·useEffect 루프를 막는다. 
+> 실전 AuthProvider → [[NextJS_AuthState]]
 
 ---
 
@@ -72,10 +75,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 // ② Provider 컴포넌트 — state를 들고 있고, value로 내려줌
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const logout = () => setUser(null);
+
+  // ⚠️ useCallback 필요 — 아래 설명 참고
+  const logout = useCallback(() => setUser(null), []);
+
+  const value = useMemo(
+    () => ({ user, logout }),
+    [user, logout],
+  );
 
   return (
-    <AuthContext.Provider value={{ user, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -96,8 +106,21 @@ export function useAuth() {
   null로 두면 → if (!ctx) throw 로 즉시 잡을 수 있음
 
 왜 커스텀 훅으로 감싸는가:
-  useContext(AuthContext) 를 직접 쓰면 null 체크를 매번 해야 함
+  useContext(AuthContext)를 직접 쓰면 null 체크를 매번 해야 함
   커스텀 훅 하나에서 null 체크를 끝내면 사용처에서는 그냥 useAuth() 로 끝남
+
+⚠️ Context 안의 함수에는 useCallback이 필요한 이유:
+  const logout = () => setUser(null);  ← useCallback 없음
+  → AuthProvider가 렌더링될 때마다 logout이 새 함수로 생성
+  → useMemo([user, logout])의 logout deps가 매번 바뀜
+  → value 객체가 매번 새로 생성 → 구독 컴포넌트 전부 리렌더
+
+  useEffect([logout])을 쓰는 자식이 있다면 더 심각:
+  → logout이 새 함수 → effect 재실행 → 루프 발생 가능
+
+  useCallback(() => setUser(null), []):
+  deps []  = 절대 바뀌지 않는 함수 참조 보장
+  setUser  = useState setter라 이미 stable → deps 불필요
 ```
 
 ---
@@ -289,8 +312,18 @@ useMemo 없이도 동작은 하지만:
 
 # 자주 만나는 에러
 
-| 증상                       | 원인                           | 해결                               |
-| ------------------------ | ---------------------------- | -------------------------------- |
-| `useAuth()` 가 에러를 던짐     | Provider 바깥에서 호출             | 해당 컴포넌트가 Provider 안에 있는지 확인      |
-| 값 변경이 화면에 반영 안 됨         | Provider value가 state 기반이 아님 | value를 useState로 관리하고 있는지 확인     |
-| 페이지 이동해도 Context 초기화 안 됨 | Provider가 layout에 있어서 유지됨    | 의도적이면 OK, 아니면 Provider를 page로 이동 |
+|증상|원인|해결|
+|---|---|---|
+|`useAuth()` 가 에러를 던짐|Provider 바깥에서 호출|해당 컴포넌트가 Provider 안에 있는지 확인|
+|값 변경이 화면에 반영 안 됨|Provider value가 state 기반이 아님|value를 useState로 관리하고 있는지 확인|
+|페이지 이동해도 Context 초기화 안 됨|Provider가 layout에 있어서 유지됨|의도적이면 OK, 아니면 Provider를 page로 이동|
+|Context 안의 함수가 useEffect 루프를 만듦|함수에 useCallback 없음|함수를 `useCallback`으로 감싸기|
+
+---
+
+# 실전 — 인증 AuthProvider
+
+```txt
+AuthProvider 전체 구현 (refreshUser, clearSession, isLoading 포함):
+  → [[NextJS_AuthState]]
+```

@@ -1,265 +1,279 @@
 ---
-aliases: [역직렬화, 직렬화, JSON, pasrse, stringify]
-tags: [JavaScript]
+aliases:
+  - 역직렬화
+  - 직렬화
+  - JSON
+  - pasrse
+  - stringify
+tags:
+  - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Array_Methods]]"
-  - "[[JS_Primitive_Methods]]"
-  - "[[JS_WebStorage]]"
-  - "[[TS_Type_Guards]]"
+  - "[[NextJS_API_Client]]"
 ---
-# JS_JSON — JSON 직렬화 & 역직렬화
+# JS_JSON — JSON
 
-> [!info] 
-> JSON = 데이터를 문자열로 표현하는 포맷. 
-> `JSON.stringify`로 값 → 문자열, 
-> `JSON.parse`로 문자열 → 값. 저장·전송에 쓸 수 있는 건 문자열뿐이라서 객체·배열·Set 등은 반드시 직렬화가 필요하다.
+>[!info]
+>JSON = 데이터를 텍스트로 표현하는 형식. 
+>`JSON.stringify(obj)` = 객체 → 문자열, `JSON.parse(str)` = 문자열 → 객체. 
+>fetch API body 직렬화, localStorage 저장, 깊은 복사에 사용.
+> `undefined`·함수·`Date`는 stringify 시 주의 필요.
 
 ---
-# 흐름도
 
-```mermaid-beautiful
-flowchart TB
-  VAL["JS 값<br/>객체 · 배열 · 숫자…"] -->|JSON.stringify| STR["JSON 문자열"]
-  STR -->|JSON.parse| VAL2["JS 값"]
-
-  STR --> STORE["저장 · 전송"]
-  STORE --> LS["localStorage / sessionStorage"]
-  STORE --> NET["API body · 파일"]
-
-  LS -->|getItem| RAW["string | null"]
-  RAW -->|JSON.parse<br/>raw ?? 기본값| PARSED["as unknown"]
-  PARSED --> GUARD["타입 가드<br/>Array.isArray · typeof"]
-  GUARD --> SAFE["안전한 값"]
-
-  subgraph LIMIT["직렬화 한계"]
-    direction TB
-    L1["undefined · 함수 · Symbol → 제외/null"]
-    L2["Set · Map → {} · 변환 후 stringify"]
-    L3["잘못된 문자열 → SyntaxError · try/catch"]
-  end
-
-  VAL -.-> LIMIT
-  RAW -.-> L3
-```
+# JSON이란 ⭐️⭐️⭐️⭐️
 
 ```txt
-한 줄 왕복:
-  값 ──stringify──▶ 문자열 ──저장/전송──▶ 문자열 ──parse──▶ 값
+JSON (JavaScript Object Notation):
+  데이터를 텍스트(문자열)로 표현하는 형식
+  언어에 상관없이 어디서나 읽고 쓸 수 있는 표준 데이터 교환 형식
 
-왜 필요하나:
-  storage · HTTP는 문자열만 받음
-  → 객체/배열/Set을 그대로 못 넣음 → stringify 필수
-  → 꺼낸 뒤 parse + (권장) as unknown + 가드
+  서버 ↔ 클라이언트가 데이터를 주고받을 때 거의 항상 JSON 사용
 
-실전 예 (친구 요청 seen ids):
-  sessionStorage.setItem(key, JSON.stringify([...ids]))
-  JSON.parse(raw) as unknown → Array.isArray → string[] 필터
-  → [[JS_WebStorage]]
+  JavaScript 객체와 비슷하게 생겼지만 다름:
+  JavaScript 객체 = 코드, 메모리에 존재
+  JSON 문자열    = 텍스트, 파일·네트워크로 전송 가능
 ```
 
----
-
-# JSON.stringify — 값 → 문자열 ⭐️⭐️⭐️⭐️
-
-```typescript
-JSON.stringify({ name: '홍길동', age: 30 })
-// → '{"name":"홍길동","age":30}'
-
-JSON.stringify([1, 2, 3])
-// → '[1,2,3]'
-
-// 들여쓰기 — 읽기 좋게 (디버깅, 파일 저장 시)
-JSON.stringify({ name: '홍길동' }, null, 2)
-// → '{\n  "name": "홍길동"\n}'
-```
-
-## 직렬화되지 않는 값 ⭐️⭐️⭐️
-
-```typescript
-JSON.stringify(undefined)           // undefined (문자열 아님 — 결과가 없음)
-JSON.stringify({ a: undefined })    // '{}'       (undefined 속성은 제외)
-JSON.stringify([undefined])         // '[null]'   (배열 안 undefined는 null로)
-JSON.stringify(() => {})            // undefined  (함수 제외)
-JSON.stringify(Symbol())            // undefined  (Symbol 제외)
-JSON.stringify(new Set(['a']))      // '{}'       (Set — 내부 슬롯이라 못 읽음)
-JSON.stringify(new Map([['a', 1]])) // '{}'       (Map — 마찬가지)
-JSON.stringify(new Date())          // '"2024-01-01T00:00:00.000Z"' (ISO 문자열로)
-JSON.stringify(Infinity)            // 'null'
-JSON.stringify(NaN)                 // 'null'
-```
-
-```txt
-직렬화 안 되는 것들의 공통점:
-  JSON은 JavaScript 전용이 아닌 범용 포맷
-  → 모든 언어에서 표현 가능한 값만: 문자열, 숫자, boolean, null, 배열, 객체
-
-  undefined, 함수, Symbol → JSON에 없는 개념 → 제외되거나 null로 변환
-  Set, Map → 내부 슬롯에 데이터 → JSON이 읽지 못함
-
-Set / Map 저장:
-  [...set]      배열로 변환 후 JSON.stringify
-  Object.fromEntries(map)  객체로 변환 후 JSON.stringify
-  → 상세 → [[JS_WebStorage]]
-```
-
-## replacer — 직렬화 제어 ⭐️
-
-```typescript
-// 특정 필드만 포함
-JSON.stringify(user, ['name', 'email'])
-// → '{"name":"홍길동","email":"hong@example.com"}'
-
-// 함수로 세밀하게 제어
-JSON.stringify(data, (key, value) => {
-  if (key === 'password') return undefined;  // 비밀번호 제외
-  return value;
-});
-```
-
----
-
-# JSON.parse — 문자열 → 값 ⭐️⭐️⭐️⭐️
-
-```typescript
-JSON.parse('{"name":"홍길동","age":30}')
-// → { name: '홍길동', age: 30 }
-
-JSON.parse('[1,2,3]')
-// → [1, 2, 3]
-
-// ⚠️ 유효하지 않은 JSON → SyntaxError
-JSON.parse('undefined')  // SyntaxError
-JSON.parse('{name:홍}')  // SyntaxError (키는 반드시 큰따옴표)
-JSON.parse("'hello'")    // SyntaxError (작은따옴표 안 됨)
-```
-
-```txt
-JSON 문법 규칙 (JS 객체 리터럴과 다른 점):
-  키는 반드시 큰따옴표   { "name": "홍" }   ← 작은따옴표 안 됨
-  trailing comma 안 됨  { "a": 1, }        ← 마지막 쉼표 에러
-  undefined 없음        null만 허용
-  주석 안 됨            // 주석 → 에러
-```
-
-## getItem과 같이 쓸 때 — ?? 기본값 ⭐️⭐️
-
-```typescript
-// getItem은 없으면 null 반환
-// JSON.parse(null)은 null을 반환하지만 타입이 any라 위험
-const raw = localStorage.getItem('user');
-
-// ?? 'null'로 방어 — JSON.parse('null')은 null을 정상 반환
-const user = JSON.parse(raw ?? 'null') as User | null;
-
-// 배열 기본값
-const list = JSON.parse(localStorage.getItem('items') ?? '[]') as Item[];
-```
-
----
-
-# JSON.parse — unknown 타입 안전 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// JSON.parse 반환 타입은 any — 검증 없이 쓰면 런타임 에러 위험
-const raw    = localStorage.getItem('data');
-const parsed = JSON.parse(raw ?? 'null') as unknown;  // ← unknown으로 받기
-
-// 이후 타입 가드로 좁히기
-if (typeof parsed === 'string') { /* string */ }
-if (Array.isArray(parsed)) { /* 배열 */ }
-if (parsed !== null && typeof parsed === 'object') { /* 객체 */ }
-```
-
-```typescript
-// 실전 — 배열 + 요소 타입까지 검증
-function parseStringArray(raw: string | null): string[] {
-  try {
-    const parsed = JSON.parse(raw ?? '[]') as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x): x is string => typeof x === 'string');
-    //            ↑ 타입 서술어 — true면 x가 string임을 TS에 알림
-    //            → filter 결과가 string[]로 확정
-    //            → [[TS_Type_Guards]] / [[JS_Array_Methods]] 참고
-  } catch {
-    return [];
+```json
+// JSON 형태
+{
+  "id": 1,
+  "email": "user@example.com",
+  "active": true,
+  "tags": ["admin", "user"],
+  "profile": {
+    "name": "홍길동"
   }
 }
 ```
 
 ```txt
-as unknown이 as any보다 나은 이유:
-  as any  → 이후 모든 접근이 타입 검사 없이 통과 (위험)
-  as unknown → 타입 가드로 좁히기 전까지 아무것도 못 씀 (안전)
-
-try-catch가 필요한 이유:
-  JSON.parse는 잘못된 JSON에서 SyntaxError 던짐
-  외부에서 저장된 값이 유효한 JSON이라는 보장 없음
-  → catch에서 기본값 반환이 항상 안전
+JSON 규칙 (JavaScript 객체와 다른 점):
+  키는 반드시 큰따옴표("") — 작은따옴표 불가
+  문자열 값도 큰따옴표만
+  undefined 값 없음 (null은 있음)
+  함수 없음
+  주석 없음
+  마지막 항목 뒤에 쉼표 없음 (trailing comma 금지)
 ```
 
 ---
 
-# reviver — 파싱 제어 ⭐️
+# 언제 JSON이 필요한가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 날짜 문자열을 Date 객체로 자동 변환
-const data = JSON.parse(jsonString, (key, value) => {
-  if (key === 'createdAt' && typeof value === 'string') {
-    return new Date(value);
+// 1. fetch API body — 객체를 서버로 보낼 때
+fetch('/api/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password }),
+  //   ↑ 객체 → 문자열 변환 필수 (body는 문자열이어야 함)
+});
+
+// 2. localStorage — 브라우저 저장소는 문자열만 저장 가능
+localStorage.setItem('user', JSON.stringify({ id: 1, name: '홍길동' }));
+const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+
+// 3. 깊은 복사 (간단한 경우)
+const original = { a: { b: 1 } };
+const copy = JSON.parse(JSON.stringify(original));
+copy.a.b = 2;
+original.a.b;  // 1 — 영향 없음
+
+// 4. API 응답 → 화면에 표시 (자동으로 처리됨)
+const data = await res.json();
+// res.json() 내부에서 JSON.parse를 호출함
+// 개발자가 직접 JSON.parse를 쓸 필요 없음
+```
+
+---
+
+# JSON.stringify — 객체 → 문자열 ⭐️⭐️⭐️⭐️
+
+```typescript
+const user = { id: 1, name: '홍길동', email: 'hong@example.com' };
+
+JSON.stringify(user)
+// '{"id":1,"name":"홍길동","email":"hong@example.com"}'
+// → 공백 없는 한 줄 문자열
+
+JSON.stringify(user, null, 2)
+// null = replacer (아래 설명), 2 = 들여쓰기 칸 수
+// {
+//   "id": 1,
+//   "name": "홍길동",
+//   "email": "hong@example.com"
+// }
+// → 사람이 읽기 좋은 형태 (디버깅·로그용)
+```
+
+## stringify 시 사라지는 값들 ⭐️⭐️⭐️⭐️
+
+```typescript
+const obj = {
+  name:      '홍길동',
+  age:       undefined,      // ← undefined는 사라짐
+  greet:     () => 'hello',  // ← 함수는 사라짐
+  createdAt: new Date(),     // ← Date는 문자열로 변환
+  score:     NaN,            // ← NaN은 null로 변환
+  inf:       Infinity,       // ← Infinity는 null로 변환
+};
+
+JSON.stringify(obj)
+// '{"name":"홍길동","createdAt":"2024-01-15T00:00:00.000Z","score":null,"inf":null}'
+// age, greet 사라짐
+```
+
+```txt
+⚠️ 주의:
+  undefined → 키 자체가 사라짐
+  함수 → 키 자체가 사라짐
+  Date → ISO 문자열로 변환 ("2024-01-15T00:00:00.000Z")
+         → JSON.parse 해도 Date 객체가 아닌 문자열로 복원됨
+  NaN, Infinity → null로 변환
+```
+
+---
+
+# JSON.parse — 문자열 → 객체 ⭐️⭐️⭐️⭐️
+
+```typescript
+const str = '{"id":1,"name":"홍길동"}';
+
+const user = JSON.parse(str);
+user.id;    // 1 (number)
+user.name;  // '홍길동' (string)
+```
+
+## try/catch 필수 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 에러 처리 없이 쓰면
+JSON.parse('invalid json');  // SyntaxError: Unexpected token i
+
+// ✅ try/catch로 감싸야 함
+function safeParseJson<T>(str: string, fallback: T): T {
+  try {
+    return JSON.parse(str) as T;
+  } catch {
+    return fallback;
   }
+}
+
+// 사용
+const user = safeParseJson(localStorage.getItem('user') ?? '', null);
+//                          ↑ null이면 빈 문자열, parse하면 에러
+//                          → fallback인 null 반환
+```
+
+```txt
+JSON.parse가 throw하는 경우:
+  유효하지 않은 JSON 문자열
+    JSON.parse('undefined')  → 에러
+    JSON.parse('')            → 에러
+    JSON.parse("hello")       → 에러 (따옴표 없는 문자열)
+
+  localStorage.getItem이 null을 반환할 때
+    JSON.parse(null)          → 에러는 아님, null 반환 (예외)
+    JSON.parse(null)          → null (JavaScript가 toString 적용)
+    → 안전하게 ?? '' 또는 ?? '{}' 로 기본값 설정 권장
+```
+
+---
+
+# Date 변환 주의 ⭐️⭐️⭐️
+
+```typescript
+const original = { createdAt: new Date('2024-01-15') };
+
+const str = JSON.stringify(original);
+// '{"createdAt":"2024-01-15T00:00:00.000Z"}'
+
+const parsed = JSON.parse(str);
+parsed.createdAt;             // '2024-01-15T00:00:00.000Z' (문자열!)
+parsed.createdAt instanceof Date;  // false
+
+// Date로 복원하려면 직접 변환 필요
+const date = new Date(parsed.createdAt);
+```
+
+```txt
+API 응답에서도 날짜는 문자열로 옴
+  → TypeScript 타입에 Date 대신 string 사용
+  → 화면에 표시할 때 new Date(str) 또는 Intl로 포맷
+  → [[JS_Intl]], [[JS_Date]] 참고
+```
+
+---
+
+# 깊은 복사 — JSON 방식의 한계 ⭐️⭐️⭐️
+
+```typescript
+// 간단한 경우 작동
+const copy = JSON.parse(JSON.stringify(original));
+
+// ❌ 작동 안 하는 경우
+const withFn = { fn: () => 'hello' };
+JSON.parse(JSON.stringify(withFn));  // {}  함수 사라짐
+
+const withDate = { date: new Date() };
+JSON.parse(JSON.stringify(withDate)).date instanceof Date;  // false (문자열)
+
+const withUndefined = { a: undefined };
+JSON.parse(JSON.stringify(withUndefined));  // {}  undefined 사라짐
+```
+
+```txt
+JSON 깊은 복사 사용 기준:
+  ✅ 순수 데이터 객체 (number, string, boolean, null, array, plain object)
+  ❌ 함수, Date, undefined, Map, Set, Class 인스턴스 포함 시
+
+  완벽한 깊은 복사가 필요하면:
+  structuredClone(obj)  ← 브라우저 내장 (모던 브라우저)
+  lodash cloneDeep()    ← 라이브러리
+```
+
+---
+
+# replacer · reviver — 고급 변환 ⭐️⭐️
+
+```typescript
+// replacer — stringify 시 값 변환
+JSON.stringify(data, (key, value) => {
+  if (typeof value === 'function') return undefined;  // 함수 제외
+  if (value instanceof Date) return value.toISOString();
+  return value;
+});
+
+// 특정 키만 포함
+JSON.stringify(user, ['id', 'name']);  // id, name만 포함
+
+// reviver — parse 시 값 변환
+JSON.parse(str, (key, value) => {
+  if (key === 'createdAt') return new Date(value);  // 날짜 복원
   return value;
 });
 ```
 
-```txt
-JSON.parse(text, reviver):
-  파싱 후 각 키-값 쌍마다 reviver 함수 호출
-  반환값이 실제 값으로 사용됨
-  → 날짜 문자열 → Date 객체 변환에 자주 씀
-```
-
 ---
 
-# 직렬화 가능 타입 한눈에
+# 자주 쓰는 패턴 ⭐️⭐️⭐️
 
-|타입|직렬화 결과|비고|
-|---|---|---|
-|`string`|`"hello"`|큰따옴표로 감싸짐|
-|`number`|`42`|Infinity/NaN → null|
-|`boolean`|`true` / `false`||
-|`null`|`null`||
-|일반 객체|`{"key":"value"}`||
-|배열|`[1,"a",true]`||
-|`undefined`|제외/null|속성이면 제외, 배열이면 null|
-|함수|제외||
-|`Symbol`|제외||
-|`Set`|`{}`|`[...set]` 후 직렬화|
-|`Map`|`{}`|`Object.fromEntries(map)` 후 직렬화|
-|`Date`|`"2024-01-01T00:00:00.000Z"`|ISO 문자열 (역직렬화 시 Date로 변환 안 됨)|
-|`BigInt`|TypeError|지원 안 함|
+```typescript
+// fetch body
+body: JSON.stringify({ email, password })
 
----
+// localStorage 저장/읽기
+localStorage.setItem('data', JSON.stringify(obj));
+JSON.parse(localStorage.getItem('data') ?? '{}')
 
-# 한눈에
+// 디버깅 — 객체를 보기 좋게 출력
+console.log(JSON.stringify(complexObj, null, 2));
 
-```txt
-JSON.stringify(value, replacer?, space?)
-  값 → 문자열
-  undefined/함수/Symbol → 제외 (속성) 또는 null (배열)
-  Set/Map → {} (직렬화 전 배열/객체로 변환 필요)
-  space: 2  들여쓰기 (디버깅, 파일 저장)
+// 간단한 깊은 복사
+const copy = JSON.parse(JSON.stringify(plainObj));
 
-JSON.parse(text, reviver?)
-  문자열 → 값
-  잘못된 JSON → SyntaxError → try-catch 필수
-  반환 타입 any → as unknown으로 받고 타입 가드로 좁히기
-
-자주 쓰는 조합:
-  저장: JSON.stringify([...set])
-  읽기: JSON.parse(raw ?? '[]') as unknown → Array.isArray → filter 타입 서술어
-  날짜 복원: JSON.parse(text, (k, v) => k === 'date' ? new Date(v) : v)
-
-Set/Map 직렬화 → [[JS_WebStorage]]
-타입 서술어 filter 패턴 → [[TS_Type_Guards]] / [[JS_Array_Methods]]
+// API 응답 타입 확인
+console.log(JSON.stringify(res.data, null, 2));
 ```
