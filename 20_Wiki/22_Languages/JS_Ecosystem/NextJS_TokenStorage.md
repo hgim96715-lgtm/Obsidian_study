@@ -8,6 +8,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
+  - "[[JS_WebStorage]]"
 ---
 # NextJS_TokenStorage — 토큰 저장 전략
 
