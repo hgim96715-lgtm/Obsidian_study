@@ -8,7 +8,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_TokenStorage]]"
-  - "[[NextJS_AuthCache]]"
+  - "[[NextJS_AuthState]]"
   - "[[NestJS_CORS]]"
 ---
 

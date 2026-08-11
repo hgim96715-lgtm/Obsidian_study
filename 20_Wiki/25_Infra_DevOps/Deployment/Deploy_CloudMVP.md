@@ -1,6 +1,15 @@
 ---
-aliases: [배포, Deploy, Dockerfile, Neon, Railway, Vercel]
-tags: [Deploy, NextJS, NestJS]
+aliases:
+  - 배포
+  - Deploy
+  - Dockerfile
+  - Neon
+  - Railway
+  - Vercel
+tags:
+  - Deploy
+  - NextJS
+  - NestJS
 related:
   - "[[00_Deployment_HomePage]]"
   - "[[Docker_Dockerfile]]"
@@ -8,7 +17,7 @@ related:
   - "[[NestJS_Migration]]"
   - "[[NestJS_Prisma_Monorepo]]"
   - "[[NestJS_Prisma]]"
-  - "[[NextJS_AuthCache]]"
+  - "[[NextJS_AuthState]]"
   - "[[Web_XSS_CSRF]]"
 ---
 # Deploy_CloudMVP — Vercel + Railway + Neon (pnpm 모노레포)

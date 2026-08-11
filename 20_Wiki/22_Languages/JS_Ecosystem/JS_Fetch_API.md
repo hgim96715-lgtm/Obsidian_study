@@ -8,18 +8,40 @@ tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_API_Client]]"
   - "[[NextJS_API_Mapper]]"
   - "[[NextJS_Types]]"
-  - "[[NestJS_CORS]]"
+  - "[[NextJS_Concept]]"
+  - "[[JS_Fetch_API]]"
+  - "[[NextJS_ServerClient]]"
 ---
 # JS_Fetch_API — fetch
 
-> [!info]
->  fetch = 브라우저 내장 HTTP 요청 API. 
->  `await fetch(url)`이 반환하는 것은 데이터가 아닌 Response 객체 — `await res.json()`으로 한 번 더 파싱해야 함
+> [!info] fetch = 브라우저 내장 HTTP 요청 API.
+>  `await fetch(url)`이 반환하는 것은 데이터가 아닌 Response 객체 — `await res.json()`으로 한 번 더 파싱해야 함. 
 >  HTTP 4xx·5xx는 reject하지 않으므로 `res.ok`를 직접 확인해야 한다. 
->  실제 프로젝트에서는 apiFetch 래퍼를 만들어서 씀 → [[NextJS_API_Client]]
+>  CORS 차단은 fetch가 throw함. 
+>  `AbortController`로 요청 취소. 
+>  실제 프로젝트에서는 래퍼를 만들어서 씀 → [[NextJS_API_Client]]
+
+---
+# 흐름도
+
+```mermaid-beautiful
+flowchart TD
+  A["await fetch(url, options)"] --> B{네트워크·CORS}
+  B -->|끊김·차단| X["throw → catch로 잡음"]
+  B -->|응답 도착| C["Response<br/>status · ok · headers<br/>⚠ 아직 body 데이터 아님"]
+  C --> D{"res.ok ?"}
+  D -->|false 401·404·500| E["throwIfNotOk / 직접 throw<br/>fetch는 여기 throw 안 함"]
+  D -->|true 2xx| F["await res.json()"]
+  F --> G["실제 데이터 T"]
+```
+
+```txt
+핵심 한 줄:
+  await fetch → Response(껍데기) → ok 확인 → await json → 데이터
+  4xx/5xx는 왼쪽 X가 아니라 가운데 D에서 갈라짐
+```
 
 ---
 
@@ -279,4 +301,155 @@ const user = await res.json();
 
 // apiFetch 래퍼 사용
 const user = await apiFetch<ApiUser>('/users/me');
+```
+
+---
+
+# CORS 에러 — 왜 fetch가 throw하는가 ⭐️⭐️⭐️⭐️
+
+```txt
+fetch가 throw하는 두 가지 경우:
+  ① 네트워크 자체 실패 (인터넷 끊김)
+  ② CORS 에러
+
+CORS (Cross-Origin Resource Sharing):
+  브라우저 보안 정책 — 다른 도메인에 fetch하면 브라우저가 차단
+  http://localhost:3031 → http://localhost:3030/api
+  → 포트가 달라서 cross-origin → CORS 정책 적용
+
+  서버(NestJS)가 Origin을 허용하지 않으면:
+  → 브라우저가 응답을 차단 → fetch가 TypeError: Failed to fetch → throw
+
+  → catch로 잡히지만 status 코드를 알 수 없음
+  → 서버가 응답을 보냈어도 브라우저가 차단한 것
+```
+
+```typescript
+try {
+  const res = await fetch('http://localhost:3030/api/posts');
+} catch (err) {
+  // err.message = "TypeError: Failed to fetch"
+  // 네트워크 끊김인지, CORS 차단인지 코드로 구분 어려움
+  // → 브라우저 개발자 도구 Console에서 CORS 에러 확인
+}
+```
+
+```txt
+CORS 에러 해결:
+  → NestJS의 app.enableCors() 설정 확인 → [[NestJS_CORS]]
+  → origin에 프론트 URL이 포함되어 있는지 확인
+  → credentials: true 이면 서버도 credentials: true 필요
+
+개발 중 CORS 에러 없애는 방법:
+  Next.js의 rewrites를 이용해서 프록시 설정
+  (브라우저 → Next.js → NestJS, 브라우저 입장에서 same-origin)
+```
+
+---
+
+# 204 No Content — body 없는 응답 ⭐️⭐️⭐️
+
+```typescript
+// DELETE 요청 — 204 응답 시 body가 없음
+const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+
+if (!res.ok) throw new Error(`${res.status}`);
+
+// ❌ 204이면 body가 없어서 json() 호출 시 에러
+// const data = await res.json();
+
+// ✅ 상태 코드 확인 후 분기
+if (res.status !== 204) {
+  const data = await res.json();
+}
+
+// 또는 단순하게
+if (res.ok && res.status !== 204) {
+  return await res.json();
+}
+```
+
+```txt
+204 No Content:
+  성공했지만 응답 body가 없음 (DELETE, 일부 PATCH)
+  res.ok = true
+  res.json() 호출하면 SyntaxError: Unexpected end of JSON input
+
+  → res.status === 204 이면 json() 호출 금지
+```
+
+---
+
+# TypeScript와 fetch ⭐️⭐️⭐️
+
+```typescript
+// fetch의 반환 타입은 Promise<Response>
+// res.json()의 반환 타입은 Promise<any>
+
+// 제네릭으로 타입 지정
+async function fetchUser(id: string): Promise<ApiUser> {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json() as Promise<ApiUser>;
+  //                  ↑ as로 타입 단언 (실제 검증은 아님)
+}
+
+// 또는 래퍼를 제네릭으로 만들어서
+async function typedFetch<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+const user = await typedFetch<ApiUser>('/api/users/me');
+//                             ↑ 이게 반환 타입이 됨
+```
+
+```txt
+as Promise<ApiUser>:
+  TypeScript에게 "이 json()의 결과가 ApiUser야"라고 알려주는 것
+  실제 런타임에서 타입을 보장하지는 않음
+  → 서버가 다른 형태를 보내면 런타임 에러 가능
+  → openapi-typescript로 생성한 타입을 쓰면 더 안전 → [[OpenAPI_Codegen]]
+```
+
+---
+
+# AbortController — 요청 취소 ⭐️⭐️⭐️
+
+```typescript
+// useEffect 안에서 fetch할 때 — 컴포넌트 언마운트 시 취소
+useEffect(() => {
+  const controller = new AbortController();
+
+  async function load() {
+    try {
+      const res = await fetch('/api/posts', {
+        signal: controller.signal,  // 취소 신호 연결
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      setPosts(data);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      // AbortError는 의도적인 취소 — 에러가 아님
+      setError('불러오지 못했어요.');
+    }
+  }
+
+  void load();
+
+  return () => controller.abort();  // 언마운트 시 요청 취소
+}, []);
+```
+
+```txt
+AbortController가 필요한 이유:
+  컴포넌트가 언마운트됐는데 fetch 응답이 오면
+  → setState를 호출 → React 경고 + 메모리 누수
+  → controller.abort()로 응답이 와도 무시
+
+  cancelled 플래그 패턴과의 차이:
+  cancelled 플래그 → 응답은 오지만 setState를 안 함
+  AbortController → 네트워크 요청 자체를 취소 (더 효율적)
 ```

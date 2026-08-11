@@ -10,270 +10,351 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_API_Mapper]]"
   - "[[NextJS_Types]]"
+  - "[[NextJS_Concept]]"
+  - "[[JS_Fetch_API]]"
+  - "[[NextJS_ServerClient]]"
 ---
-# NextJS_API_Client — apiFetch 래퍼
+# NextJS_API_Client — API 클라이언트 레이어
 
-> [!info] 
-> apiFetch = 모든 API 호출의 기반. 토큰 추가·에러 파싱·URL 구성을 한 곳에서 처리해서 각 기능 파일이 반복하지 않아도 됨. 
-> 개별 fetch 함수들은 apiFetch를 감싸서 특정 엔드포인트를 호출한다 → [[NextJS_API_Mapper]]
+>[!info]
+>Next.js에서 NestJS API를 호출하는 방법.
+> 브라우저 내장 `fetch`를 직접 쓰지 않고 `fetchApi`(공개 API)·`authFetchApi`(인증 필요 API)로 래핑해서 URL·헤더·에러처리를 한 곳에서 관리한다. 
+> 도메인별 파일(`auth.ts`, `users.ts`)에 엔드포인트 함수를 모으고 화면은 함수만 호출한다.
 
 ---
 
-# 왜 래퍼가 필요한가 ⭐️⭐️⭐️⭐️
+# 왜 API 클라이언트 레이어가 필요한가 ⭐️⭐️⭐️⭐️
 
-```typescript
-// ❌ fetch를 직접 쓰면 매 호출마다 반복
-const res1 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
-if (!res1.ok) throw new Error('실패');
-const user = await res1.json();
+```txt
+NestJS (API 서버):
+  GET /posts, POST /auth/login, PATCH /users/:id ...
+  요청을 받는 쪽
 
-const res2 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rooms`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
-if (!res2.ok) throw new Error('실패');
-const rooms = await res2.json();
+Next.js (클라이언트):
+  브라우저가 fetch로 NestJS에 요청을 보내는 쪽
+  → 이 fetch 호출을 어디에, 어떻게 쓸 것인가?
+
+❌ 나쁜 방식 — page.tsx에 직접:
+  const res = await fetch('http://localhost:3030/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  → 모든 페이지마다 URL·헤더·에러처리를 반복
+  → URL 바뀌면 전부 수정해야 함
+
+✅ 좋은 방식 — 레이어 분리:
+  화면(page/component) → 도메인 함수(auth.ts) → fetchApi/authFetch → NestJS
+  화면은 login(email, password) 만 호출
+  URL·헤더·에러처리는 fetchApi가 담당
 ```
 
+---
+
+# fetch — Web이 API를 부르는 방법 ⭐️⭐️⭐️⭐️
+
 ```typescript
-// ✅ apiFetch 래퍼 — 반복 제거
-const user  = await apiFetch<ApiUser>('/users');
-const rooms = await apiFetch<ApiRoom[]>('/rooms');
+// fetch 기본 구조
+const res = await fetch(url, {
+  method:  'POST',   // 없으면 GET
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization:  `Bearer ${token}`,  // 필요할 때만
+  },
+  body: JSON.stringify({ email, password }),  // GET에는 없음
+});
+```
+
+|조각|의미|
+|---|---|
+|`fetch(...)`|Promise 반환 — 네트워크 끝날 때까지 기다림|
+|`await`|Promise 결과를 받을 때까지 멈춤 → async 함수 안에서만|
+|`res.ok`|상태코드 200~299이면 true. 401·500은 false|
+|`await res.json()`|응답 body를 객체로 파싱 — 이것도 Promise|
+|`await res.text()`|JSON이 아닐 때 / 에러 메시지 문자열|
+
+```txt
+헷갈리기 쉬운 점:
+
+fetch가 throw하는 경우:
+  네트워크 끊김, CORS 차단 → catch로 잡힘
+  401·403·500 → throw 안 함, res.ok === false
+  → 항상 if (!res.ok) 체크 필수
+
+await를 두 번 쓰는 이유:
+  1) await fetch  → Response 헤더·상태까지 도착
+  2) await res.json() → body 읽기·파싱 (별도 비동기)
+
+Nest @Body() vs fetch body:
+  Nest: ValidationPipe가 JSON을 DTO로 변환
+  Web: JSON.stringify로 보내고 Content-Type: application/json
+
+Bearer 형식:
+  Authorization: `Bearer ${accessToken}`
+  "Bearer " + 토큰 (공백 포함)
+  JwtAuthGuard의 extractBearerToken과 짝
+```
+
+---
+
+# lib/api 폴더 구조 ⭐️⭐️⭐️⭐️
+
+```txt
+처음엔 api.ts 하나로 시작
+엔드포인트·도메인이 늘면 폴더로 쪼갬
+
+apps/web/lib/
+  authToken.ts          토큰 get/set (메모리)
+  api/
+    fetchApi.ts         공통: base URL · !ok throw · JSON 파싱 (Bearer 없음)
+    authFetch.ts        공통: Authorization Bearer 붙인 뒤 같은 에러 처리
+    auth.ts             login · register · fetchMe
+    users.ts            유저 관련 엔드포인트
+    posts.ts            게시글 관련 엔드포인트
+    index.ts            export * from './auth' …  ← 진입점
 ```
 
 ```txt
-apiFetch가 대신 해주는 것:
-  ① Base URL 앞에 붙이기
-  ② Authorization 헤더 추가
-  ③ 응답 JSON 파싱
-  ④ HTTP 에러 처리 (res.ok 체크 + 에러 응답 파싱)
-  ⑤ 401 시 토큰 갱신 후 재시도
+왜 두 레이어인가:
+  fetchApi   = 인프라 (모든 호출의 뼈대 — URL·헤더·에러처리)
+  auth.ts 등 = 도메인 (어떤 path · body · 타입인지)
+  page.tsx   = UI만 (path 문자열·헤더 직접 안 씀)
 
-이 5가지를 모든 fetch 호출에서 직접 하면:
-  코드 중복 + 수정 시 모든 호출을 찾아다녀야 함
+사용 규칙:
+  ✅ 화면 → login() / fetchMe() 만 호출
+  ❌ 화면에서 fetch(`${API_URL}/auth/login`) 직접 쓰기 금지
+  ✅ 새 API 추가 = 도메인 파일에 함수 하나 추가
+  ✅ 공개 POST / 로그인 전 → fetchApi
+  ✅ Guard 있는 API (Bearer 필요) → authFetchApi
 ```
 
 ---
 
-# apiFetch 구현 ⭐️⭐️⭐️⭐️
+# authToken.ts — 토큰 메모리 관리 ⭐️⭐️⭐️
 
 ```typescript
-// lib/api-client.ts
+// lib/authToken.ts
+let _accessToken: string | null = null;
 
-export type ApiError = {
-  statusCode: number;
-  message:    string;
-};
-
-export class ApiRequestError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
+export function getApiAccessToken() {
+  return _accessToken;
 }
+export function setApiAccessToken(token: string) {
+  _accessToken = token;
+}
+export function removeApiAccessToken() {
+  _accessToken = null;
+}
+```
 
-export async function apiFetch<T>(
+```txt
+메모리에 저장하는 이유:
+  localStorage는 XSS에 취약
+  httpOnly 쿠키는 JS에서 못 읽음
+  메모리(변수)는 새로고침 시 사라지지만 가장 안전
+  → 새로고침 후 복구는 /auth/me로 해결
+
+새로고침 후 복구 흐름:
+  앱 시작 → authToken이 null
+  → fetchMe() 호출 (쿠키의 refreshToken으로)
+  → 새 accessToken 받아서 setApiAccessToken()
+  → 이후 authFetch가 정상 작동
+```
+
+---
+
+# fetchApi.ts — 공개 API용 베이스 ⭐️⭐️⭐️⭐️
+
+```typescript
+// lib/api/fetchApi.ts
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030';
+
+export async function fetchApi<T>(
   path: string,
-  options: RequestInit = {},
+  options?: RequestInit,
 ): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-  const token   = getAccessToken();  // 쿠키 또는 메모리에서 토큰 읽기
-
-  const res = await fetch(`${baseUrl}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,  // 호출하는 쪽에서 헤더를 추가/덮어쓸 수 있음
+      ...options?.headers,
     },
   });
 
-  // ① 401 → 토큰 갱신 후 재시도
-  if (res.status === 401) {
-    const refreshed = await tryRefreshToken();
-    if (refreshed) return apiFetch<T>(path, options);  // 재시도
-    redirectToLogin();
-    throw new ApiRequestError(401, '로그인이 필요합니다.');
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || `HTTP ${res.status}`);
   }
 
-  // ② 성공
-  if (res.ok) {
-    if (res.status === 204) return undefined as T;  // No Content
-    return res.json() as Promise<T>;
-  }
-
-  // ③ HTTP 에러 — 서버 에러 메시지 파싱
-  const body = await res.json().catch(() => null);
-  const message =
-    typeof body?.message === 'string'
-      ? body.message
-      : `요청에 실패했습니다. (${res.status})`;
-
-  throw new ApiRequestError(res.status, message);
+  return res.json() as Promise<T>;
 }
 ```
 
 ---
 
-# HTTP 메서드 헬퍼 ⭐️⭐️⭐️
+# authFetch.ts — 인증 API용 (Bearer 자동 첨부) ⭐️⭐️⭐️⭐️
 
 ```typescript
-// GET — body 없음
-export const apiGet = <T>(path: string) =>
-  apiFetch<T>(path, { method: 'GET' });
+// lib/api/authFetch.ts
+import { getApiAccessToken } from '../authToken';
+import { fetchApi }          from './fetchApi';
 
-// POST — body 있음
-export const apiPost = <T>(path: string, body?: unknown) =>
-  apiFetch<T>(path, {
-    method: 'POST',
-    body:   body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-// PATCH — 부분 업데이트
-export const apiPatch = <T>(path: string, body?: unknown) =>
-  apiFetch<T>(path, {
-    method: 'PATCH',
-    body:   body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-// DELETE
-export const apiDelete = <T = void>(path: string) =>
-  apiFetch<T>(path, { method: 'DELETE' });
-```
-
-```typescript
-// 사용 예
-const user  = await apiGet<ApiUser>('/users/me');
-const post  = await apiPost<ApiPost>('/posts', { title, content });
-const updated = await apiPatch<ApiPost>(`/posts/${id}`, { title });
-await apiDelete(`/posts/${id}`);
-```
-
----
-
-# Content-Type 분기 — FormData ⭐️⭐️⭐️
-
-```typescript
-// 파일 업로드처럼 multipart/form-data를 써야 할 때
-// Content-Type을 자동으로 설정하려면 header에서 제거
-
-export async function apiFetch<T>(
-  path:    string,
-  options: RequestInit = {},
+export async function authFetchApi<T>(
+  path: string,
+  options?: RequestInit,
 ): Promise<T> {
-  const isFormData = options.body instanceof FormData;
+  const token = getApiAccessToken();
 
-  const res = await fetch(`${baseUrl}${path}`, {
+  return fetchApi<T>(path, {
     ...options,
     headers: {
-      // FormData면 Content-Type 생략 → 브라우저가 boundary 포함해서 자동 설정
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...options?.headers,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
     },
   });
-  // ...
-}
-
-// 사용
-const formData = new FormData();
-formData.append('image', file);
-const result = await apiFetch<ApiUser>('/users/me/image', {
-  method: 'PATCH',
-  body:   formData,   // FormData 직접 전달
-});
-```
-
----
-
-# 에러 처리 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 호출하는 쪽에서 에러 처리
-try {
-  const user = await apiGet<ApiUser>('/users/me');
-  setUser(user);
-} catch (err) {
-  if (err instanceof ApiRequestError) {
-    if (err.statusCode === 404) setError('사용자를 찾을 수 없습니다.');
-    else if (err.statusCode === 403) setError('접근 권한이 없습니다.');
-    else setError(err.message);  // 서버가 보낸 메시지
-  } else {
-    setError('네트워크 오류가 발생했습니다.');
-  }
 }
 ```
 
 ```txt
-ApiRequestError vs 일반 Error:
-  ApiRequestError → HTTP 응답이 왔는데 에러인 경우 (4xx, 5xx)
-                    statusCode로 분기 가능
-  일반 Error      → 네트워크 자체가 안 됨 (fetch 실패, CORS 등)
+fetchApi vs authFetchApi:
+  fetchApi     → 토큰 없이 호출 (로그인·회원가입·공개 API)
+  authFetchApi → 토큰 자동 첨부 (Guard 있는 API)
 
-err.message:
-  서버가 응답 body에 담아 보낸 메시지
-  NestJS에서 throw new NotFoundException('메시지') 하면 이게 message에 담김
+  authFetchApi는 fetchApi를 호출
+  → 에러처리·URL 조합 로직은 fetchApi 한 곳에만
 ```
 
 ---
 
-# 토큰 관리 ⭐️⭐️⭐️⭐️
+# 도메인 파일 — auth.ts ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 토큰 저장 위치에 따라 다르게 구현
-// 방법 1 — 메모리 (XSS에 안전, 새로고침 시 사라짐)
-let accessToken: string | null = null;
+// lib/api/auth.ts
+import { fetchApi }       from './fetchApi';
+import { authFetchApi }   from './authFetch';
+import { setApiAccessToken } from '../authToken';
+import type { ApiAuthResponse, ApiAuthUser } from './apiTypes';
 
-export const getAccessToken   = () => accessToken;
-export const setAccessToken   = (token: string) => { accessToken = token; };
-export const clearAccessToken = () => { accessToken = null; };
+async function postAuth(
+  path: 'login' | 'register',
+  body: Record<string, string>,
+): Promise<ApiAuthResponse> {
+  const data = await fetchApi<ApiAuthResponse>(`/auth/${path}`, {
+    method: 'POST',
+    body:   JSON.stringify(body),
+  });
+  setApiAccessToken(data.accessToken);  // 로그인 성공 시 토큰 저장
+  return data;
+}
 
-// 방법 2 — 쿠키 (HttpOnly면 XSS에 안전, 새로고침에도 유지)
-// → 쿠키는 서버가 Set-Cookie로 직접 설정
-// → 클라이언트는 withCredentials: true 또는 credentials: 'include'만 추가
-```
+export function login(email: string, password: string) {
+  return postAuth('login', { email: email.trim(), password });
+}
 
-```typescript
-// 토큰 갱신
-async function tryRefreshToken(): Promise<boolean> {
-  try {
-    const res = await fetch(`${baseUrl}/auth/refresh`, {
-      method:      'POST',
-      credentials: 'include',  // 갱신 토큰 쿠키 포함
-    });
-    if (!res.ok) return false;
+export function register(email: string, password: string, nickname: string) {
+  return postAuth('register', { email: email.trim(), password, nickname: nickname.trim() });
+}
 
-    const { accessToken } = await res.json();
-    setAccessToken(accessToken);  // 새 토큰 저장
-    return true;
-  } catch {
-    return false;
-  }
+export async function fetchMe(): Promise<ApiAuthUser> {
+  return authFetchApi<ApiAuthUser>('/auth/me');
+  // Bearer 자동 첨부 — Guard 있는 엔드포인트
 }
 ```
 
-```txt
-토큰 저장 전략 상세 → [[NextJS_TokenStorage]]
-갱신 토큰 흐름, iOS ITP 문제 → [[NestJS_CORS]]
+---
+
+# index.ts — 진입점 ⭐️⭐️⭐️
+
+```typescript
+// lib/api/index.ts
+export * from './auth';
+export * from './users';
+export * from './posts';
+// 필요하면 추가
+```
+
+```typescript
+// 사용처에서
+import { login, fetchMe } from '@/lib/api';
+// 또는 직접 파일 지정
+import { login }          from '@/lib/api/auth';
 ```
 
 ---
 
-# 환경변수 설정
-
-```bash
-# .env.local
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
+# 전체 흐름 요약
 
 ```txt
-NEXT_PUBLIC_ 붙이는 이유:
-  Next.js에서 클라이언트 사이드 코드에서 process.env를 쓰려면
-  빌드 시 번들에 포함되어야 함
-  NEXT_PUBLIC_ prefix가 있으면 브라우저에 노출
-  없으면 서버 사이드에서만 접근 가능 (API 시크릿 키 등)
+page.tsx (화면)
+  ↓ login(email, password) 호출
+auth.ts (도메인)
+  ↓ fetchApi('/auth/login', { method: 'POST', body: ... }) 호출
+fetchApi.ts (인프라)
+  ↓ fetch('http://localhost:3030/auth/login', ...) 실행
+NestJS AuthController
+  ↓ AuthService.login() → JWT 발급
+fetchApi.ts
+  ↓ res.ok 체크 → res.json() 파싱 → 반환
+auth.ts
+  ↓ setApiAccessToken(data.accessToken) → 반환
+page.tsx
+  ↓ 로그인 완료
+```
+
+---
+
+# 헷갈리기 쉬운 구분 ⭐️⭐️⭐️⭐️
+
+## 1. fetchApi.ts 파일 vs fetchApi() 함수
+
+```txt
+같은 이름이라 헷갈림:
+
+  fetchApi.ts 파일:
+    공통 HTTP 유틸이 모인 곳
+    getApiBaseUrl() · throwIfNotOk() · fetchApi() 함수들이 여기 있음
+
+  fetchApi() 함수:
+    그 파일 안의 함수 중 하나 — "Bearer 없는 완성 호출"
+    login() 같은 공개 API에서 이걸 호출
+
+  authFetch.ts:
+    fetchApi() 함수를 호출하지 않음
+    getApiBaseUrl + throwIfNotOk 만 재사용
+    (Bearer를 fetch 전에 직접 붙여야 하기 때문)
+```
+
+## 2. authFetch.ts vs auth.ts
+
+| |`authFetch.ts`|`auth.ts`|
+|---|---|---|
+|층|인프라 (도구)|도메인 (메뉴)|
+|질문|어떻게 보내나?|무엇을 보내나?|
+|내용|path + Bearer 붙이기 + `!ok` + json|`login` · `fetchMe` · body · setToken|
+|예|`authFetchApi('/users/me')`|`fetchMe()` → 안에서 `authFetchApi` 호출|
+
+## 3. 누가 누굴 호출하는가
+
+```txt
+page    → auth.ts 만 호출 (path 문자열·헤더 직접 쓰지 않음)
+auth.ts → fetchApi 또는 authFetchApi 선택
+authFetchApi → authToken.get() + fetch()
+
+  login()   → fetchApi      (공개, Bearer 없음)
+  fetchMe() → authFetchApi  (보호, Bearer 있음)
+
+page가 authFetchApi를 직접 호출하면 안 됨
+→ 어떤 API가 Bearer 필요한지 모든 화면이 알아야 함 (관심사 분리 위반)
+```
+
+```mermaid-beautiful
+flowchart LR
+  P["page"] --> A["auth.ts\nlogin / fetchMe"]
+  A -->|공개| F["fetchApi()"]
+  A -->|보호| AF["authFetchApi()"]
+  AF --> T["authToken"]
+  F --> N["NestJS"]
+  AF --> N
 ```

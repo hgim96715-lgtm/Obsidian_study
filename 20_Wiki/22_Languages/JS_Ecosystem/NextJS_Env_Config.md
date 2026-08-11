@@ -8,207 +8,315 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Monorepo_PNPM]]"
-  - "[[NestJS_Env_Config]]"
-  - "[[Deploy_CloudMVP]]"
+  - "[[NextJS_Concept]]"
 ---
-# NextJS_Env_Config — 환경변수
+# NextJS_Env_Config — Next.js 환경변수
 
-> [!info]
->  Next.js 환경변수는 NestJS와 핵심이 다르다 
->   "서버에서만 보이는가, 브라우저에도 노출되는가"가 1순위 문제. `NEXT_PUBLIC_` 접두사 하나가 그 경계를 결정
+>[!info]
+>`NEXT_PUBLIC_` 접두사가 없으면 서버에서만 접근 가능. 있으면 클라이언트(브라우저)에서도 접근 가능 — 브라우저 소스에 노출됨. 
+>`.env.local`은 git에 올리지 않고 로컬 개발에만 사용. 
+>프로덕션에서 `.env` 파일 기본 미로드 → 배포 플랫폼 대시보드에 직접 설정. 
+>검증이 필요하면 Zod + `@t3-oss/env-nextjs`. 
+>NestJS 서버 환경변수 → [[NestJS_Env_Config]]
+
+---
+
+# NEXT_PUBLIC_ — 핵심 개념 ⭐️⭐️⭐️⭐️
+
+```txt
+Next.js 환경변수의 가장 중요한 규칙:
+
+  접두사 없음 (API_URL):
+    서버에서만 접근 가능
+    빌드 시 번들에 포함되지 않음
+    클라이언트에서 접근하면 undefined
+
+  NEXT_PUBLIC_ 접두사 (NEXT_PUBLIC_API_URL):
+    서버 + 클라이언트(브라우저) 모두에서 접근 가능
+    빌드 시 번들에 정적으로 포함됨
+    브라우저 소스에서 값을 볼 수 있음
+```
+
+```typescript
+// Server Component — 둘 다 접근 가능
+export default async function Page() {
+  const secret = process.env.DATABASE_URL;        // ✅ 서버에서만
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL; // ✅ 서버에서도
+}
+
+// Client Component ('use client')
+'use client';
+export function Component() {
+  const secret = process.env.DATABASE_URL;        // ❌ undefined (서버 전용)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL; // ✅ 브라우저에서도
+}
+```
+
+```txt
+⚠️ NEXT_PUBLIC_ 변수는 브라우저 소스에서 노출됨
+  → API 키, 비밀번호, 토큰 등 민감한 값에 NEXT_PUBLIC_ 쓰면 안 됨
+  → 브라우저에서 봐도 되는 값만 (API URL, 앱 이름 등)
+
+서버에서만 써야 하는 값은 접두사 없이:
+  DATABASE_URL, JWT_SECRET → 접두사 없음 (서버 전용)
+  NEXT_PUBLIC_API_URL      → 접두사 있음 (클라이언트에서도 API 주소 필요)
+```
+
+---
+
+# .env 파일 종류 ⭐️⭐️⭐️⭐️
+
+```txt
+Next.js가 인식하는 .env 파일 (우선순위 높은 순):
+
+  .env.local           로컬 개발 전용 — git에 올리지 않음 (가장 우선)
+  .env.development     next dev 실행 시 (NODE_ENV=development)
+  .env.production      next build/start 시 (NODE_ENV=production)
+  .env                 모든 환경 공통
+
+  .env.local이 가장 우선이므로 로컬에서 개별 override 가능
+```
+
+```bash
+# .env.local (로컬 개발용 — gitignore)
+NEXT_PUBLIC_API_URL=http://localhost:3030
+NEXT_PUBLIC_APP_NAME=Music Community
+
+# .env.production (배포 환경 — gitignore)
+NEXT_PUBLIC_API_URL=https://api.myapp.com
+
+# .env.example (git에 올려도 됨 — 키만 공유)
+NEXT_PUBLIC_API_URL=
+NEXT_PUBLIC_APP_NAME=
+```
+
+```txt
+.gitignore에 반드시 추가:
+  .env.local
+  .env.production
+  .env*.local
+
+.env.example은 올려도 됨:
+  실제 값 없이 키 목록만
+  팀원이 어떤 환경변수가 필요한지 파악하는 용도
+```
+
+---
+
+# 사용 방법 ⭐️⭐️⭐️⭐️
+
+## Server Component에서
+
+```typescript
+// app/page.tsx — Server Component
+export default async function Page() {
+  // 빌드 타임에 교체됨
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  // 서버 전용 (클라이언트에서 접근 불가)
+  const secret = process.env.SESSION_SECRET;
+
+  const data = await fetch(`${apiUrl}/posts`);
+  ...
+}
+```
+
+## Client Component에서
+
+```typescript
+// components/ApiClient.ts
+'use client';
+
+// NEXT_PUBLIC_ 만 사용 가능
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export async function fetchPosts() {
+  const res = await fetch(`${API_URL}/posts`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.json();
+}
+```
+
+## next.config.ts에서 env 추가
+
+```typescript
+// next.config.ts
+const nextConfig = {
+  env: {
+    APP_VERSION: '1.0.0',   // process.env.APP_VERSION 으로 접근 가능
+  },
+};
+```
+
+---
+
+# 타입 안전하게 사용하기 ⭐️⭐️⭐️
+
+```typescript
+// src/config/env.ts — 환경변수를 한 곳에서 관리
+const getEnv = (key: string): string => {
+  const value = process.env[key];
+  if (!value) throw new Error(`Missing env: ${key}`);
+  return value;
+};
+
+export const env = {
+  apiUrl:  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3030',
+  appName: process.env.NEXT_PUBLIC_APP_NAME ?? 'App',
+} as const;
+```
+
+```typescript
+// 사용
+import { env } from '@/config/env';
+
+fetch(`${env.apiUrl}/posts`);
+// process.env.NEXT_PUBLIC_API_URL을 직접 쓰는 것보다 타입 안전
+```
+
+```txt
+process.env.NEXT_PUBLIC_X를 직접 쓰면:
+  타입이 string | undefined
+  undefined 체크를 매번 해야 함
+
+env 객체로 한 곳에서 관리하면:
+  기본값 설정 가능
+  타입이 string으로 좁혀짐
+  사용처에서 undefined 체크 불필요
+```
+
+---
+
+# 배포 환경 설정 ⭐️⭐️⭐️
+
+```txt
+Vercel:
+  프로젝트 → Settings → Environment Variables
+  Production / Preview / Development 환경별로 설정 가능
+  NEXT_PUBLIC_ 변수도 여기서 설정
+
+Railway (API 서버):
+  프로젝트 → Variables 탭
+  (NestJS 서버 환경변수)
+
+로컬 개발 흐름:
+  .env.local에 NEXT_PUBLIC_API_URL=http://localhost:3030
+
+배포 후:
+  Vercel에서 NEXT_PUBLIC_API_URL=https://api.myapp.com 설정
+```
 
 ---
 
 # NestJS와 뭐가 다른가 ⭐️⭐️⭐️
 
-| 구분                        | NestJS                                                      | Next.js                                               |
-| ------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| `.env` 멀티파일 자동 인식         | ❌ (직접 `envFilePath` 지정 필요)                                  | ✅ `.env` < `.env.local` < `.env.production` 등 자동 우선순위 |
-| `.env` → `process.env` 로드 | ConfigModule 또는 `--env-file` 플래그 ([[NestJS_Env_Config]] 참고) | 불필요 — Next.js가 항상 자동으로 로드                             |
-| 서버/클라이언트 구분               | 없음 (전부 서버)                                                  | 있음 — `NEXT_PUBLIC_` 접두사가 핵심 규칙                        |
-| 기본 검증 도구                  | Joi (선택)                                                    | Zod (선택) — Joi도 가능하지만 비표준                             |
-| 프로덕션 `.env` 로드            | 보통 그대로 사용                                                   | ❌ 기본적으로 안 읽음 — 호스팅 플랫폼에 직접 등록                         |
-
----
-
-# 0단계 — .env / .env.example 만들기
-
-```properties
-# .env.local — 로컬 개발용 (Git 제외)
-DATABASE_URL=postgresql://postgres:password@localhost:5432/mydb
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
-
-```properties
-# .env.example — 팀 공유용 (Git 포함)
-DATABASE_URL=
-NEXT_PUBLIC_API_URL=
-```
-
-## 파일 우선순위 — Next.js가 자동으로 처리 ⭐️⭐️
-
-|파일|용도|
-|---|---|
-|`.env`|모든 환경 공통 기본값|
-|`.env.local`|로컬 전용, 최우선 — Next.js 기본 `.gitignore`에 포함됨|
-|`.env.development` / `.env.production`|`next dev` / `next build` 시 자동 선택|
-|`.env.test`|테스트 실행 시|
-
-```txt
-⚠️ 프로덕션에서는 .env 파일을 기본적으로 안 읽음
-   Vercel 등 호스팅 플랫폼의 환경변수 설정에 직접 등록 — .env.production에 시크릿을 두지 말 것
-   ([[Deploy_CloudMVP]] 배포 환경변수 설정 참고)
-```
-
----
-
-# 1단계 — NEXT_PUBLIC_ 접두사 ⭐️⭐️⭐️⭐️
-
-```txt
-Next.js 환경변수에서 가장 먼저 이해해야 하는 단 하나의 규칙:
-  NEXT_PUBLIC_ 으로 시작 → 브라우저(클라이언트) 코드에서도 접근 가능, 빌드 시 JS 번들에 그대로 박힘
-  접두사 없음            → 서버 코드(Server Component, Route Handler 등)에서만 접근 가능
-```
-
-|변수|위치|예시|
+|구분|NestJS|Next.js|
 |---|---|---|
-|`NEXT_PUBLIC_API_URL`|서버 + 브라우저|API 서버 주소처럼 클라이언트도 알아야 하는 값|
-|`DATABASE_URL`|서버만|DB 비밀번호 등 절대 노출되면 안 되는 값|
+|`.env` 멀티파일 자동 인식|❌ `envFilePath` 직접 지정 필요|✅ `.env` → `.env.local` → `.env.production` 자동 우선순위|
+|`.env` → `process.env` 로드|ConfigModule 또는 `--env-file` → [[NestJS_Env_Config]]|불필요 — Next.js가 항상 자동 로드|
+|서버/클라이언트 구분|없음 (전부 서버)|있음 — `NEXT_PUBLIC_` 접두사가 핵심 규칙|
+|검증 도구|Joi (NestJS 관례)|Zod (Next.js·TS 진영 표준)|
+|프로덕션 `.env` 로드|보통 그대로 사용|❌ 기본적으로 안 읽음 — 호스팅 플랫폼에 직접 등록|
 
 ```txt
-⚠️ 빌드 타임에 "문자 그대로" 치환됨 (static replacement) — 런타임에 바뀌는 게 아님
-   값을 바꿨다면 재빌드해야 반영됨 (서버 재시작만으로는 부족할 수 있음)
-
-⚠️ 절대 하면 안 되는 것:
-  const { NEXT_PUBLIC_API_URL } = process.env;  // ❌ 구조분해 — 정적 치환 안 됨 → undefined
-  process.env[key]                               // ❌ 동적 키 — 마찬가지로 치환 안 됨
-  process.env.NEXT_PUBLIC_API_URL                // ✅ 리터럴 형태로만 정상 동작
-
-비밀값에 NEXT_PUBLIC_을 잘못 붙이면 그대로 브라우저에 공개됨 — 변수 추가할 때마다 항상 확인
-```
-
-```txt
-NEXT_PUBLIC_API_URL처럼 "프론트가 백엔드 주소를 알아야 하는" 패턴은 거의 모든 프로젝트의 공통 변수
-→ 실제 활용 (getApiBaseUrl, 절대경로 처리) → [[NextJS_API_Client]] 참고
+프로덕션에서 .env 파일 안 읽는 이유:
+  Next.js는 프로덕션에서 .env.local, .env.production 파일을
+  기본적으로 자동 로드하지 않음
+  → Vercel·Railway 같은 플랫폼의 환경변수 대시보드에서 직접 설정
+  → 배포 환경에서 .env 파일을 서버에 올리는 방식은 권장하지 않음
 ```
 
 ---
 
-# 2단계 — process.env 사용
-
-```typescript
-// 서버 코드 (Server Component, Route Handler, Server Action)
-const dbUrl  = process.env.DATABASE_URL;          // 서버 전용 변수도 읽을 수 있음
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;   // 공개 변수도 당연히 읽을 수 있음
-```
-
-```typescript
-// 클라이언트 코드 ('use client')
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;   // ✅ 됨 (접두사 있음)
-const dbUrl  = process.env.DATABASE_URL;           // ❌ undefined (서버 전용이라 브라우저엔 없음)
-```
+# 타입 안전 검증 — Zod + @t3-oss/env-nextjs ⭐️⭐️⭐️
 
 ```txt
-이 단계만으로도 대부분의 프로젝트는 충분히 동작함 — 검증(3단계)은 선택사항
+왜 @t3-oss/env-nextjs가 필요한가:
+  배포했는데 환경변수가 빠져서 빌드/런타임에 늦게 발견되는 문제
+  → 빌드 시점에 env를 검증해서 즉시 발견
+
+NestJS에서 Joi를 쓰듯
+Next.js·TS 진영은 Zod를 씀
+  Joi도 기술적으로 가능하지만 Next.js에서는 비표준
+  Zod = TypeScript 네이티브, 타입 자동 추론
 ```
 
----
-
-# 3단계 — 검증 추가 (선택) ⭐️⭐️
-
-```txt
-배포했는데 환경변수가 빠져서 빌드/런타임에 늦게 발견되는 걸 막고 싶을 때 추가하는 단계
-Next.js/TS 진영은 Zod를 씀 (Joi는 NestJS 관례, 기술적으로는 가능하지만 비표준)
-```
+## 설치
 
 ```bash
-pnpm add zod
+pnpm --filter web add @t3-oss/env-nextjs zod
 ```
 
+## env.ts 작성
+
 ```typescript
-// lib/env.ts — 가장 단순한 형태
+// src/env.ts
+import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 
-const schema = z.object({
-  DATABASE_URL:        z.string().url(),
-  NEXT_PUBLIC_API_URL: z.string().url(),
+export const env = createEnv({
+  // 서버에서만 사용하는 환경변수 (NEXT_PUBLIC_ 없음)
+  server: {
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  },
+
+  // 클라이언트에서도 사용하는 환경변수 (NEXT_PUBLIC_ 접두사 필수)
+  client: {
+    NEXT_PUBLIC_API_URL:  z.string().url(),
+    NEXT_PUBLIC_APP_NAME: z.string().min(1).default('App'),
+  },
+
+  // 실제 process.env에서 읽어올 값 명시
+  runtimeEnv: {
+    NODE_ENV:             process.env.NODE_ENV,
+    NEXT_PUBLIC_API_URL:  process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+  },
 });
-
-export const env = schema.parse(process.env);  // 누락/형식 오류 시 즉시 throw
 ```
 
-## 더 안전하게 — server/client 분리 (@t3-oss/env-nextjs) ⭐️⭐️⭐️
-
-```txt
-단순 버전의 문제:
-  서버 전용 스키마와 공개 스키마가 한 객체에 섞여 있어서
-  "이 변수가 서버 전용인지 공개인지"를 코드만 보고 구분하기 어려움
-
-@t3-oss/env-nextjs는 server/client를 분리해서:
-  클라이언트 코드에서 서버 변수에 접근하면 타입 에러 + 런타임 에러로 바로 잡아줌
-```
-
-```bash
-pnpm add @t3-oss/env-nextjs zod
-```
+## next.config.ts에 연결
 
 ```typescript
-// lib/env.ts
-import { createEnv } from '@t3-oss/env-nextjs';
-import { z }         from 'zod';
+// next.config.ts
+import './src/env'; // 빌드 시 env 검증 실행
 
-export const env = createEnv({
-  server: {
-    DATABASE_URL: z.string().url(),
-  },
-  client: {
-    NEXT_PUBLIC_API_URL: z.string().url(),  // NEXT_PUBLIC_ 없으면 타입 에러로 바로 알려줌
-  },
-  experimental__runtimeEnv: process.env,
-});
+const nextConfig = { ... };
+export default nextConfig;
 ```
 
-|항목|역할|
-|---|---|
-|`server: {...}`|서버에서만 쓸 변수 — 클라이언트에서 import하면 에러|
-|`client: {...}`|`NEXT_PUBLIC_` 접두사 필수, 빠뜨리면 타입 에러로 미리 발견|
-|`z.coerce.number()` / `z.coerce.boolean()`|`.env` 값은 항상 string이므로 다른 타입이 필요하면 `coerce` 사용|
+## 사용
+
+```typescript
+import { env } from '@/env';
+
+// 서버 컴포넌트
+const nodeEnv = env.NODE_ENV;           // string, undefined 아님
+
+// 클라이언트 컴포넌트
+const apiUrl = env.NEXT_PUBLIC_API_URL;  // string, undefined 아님
+
+// ❌ server 변수를 클라이언트에서 쓰면 빌드 에러
+// ❌ client 변수를 server에서만 선언하면 빌드 에러
+```
 
 ```txt
-이후로는 process.env 직접 참조 대신 env 객체에서 꺼내 씀
-  env.DATABASE_URL / env.NEXT_PUBLIC_API_URL
+@t3-oss/env-nextjs의 장점:
+  server / client를 명시적으로 분리
+  Zod로 타입 검증 → 빌드 시 누락된 환경변수 즉시 발견
+  반환 타입이 string | undefined 아닌 string (검증 통과 후)
+  server 변수를 클라이언트 번들에 실수로 포함하면 빌드 에러
+
+언제 추가하면 되는가:
+  처음엔 process.env 직접 사용으로 시작
+  배포 환경에서 env 누락 문제가 생기거나
+  server/client 분리가 명확히 필요해지면 그때 추가
 ```
 
----
-
-# 어느 단계까지 필요한가
-
-|상황|권장|
-|---|---|
-|작은 프로젝트, 변수 몇 개뿐|2단계 (process.env)|
-|배포 전 누락을 미리 잡고 싶음|3단계 (Zod 단순 버전)|
-|서버/클라이언트 변수가 많고 혼동이 잦음|3단계 + @t3-oss/env-nextjs|
-
----
-
-# 한눈에
-
-```txt
-0단계: .env / .env.local / .env.example
-  Next.js가 우선순위까지 자동 처리 (NestJS와 다른 점)
-  프로덕션은 .env 파일을 안 읽음 → 호스팅 플랫폼에 직접 등록
-
-1단계: NEXT_PUBLIC_ 접두사 — 가장 중요한 규칙
-  있음 → 빌드타임에 번들로 박힘 (브라우저에서도 접근 가능)
-  없음 → 서버 코드에서만
-  구조분해 / 동적 키 금지 — 리터럴 형태로만 정상 동작
-  비밀값에 NEXT_PUBLIC_ 붙이면 브라우저에 공개됨 ⚠️
-
-2단계: process.env — 대부분의 프로젝트는 이걸로 충분
-
-3단계: 검증 (선택)
-  Zod 단순 버전 → schema.parse(process.env)
-  @t3-oss/env-nextjs → server/client 분리, 잘못된 접근을 타입/런타임에서 잡아줌
-
-NEXT_PUBLIC_API_URL 실제 활용 → [[NextJS_API_Client]]
-```
+| 에러                       | 원인                      | 해결                    |
+| ------------------------ | ----------------------- | --------------------- |
+| 클라이언트에서 env가 `undefined` | `NEXT_PUBLIC_` 접두사 없음   | `NEXT_PUBLIC_` 붙이기    |
+| 서버에서만 쓰는 값이 번들에 포함됨      | `NEXT_PUBLIC_` 붙인 민감 정보 | 접두사 제거 (서버에서만 접근)     |
+| 빌드 후에도 env가 없음           | Vercel 등 배포 환경에 설정 안 함  | 배포 플랫폼 환경변수 대시보드에서 추가 |
+| `.env.local` 변경 후 반영 안 됨 | dev 서버 재시작 필요           | `pnpm dev` 재실행        |

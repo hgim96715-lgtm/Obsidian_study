@@ -11,7 +11,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_BrowserAPI]]"
-  - "[[NextJS_AuthCache]]"
+  - "[[NextJS_AuthState]]"
   - "[[NextJS_ServerClient]]"
   - "[[React_useId]]"
 ---

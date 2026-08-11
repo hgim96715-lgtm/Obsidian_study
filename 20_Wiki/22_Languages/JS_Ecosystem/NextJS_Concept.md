@@ -9,17 +9,65 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NextJS_API_Client]]"
+  - "[[NextJS_API_Mapper]]"
+  - "[[NextJS_Types]]"
+  - "[[NestJS_CORS]]"
   - "[[NextJS_Concept]]"
-  - "[[JS_URL_Encoding]]"
-  - "[[JS_DOM]]"
-  - "[[JS_BrowserAPI]]"
+  - "[[JS_Fetch_API]]"
 ---
 # NextJS_Concept — Next.js 핵심 개념
 
 >[!info]
->Next.js = React 위에 라우팅·SSR·이미지 최적화를 얹은 풀스택 프레임워크. 
->SSR로 초기 로딩 속도와 SEO를 개선하고, Server Component로 서버에서 DB 접근까지 가능하다. 
->서버에는 `window`·`document`가 없으므로 브라우저 API는 `useEffect` 안에서만 사용한다.
+>Next.js = React 위에 라우팅·SSR·이미지 최적화를 얹은 풀스택 프레임워크. SSR로 초기 로딩 속도와 SEO를 개선하고, Server Component로 서버에서 DB 접근까지 가능하다. 서버에는 `window`·`document`가 없으므로 브라우저 API는 `useEffect` 안에서만 사용한다.
+
+---
+# NestJS에서 Next.js로 — 머릿속 지도 ⭐️⭐️⭐️⭐️
+
+```txt
+NestJS를 배우고 Next.js를 보면 헷갈리는 이유:
+  둘은 방향이 반대
+
+  NestJS: 요청이 서버로 들어옴
+           클라이언트 → 서버 (요청을 받는 쪽)
+
+  Next.js: 브라우저가 fetch로 밖으로 나감
+           브라우저 → 서버 (요청을 보내는 쪽)
+```
+
+|NestJS (`apps/api`)|Next.js (`apps/web`)|
+|---|---|
+|Module·Controller·Service|페이지·컴포넌트 + `lib` 유틸|
+|`ConfigService` + Joi + `EnvKeys`|`NEXT_PUBLIC_*` + `.env.local`|
+|Guard가 Bearer 토큰 검증|클라이언트가 헤더에 Bearer를 **붙여서 보냄**|
+|요청이 서버로 **들어옴**|브라우저가 `fetch`로 **밖으로 나감**|
+|`UsersModule` 새로 만들어서 추가|`lib/api.ts`에 함수 하나 추가|
+
+```txt
+갑자기 lib/api.ts를 쓰는 이유:
+  page.tsx 안에 fetch를 매번 복붙하지 않으려고
+  URL · Content-Type · Authorization 헤더 붙이는 규칙을 한 곳에
+  NestJS로 치면 Service에 prisma 호출 모으는 것과 비슷한
+  "얇은 클라이언트 레이어"
+
+NestJS는 "UsersModule을 새로 만드는" 방식으로 기능을 추가
+Next.js Web은 "화면 + HTTP 클라이언트"라서
+  → 공통 호출 코드를 lib/에 모으는 것으로 충분
+
+NestJS Guard가 Bearer를 검증한다면
+Next.js는 그 Bearer를 Authorization 헤더에 담아 보내는 쪽
+```
+
+## 하고 싶은 것 — Nest 한 줄 ↔ Web 한 줄
+
+|하고 싶은 것|NestJS (`apps/api`)|Next.js (`apps/web`)|
+|---|---|---|
+|설정 읽기|`configService.get(EnvKeys.PORT)`|`process.env.NEXT_PUBLIC_API_URL`|
+|로그인|`AuthService.login()`|`lib/api.ts`의 `login()` → `fetch('/auth/login')`|
+|"나" 조회|`@UserId()` + `UsersService.findMe()`|`Authorization: Bearer` + `GET /auth/me`|
+|인증 강제|`JwtAuthGuard` (Guard가 차단)|토큰 없으면 요청 안 보내거나 UI에서 로그인 유도|
+|역할 제한|`@Roles('admin')` + `RolesGuard`|토큰의 role을 클라이언트에서 확인해서 UI 분기|
+|에러 처리|`throw new NotFoundException()`|`fetch` 응답의 `res.ok` 체크 후 throw|
 
 ---
 
@@ -217,44 +265,120 @@ Client Component가 Server Component를 포함할 수 없음
 # App Router 폴더 구조 ⭐️⭐️⭐️⭐️
 
 ```txt
-app/
-├── layout.tsx           루트 레이아웃 — 모든 페이지 공통 (html, body 태그)
-├── page.tsx             루트 페이지 → /
-├── loading.tsx          로딩 UI (Suspense 자동 적용)
-├── error.tsx            에러 UI
-├── not-found.tsx        404 페이지
+apps/web/
+├── app/                   라우트 (Next.js App Router)
+│   ├── layout.tsx         루트 레이아웃
+│   ├── page.tsx           → /
+│   ├── posts/
+│   │   └── [id]/
+│   │       └── page.tsx   → /posts/123
+│   └── api/
+│       └── route.ts       API Route
 │
-├── posts/
-│   ├── page.tsx         → /posts
-│   └── [id]/
-│       └── page.tsx     → /posts/123
-│
-└── api/
-    └── users/
-        └── route.ts     API Route → GET/POST /api/users
+├── src/ (또는 app과 같은 레벨)
+│   ├── components/        재사용 UI 컴포넌트
+│   ├── hooks/             커스텀 훅 (useXxx)
+│   ├── lib/               API 클라이언트·유틸리티 함수
+│   ├── types/             TypeScript 타입 정의
+│   ├── store/             전역 상태 (Zustand 등)
+│   ├── config/            env 등 설정
+│   └── styles/            글로벌 CSS
 ```
 
-## 각 파일 역할
+## 각 폴더의 역할 ⭐️⭐️⭐️⭐️
+
+```txt
+app/
+  Next.js 라우팅 전용 폴더
+  page.tsx, layout.tsx, loading.tsx, error.tsx 등 특수 파일만
+  실제 비즈니스 로직은 여기 넣지 않음
+
+components/
+  여러 페이지에서 재사용하는 UI 컴포넌트
+  Button, Modal, PostCard, UserAvatar 등
+
+hooks/
+  커스텀 훅 (use로 시작)
+  useAuth, usePosts, useInfiniteScroll 등
+  데이터 페칭·상태 로직을 컴포넌트에서 분리
+
+lib/
+  "라이브러리 수준의 유틸리티" — 범용 함수들
+  API 클라이언트 함수 (login, register, fetchPosts 등)
+  유틸 함수 (cn, formatDate, formatNumber 등)
+  → 컴포넌트도 훅도 아닌 순수 함수
+
+types/
+  TypeScript 타입 정의
+  api.d.ts (openapi-typescript 생성), apiTypes.ts (커스텀 타입)
+
+store/ (선택)
+  전역 상태 관리 (Zustand, Jotai 등)
+  로그인 유저 정보, 알림 등
+```
+
+## lib 폴더 — 무엇을 넣는가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// page.tsx — 페이지 컴포넌트 (라우트의 UI)
-export default function Page() { ... }
+// lib/api.ts — NestJS API 클라이언트
+// 서버에 요청을 보내는 함수들을 여기 모아둠
 
-// layout.tsx — 레이아웃 (하위 page들에 공유)
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return <div><Header />{children}</div>;
+async function postAuth(
+  path: 'login' | 'register',
+  body: Record<string, string>,
+): Promise<ApiAuthResponse> {
+  const data = await fetchApi<ApiAuthResponse>(`/auth/${path}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  setApiAccessToken(data.accessToken);
+  return {
+    accessToken: data.accessToken,
+    user: { ...data.user, image: data.user.image ?? null },
+  };
 }
 
-// loading.tsx — page.tsx가 로딩 중일 때 표시
-export default function Loading() {
-  return <div>로딩 중...</div>;
+export function login(email: string, password: string) {
+  return postAuth('login', { email: email.trim(), password });
 }
 
-// error.tsx — 에러 발생 시 (반드시 'use client')
-'use client';
-export default function Error({ error, reset }) {
-  return <button onClick={reset}>다시 시도</button>;
+export function register(email: string, password: string, nickname: string) {
+  return postAuth('register', { email: email.trim(), password, nickname: nickname.trim() });
 }
+
+export async function fetchMe(): Promise<ApiAuthUser> {
+  return authFetchApi<ApiAuthUser>('/auth/me');
+}
+```
+
+```typescript
+// lib/utils.ts — 범용 유틸리티
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+// Tailwind 클래스 조합 유틸
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// 날짜 포맷
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat('ko-KR').format(new Date(date));
+}
+```
+
+```txt
+lib에 넣는 기준:
+  ✅ 서버 API 호출 함수 (login, fetchPosts 등)
+  ✅ 범용 유틸리티 (cn, formatDate, formatNumber)
+  ✅ 외부 서비스 클라이언트 설정
+
+  ❌ React 훅 (useState, useEffect 포함) → hooks/
+  ❌ JSX 반환 함수 → components/
+  ❌ 전역 상태 → store/
+
+API 클라이언트 상세 패턴 → [[NextJS_API_Client]]
 ```
 
 ---
