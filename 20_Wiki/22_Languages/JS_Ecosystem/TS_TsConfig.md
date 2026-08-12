@@ -1,16 +1,12 @@
 ---
-aliases:
-  - Monorepo
-  - tsconfig.json
-  - "strictPropertyInitialization: false — NestJS DTO"
-tags:
-  - TypeScript
+aliases: ["strictPropertyInitialization: false — NestJS DTO", Monorepo, tsconfig.json]
+tags: [TypeScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_ImportType]]"
-  - "[[NestJS_Concept]]"
   - "[[Monorepo_PNPM]]"
+  - "[[NestJS_Concept]]"
   - "[[NestJS_DTO]]"
+  - "[[TS_ImportType]]"
 ---
 # TS_TsConfig — tsconfig.json 설정
 
@@ -113,7 +109,6 @@ moduleResolution:
 ```json
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -126,8 +121,14 @@ paths:
   "@/components/Button" → "./src/components/Button"로 해석
   → import 경로에서 ../../../ 대신 @/ 사용 가능
 
-  baseUrl:
-  paths의 기준 경로 (paths에서 . = 이 파일이 있는 위치)
+  현재 방식 — baseUrl 없이 paths만:
+    "paths": { "@/*": ["./src/*"] }
+    → 절대경로로 명시 (TS 7 방향)
+
+  예전 방식 (deprecated 예정):
+    "baseUrl": "."  또는  "baseUrl": "./src"
+    "paths":   { "@/*": ["./src/*"] }
+    → baseUrl이 TS 7에서 제거 예정 → 경고 발생 가능
 
 → 자세한 내용 [[TS_ImportType]] 경로 별칭 섹션
 ```
@@ -139,8 +140,8 @@ paths:
 |`target`|출력 JS 버전|`ES2022`|
 |`strict`|타입 검사 엄격도|`true`|
 |`moduleResolution`|모듈 찾는 방식|`bundler`|
-|`baseUrl`|경로 별칭 기준|`.`|
-|`paths`|경로 별칭 매핑|`{"@/*": ["./src/*"]}`|
+|`baseUrl`|경로 별칭 기준 (TS 7 deprecated 예정)|`.` — paths와 함께 쓰던 방식|
+|`paths`|경로 별칭 매핑|`{"@/*": ["./src/*"]}` — baseUrl 없이 단독 사용 권장|
 |`outDir`|컴파일 출력 폴더|`./dist`|
 |`rootDir`|소스 루트 폴더|`./src`|
 |`esModuleInterop`|CommonJS 모듈 import 편의|`true`|
@@ -228,15 +229,31 @@ exclude:
     "incremental":                  true,
     "skipLibCheck":                 true,
     "strictNullChecks":             true,
+    "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny":                false,
     "strictBindCallApply":          false,
     "noFallthroughCasesInSwitch":   false
-  }
+  },
+  "include": ["src/**/*"],        // src 안의 파일만 컴파일
+  "exclude": ["node_modules", "dist"]  // 외부 패키지·빌드 결과물 제외
 }
 ```
 
 ```txt
+include / exclude가 없으면:
+  tsc가 프로젝트 전체를 스캔 → node_modules·dist 안의 파일까지 컴파일 시도
+  → 불필요한 파일 포함, 컴파일 오류, 속도 저하
+
+include: ["src/**/*"]:
+  src 폴더 아래 모든 .ts 파일만 컴파일
+  rootDir: "./src"와 짝을 맞춰야 함
+
+exclude: ["node_modules", "dist"]:
+  node_modules → 외부 패키지 (이미 컴파일된 JS, 재컴파일 불필요)
+  dist         → 이전 빌드 결과물을 다시 컴파일하지 않도록
+  node_modules는 기본으로 제외되지만 명시하는 것이 관례
+  
 outDir + rootDir — 왜 둘 다 필요한가:
   outDir: "./dist"   → 컴파일 결과물을 dist 폴더에 저장
   rootDir: "./src"   → 소스 파일의 루트가 src 폴더임을 명시
@@ -247,7 +264,9 @@ outDir + rootDir — 왜 둘 다 필요한가:
 
   이유: outDir가 있으면 TS가 src 구조를 그대로 dist에 복사
   rootDir을 알아야 "dist 안에 src 폴더를 만들지 않고" 올바른 경로 생성 가능
+```
 
+```txt
 module + moduleResolution — "nodenext":
   Node.js의 ESM(ECMAScript Module) 방식 사용
   .js 확장자를 import 경로에 명시해야 하는 엄격한 규칙

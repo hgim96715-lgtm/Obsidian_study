@@ -1,22 +1,15 @@
 ---
-aliases:
-  - 모노레포
-  - allowBuilds
-  - monorepo
-  - pnpm workspace
-  - 멀티레포
-tags:
-  - 모노레포
-  - pnpm
+aliases: [멀티레포, 모노레포, allowBuilds, monorepo, pnpm workspace]
+tags: [모노레포, pnpm]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[NestJS_Concept]]"
+  - "[[NestJS_Env_Config]]"
   - "[[NestJS_Migration]]"
   - "[[NestJS_Swagger]]"
   - "[[OpenAPI_Codegen]]"
   - "[[TS_TsConfig]]"
-  - "[[NestJS_Concept]]"
-  - "[[NestJS_Env_Config]]"
 ---
 # Monorepo_PNPM — pnpm 워크스페이스로 모노레포 구성하기
 
@@ -444,13 +437,166 @@ private: true — 루트 패키지 자체가 npm에 publish되는 걸 방지
 각 앱의 스크립트를 루트에서 실행할 수 있게 등록해두면 CI/배포에서 편리함
 ```
 
+## 앱별 포트 지정
+
+```json
+// apps/api/package.json — NestJS 기본값 3030
+{
+  "name": "api",
+  "scripts": {
+    "start:dev": "nest start --watch"
+  }
+}
+// NestJS 포트는 main.ts에서 configService.get(EnvKeys.PORT) ?? 3030
+
+// apps/web/package.json — 포트 직접 지정
+{
+  "name": "web",
+  "scripts": {
+    "dev":   "next dev -p 3051",
+    "build": "next build",
+    "start": "next start -p 3051",
+    "lint":  "eslint"
+  }
+}
+```
+
+```txt
+Next.js 포트를 3051로 바꾸는 이유:
+  기본값 3000은 다른 서비스와 충돌하기 쉬움
+  NestJS(3030)와 구분 → localhost:3030 (API), localhost:3051 (Web)
+  -p 플래그 = --port 옵션 (dev/start 둘 다 지정해야 함)
+
+NEXT_PUBLIC_API_URL 도 같이 맞춰야 함:
+  .env.local → NEXT_PUBLIC_API_URL=http://localhost:3030
+```
+
 ---
 
 # 패키지 간 코드 공유
 
-## 로컬 패키지 참조 ⭐️⭐️
+## 언제 shared 패키지가 필요한가 ⭐️⭐️⭐️
+
+```txt
+apps/api와 apps/web 둘 다 필요한 것이 생겼을 때:
+  같은 타입 정의 (예: RoomId, TicketStatus enum)
+  공통 상수 (예: LOBBY_ROOMS 목록)
+  공통 유틸 함수
+
+❌ 이게 없으면:
+  apps/api/src/types/room.ts 에 정의
+  apps/web/lib/types/room.ts 에 똑같이 복사
+  → 하나 바꾸면 다른 쪽도 바꿔야 함 (동기화 문제)
+
+✅ packages/shared 로 묶으면:
+  한 곳에 정의 → api·web 모두 import해서 사용
+  변경 시 자동 반영
+```
+
+## 폴더 구조 세팅 ⭐️⭐️⭐️⭐️
+
+```txt
+pnpm-workspace.yaml의 'packages/*' 가 이미 있어서
+packages/shared 를 만들면 자동으로 워크스페이스 멤버가 됨
+
+my-project/
+├── apps/
+│   ├── api/      NestJS
+│   └── web/      Next.js
+└── packages/
+    └── shared/   ← 공유 타입·상수·유틸
+        ├── package.json
+        ├── tsconfig.json
+        └── src/
+            └── index.ts
+```
+
+## packages/shared 세팅 순서 ⭐️⭐️⭐️⭐️
+
+### 1. package.json 작성
+
 
 ```json
+// packages/shared/package.json
+{
+  "name": "@my-project/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "pnpm run build"
+  }
+}
+```
+
+
+```txt
+name: "@my-project/shared"
+  → import { ... } from '@my-project/shared' 로 사용
+
+main / types: "./dist/..."
+  → 빌드 결과물을 참조
+
+prepare:
+  pnpm install 시 자동으로 build 실행
+  → 처음 설치하거나 CI에서 자동 빌드
+```
+
+### 2. tsconfig.json
+
+```json
+// packages/shared/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true
+  },
+  "include": ["src"]
+}
+```
+
+### 3. src/index.ts 작성
+
+
+```typescript
+// packages/shared/src/index.ts
+// 공유할 타입·상수를 여기 export
+
+export const LOBBY_ROOMS = ['room-a', 'room-b', 'room-c'] as const;
+export type LobbyRoomId = typeof LOBBY_ROOMS[number];
+
+export type TicketStatus = 'pending' | 'confirmed' | 'cancelled';
+```
+
+### 4. 루트 package.json에 빌드 스크립트 추가
+
+```json
+// package.json (루트)
+{
+  "scripts": {
+    "build:shared": "pnpm --filter @my-project/shared build",
+    "dev:api":      "pnpm --filter api dev",
+    "dev:web":      "pnpm --filter web dev"
+  }
+}
+```
+
+### 5. apps에서 의존성 추가
+
+```json
+// apps/api/package.json
+{
+  "dependencies": {
+    "@my-project/shared": "workspace:*"
+  }
+}
+
 // apps/web/package.json
 {
   "dependencies": {
@@ -459,46 +605,32 @@ private: true — 루트 패키지 자체가 npm에 publish되는 걸 방지
 }
 ```
 
+```bash
+# 루트에서 설치 실행 (workspace:* 연결)
+pnpm install
+```
+
+## 사용
+
+```typescript
+// apps/api/src/rooms/rooms.service.ts
+import { LOBBY_ROOMS, type LobbyRoomId } from '@my-project/shared';
+
+// apps/web/lib/rooms.ts
+import { LOBBY_ROOMS, type TicketStatus } from '@my-project/shared';
+```
+
+## workspace:* 란
+
 ```txt
 workspace:* — 로컬 패키지를 npm 레지스트리가 아닌 로컬 폴더에서 직접 참조
   * = 버전 무관, 현재 워크스페이스에 있는 것을 그대로 씀
-  수정 즉시 반영 (publish/버전 업 불필요)
+  수정 후 pnpm build:shared 실행하면 반영 (publish·버전 업 불필요)
 
-packages/ 폴더에 공유 타입이나 유틸을 두고 싶을 때 이 방식으로 참조
-```
-
-## Prisma Client — Web에서 API 것 재사용 ⭐️⭐️
-
-```txt
-Web(Next.js)과 API(NestJS)가 같은 모노레포에 있고 같은 DB를 쓴다면
-Web 쪽에 Prisma Client를 새로 만들지 않고, API가 generate한 결과물을 그대로 import 가능
-```
-
-```typescript
-// apps/web/lib/prisma.ts
-import { PrismaClient } from '../../api/src/generated/prisma/client';
-
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-```
-
-```txt
-경로는 실제 폴더 구조(apps/web, apps/api)에 맞춰야 함
-output 경로를 바꾸면 이 import도 같이 변경 필요
-
-schema.prisma 자체는 API 쪽에만 두고,
-Web은 생성된 Client 코드만 가져다 씀 (schema 직접 소유 안 함)
-
-globalThis 패턴을 쓰는 이유:
-  Next.js 개발 모드에서는 파일 변경 시 모듈을 재평가(hot reload)함
-  그때마다 new PrismaClient()가 호출되면 connection이 계속 생성됨
-  → globalThis에 저장해두고 재사용하면 개발 중 connection 과다 생성 방지
+⚠️ 주의:
+  packages/shared/src를 수정하면 dist도 다시 빌드해야 반영됨
+  → pnpm build:shared 실행 필요
+  → prepare 스크립트가 있으면 pnpm install 시 자동 빌드
 ```
 
 ---
