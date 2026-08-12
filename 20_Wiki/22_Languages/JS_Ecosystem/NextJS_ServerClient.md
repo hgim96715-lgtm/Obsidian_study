@@ -4,6 +4,7 @@ aliases:
   - Server Component
   - use client
   - use server
+  - React Server Component (RSC)
 tags:
   - NextJS
   - React

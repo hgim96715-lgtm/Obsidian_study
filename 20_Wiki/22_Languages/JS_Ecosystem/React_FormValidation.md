@@ -16,14 +16,106 @@ related:
 # React_FormValidation — 폼 검증 (Zod + react-hook-form)
 
 >[!info]
->클라이언트 폼 검증 표준 조합: `Zod 4`(스키마·타입추론) + `react-hook-form`(입력등록·에러·isSubmitting) + `@hookform/resolvers/zod`(연결). 
->Zod 4에서 이메일은 `z.email()` 권장 (`z.string().email()`은 구식). 
->NestJS 쪽은 `class-validator` DTO, Web 쪽은 Zod 스키마로 입구 검증을 양쪽에서 한다. 
->NestJS class-validator → [[NestJS_DTO]]
+>클라이언트 폼 처리 두 가지 패턴. 
+>**React 19 action 패턴**: `<form action={asyncFn}>` — 제출 시 `FormData` 자동 전달, `e.preventDefault()` 불필요, 단순한 폼에 적합.
+> **Zod + react-hook-form**: 스키마 검증·타입추론·필드별 에러 표시, 복잡한 검증 규칙에 적합. 
+> Zod 4에서 이메일은 `z.email()` 권장. 
+> NestJS class-validator → [[NestJS_DTO]]
 
 ---
 
-# 왜 이 조합인가 ⭐️⭐️⭐️⭐️
+# React 19 form action 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+React 19부터 <form action={fn}>에 async 함수를 직접 넘길 수 있음
+
+기존 방식:
+  onSubmit + FormEvent + e.preventDefault()
+
+React 19 방식:
+  form action={asyncFn} — 제출 시 자동으로 FormData를 인자로 전달
+  e.preventDefault() 불필요
+  Server Actions와 같은 문법, 단 'use server' 없는 클라이언트 함수
+```
+
+## 기본 패턴
+
+```typescript
+'use client';
+import { useState } from 'react';
+
+export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+
+  async function login(formData: FormData) {
+    setError(null);
+
+    // FormData에서 값 꺼내기
+    const email    = formData.get('email');
+    const password = formData.get('password');
+
+    // 타입 좁히기 — formData.get()은 string | File | null 반환
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      setError('입력을 확인해 주세요');
+      return;
+    }
+
+    try {
+      const data = await loginRequest(email, password);
+      setSession(data.accessToken, data.user);
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+    }
+  }
+
+  return (
+    <form action={login}>
+      {/* name 속성이 FormData의 키가 됨 */}
+      <input name="email"    type="email"    required />
+      <input name="password" type="password" required />
+      {error && <p>{error}</p>}
+      <button type="submit">로그인</button>
+    </form>
+  );
+}
+```
+
+```txt
+form action={fn} 에서 fn이 받는 것:
+  FormData — <form> 안의 name 속성이 있는 모든 input 값
+  formData.get('email') → input[name="email"]의 값
+
+formData.get() 반환 타입 = string | File | null:
+  string → 텍스트 input
+  File   → input[type="file"]
+  null   → 해당 name 없음
+  → typeof email !== 'string' 체크 필요
+
+e.preventDefault() 가 없는 이유:
+  form action={fn} 방식은 React가 제출을 가로채서
+  fn(formData)를 직접 호출 — 브라우저 기본 동작이 자동으로 막힘
+```
+
+## 언제 어떤 패턴을
+
+```txt
+React 19 action + FormData:
+  ✅ 검증 규칙이 단순할 때 (required, type="email" 정도)
+  ✅ 서드파티 라이브러리 없이 가볍게 만들 때
+  ❌ 복잡한 검증 메시지 (비번 8자, 이메일 형식 오류 표시)
+  ❌ 여러 필드 의존 검증 (비번 확인 일치 등)
+
+Zod + react-hook-form:
+  ✅ 복잡한 검증 규칙 (min, email, refine 등)
+  ✅ 필드별 즉각적인 에러 표시
+  ✅ NestJS DTO와 검증 규칙을 맞춰야 할 때
+  ❌ 설정이 필요 (zodResolver, register, errors 관리)
+```
+
+---
+
+# 왜 Zod + react-hook-form 인가 ⭐️⭐️⭐️⭐️
 
 ```txt
 ❌ 수동 검증 객체 (authFormErrors.ts 식):
@@ -122,7 +214,6 @@ z.object({ 키: 스키마, ... }):
   register('email')  ← 불일치 → 검증이 적용 안 됨
 ```
 
-
 ```typescript
 // z.infer — 스키마에서 TypeScript 타입 자동 추론
 type LoginValues = z.infer<typeof loginSchema>;
@@ -133,7 +224,6 @@ const { register } = useForm<LoginValues>({
   resolver: zodResolver(loginSchema),
 });
 ```
-
 
 ```txt
 z.infer<typeof schema>:
@@ -183,7 +273,6 @@ export const registerSchema = z.object({
 export type LoginValues    = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;
 ```
-
 
 ```txt
 z.infer<typeof schema>:
@@ -329,6 +418,7 @@ setError('root', { message }):
 ```
 
 ---
+
 # react-hook-form + Zod — 내부 흐름 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -350,7 +440,9 @@ setError('root', { message }):
 ⑤ isSubmitting
    onSubmit의 async 함수가 끝날 때까지 true → 버튼 disabled 처리
 ```
+
 ---
+
 # Zod vs setError — 핵심 구분 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -391,8 +483,6 @@ const onSubmit = async (data: LoginValues) => {
 };
 ```
 
-txt
-
 ```txt
 setError('email', { message })  → errors.email.message (필드 아래)
 setError('root',  { message })  → errors.root.message  (폼 공통 알림)
@@ -407,8 +497,6 @@ message.includes('...') 분기:
   setError in catch = 서버가 거절했을 때 UI에 에러 붙이기
 ```
 
-
-----
 # API 에러 vs 스키마 에러 ⭐️⭐️⭐️⭐️
 
 ```txt

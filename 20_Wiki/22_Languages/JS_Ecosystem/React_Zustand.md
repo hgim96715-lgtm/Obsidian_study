@@ -9,6 +9,10 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_AuthState]]"
+  - "[[React_AsyncUI]]"
+  - "[[JS_WebStorage]]"
+  - "[[NextJS_TokenStorage]]"
+  - "[[TS_Type_Guards]]"
 ---
 # React_Zustand — 전역 상태 관리
 
@@ -315,6 +319,113 @@ clearSession();
 // 컴포넌트에서 읽기
 const user        = useAuthStore((s) => s.user);
 const accessToken = useAuthStore((s) => s.accessToken);
+```
+
+## AuthBootstrap — 앱 시작 시 세션 복구 ⭐️⭐️⭐️⭐️
+
+```txt
+왜 AuthBootstrap을 따로 분리하는가:
+  app/layout.tsx = Server Component (기본값)
+  → useEffect·localStorage·Zustand 훅 전부 사용 불가
+
+  해결:
+  'use client' 래퍼 컴포넌트(AuthBootstrap)를 만들어서
+  클라이언트 전용 로직(hydrate, /auth/me)을 여기에 격리
+  layout.tsx는 서버 컴포넌트 유지하면서 AuthBootstrap만 감싸기
+
+문제:
+  앱이 시작되면 Zustand 스토어는 초기값(null)으로 시작
+  localStorage에 토큰이 있어도 모름 → 비로그인 상태로 출발
+
+해결 — 2단계 복구:
+  1단계: hydrate() → localStorage에서 accessToken 꺼내 Zustand에 넣기
+  2단계: accessToken이 생기면 → /auth/me 호출 → user 정보 복원
+```
+
+```typescript
+// components/auth/AuthBootstrap.tsx
+'use client';
+import { useEffect }                          from 'react';
+import { apiFetch }                           from '@/lib/api';
+import { useAuthStore, type AuthUser }        from '@/lib/auth-store';
+
+export function AuthBootstrap({ children }: { children: React.ReactNode }) {
+  const hydrate      = useAuthStore((s) => s.hydrate);
+  const accessToken  = useAuthStore((s) => s.accessToken);
+  const setSession   = useAuthStore((s) => s.setSession);
+  const clearSession = useAuthStore((s) => s.clearSession);
+
+  // 1단계 — 마운트 1회: localStorage → Zustand로 토큰 복원
+  useEffect(() => {
+    hydrate();
+    // accessToken이 생기면 아래 useEffect가 감지해서 /auth/me 실행
+  }, [hydrate]);
+
+  // 2단계 — accessToken이 생길 때: /auth/me로 user 정보 복원
+  useEffect(() => {
+    if (!accessToken) return;  // 토큰 없으면 실행 안 함
+
+    const token = accessToken;
+    let cancelled = false;     // 언마운트·재실행 시 이전 fetch 무시
+
+    async function fetchUser() {
+      try {
+        const me = await apiFetch<AuthUser>('/auth/me', { token });
+        if (cancelled) return;
+        setSession(token, me);   // 토큰 + user 함께 저장
+      } catch {
+        if (!cancelled) clearSession();  // 토큰 만료·위조 → 세션 정리
+      }
+    }
+
+    fetchUser();
+    return () => { cancelled = true; };  // 클린업
+  }, [accessToken, setSession, clearSession]);
+
+  return children;  // UI 없이 children을 그대로 렌더링
+}
+```
+
+```typescript
+// app/layout.tsx — 전체 앱을 감싸기
+import { AuthBootstrap } from '@/components/auth/AuthBootstrap';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <AuthBootstrap>
+          {children}
+        </AuthBootstrap>
+      </body>
+    </html>
+  );
+}
+```
+
+```txt
+useEffect가 두 개인 이유:
+  1번: deps = [hydrate] → 마운트 1회만 실행 (localStorage → Zustand)
+  2번: deps = [accessToken, ...] → accessToken이 생길 때 실행 (/auth/me)
+  분리하면 각각 언제 실행되는지가 명확해짐
+
+cancelled 플래그:
+  컴포넌트 언마운트 or accessToken이 바뀌면
+  진행 중인 fetch 결과를 무시 → 언마운트 후 setState 방지
+  → [[React_AsyncUI]] useEffect fetch 섹션
+
+children을 받는 이유:
+  null 반환 대신 children을 감싸는 래퍼
+  <AuthBootstrap>으로 전체를 감싸면
+  "이 안에서 auth가 준비된다"는 의도가 명확
+```
+
+
+```typescript
+// 훅 없이 스토어 직접 접근 (이벤트 핸들러, 비동기 함수 등)
+useAuthStore.getState()           // 현재 상태 읽기
+useAuthStore.getState().logout()  // 액션 실행
+useAuthStore.setState({ user: null })  // 상태 직접 변경
 ```
 
 ---

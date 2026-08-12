@@ -3,12 +3,14 @@ aliases:
   - Access Token Storage
   - authToken
   - localStorage
+  - Zustand
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
   - "[[JS_WebStorage]]"
+  - "[[React_Zustand]]"
 ---
 # NextJS_TokenStorage — 토큰 저장 전략
 
@@ -17,6 +19,7 @@ related:
 >메모리(가장 안전, 새로고침 소멸), localStorage(새로고침 유지, XSS 취약), httpOnly 쿠키(JS 접근 불가, 가장 안전). 
 >실전에서는 메모리 또는 localStorage 중 선택하고 `authToken.ts`로 캡슐화. 
 >JWT 개념 → [[Auth_Concept]]
+>Zustand auth-store에서 localStorage를 함께 관리하는 패턴 → [[React_Zustand]]
 
 ---
 
@@ -195,10 +198,28 @@ export function AuthInitializer() {
   새로고침 복구 로직 불필요
   XSS 대비는 다른 방법으로 (CSP 헤더 등)
 
-이 프로젝트:
-  authToken.ts가 캡슐화되어 있어서
-  나중에 메모리 ↔ localStorage 교체가 쉬움
-  → 먼저 localStorage로 개발하고 나중에 메모리로 전환도 가능
+authToken.ts가 캡슐화되어 있어서
+나중에 메모리 ↔ localStorage 교체가 쉬움
+→ 먼저 localStorage로 개발하고 나중에 메모리로 전환도 가능
+```
+
+## Zustand와 함께 쓸 때
+
+```txt
+authToken.ts (순수 get/set 함수)와 달리
+Zustand auth-store를 쓰면 localStorage + 전역 상태를 한 곳에서 관리
+
+  setSession(token, user):
+    localStorage.setItem + set({ accessToken, user }) 동시에
+
+  clearSession():
+    localStorage.removeItem + set(null) 동시에
+
+  hydrate():
+    앱 시작 시 localStorage → Zustand로 복원
+
+→ [[React_Zustand]] 실전 — 인증 스토어 섹션
+→ AuthBootstrap (앱 시작 시 hydrate + /auth/me 호출) → [[React_Zustand]]
 ```
 
 ---

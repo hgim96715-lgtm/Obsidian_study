@@ -235,6 +235,45 @@ str.replace(/\s/g, '')
 // → ['https://example.com']
 ```
 
+## 이메일 정규식 분해 ⭐️⭐️⭐️⭐️
+
+```typescript
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+```
+
+```txt
+분해:
+  ^           문자열 시작
+  [^\s@]+     공백(\s)도 @도 아닌 문자가 1개 이상  ← 로컬 파트 (hong.gil)
+              [^...] = "이것들을 제외한 모든 문자"
+  @           @ 문자 그대로
+  [^\s@]+     공백도 @도 아닌 문자가 1개 이상       ← 도메인 (example)
+  \.          점 . (이스케이프 — 그냥 .은 "아무 문자"라서)
+  [^\s@]+     공백도 @도 아닌 문자가 1개 이상       ← TLD (com, kr)
+  $           문자열 끝
+
+매칭 예시:
+  hong.gil@example.com   ✅  로컬@도메인.TLD
+  test@a.b               ✅
+  @example.com           ❌  로컬 파트 없음
+  hong@                  ❌  도메인 없음
+  hong example@test.com  ❌  공백 포함
+
+[^\s@] — 이게 핵심:
+  \s = 공백 문자 (스페이스·탭)
+  @  = 골뱅이
+  ^  = 대괄호 안에서는 "제외"를 의미 (문자열 시작의 ^ 와 다름)
+  → 공백이나 @가 아닌 모든 문자 허용
+  → 이메일에 공백이나 @ 여러 개가 들어오는 걸 막음
+```
+
+```typescript
+// 사용
+EMAIL_RE.test('user@example.com')   // true
+EMAIL_RE.test('invalid email')      // false (공백)
+EMAIL_RE.test('user@@example.com')  // false (@ 두 번)
+```
+
 ---
 
 # 캡처 그룹 — 부분 추출 ⭐️⭐️⭐️

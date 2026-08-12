@@ -254,6 +254,94 @@ reqIdRef가 ref인 이유:
 자세한 설명 → [[React_AsyncUI]] reqIdRef 섹션
 ```
 
+## 함수를 ref로 보관 — deps 안정화 패턴 ⭐️⭐️⭐️
+
+```typescript
+// useAvailabilityCheck 같은 커스텀 훅에서
+// validate / check 를 훅 deps에 넣지 않는 패턴
+
+const validateRef = useRef(validate);
+const checkRef    = useRef(check);
+validateRef.current = validate;  // 매 렌더마다 최신 함수로 갱신
+checkRef.current    = check;
+```
+
+
+```txt
+왜 이 패턴이 필요한가:
+
+  validate / check 가 인라인 화살표 함수면
+  → 매 렌더마다 새 함수 객체 생성
+  → useEffect([validate, check]) deps에 넣으면 매 렌더마다 effect 재실행
+
+  해결:
+  validateRef.current = validate  → ref에 최신 함수를 저장
+  useEffect 안에서 validateRef.current() 로 호출
+  → 항상 최신 함수를 쓰지만 deps에는 ref만 있어서 재실행 없음
+
+  deps에 ref를 넣지 않아도 되는 이유:
+  ref 자체({ current })는 렌더 간 동일한 객체
+  → deps 변경 감지에 걸리지 않음
+  → ref.current만 바뀌지 ref 자체는 안 바뀜
+```
+
+```typescript
+// 실전 — debounce 훅에서 함수 안정화
+function useAvailabilityCheck({
+  value,
+  validate,  // 렌더마다 새 함수일 수 있음
+  check,     // 렌더마다 새 함수일 수 있음
+}: Props) {
+  const [status, setStatus] = useState<Status>('idle');
+
+  // ref에 최신 함수 저장
+  const validateRef = useRef(validate);
+  const checkRef    = useRef(check);
+  validateRef.current = validate;  // 렌더마다 최신으로 갱신
+  checkRef.current    = check;
+
+  useEffect(() => {
+    const trimmed = value.trim();
+    if (!trimmed) { setStatus('idle'); return; }
+
+    if (!validateRef.current(trimmed)) {
+      setStatus('invalid');         // validate 최신 함수 호출
+      return;
+    }
+
+    setStatus('checking');
+    const timer = setTimeout(async () => {
+      const ok = await checkRef.current(trimmed); // check 최신 함수 호출
+      setStatus(ok ? 'ok' : 'taken');
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [value]);             // validate·check 없이 value만 deps
+  //  ↑ validateRef·checkRef는 deps에 안 넣음
+  //    ref는 렌더 간 동일 객체라서 deps에 넣어도 의미 없음
+
+  return status;
+}
+```
+
+
+```txt
+상태 흐름:
+  idle → (입력) → invalid (형식 오류) 또는 checking
+  checking → (400ms debounce 후 API 호출) → ok | taken
+
+deps에 validate·check를 안 넣는 이유:
+  넣으면: 부모 컴포넌트가 리렌더될 때마다 새 함수 → debounce 리셋
+  ref 패턴: 최신 함수는 항상 쓰면서 불필요한 effect 재실행 방지
+```
+
+
+
+
+
+
+
+
 ## 드래그 / 그리기 진행 중 데이터 ⭐️⭐️⭐️
 
 ```typescript

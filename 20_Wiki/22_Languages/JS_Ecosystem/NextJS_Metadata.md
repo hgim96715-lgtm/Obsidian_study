@@ -1,201 +1,248 @@
 ---
-aliases: [generateMetadata, Metadata, SEO, template, title, viewport]
+aliases:
+  - Metadata
+  - template
+  - title
+  - viewport
+  - generateMetadata
 tags:
   - NextJS
+  - HTML
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[NextJS_Concept]]"
+---
+# NextJS_Metadata — 메타데이터
+
+>[!info]
+>메타데이터 = HTML `<head>` 안에 들어가는 "페이지에 대한 정보". 
+>브라우저 탭 이름·SEO·소셜 공유 미리보기를 제어한다. 
+>Next.js App Router에서는 `export const metadata`로 선언하거나 `generateMetadata()`로 동적 생성.
+
 ---
 
-# NextJS_Metadata — `<head>` 태그를 선언적으로 관리하기
-
-> [!info] 
->  App Router에서는 `<Head>` JSX를 직접 안 쓰고, `layout.tsx`/`page.tsx`에서 `metadata` 객체(정적) 또는 `generateMetadata()` 함수(동적)를 export하면 Next.js가 그걸 읽어서 `<head>`에 `<title>`/`<meta>` 태그를 자동으로 만들어준다. 
->  Server Component에서만 동작하고, 부모 layout의 metadata는 자식 page의 metadata와 합쳐진다(병합, 덮어쓰기 아님).
+# 메타데이터란 ⭐️⭐️⭐️⭐️
 
 ```txt
-metadata를 안 적어도 항상 들어가는 기본 태그 2개:
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+브라우저가 페이지를 보여줄 때 <head> 안의 태그들을 읽음:
+  <title>CINEMO</title>
+  <meta name="description" content="영화관 로비 소셜">
+  <meta property="og:image" content="/og.png">
+
+이 태그들을 "메타데이터"라고 함 — 페이지 내용이 아닌 페이지에 대한 정보
+
+어디에 쓰이는가:
+  브라우저 탭 이름            → <title>
+  구글 검색 결과 제목·설명     → <title>, <meta name="description">
+  카카오톡·슬랙에 링크 공유 시 → <meta property="og:*"> (Open Graph)
+  트위터 카드                 → <meta name="twitter:*">
+  파비콘 (탭 아이콘)          → <link rel="icon">
+```
+
+```txt
+Next.js 이전에는:
+  <head> 태그를 직접 작성하거나
+  라이브러리(react-helmet 등)로 관리
+
+Next.js App Router:
+  export const metadata = { title: '...' } 한 줄로
+  Next.js가 알아서 <head>에 넣어줌
+  → 페이지마다 다른 제목·설명을 쉽게 관리 가능
 ```
 
 ---
 
-# 정적 메타데이터 — export const metadata ⭐️⭐️⭐️
+# 왜 메타데이터가 필요한가 ⭐️⭐️⭐️
 
-```tsx
+```txt
+<title> — 브라우저 탭 이름, 검색엔진 결과 제목
+<meta name="description"> — 검색엔진 결과 설명문
+
+Open Graph (og:) — 카카오톡·슬랙·트위터 등에 공유할 때 미리보기
+  og:title, og:description, og:image → 공유 카드에 표시
+
+robots — 검색엔진이 이 페이지를 색인할지
+```
+
+---
+
+# 정적 메타데이터 — export const metadata ⭐️⭐️⭐️⭐️
+
+```typescript
 // app/layout.tsx 또는 app/page.tsx
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'My App',
-  description: '사람이 추천하는 음악 커뮤니티',
+  title: 'CINEMO',
+  description: '영화관 로비 소셜 — 매표소 · 뽑기 · 후기방',
 };
 ```
 
 ```txt
-이 값은 빌드 타임에 결정됨 — 페이지 내용이 요청마다 달라지지 않는다면(런타임 데이터에
-의존하지 않는다면) 이 방식이 기본값임. 비용이 거의 안 들어서 가능하면 이쪽을 먼저 고려
+layout.tsx에 선언:
+  모든 하위 페이지에 기본값으로 적용
 
-⚠️ Server Component(layout.tsx/page.tsx)에서만 동작함 — 'use client' 컴포넌트에서는 못 씀
-   (metadata는 페이지 자체의 속성이라, 클라이언트에서 나중에 바뀌는 것과는 다른 층위의 개념)
+page.tsx에 선언:
+  그 페이지에서만 적용 (layout을 덮어씀)
+
+두 곳 모두 있으면:
+  page.tsx > layout.tsx (더 구체적인 쪽이 우선)
 ```
 
 ---
 
-# 동적 메타데이터 — generateMetadata() ⭐️⭐️⭐️
+# Metadata 주요 필드 ⭐️⭐️⭐️⭐️
 
-```tsx
-// app/posts/[id]/page.tsx — 게시글 제목을 메타데이터에도 그대로 쓰고 싶을 때
+```typescript
+export const metadata: Metadata = {
+  // 기본
+  title:       'CINEMO',
+  description: '영화관 로비 소셜',
+
+  // title 템플릿 — 하위 페이지에서 활용
+  title: {
+    default:  'CINEMO',            // 하위 page에 title 없으면 이것
+    template: '%s | CINEMO',       // 하위 page.title → "영화 목록 | CINEMO"
+  },
+
+  // Open Graph — SNS 공유 미리보기
+  openGraph: {
+    title:       'CINEMO',
+    description: '영화관 로비 소셜',
+    url:         'https://cinemo.example.com',
+    siteName:    'CINEMO',
+    images: [
+      {
+        url:    '/og-image.png',   // public/ 폴더 기준
+        width:  1200,
+        height: 630,
+        alt:    'CINEMO 로비',
+      },
+    ],
+    locale: 'ko_KR',
+    type:   'website',
+  },
+
+  // 트위터 카드
+  twitter: {
+    card:        'summary_large_image',
+    title:       'CINEMO',
+    description: '영화관 로비 소셜',
+    images:      ['/og-image.png'],
+  },
+
+  // 검색엔진 색인 제어
+  robots: {
+    index:  true,
+    follow: true,
+  },
+
+  // 파비콘 · 앱 아이콘
+  icons: {
+    icon:  '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
+
+  // 정규 URL (중복 페이지 처리)
+  alternates: {
+    canonical: 'https://cinemo.example.com',
+  },
+};
+```
+
+---
+
+# title 템플릿 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// app/layout.tsx — 루트 레이아웃에 템플릿 설정
+export const metadata: Metadata = {
+  title: {
+    default:  'CINEMO',         // 하위 페이지에 title 없으면 이것
+    template: '%s | CINEMO',    // %s = 하위 page.tsx의 title
+  },
+};
+
+// app/posts/page.tsx — title만 지정
+export const metadata: Metadata = {
+  title: '후기방',              // → 탭에 "후기방 | CINEMO" 로 표시
+};
+
+// app/page.tsx — title 없으면 default 사용
+// → 탭에 "CINEMO" 로 표시
+```
+
+```txt
+%s 자리에 하위 page의 title이 들어감
+모든 페이지마다 " | CINEMO" 붙이지 않아도 됨
+하위 페이지에서 title만 지정하면 자동으로 템플릿 적용
+```
+
+---
+
+# 동적 메타데이터 — generateMetadata ⭐️⭐️⭐️⭐️
+
+```typescript
+// app/posts/[id]/page.tsx — 동적 라우트
 import type { Metadata } from 'next';
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: { id: string };
+};
 
+// 서버에서 실행 — params로 데이터 fetch 후 메타데이터 생성
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const post = await fetchPost(id); // 이미 page 컴포넌트에서도 호출하는 함수 — fetch는 자동 중복 제거됨
+  const post = await fetchPost(params.id);
 
   return {
-    title: post.title,
-    description: post.content.slice(0, 100),
+    title:       post.title,
+    description: post.summary,
+    openGraph: {
+      title:  post.title,
+      images: [post.thumbnailUrl],
+    },
   };
 }
 
-export default async function Page({ params }: Props) {
-  const { id } = await params;
-  const post = await fetchPost(id);
-  return <article>{post.title}</article>;
+export default function PostPage({ params }: Props) {
+  // ...
 }
 ```
 
 ```txt
-generateMetadata와 page 컴포넌트가 같은 fetchPost(id)를 따로 호출해도,
-Next.js가 같은 요청을 자동으로 중복 제거(memoization)해줌 — 두 번 호출한다고 두 번 요청 가는 게 아님
+generateMetadata vs export const metadata:
+  export const metadata  → 빌드 시 고정값 (정적)
+  generateMetadata()     → 요청마다 실행 (동적, params·fetch 가능)
+  → 동적 라우트([id])처럼 페이지마다 다른 제목이 필요할 때 사용
 
-언제 generateMetadata를 쓰나:
-  제목/설명이 라우트 파라미터나 DB/API에서 가져온 데이터에 따라 달라질 때(블로그 글, 상품 상세 등)
-  런타임 데이터에 의존하지 않는다면 굳이 안 쓰고 정적 metadata 객체로 충분함 — 원칙은 "필요할 때만"
+generateMetadata도 async 함수:
+  fetch로 DB·API 조회 가능
+  Next.js가 데이터 페칭을 자동으로 중복 제거 (page.tsx와 같은 fetch면 캐시 재사용)
 ```
 
 ---
 
-# layout과 page의 상속/병합 — cascade ⭐️⭐️⭐️
+# 파일 기반 메타데이터
 
 ```txt
-metadata는 라우트 트리를 따라 "위에서 아래로" 내려오면서 합쳐짐(cascade)
-  root layout.tsx 의 metadata = 사이트 전체 기본값
-  그 아래 page.tsx 의 metadata = 그 페이지만의 값 — 같은 필드가 있으면 자식 값이 부모 값을 덮어씀
+app/ 폴더 안에 특정 파일명으로 두면 자동 적용:
 
-⚠️ "덮어쓰기"가 전체 교체가 아니라 부분 병합(shallow merge)이라는 점이 중요:
-  자식이 title만 새로 정의하면 title만 바뀌고, description처럼 자식이 안 적은 필드는
-  부모 값이 그대로 유지됨 — 부모의 metadata 전체가 사라지는 게 아님
+  favicon.ico     → /favicon.ico (브라우저 탭 아이콘)
+  icon.png        → 앱 아이콘
+  apple-icon.png  → iOS 홈화면 아이콘
+  opengraph-image.png → OG 이미지 (코드 없이 파일만으로)
+  robots.txt      → 검색엔진 크롤링 규칙
+  sitemap.ts      → 사이트맵 자동 생성
 ```
 
-|위치|정의한 필드|결과|
-|---|---|---|
-|`app/layout.tsx`|`title: 'My App'`, `description: '...'`|사이트 기본값|
-|`app/posts/page.tsx`|`title: '게시글 목록'`|title만 교체, description은 layout 값 그대로 유지|
+```typescript
+// app/sitemap.ts
+import type { MetadataRoute } from 'next';
 
----
-
-# title — 문자열 vs 템플릿 객체 ⭐️⭐️⭐️
-
-```tsx
-// app/layout.tsx — 루트에서 템플릿을 한 번만 정의
-export const metadata: Metadata = {
-  title: {
-    default: 'My App',        // 자식이 title을 따로 안 적었을 때 쓰이는 기본값
-    template: '%s | My App',  // 자식이 title을 적으면 %s 자리에 그 값이 들어감
-  },
-};
+export default function sitemap(): MetadataRoute.Sitemap {
+  return [
+    { url: 'https://cinemo.example.com',       lastModified: new Date() },
+    { url: 'https://cinemo.example.com/posts', lastModified: new Date() },
+  ];
+}
 ```
-
-```tsx
-// app/posts/page.tsx — 자식은 이름만 적으면 됨
-export const metadata: Metadata = {
-  title: '게시글 목록', // 최종 결과: "게시글 목록 | My App"
-};
-```
-
-```txt
-이 패턴이 유용한 이유:
-  사이트 이름을 모든 페이지마다 "게시글 목록 | My App" 처럼 반복해서 적지 않아도 됨
-  사이트 이름이 바뀌면 루트 layout 한 곳만 고치면 모든 페이지에 반영됨
-
-title.default는 "자식이 title 자체를 아예 안 적었을 때"의 fallback이고,
-title.template은 "자식이 title을 적었을 때, 거기에 추가로 씌우는 틀" — 역할이 다름
-```
-
----
-
-# Metadata와 같이 알아야 하는 것들
-
-## viewport — metadata에서 분리된 별도 export ⭐️⭐️
-
-```txt
-예전엔 viewport/themeColor/colorScheme도 metadata 객체 안에 같이 넣었는데,
-지금은 별도로 분리된 viewport export(또는 generateViewport 함수)를 씀
-metadata 안에 그대로 넣으면 deprecated 경고가 뜸
-```
-
-```tsx
-// app/layout.tsx
-import type { Viewport } from 'next';
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: '#000000',
-};
-```
-
-## metadataBase — 상대경로의 기준점 ⭐️
-
-```tsx
-export const metadata: Metadata = {
-  metadataBase: new URL('https://example.com'),
-  openGraph: {
-    images: ['/og-image.png'], // metadataBase 덕분에 https://example.com/og-image.png 로 해석됨
-  },
-};
-```
-
-```txt
-openGraph.images 같은 필드에 절대 URL이 아니라 상대 경로만 적어도,
-metadataBase를 한 번 지정해두면 Next.js가 자동으로 합쳐서 완전한 URL을 만들어줌
-보통 루트 layout.tsx에 한 번만 지정해두는 값
-```
-
-## 파일 기반 메타데이터 — 코드 대신 파일로 ⭐️⭐️
-
-```txt
-metadata 객체 말고, app/ 폴더에 정해진 이름의 파일을 두면 자동으로 인식되는 방식도 있음
-```
-
-|파일명|역할|
-|---|---|
-|`favicon.ico`, `icon.png`|브라우저 탭/북마크에 쓰이는 아이콘|
-|`apple-icon.png`|iOS 홈 화면 추가 시 쓰이는 아이콘|
-|`opengraph-image.png` (또는 `.tsx`)|소셜 공유 시 보이는 미리보기 이미지 — `.tsx`로 만들면 동적 생성 가능|
-|`twitter-image.png`|트위터(X) 공유 전용 이미지 (없으면 opengraph-image 재사용)|
-|`robots.ts`|검색엔진 크롤러에게 어떤 경로를 허용/차단할지 알려줌|
-|`sitemap.ts`|사이트의 전체 URL 목록을 검색엔진에 제공|
-
-```txt
-이 파일들도 .tsx로 만들면(opengraph-image.tsx 등) 코드로 동적 생성 가능 —
-정적 이미지 파일이면 그냥 그대로 두면 됨, 둘 다 같은 위치(라우트 폴더 안)에 둠
-```
-
----
-
-# 한눈에
-
-| 키워드                                | 한 줄 정리                                                               |
-| ---------------------------------- | -------------------------------------------------------------------- |
-| `export const metadata`            | 정적 메타데이터 — 빌드 타임에 결정, 비용 거의 없음                                       |
-| `generateMetadata()`               | 동적 메타데이터 — params/fetch 데이터에 따라 달라질 때만                               |
-| 적용 위치                              | `layout.tsx`/`page.tsx` (Server Component) — `'use client'`에서는 불가    |
-| 상속/병합                              | 부모(layout) → 자식(page)으로 cascade, 부분 병합(자식이 안 적은 필드는 부모 값 유지)         |
-| `title.default` / `title.template` | 기본값(자식이 안 적었을 때) / 틀(자식이 적었을 때 씌우는 형식)                               |
-| `viewport`                         | metadata에서 분리된 별도 export — themeColor 등도 여기로 이동                      |
-| `metadataBase`                     | 상대 경로 이미지/URL을 절대 URL로 자동 변환하는 기준점                                   |
-| 파일 기반 메타데이터                        | favicon, opengraph-image, robots.ts, sitemap.ts — 코드 대신 정해진 파일명으로 처리 |

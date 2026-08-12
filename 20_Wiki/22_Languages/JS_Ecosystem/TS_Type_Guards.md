@@ -1,16 +1,10 @@
 ---
 aliases:
-  - typeof
-  - instanceof
-  - any
-  - unknown
-  - in
-  - kind
-  - is
-  - never
-  - as const
-  - void
-  - 제어 흐름 타입 좁히기 — early return
+  - Client Component
+  - Server Component
+  - use client
+  - use server
+  - async/await 사이에서 narrowing이 풀린다
 tags:
   - TypeScript
 related:
@@ -57,6 +51,53 @@ async function confirmDelete() {
 
   이 줄을 통과했다는 것 = focusMessage가 null이 아님이 보장됨
   TypeScript가 이 논리를 자동으로 추론 → 이후 코드에서 타입 좁혀짐
+```
+
+## async/await 사이에서 narrowing이 풀린다 ⭐️⭐️⭐️⭐️
+
+```typescript
+// accessToken: string | null
+
+async function fetchUser() {
+  if (!accessToken) return;
+  // 여기서는 string으로 좁혀짐
+
+  // ❌ await 뒤에서는 다시 string | null
+  const me = await apiFetch('/auth/me', { token: accessToken });
+  //                                              ↑ TS 에러 또는 경고
+  setSession(accessToken, me);  // accessToken이 또 null일 수 있다고 봄
+}
+```
+
+```typescript
+// ✅ await 전에 const로 고정
+async function fetchUser() {
+  if (!accessToken) return;
+
+  const token = accessToken;  // string으로 확정한 값을 변수에 캡처
+  //    ↑ const이므로 이후 절대 바뀌지 않음 → TS가 항상 string으로 인식
+
+  const me = await apiFetch('/auth/me', { token });   // ✅
+  setSession(token, me);                               // ✅
+}
+```
+
+```txt
+왜 await 뒤에서 narrowing이 풀리는가:
+  accessToken은 클로저 변수 (외부에서 바뀔 수 있음)
+  await 지점에서 실행이 잠시 멈추고 다른 코드가 실행될 수 있음
+  → 그 사이에 accessToken이 null로 바뀔 수도 있다고 TypeScript가 판단
+  → narrowing 해제
+
+  const token = accessToken:
+  const = 재할당 불가 → 이후 절대 바뀌지 않음
+  → TypeScript가 항상 string으로 추론
+  → await 몇 번을 해도 token은 string 유지
+
+실전 패턴:
+  if (!가변값) return;
+  const 고정값 = 가변값;  // ← await 전에 캡처
+  await 비동기작업(고정값);
 ```
 
 ## 왜 다른 변수 체크는 도움이 안 되는가 ⭐️⭐️⭐️⭐️

@@ -20,6 +20,7 @@ aliases:
   - Truthy
   - Falsy
   - _접두사
+  - "! 연산자"
 tags:
   - JavaScript
 related:
@@ -383,6 +384,77 @@ Boolean(value)                  // 동일
   count ?? 10  →  count가 null/undefined일 때만 10
 ```
 
+## ! (논리 NOT) — truthy를 false로, falsy를 true로 ⭐️⭐️⭐️⭐️
+
+```typescript
+!true           // false
+!false          // true
+!isRoomMuted()  // isRoomMuted()가 true면 false, false면 true
+!user           // user가 null/undefined/''/''/0 이면 true
+
+!null        // true  (null은 falsy → 뒤집으면 true)
+!undefined   // true
+!''          // true  (빈 문자열은 falsy → 뒤집으면 true)
+!0           // true
+
+!'hello'     // false (문자열은 truthy → 뒤집으면 false)
+!{}          // false (객체는 truthy → 뒤집으면 false)
+![]          // false (배열은 truthy → 뒤집으면 false)
+```
+
+```txt
+! 는 "아닌" — 조건을 반대로 뒤집음
+
+  !isRoomMuted(userId, roomId) → "뮤트가 아닌" — 뮤트 안 된 방
+  !e.shiftKey                  → "Shift 키 안 눌림"
+  !e.nativeEvent.isComposing   → "한글 조합 중 아님"
+```
+
+```typescript
+// 실전 패턴 — !값으로 boolean 반환
+async function checkEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+
+  if (!normalized) return { available: false };
+  //   ↑ ""(빈 문자열)은 falsy → !""  = true → 조건 진입
+  //     "abc"는 truthy       → !"abc" = false → 조건 통과
+
+  const existing = await this.prisma.user.findUnique({ ... });
+
+  return { available: !existing };
+  //                  ↑ existing이 null이면  → !null  = true  (사용 가능)
+  //                    existing이 객체이면  → !{...} = false (이미 사용 중)
+}
+```
+
+txt
+
+```txt
+! 를 쓰는 이유:
+  "null이면 true, 아니면 false" 를 한 글자로 표현
+  !existing = existing === null ? true : false 와 같은 의미
+
+  !normalized:
+  "" (빈 문자열) → falsy → !""  = true  → if 조건 진입
+  "abc"          → truthy → !"abc" = false → if 건너뜀
+
+  !existing:
+  null  → falsy → !null   = true  → "사용 가능"
+  객체  → truthy → !{...} = false → "이미 사용 중"
+```
+
+txt
+
+```txt
+⚠️ || 를 기본값으로 쓸 때 주의:
+  0이나 '' 도 유효한 값인데 falsy라서 기본값으로 넘어감
+  count || 10  →  count가 0이면 10이 됨 (의도와 다를 수 있음)
+  → 0, '' 도 유효한 값이면 ?? (nullish coalescing) 사용
+  count ?? 10  →  count가 null/undefined일 때만 10
+```
+
+
+
 ---
 
 # 논리 연산자 ⭐️⭐️⭐️⭐️
@@ -549,30 +621,6 @@ prev?.()가 필요한 이유:
   prev가 함수면 먼저 실행하고 새 동작 실행
 
 외부 스크립트 로드 시 자주 등장 (YouTube IFrame API 등)
-```
-
----
-
-# ! — NOT 연산 (논리 부정) ⭐️⭐️⭐️⭐️
-
-```typescript
-!true           // false
-!false          // true
-!isRoomMuted()  // isRoomMuted()가 true면 false, false면 true
-!user           // user가 null/undefined/''/''/0 이면 true
-```
-
-```txt
-! 는 "아닌" — 조건을 반대로 뒤집음
-
-  !isRoomMuted(userId, roomId)
-  → "뮤트가 아닌" — 뮤트 안 된 방
-
-  !e.shiftKey
-  → "Shift 키 안 눌림"
-
-  !e.nativeEvent.isComposing
-  → "한글 조합 중 아님"
 ```
 
 ---

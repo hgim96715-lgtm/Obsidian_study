@@ -3,11 +3,14 @@ aliases:
   - FormData
   - multipart/form-data
   - append vs set
+  - React 19
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NextJS_Server_Actions]]"
+  - "[[React_FormValidation]]"
+  - "[[React_useFormStatus]]"
 ---
 # JS_FormData — FormData
 
@@ -175,6 +178,72 @@ export function ImageUpload() {
     </div>
   );
 }
+```
+
+---
+# React 19 — form action에 클라이언트 함수 ⭐️⭐️⭐️⭐️
+
+```txt
+React 19부터 <form action={fn}>에 클라이언트 async 함수를 넘길 수 있음
+제출 시 React가 fn(formData) 자동 호출
+
+Server Actions ('use server') 와 같은 문법이지만
+'use client' 컴포넌트 안에서 선언한 일반 함수
+→ 브라우저에서 실행, fetch 호출 가능
+→ [[React_FormValidation]] React 19 form action 패턴 섹션
+```
+
+```typescript
+'use client';
+import { useState } from 'react';
+
+export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null);
+
+  async function login(formData: FormData) {
+    // formData = form 안의 name 속성 있는 input 전부 담김
+    const email    = formData.get('email');
+    const password = formData.get('password');
+
+    // formData.get() = string | File | null
+    // typeof 체크로 string임을 확정
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      setError('입력을 확인해 주세요');
+      return;
+    }
+
+    try {
+      await loginRequest(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '실패했습니다.');
+    }
+  }
+
+  return (
+    <form action={login}>
+      <input name="email"    type="email"    required />
+      <input name="password" type="password" required />
+      {error && <p>{error}</p>}
+      <button type="submit">로그인</button>
+    </form>
+  );
+}
+```
+
+```txt
+onSubmit과의 차이:
+  기존: <form onSubmit={e => { e.preventDefault(); ... }}>
+  React 19: <form action={fn}> — e.preventDefault() 불필요
+            React가 제출을 가로채서 fn(formData) 자동 호출
+
+formData.get() 타입:
+  string → 텍스트 input
+  File   → input[type="file"]
+  null   → name 없거나 체크박스 미체크
+
+typeof email !== 'string' 체크:
+  File이나 null이 넘어올 수 있어서 narrowing 필요
+  통과하면 email, password는 string으로 확정
 ```
 
 ---
