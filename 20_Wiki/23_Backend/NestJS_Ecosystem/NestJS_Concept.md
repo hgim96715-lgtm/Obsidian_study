@@ -16,6 +16,8 @@ related:
   - "[[NestJS_Controller]]"
   - "[[NestJS_Service_Provider]]"
   - "[[NestJS_CORS]]"
+  - "[[NestJS_Swagger]]"
+  - "[[NestJS_Versioning]]"
 ---
 # NestJS_Concept — NestJS 핵심 개념
 
@@ -355,26 +357,51 @@ DI가 주는 것:
 # 전체 아키텍처 — 파일 구조
 
 ```txt
-src/
-├── main.ts                  앱 시작점 — 포트, 전역 설정
-├── app.module.ts            루트 모듈 — 기능 모듈들 조립
-├── prisma/
-│   └── prisma.service.ts    DB 연결 — @Global()로 전역 제공
-├── auth/
-│   ├── auth.module.ts
-│   ├── auth.controller.ts   /auth/login, /auth/register
-│   ├── auth.service.ts
-│   ├── jwt-auth.guard.ts    전역 Guard
-│   └── decorators/          @UserId(), @Public()
-├── posts/
-│   ├── posts.module.ts
-│   ├── posts.controller.ts  /posts CRUD
-│   ├── posts.service.ts
-│   └── dto/
-│       ├── create-post.dto.ts
-│       ├── update-post.dto.ts
-│       └── list-posts-query.dto.ts
-└── rooms/ ...               다른 기능도 같은 패턴
+apps/api/
+├── prisma/                      ← NestJS 밖 (Prisma 관리 영역)
+│   ├── schema.prisma            모델 정의
+│   ├── prisma.config.ts         datasource URL 설정 (Prisma 7)
+│   └── migrations/              migrate 기록
+│
+└── src/                         ← NestJS 앱 영역
+    ├── main.ts                  앱 시작점 — 포트, 전역 설정
+    ├── app.module.ts            루트 모듈 — 기능 모듈들 조립
+    │
+    ├── config/                  환경변수 관련
+    │   ├── env.keys.ts          EnvKeys 상수 (타입 안전 키 관리)
+    │   └── env.validation.ts    Joi 스키마 (앱 시작 시 env 검증)
+    │
+    ├── prisma/                  ← src 안의 Prisma (NestJS 모듈)
+    │   ├── prisma.module.ts     @Global() 전역 모듈
+    │   └── prisma.service.ts    PrismaClient 확장, $connect/$disconnect
+    │
+    ├── generated/               prisma generate 결과물
+    │   └── prisma/              PrismaClient 타입
+    │
+    ├── auth/
+    │   ├── auth.module.ts
+    │   ├── auth.controller.ts   /auth/login, /auth/register
+    │   ├── auth.service.ts
+    │   ├── jwt-auth.guard.ts    전역 Guard
+    │   ├── roles.guard.ts       @Roles() 검사
+    │   └── decorators/          @UserId(), @Public(), @Roles()
+    │
+    ├── posts/
+    │   ├── posts.module.ts
+    │   ├── posts.controller.ts  /posts CRUD
+    │   ├── posts.service.ts
+    │   └── dto/
+    │       ├── create-post.dto.ts
+    │       ├── update-post.dto.ts
+    │       └── list-posts-query.dto.ts
+    │
+    └── rooms/ ...               다른 기능도 같은 패턴
+
+prisma/ (밖) vs src/prisma/ (안):
+  prisma/         → Prisma 도구 영역 (schema, migrations, config)
+                    pnpm prisma migrate dev 가 여기를 봄
+  src/prisma/     → NestJS 앱 영역 (PrismaModule, PrismaService)
+                    @Injectable(), @Global(), DI로 주입되는 서비스
 ```
 
 ---
@@ -458,6 +485,23 @@ NestFactory.create<NestExpressApplication>(AppModule):
   Express 기반으로 NestJS 앱 생성
   <NestExpressApplication>을 붙이면 Express 전용 메서드 사용 가능
   → app.useBodyParser(), app.set() 등
+
+NestApplication vs NestExpressApplication:
+
+  NestFactory.create(AppModule)                       → NestApplication
+  NestFactory.create<NestExpressApplication>(AppModule) → NestExpressApplication
+
+  NestApplication:
+    Nest 앱 구현체 (추상·범용)
+    Express 전용 API 타입이 약함
+    잘 안 씀
+
+  NestExpressApplication:
+    Express 위에서 도는 Nest 앱
+    useStaticAssets · setViewEngine 등 Express 전용 메서드 타입 잡힘
+    CORS·정적 파일·쿠키 등 Express를 손볼 가능성이 있으면 처음부터 이걸 쓰는 게 깔끔
+
+  → 실무에서는 NestExpressApplication을 쓰는 것이 표준 (이 프로젝트도 동일)
 
 app.setGlobalPrefix('api'):
   모든 라우트 앞에 공통 접두사를 붙임

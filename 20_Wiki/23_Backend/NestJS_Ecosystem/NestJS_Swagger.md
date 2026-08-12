@@ -12,6 +12,8 @@ related:
   - "[[NestJS_DTO]]"
   - "[[NestJS_JwtGuard]]"
   - "[[NextJS_Types]]"
+  - "[[NestJS_Concept]]"
+  - "[[NestJS_Versioning]]"
 ---
 # NestJS_Swagger — Swagger · OpenAPI 문서화
 

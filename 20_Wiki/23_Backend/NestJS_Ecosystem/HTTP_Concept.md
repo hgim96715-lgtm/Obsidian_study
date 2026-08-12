@@ -8,6 +8,7 @@ aliases:
   - Cookie
   - Response
   - HTTPS
+  - 멱등성(Idempotency)
 tags:
   - NodeJS
   - NestJS
@@ -105,6 +106,21 @@ REST API는 HTTP 메서드 + 경로로 "무엇을 어떻게 할지"를 표현하
 |`GET`|`/users/:id`|특정 사용자 조회|`findOne`|
 |`PATCH`|`/users/:id`|특정 사용자 수정|`update`|
 |`DELETE`|`/users/:id`|특정 사용자 삭제|`remove`|
+
+```txt
+멱등성(Idempotency):
+  같은 요청을 여러 번 보내도 결과가 같음
+
+  GET /users/1   → 몇 번 해도 같은 사용자 정보 → 멱등
+  DELETE /users/1 → 이미 삭제됐어도 "없음" 상태 동일 → 멱등
+  POST /orders   → 매번 새 주문이 생김 → 멱등 아님
+
+  실무에서 왜 중요한가:
+  네트워크 오류로 클라이언트가 요청을 재시도할 때
+  GET·DELETE는 재시도해도 안전
+  POST는 재시도하면 중복 데이터 생성 위험
+  → 결제·주문처럼 중요한 POST는 Idempotency-Key 헤더로 중복 방지
+```
 
 ```txt
 :id — 경로 파라미터:

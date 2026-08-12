@@ -1,12 +1,6 @@
 ---
-aliases:
-  - .env
-  - 환경변수
-  - ConfigModule
-  - EnvKeys
-  - Joi
-tags:
-  - NestJS
+aliases: [.env, 환경변수, ConfigModule, EnvKeys, Joi]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[Monorepo_PNPM]]"
@@ -268,7 +262,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   //                         ↑ DI 컨테이너에서 직접 꺼냄
 
-  const port        = configService.get<number>(EnvKeys.PORT) ?? 3030;
+  const port        = configService.get<number>(EnvKeys.PORT) ?? 3030;  // 사용안하면 생략 가능  
   const frontendUrl = configService.get<string>(EnvKeys.FRONTEND_URL);
   const frontendOrigin = frontendUrl ? new URL(frontendUrl).origin : undefined;
 
@@ -444,6 +438,7 @@ import { envValidationSchema } from './config/env.validation';
   imports: [
     ConfigModule.forRoot({
       isGlobal:         true,
+      envFilePath: '.env', // .env 파일 위치 (기본값, 생략 가능)
       validationSchema: envValidationSchema,  // Joi 스키마로 env 검증
       validationOptions: {
         convert: true,   // 문자열 → 스키마 타입으로 자동 변환

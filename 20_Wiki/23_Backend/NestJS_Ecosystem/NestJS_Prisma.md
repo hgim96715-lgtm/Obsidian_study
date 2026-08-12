@@ -4,6 +4,7 @@ aliases:
   - Prisma
   - Prisma ORM
   - Model
+  - $queryRaw · $executeRaw
 tags:
   - NestJS
 related:
@@ -1187,6 +1188,64 @@ Json 컬럼에서는 두 가지 "없음"이 구분됨:
 
 그냥 null을 넘기면 Prisma가 어느 의도인지 헷갈릴 수 있어서
 Json 필드를 명시적으로 비워달라고 할 때는 이 전용 상수를 씀
+```
+
+---
+# $queryRaw · $executeRaw — Raw SQL ⭐️⭐️⭐️
+
+```typescript
+// $queryRaw — 결과값이 필요한 쿼리 (SELECT)
+const result = await this.prisma.$queryRaw`SELECT 1`;
+//                                        ↑ 템플릿 리터럴 문법
+
+// $executeRaw — 결과가 없는 쿼리 (UPDATE, DELETE 등)
+const count = await this.prisma.$executeRaw`UPDATE "users" SET active = true`;
+// → 영향받은 행 수(number)를 반환
+```
+
+```txt
+$queryRaw`SQL`:
+  Prisma 모델 없이 SQL을 직접 실행
+  결과를 배열로 반환
+  SELECT 등 데이터를 읽을 때
+
+$executeRaw`SQL`:
+  결과값 없이 실행
+  영향받은 행 수(number) 반환
+  UPDATE, DELETE, INSERT 직접 실행할 때
+
+템플릿 리터럴 (백틱) 문법 사용 이유:
+  SQL Injection 방지 — 변수를 ${}에 넣으면 자동으로 파라미터 바인딩
+  await this.prisma.$queryRaw`SELECT * FROM users WHERE id = ${userId}`
+  → userId가 문자열로 삽입되는 게 아니라 파라미터로 전달 → 안전
+```
+
+## 헬스체크에서 SELECT 1 ⭐️⭐️⭐️
+
+```typescript
+@Controller('health')
+export class HealthController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get()
+  async healthCheck() {
+    await this.prisma.$queryRaw`SELECT 1`;
+    // 에러 없으면 DB 연결 정상
+    return { ok: true };
+  }
+}
+```
+
+```txt
+SELECT 1:
+  가장 단순한 SQL 쿼리 — "숫자 1을 반환해라"
+  DB가 연결돼 있고 쿼리를 처리할 수 있으면 에러 없이 반환
+  실제 데이터를 읽지 않아서 부하가 거의 없음
+  → "DB가 살아있는지" 확인하는 표준 패턴
+
+에러가 발생하면:
+  DB 연결 실패, DB 서버 다운 등
+  → throw → 500 에러 → 헬스체크 실패로 감지
 ```
 
 ---

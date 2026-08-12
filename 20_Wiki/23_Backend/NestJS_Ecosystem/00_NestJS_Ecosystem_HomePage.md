@@ -15,192 +15,202 @@ cssclasses:
 # 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
 
 >[!info]
-> NestJS는 NodeJS 위에 얹힌 프레임워크.
-> 이 홈은 **만드는 순서**로 정리한다. 주제만 찾을 때는 아래 [[#빠른 찾기]]로.
-> JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
-
-```mermaid-beautiful
-flowchart LR
-  M1["1 모노레포"] --> M2["2 개념·main"]
-  M2 --> M3["3 Env·CORS·Swagger"]
-  M3 --> M4["4 Prisma"]
-  M4 --> M5["5 CRUD·DTO"]
-  M5 --> M6["6 인증·JWT·Roles"]
-  M6 --> M7["7 이후 심화"]
-```
-
-```txt
-큰 틀: 번호 순으로 쌓는다. 한 번에 전부 보지 말고 단계마다 노트만 연다.
-```
+>NestJS = Express 위에 TypeScript·OOP 구조를 얹은 프레임워크. 
+>Module·Controller·Service 계층과 DI로 앱을 조립한다. 
+>JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
 
 ---
 
 # 빠른 찾기
 
 | 찾을 때 | 섹션 |
-| --- | --- |
-| 개념 · main.ts · Module/DI | [[#1. 기초 · 부트스트랩]] |
-| 모노레포 | [[#0. 모노레포]] |
-| Env · CORS · Swagger | [[#2. 설정 · HTTP 입구 · 문서]] |
-| Prisma · 마이그레이션 | [[#3. 데이터베이스 · Prisma]] |
-| Controller · DTO · Pipe | [[#4. CRUD · 요청 레이어]] |
-| Auth · JWT · Roles · Optional | [[#5. 인증 · JWT · Roles]] |
-| WebSocket · 이메일 · 배포 등 | [[#6. 이후에 붙이는 것]] |
+|---|---|
+| 기초 개념 · main.ts | [[#📦 기초 개념]] |
+| 인증 / JWT / Guard | [[#🔐 인증 · JWT]] |
+| HTTP · Controller | [[#🌐 HTTP 요청 · 응답]] |
+| 데이터베이스 / Prisma | [[#🗄️ 데이터베이스]] |
+| 모듈 / DI | [[#🧩 모듈 · DI]] |
+| DTO / 유효성 검사 | [[#📋 요청 · 응답 처리]] |
+| 환경변수 / 설정 / 보안 | [[#🚀 설정 · 보안 · 배포]] |
+| 이메일 / 스케줄링 등 | [[#⚙️ 패턴 · 기법]] |
+| WebSocket | [[#📡 실시간 · WebSocket]] |
+| API 문서화 · 버전 | [[#📄 API 문서화]] |
 
 ---
 
-## 0. 모노레포
+## 📦 기초 개념
+
+| 노트 | 내용 |
+|---|---|
+| [[NestJS_Concept]] | NestJS란 · Module/Controller/Service · 요청 처리 순서 · DI · 설치 · CLI · main.ts 전역 설정 · NestExpressApplication |
+| [[HTTP_Concept]] | HTTP 요청/응답 · REST CRUD 매핑 · 멱등성 · 헤더(Authorization·Content-Type) · curl |
+
+---
+
+## 🔐 인증 · JWT
 
 | | 노트 |
-| --- | --- |
-| **모노레포** | [[Monorepo_PNPM]] |
+|---|---|
+| **구현** | [[NestJS_Auth]] · [[NestJS_JwtGuard]] |
+| **개념** | [[Auth_Concept]] |
 
 ```txt
-Monorepo_PNPM  pnpm workspace · apps/api · apps/web · filter 스크립트
+Auth_Concept   인증 vs 인가 · Session vs Token · JWT 구조 · Access+Refresh Token · OAuth
+NestJS_Auth    JwtModule · AuthService · login/register · bcrypt 설치 · buildAuthResponse 헬퍼
+NestJS_JwtGuard  메타데이터·Reflector · Guard · @Public · @UserId · @OptionalUserId
+                 OptionalJwtAuthGuard(ConfigService+JwtService+AuthService) · @Roles 단일 role
+                 APP_GUARD vs @UseGuards 언제 뭘 쓰는가
 ```
 
 ---
 
-## 1. 기초 · 부트스트랩
+## 🌐 HTTP 요청 · 응답
 
-`main.ts` · Module/Controller/Service · DI · CLI — **맨 앞에서** 본다.
-
-|                  | 노트                          |
-| ---------------- | --------------------------- |
-| **개념 · 지도**      | [[NestJS_Concept]]          |
-| **모듈**           | [[NestJS_Module]]           |
-| **Service · DI** | [[NestJS_Service_Provider]] |
+| | 노트 |
+|---|---|
+| **NestJS** | [[NestJS_Controller]] · [[NestJS_CORS]] |
 
 ```txt
-NestJS_Concept           Nest란 · 요청 흐름 · DI · 설치 · CLI · main.ts 지도
-                         → ConfigService·EnvKeys는 NestJS_Env_Config로
-NestJS_Module            imports/exports · @Global · forwardRef
-NestJS_Service_Provider  @Injectable · DI · useFactory/useClass
+NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · @Req(express에서 import)
+                   @Res(passthrough) · @HttpCode · @Header · CRUD 패턴
+NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentials
 ```
 
 ---
 
-## 2. 설정 · HTTP 입구 · 문서
-
-`main.ts`에 CORS · ValidationPipe · Swagger · Config를 얹는 구간.
+## 🗄️ 데이터베이스
 
 | | 노트 |
-| --- | --- |
-| **환경변수** | [[NestJS_Env_Config]] |
-| **CORS** | [[NestJS_CORS]] |
-| **HTTP 개념** | [[HTTP_Concept]] |
-| **Swagger** | [[NestJS_Swagger]] · [[NestJS_Versioning]] |
-| **타입 생성** | [[OpenAPI_Codegen]] |
-
-```txt
-NestJS_Env_Config  EnvKeys · Joi · ConfigModule · getOrThrow
-NestJS_CORS        origin · credentials · FRONTEND_URL
-HTTP_Concept       요청/응답 · Authorization · Cookie · HTTPS
-NestJS_Swagger     DocumentBuilder · @ApiTags · @ApiBearerAuth · addBearerAuth
-OpenAPI_Codegen    /api-json → 프론트 타입
-```
-
----
-
-## 3. 데이터베이스 · Prisma
-
-| | 노트 |
-| --- | --- |
-| **Prisma** | [[NestJS_Prisma]] · [[NestJS_Prisma_Patterns]] |
+|---|---|
+| **연결** | [[NestJS_PostgreSQL]] |
+| **Prisma** | [[NestJS_Prisma]] |
 | **마이그레이션** | [[NestJS_Migration]] |
-| **트랜잭션** | [[NestJS_Transaction]] · [[PG_Transaction]] |
-| **PostgreSQL** | [[NestJS_PostgreSQL]] · [[PG_Patterns]] |
+| **트랜잭션** | [[NestJS_Transaction]] |
+| **PostgreSQL** | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
 | **통계** | [[NestJS_StatsBucket]] |
 | **DB 전체** | [[00_DB_HomePage]] |
 
 ```txt
-NestJS_Prisma           CRUD · where · select/include · PrismaService
-NestJS_Prisma_Patterns  조건부 where · 관계 필터 · 토글 · 커서
-NestJS_Migration        migrate dev/deploy/reset · seed 루프
+NestJS_PostgreSQL  DB 연결 방법 선택 · DATABASE_URL vs POSTGRES_* 관계
+                   Docker Compose(env_file·healthcheck·5444포트) · Dockerfile(corepack·prisma generate 더미URL)
+                   PrismaService($connect/$disconnect) · PrismaModule(@Global) · DataGrip
+                   migrate → generate 워크플로우 · 용어 정리표
+NestJS_Prisma      schema.prisma 기본구조(Prisma 7: moduleFormat cjs, output) · @map/@@map
+                   findMany/findUnique · where · select/include · $queryRaw(SELECT 1 헬스체크)
+                   PrismaExceptionFilter(P2002) · 방법1(try/catch) vs 방법2(ExceptionFilter)
+NestJS_Migration   migrate dev/deploy/reset · seed
+NestJS_Transaction $transaction 패턴
 ```
 
 ---
 
-## 4. CRUD · 요청 레이어
-
-리소스 단위: Module ↔ Controller ↔ Service ↔ DTO.
+## 🧩 모듈 · DI
 
 | | 노트 |
-| --- | --- |
-| **Controller** | [[NestJS_Controller]] |
-| **DTO** | [[NestJS_DTO]] |
-| **Pipe** | [[NestJS_Pipe]] |
+|---|---|
+| **NestJS** | [[NestJS_Module]] · [[NestJS_Service_Provider]] |
 
 ```txt
-NestJS_Controller  @Get/@Post… · @Body/@Param · @Req/@Res · CRUD · Guard 적용 위치
-NestJS_DTO         class-validator · PartialType · @ApiProperty
-NestJS_Pipe        ValidationPipe · ParseUUIDPipe
-→ @Req = Request 읽기(영향 적음) · @Res = Response 직접(기본 비추천, passthrough)
-→ 프론트 타입 [[NextJS_Types]] · 문서 [[NestJS_Swagger]]
+NestJS_Module           providers/imports/exports 역할 · @Global · forwardRef(순환 참조)
+                        SharedModule 패턴 · forRootAsync(환경변수 동적 설정)
+NestJS_Service_Provider Service · @Injectable · DI · useValue/useFactory/useClass
 ```
 
 ---
 
-## 5. 인증 · JWT · Roles
-
-개념 → 발급(login) → Guard(검증·Public·UserId) → Roles·Optional까지 **한 축**.
+## 📋 요청 · 응답 처리
 
 | | 노트 |
-| --- | --- |
-| **개념** | [[Auth_Concept]] |
-| **발급 · AuthModule** | [[NestJS_Auth]] |
-| **Guard · 데코레이터** | [[NestJS_JwtGuard]] |
+|---|---|
+| **DTO · 유효성** | [[NestJS_DTO]] · [[NestJS_Pipe]] |
 
 ```txt
-Auth_Concept     인증 vs 인가 · Session vs Token · JWT · OAuth
-NestJS_Auth      JwtModule · register/login · bcrypt · 토큰 발급
-NestJS_JwtGuard  JwtAuthGuard · @Public · @UserId · APP_GUARD
-                 @Roles · RolesGuard · OptionalJwt · @OptionalUserId
-                 단일 role vs roles[] · APP_GUARD vs @UseGuards
+NestJS_DTO   class-validator · @IsIn vs @IsEnum · @ApiProperty(format·enum) · Response DTO
+             @IsOptional 위치 · @ValidateIf 조건부 · PartialType/OmitType
+             strictPropertyInitialization: false 이유 → [[TS_TsConfig]]
+NestJS_Pipe  ValidationPipe(transform·whitelist·forbidNonWhitelisted) · ParseUUIDPipe
 ```
 
 ---
 
-## 6. 이후에 붙이는 것
-
-필수 스택(0~5) 위에 올리는 기능. 필요할 때만.
-
-### 실시간 · WebSocket
+## 🚀 설정 · 보안 · 배포
 
 | | 노트 |
-| --- | --- |
-| **NestJS** | [[NestJS_WebSocket]] |
-| **Next.js** | [[NextJS_WebSocket]] (→ JS_Ecosystem 폴더) |
-| **패턴** | [[WebSocket_Patterns]] |
+|---|---|
+| **환경변수** | [[NestJS_Env_Config]] |
+| **CORS** | [[NestJS_CORS]] |
+| **모노레포** | [[Monorepo_PNPM]] |
+| **배포** | [[00_Deployment_HomePage]] |
 
 ```txt
-Gateway · 룸 · REST+WS 브로드캐스트 · socket.io-client
+NestJS_Env_Config  환경변수란 · .env 파일 · ConfigModule(isGlobal) · ConfigService.getOrThrow
+                   EnvKeys 상수(오타 방지) · Joi validationSchema · validationOptions convert:true
+                   forRootAsync(환경변수로 JwtModule 설정) · main.ts에서 app.get(ConfigService)
+Monorepo_PNPM      초기 설정 순서 · pnpm-workspace.yaml · allowBuilds · ERR_PNPM_UNEXPECTED_STORE
+                   "type":"commonjs" · store-dir=.pnpm-store · Next.js 포트(-p 3051) · shared 패키지
 ```
 
-### 패턴 · 기법
+---
+
+## ⚙️ 패턴 · 기법
 
 | | 노트 |
-| --- | --- |
+|---|---|
 | **이메일** | [[NestJS_Email]] |
 | **스케줄링** | [[NestJS_Scheduling]] |
 | **스로틀링** | [[NestJS_Throttle]] |
 | **로깅** | [[NestJS_Logger]] |
 | **페이지네이션** | [[NestJS_Pagination]] |
-| **멱등성** | [[NestJS_Idempotency]] |
 | **시드** | [[NestJS_Seed]] |
 
-### 배포
+```txt
+NestJS_Email       Resend · Nodemailer · SMTP 설정 · MailService 패턴
+NestJS_Scheduling  @Cron · @Interval · @Timeout · 타임존 · SchedulerRegistry
+NestJS_Throttle    스로틀링 · 서비스 레벨 force 패턴
+NestJS_Seed        테스트 데이터 생성 · $transaction · cleanup
+멱등성 개념 → [[HTTP_Concept]] REST CRUD 섹션
+```
+
+---
+
+## 📡 실시간 · WebSocket
 
 | | 노트 |
-| --- | --- |
-| **배포** | [[00_Deployment_HomePage]] |
+|---|---|
+| **NestJS** | [[NestJS_WebSocket]] |
+| **Next.js** | [[NextJS_WebSocket]] |
+| **패턴** | [[WebSocket_Patterns]] |
+
+```txt
+NestJS_WebSocket   Gateway · 룸 · 인증 · REST+WS 브로드캐스트
+NextJS_WebSocket   socket.io-client · 싱글턴 · on/off 구독
+WebSocket_Patterns 서버+클라이언트 코드 나란히 — 연결·룸·브로드캐스트·재연결
+```
+
+---
+
+## 📄 API 문서화
+
+| | 노트 |
+|---|---|
+| **NestJS** | [[NestJS_Swagger]] · [[NestJS_Versioning]] |
+| **타입 생성** | [[OpenAPI_Codegen]] |
+
+```txt
+NestJS_Swagger    @ApiTags · @ApiProperty(format·enum) · @ApiCreatedResponse · @ApiOkResponse
+                  Response DTO · addBearerAuth · Bearer Auth 설정
+NestJS_Versioning URI·Header·MediaType 방식 · @Version · VERSION_NEUTRAL · defaultVersion
+                  header: 'version' = 클라이언트가 보내야 하는 헤더 키 이름
+OpenAPI_Codegen   NestJS dump-openapi → openapi-typescript → 프론트 타입 자동 생성
+```
 
 ---
 
 ```txt
+삭제된 노트:
+  NestJS_Idempotency → 멱등성 개념은 HTTP_Concept.md REST CRUD 섹션에 통합
+
 폴더 합친 이유:
-  NestJS와 NodeJS가 얽히는 지점은 인증(Passport)과 HTTP 요청 레이어
-  분류는 접두사(NestJS_ / NodeJS_)가 이미 함
-홈 축을 만드는 순서로 둔 이유:
-  main.ts·Module이 주제별 분류에선 맨 아래로 밀려 학습 순서와 어긋남
+  NestJS와 NodeJS가 실제로 얽히는 지점에서
+  분류는 접두사(NestJS_ / NodeJS_)가 이미 하고 있음
 ```
