@@ -1,13 +1,6 @@
 ---
-aliases:
-  - Auth
-  - Guard
-  - JWT
-  - JwtAuthGuard
-  - request.user
-  - RolesGuard
-tags:
-  - NestJS
+aliases: [Auth, Guard, JWT, JwtAuthGuard, Passport, request.user, RolesGuard]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[Auth_Concept]]"
@@ -21,7 +14,8 @@ related:
 >Guard = 컨트롤러 핸들러 실행 전에 "이 요청이 허용되는가"를 결정하는 레이어. 
 >`CanActivate` 인터페이스를 구현해서 만든다.
 > `JwtAuthGuard`·`@Public()`·`@UserId()`는 **NestJS가 제공하는 조립 도구로 직접 만드는 것** — 내장이 아니다. 
-> JWT 개념 → [[Auth_Concept]], HTTP 헤더·Authorization → [[HTTP_Concept]], JWT 발급 로직 → [[NestJS_Auth]]
+> Passport 없이 `@nestjs/jwt`로 직접 구현하는 패턴 (Passport = OAuth 등 다양한 전략이 필요할 때). 
+> JWT 발급 → [[NestJS_Auth]], JWT 개념 → [[Auth_Concept]], express.d.ts 타입 선언 → [[TS_ImportType]]
 
 ---
 
@@ -49,6 +43,184 @@ NestJS가 제공하는 조립 도구:
 "업계 관례"로 굳어진 것:
   이름과 모양이 어디서나 같아서 내장처럼 보임
   실제로는 NestJS 공식 문서의 패턴을 따라 만드는 것
+```
+
+---
+# Passport — 인증 미들웨어 ⭐️⭐️⭐️
+
+```txt
+Passport란:
+  Express/NestJS에서 많이 쓰이는 인증 미들웨어
+  다양한 "전략(Strategy)"으로 인증 방식을 교체 가능:
+    LocalStrategy   → 이메일+비밀번호 검증
+    JwtStrategy     → JWT 토큰 검증
+    GoogleStrategy  → Google OAuth
+  @nestjs/passport 패키지로 NestJS에 통합
+
+Passport를 쓸 때:
+  Passport가 request.user를 자동으로 설정
+  @UseGuards(AuthGuard('jwt')) 형태로 사용
+  @types/passport가 Request 타입에 user를 자동 추가
+  → express.d.ts 타입 선언 불필요
+
+Passport 없이 @nestjs/jwt 직접 사용할 때 (이 패턴):
+  jwtService.verifyAsync()로 직접 토큰 검증
+  Guard가 request.user = payload 로 직접 넣음
+  @types/express 기본 Request에는 user 없음
+  → express.d.ts에 직접 선언 필요:
+    interface Request { user?: User }
+  → [[TS_ImportType]] 타입 선언 병합 섹션
+
+언제 어떤 방식을:
+  Passport    → Google/GitHub OAuth, 다양한 인증 전략을 전환할 때
+  직접 구현   → JWT만 있고 인증 로직을 명확하게 제어하고 싶을 때
+              → 의존성 줄이고 Guard 흐름을 직접 파악할 때
+```
+
+## Passport JWT 방식 — jwt.strategy.ts ⭐️⭐️⭐️⭐️
+
+```bash
+pnpm --filter api add @nestjs/passport passport passport-jwt
+pnpm --filter api add -D @types/passport-jwt
+```
+
+```typescript
+// auth/jwt.strategy.ts
+import { Injectable }       from '@nestjs/common';
+import { ConfigService }    from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { EnvKeys }          from '../config/env.keys';
+import type { JwtPayload }  from './jwt-payload';
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(configService: ConfigService) {
+    super({
+      jwtFromRequest:   ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // Authorization: Bearer 헤더에서 토큰 자동 추출
+      ignoreExpiration: false,
+      // false = 만료된 토큰은 401 (true면 만료 무시 — 보안상 비권장)
+      secretOrKey:      configService.getOrThrow<string>(EnvKeys.API_JWT_SECRET),
+      // 토큰 서명 검증에 쓰는 secret — JwtModule에서 발급할 때 쓴 것과 동일해야 함
+    });
+  }
+
+  validate(payload: JwtPayload): JwtPayload {
+    return payload;
+    // 이 반환값이 request.user가 됨
+    // Passport가 자동으로 request.user = validate 결과 처리
+  }
+}
+```
+
+```typescript
+// auth.module.ts — PassportModule + JwtStrategy 추가
+imports: [
+  PassportModule.register({ defaultStrategy: 'jwt' }),
+  JwtModule.registerAsync({ /* 기존 그대로 */ }),
+],
+providers: [
+  AuthService,
+  JwtStrategy,    // ← 전략 등록 필수
+],
+```
+
+```typescript
+// 사용 — AuthGuard('jwt')로 Guard 적용
+@Controller('users')
+export class UsersController {
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))   // JwtAuthGuard 대신 Passport 방식
+  getMe(@Req() req: Request) {
+    return req.user;  // validate()가 반환한 값
+  }
+}
+```
+
+## @Public() 도 지원하려면 — AuthGuard 확장 ⭐️⭐️⭐️
+
+```txt
+AuthGuard('jwt')만 쓰면 @Public() 데코레이터를 인식 못함
+→ JwtAuthGuard가 AuthGuard('jwt')를 상속해서 @Public() 처리를 추가
+```
+
+```typescript
+// auth/jwt-auth.guard.ts (Passport 방식)
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector }    from '@nestjs/core';
+import { AuthGuard }    from '@nestjs/passport';
+import { IS_PUBLIC_KEY } from './decorators/public.decorator';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private readonly reflector: Reflector) {
+    super();
+  }
+
+  canActivate(context: ExecutionContext) {
+    // @Public() 확인 — 공개 라우트면 토큰 없이 통과
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
+    // Passport JwtStrategy가 나머지 처리
+    return super.canActivate(context);
+    //     ↑ super = AuthGuard('jwt')
+    //       → JwtStrategy.validate() 실행 → request.user 설정
+  }
+}
+```
+
+```txt
+이 패턴의 흐름:
+  JwtAuthGuard.canActivate()
+    → @Public() 확인
+    → super.canActivate() (AuthGuard('jwt'))
+      → JwtStrategy 실행 (passport-jwt가 토큰 추출·검증)
+      → validate() 반환값 → request.user
+
+직접 CanActivate 구현과의 차이:
+  직접 구현:  verifyAsync() 직접 호출 + request.user 직접 대입
+  이 패턴:   super.canActivate()에 위임 + JwtStrategy가 처리
+
+APP_GUARD로 전역 등록도 동일:
+  { provide: APP_GUARD, useClass: JwtAuthGuard }
+  → Passport JwtAuthGuard도 동일하게 전역 등록 가능
+```
+
+```txt
+Passport JWT 흐름:
+  요청 Authorization: Bearer eyJ...
+        ↓
+  JwtStrategy (passport-jwt):
+    헤더에서 토큰 추출 (fromAuthHeaderAsBearerToken)
+    secret으로 검증 (secretOrKey)
+    validate() 반환값 → request.user
+        ↓
+  AuthGuard('jwt')가 이 전략 실행
+
+Passport JWT vs 직접 JwtAuthGuard:
+
+  Passport JWT (jwt.strategy.ts):
+    AuthGuard('jwt') ← 전략 이름으로 연결
+    JwtStrategy.validate() → request.user 자동 설정
+    express.d.ts 타입 선언 불필요
+    OAuth 전략 추가가 쉬움
+
+  직접 JwtAuthGuard (이 파일의 메인 패턴):
+    jwtService.verifyAsync()로 직접 검증
+    request.user = payload 직접 대입
+    express.d.ts에 interface Request { user?: User } 선언 필요
+    코드 흐름이 명확하게 보임
+
+  validate()와 verifyAsync()의 차이:
+    validate() = 토큰 검증(Passport 내부 처리) 후 request.user에 뭘 넣을지
+    verifyAsync() = 토큰 검증 자체를 직접 실행
+    validate()가 null/false 반환 → 401
+    validate()가 객체 반환 → request.user가 됨
 ```
 
 ---
@@ -262,9 +434,12 @@ export class JwtAuthGuard implements CanActivate {
 
     // ③ 토큰 검증 후 payload를 request.user에 저장
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.getOrThrow(EnvKeys.API_JWT_SECRET),
+        // secret을 명시적으로 전달 (JwtModule 설정과 별개로 직접 지정)
+      });
       request.user  = payload;
-      // request.user = { sub: 'user-uuid', iat: 1700000000, exp: 1700003600 }
+     // request.user = { sub: 'user-uuid', role: 'user', iat: ..., exp: ... }
     } catch {
       throw new UnauthorizedException('유효하지 않은 토큰입니다.');
     }
@@ -279,6 +454,29 @@ export class JwtAuthGuard implements CanActivate {
     // type이 Bearer가 아니면 undefined
   }
 }
+```
+
+```txt
+이전 방식과의 차이:
+  이전: this.jwtService.verify(token)
+        → 동기, JwtModule에 등록된 secret 자동 사용
+        → canActivate가 boolean 반환
+
+  현재: await this.jwtService.verifyAsync(token, { secret: ... })
+        → 비동기 (async canActivate → Promise<boolean> 반환)
+        → ConfigService로 secret을 명시적으로 전달
+        → OptionalJwtAuthGuard와 동일한 방식으로 통일
+
+  ConfigService 주입을 추가한 이유:
+  JwtModule 설정에 암묵적으로 의존하지 않고
+  secret을 코드에서 직접 확인할 수 있음
+
+request.user 타입을 잡으려면 express.d.ts 필요:
+  request.user = payload 를 저장하는데
+  Express의 기본 타입에는 user.role, user.sub 없음
+  → src/types/express.d.ts 에서 Express.User를 JwtPayload로 확장해야
+    request.user.sub, request.user.role 이 타입 에러 없이 됨
+  → [[TS_ImportType]] 타입 선언 병합 섹션 참고
 ```
 
 ---
@@ -385,8 +583,10 @@ export const UserId = createParamDecorator(
   // _data: @UserId('something') 처럼 인자 전달 시 사용 (여기선 사용 안 함)
   (_data: unknown, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user.sub;
+    const userId=request.user.sub;
     // JwtAuthGuard가 request.user = { sub: 'userId', ... } 저장했음
+    if(!userId) throw new UnauthorizedException('로그인 필요');
+    return userId;
   },
 );
 ```

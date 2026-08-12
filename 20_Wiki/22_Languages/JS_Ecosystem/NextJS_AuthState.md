@@ -4,6 +4,7 @@ aliases:
   - Cross-Origin Cookie
   - GET /me
   - SSR CSR 인증
+  - Zustand
 tags:
   - NextJS
 related:
@@ -11,7 +12,7 @@ related:
   - "[[Auth_Concept]]"
   - "[[NextJS_TokenStorage]]"
   - "[[React_Context_Provider]]"
-  - "[[React_useMemo_useCallback]]"
+  - "[[React_Zustand]]"
 ---
 # NextJS_AuthState — 로그인 유저 상태 관리
 
@@ -256,12 +257,16 @@ export const useAuthStore = create<{
 ```
 
 ```txt
+setSession·clearSession·hydrate (localStorage 통합 버전) →
+  [[React_Zustand]] 실전 — 인증 스토어 섹션
+
 Context vs Zustand:
   Context  → React 내장, Provider 트리 구조가 명확
              useCallback·useMemo 직접 챙겨야 함
 
   Zustand  → 설정 단순, Provider 없이 어디서든 접근
              성능 최적화가 더 쉬움 (선택적 구독)
+             localStorage 통합도 자연스러움
 
   인증 상태처럼 단순하면 Context로 충분
   앱 전역 상태가 많아지면 Zustand 권장

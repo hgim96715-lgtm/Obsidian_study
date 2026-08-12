@@ -1,24 +1,17 @@
 ---
-aliases:
-  - Barrel
-  - import type
-  - export type
-  - 경로 별칭
-tags:
-  - TypeScript
+aliases: [경로 별칭, Barrel, export type, import type]
+tags: [TypeScript]
 related:
-  - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_TsConfig]]"
+  - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[Auth_Concept]]"
+  - "[[HTTP_Concept]]"
+  - "[[NestJS_Auth]]"
   - "[[NestJS_JwtGuard]]"
 ---
 # TS_ImportType — import · export · 경로 별칭
 
 >[!info]
->`import type` = 타입만 import — 컴파일 후 런타임 번들에서 완전히 제거됨.
-> 값(함수·클래스)과 타입을 구분해서 import하면 번들 크기가 줄고 순환 참조 문제도 예방된다. 
-> `@/` 경로 별칭은 tsconfig.json의 `paths`로 설정.
->  Barrel(index.ts) = 여러 모듈을 하나로 묶어 export.
->  `express.d.ts`의 `declare global`·`declare module`로 라이브러리 타입을 프로젝트 안에서 확장한다.
+>`import type` = 타입만 import — 컴파일 후 런타임 번들에서 완전히 제거됨. 값(함수·클래스)과 타입을 구분해서 import하면 번들 크기가 줄고 순환 참조 문제도 예방된다. `@/` 경로 별칭은 tsconfig.json의 `paths`로 설정. Barrel(index.ts) = 여러 모듈을 하나로 묶어 export. `express.d.ts`의 `declare global`·`declare module`로 라이브러리 타입을 프로젝트 안에서 확장한다.
 
 ---
 
@@ -213,15 +206,7 @@ export type { WithdrawResult } from './apiTypes':
     export type { LoginResult } from './auth';     // auth.ts에 정의된 타입
 ```
 
-
-```txt
-export * from './module':
-  해당 파일의 모든 named export를 그대로 재수출
-  default export는 포함 안 됨
-
-export type { Xxx }:
-  타입만 재수출 — 런타임 번들에 포함 안 됨
-
+```
 파일 구조:
   src/lib/api/
   ├── index.ts        ← barrel
@@ -278,6 +263,7 @@ declare module 'some-library' {
 ```
 
 ---
+
 # 타입 선언 병합 — express.d.ts 패턴 ⭐️⭐️⭐️⭐️
 
 ## 왜 필요한가
@@ -306,19 +292,96 @@ import type { JwtPayload } from '../auth/jwt-payload';
 declare global {
   namespace Express {
     interface User extends JwtPayload {}
-    //              ↑ JwtPayload = { sub: string }
-    //                Express.User에 sub 필드가 추가됨
+    //              ↑ JwtPayload = { sub: string; role: string }
+    //                Express.User에 sub, role 필드가 추가됨
+    user?: User;  // ← Passport 없이 Guard만 쓸 때 필수
   }
 }
 
 export {};  // ← 이게 없으면 작동 안 함 (아래 설명)
 ```
 
+```txt
+interface Request { user?: User } 가 필요한 이유:
+  @types/express 기본 Request 타입에는 user 속성이 없음
+  Passport를 쓰면 Passport가 자동으로 user를 Request에 추가
+  만약 Passport 없이 JwtAuthGuard로 직접 구현
+  → Guard가 request.user = payload 로 직접 넣음
+  → 선언 안 하면 request.user 접근 시 TS 에러 발생
+
+  user?: User (optional인 이유):
+  @Public() 라우트나 OptionalJwtAuthGuard는 user 없이 통과
+  → 항상 있다고 보장 못함 → ?
+```
+
 ```typescript
 // auth/jwt-payload.ts
-export type JwtPayload {
-  sub: string;  // userId
+export type JwtPayload = {
+  sub: string;
+  role: 'user' | 'admin';
+};
+```
+
+## 패턴 비교 — 최소 vs 풀 버전 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 패턴 1 — 최소 (JWT 인증만 있을 때)
+import type { JwtPayload } from '../auth/jwt-payload';
+
+declare global {
+  namespace Express {
+    interface User extends JwtPayload {}
+    // request.user.sub, request.user.role 타입 잡힘
+  }
 }
+
+export {};
+```
+
+```typescript
+// 패턴 2 — 풀 버전 (OAuth·세션도 있을 때)
+import type { JwtPayload }   from '../auth/jwt-payload';
+import type { OAuthProfile } from '../auth/oauth-profile';
+import type { Session }      from 'express-session';
+
+// express-session 모듈 타입 확장
+declare module 'express-session' {
+  interface SessionData {
+    oauthNext?: string;   // OAuth 완료 후 돌아갈 경로
+  }
+}
+
+declare global {
+  namespace Express {
+    interface User extends JwtPayload {}
+    interface Request {
+      session: Session;   // session 타입 명시
+    }
+  }
+}
+
+export {};
+```
+
+```txt
+두 패턴의 차이:
+  패턴 1: JWT만 있을 때 → Express.User만 확장
+  패턴 2: OAuth + 세션까지 있을 때 → SessionData도 함께 확장
+
+  공통점:
+  Express.User extends JwtPayload
+  → request.user.sub, request.user.role 타입 안전
+  → JwtAuthGuard에서 request.user = payload 저장 후
+    @UserId() 데코레이터가 request.user?.sub 로 접근 가능
+
+  패턴 2 추가 내용:
+  Request { session: Session }:
+    OAuth 흐름에서 req.session.oauthNext 타입 잡기
+    세션 미들웨어를 쓸 때 session 타입 명시적 연결
+  declare module 'express-session':
+    express-session의 SessionData에 커스텀 필드 추가
+
+  → JwtAuthGuard와 연결 → [[NestJS_JwtGuard]]
 ```
 
 ```txt
@@ -422,6 +485,7 @@ declare global vs declare module:
 .d.ts 파일이 tsconfig include 범위 안에 있으면 자동으로 적용
 별도 import 없이도 프로젝트 전체에서 타입 확장이 반영됨
 ```
+
 ---
 
 # 자주 쓰는 패턴

@@ -13,13 +13,14 @@ related:
   - "[[NestJS_JwtGuard]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_Env_Config]]"
+  - "[[TS_ImportType]]"
 ---
 # NestJS_Auth — JWT 인증 구현
 
 >[!info]
->NestJS에서 JWT 인증 구현.
-> `JwtModule`로 토큰 설정, `AuthService`에서 로그인·토큰 발급, `AuthController`에서 엔드포인트 제공.
->  토큰 검증·인가(Guard)는 → [[NestJS_JwtGuard]], 개념 → [[Auth_Concept]]
+>NestJS에서 JWT 인증 구현. `JwtModule`로 토큰 설정, `AuthService`에서 로그인·토큰 발급, `AuthController`에서 엔드포인트 제공.
+> Passport 없이 `@nestjs/jwt` 직접 사용 — Passport는 OAuth 등 다양한 전략이 필요할 때 쓰며 이 패턴은 JWT만 있는 경우 더 간결하다. 
+> 토큰 검증·Guard → [[NestJS_JwtGuard]], 개념 → [[Auth_Concept]]
 
 ---
 
@@ -66,25 +67,6 @@ JwtModule.registerAsync:
 
 exports: [JwtModule]:
   다른 모듈(JwtAuthGuard)에서 JwtService를 쓸 수 있게 공개
-```
-
----
-
-# AuthService — 토큰 발급 ⭐️⭐️⭐️⭐️
-
-```typescript
-# NestJS_Auth — JWT 인증 구현
-
->[!info]
->NestJS에서 JWT 인증 구현. `JwtModule`로 토큰 설정, `AuthService`에서 로그인·토큰 발급, `AuthController`에서 엔드포인트 제공. 토큰 검증·인가(Guard)는 → [[NestJS_JwtGuard]], 개념 → [[Auth_Concept]]
-
----
-
-# 설치 ⭐️⭐️
-
-```bash
-pnpm add @nestjs/jwt @nestjs/passport passport passport-jwt
-pnpm add -D @types/passport-jwt
 ```
 
 ---

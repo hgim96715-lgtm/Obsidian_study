@@ -47,7 +47,7 @@ Guard가 Bearer 검증        →  클라이언트가 Bearer를 붙여서 보냄
 UsersModule 새로 추가       →  lib/api.ts에 함수 하나 추가
 ```
 
-```mermaid
+```mermaid-beautiful
 flowchart LR
   A[개념 파악] --> B[환경 설정]
   B --> C[API 연결]
@@ -146,13 +146,15 @@ NestJS 인증 구현 → [[NestJS_Auth]] (NestJS 볼트)
 
 ## 7️⃣ 비동기 UI · 상태
 
-| 노트 | 내용 |
-|---|---|
-| [[React_AsyncUI]] | isLoading·error·try-finally · useEffect fetch · Optimistic UI · fire-and-forget |
-| [[React_Context_Provider]] | Context 공유 상자 · useCallback·useMemo 안정화 · useAuth 커스텀 훅 |
-| [[React_useMemo_useCallback]] | 메모이제이션 · 언제 쓰는지 판단 · React.memo |
-| [[React_useEffect]] | 데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프 |
-| [[React_useRef]] | DOM 접근(focus·scroll) · 렌더링 무관 값 보관 |
+| 노트                            | 내용                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| [[React_AsyncUI]]             | isLoading·error·try-finally · useEffect fetch · Optimistic UI · fire-and-forget |
+| [[React_Zustand]]             | create · selector · set/get · setSession·clearSession·hydrate · localStorage 통합 |
+| [[React_Context_Provider]]    | Context 공유 상자 · useCallback·useMemo 안정화 · useAuth 커스텀 훅                         |
+| [[React_useMemo_useCallback]] | 메모이제이션 · 언제 쓰는지 판단 · React.memo                                                 |
+| [[React_useEffect]]           | 데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프                                      |
+| [[React_useRef]]              | DOM 접근(focus·scroll) · 렌더링 무관 값 보관                                              |
+
 
 ---
 
