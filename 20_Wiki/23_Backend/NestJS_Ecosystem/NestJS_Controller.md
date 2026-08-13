@@ -21,6 +21,7 @@ related:
   - "[[NestJS_Pipe]]"
   - "[[NestJS_Concept]]"
   - "[[NestJS_JwtGuard]]"
+  - "[[TS_Type_Guards]]"
 ---
 # NestJS_Controller — 컨트롤러
 
@@ -154,6 +155,52 @@ DTO로 받아야 하는 이유:
   유효성 검사 (@IsEnum, @IsInt 등)
   → [[NestJS_DTO]] 쿼리 파라미터 DTO 섹션
 ```
+
+## @Query optional 파라미터 순서 에러 ⭐️⭐️⭐️
+
+```typescript
+// ❌ TS 에러 — optional(?) 파라미터 뒤에 필수 파라미터 올 수 없음
+@Get()
+findAll(
+  @Query('machineId') machineId?: string,   // optional
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  // ↑ 에러: Required parameter 'page' cannot follow optional parameter
+) {}
+```
+
+```typescript
+// ✅ 해결 1 — ? 대신 | undefined 로 명시
+@Get()
+findAll(
+  @Query('machineId') machineId: string | undefined,  // optional이지만 필수 위치
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+) {}
+
+// ✅ 해결 2 — optional을 뒤로 이동
+@Get()
+findAll(
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  @Query('machineId') machineId?: string,   // 필수 파라미터 뒤로
+) {}
+```
+
+```txt
+TS 규칙:
+  함수 파라미터에서 optional(?)은 required 뒤에만 올 수 있음
+  optional 뒤에 required가 오면 에러
+
+  string | undefined vs string?:
+    string?     = TS 선택적 파라미터 (뒤에 required 오면 에러)
+    string | undefined = 타입은 undefined 포함이지만 파라미터는 "필수 위치"
+                 → TS 파라미터 순서 규칙 통과
+
+  권장:
+  @Query() DTO 방식을 쓰면 이 문제 자체가 없음
+  DTO 필드에서 @IsOptional()로 optional 처리
+
+  TS 파라미터 위치 규칙 원리 → [[TS_Type_Guards]] string? vs string | undefined 섹션
+```
+
 
 ## @Body — 요청 body
 

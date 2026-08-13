@@ -181,10 +181,10 @@ schema.prisma만 고치면 DB는 안 바뀜 — migrate dev 반드시 실행해�
 
 ## 모노레포에서 명령 실행 — cd vs --filter ⭐️⭐️⭐️
 
-|방법|예시|
-|---|---|
-|cd 후 직접|`cd apps/api && pnpm prisma migrate dev --name x`|
-|`--filter` (루트에서)|`pnpm --filter api exec prisma migrate dev --name x`|
+| 방법                | 예시                                                   |
+| ----------------- | ---------------------------------------------------- |
+| cd 후 직접           | `cd apps/api && pnpm prisma migrate dev --name x`    |
+| `--filter` (루트에서) | `pnpm --filter api exec prisma migrate dev --name x` |
 
 ```txt
 둘 다 결과 동일 — pnpm이 그 워크스페이스의 로컬 prisma 바이너리를 찾아 실행하는 것은 같음

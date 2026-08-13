@@ -11,6 +11,7 @@ related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[TS_Generics]]"
   - "[[TS_TypeAssertion]]"
+  - "[[NestJS_Controller]]"
 ---
 # TS_Type_Guards — 타입 좁히기
 
@@ -558,4 +559,67 @@ void vs undefined:
 
 onClick: () => void  →  어떤 값을 반환해도 TypeScript가 무시
 onClick: () => undefined → undefined만 반환해야 함 (더 엄격)
+```
+
+---
+# string? vs string | undefined — 파라미터 위치 규칙 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ TS 에러 — optional(?) 뒤에 required가 올 수 없음
+function find(
+  machineId?: string,  // optional
+  page: number,        // required — optional 뒤에 오면 에러
+) {}
+// Error: A required parameter cannot follow an optional parameter.
+```
+
+```typescript
+// ✅ 해결 1 — ? 대신 | undefined 로 명시
+function find(
+  machineId: string | undefined,  // 타입은 undefined 포함, 위치는 "필수"
+  page: number,
+) {}
+find(undefined, 1);  // 첫 인자를 undefined로 명시해서 전달
+
+// ✅ 해결 2 — optional을 뒤로 이동
+function find(
+  page: number,
+  machineId?: string,  // 필수 파라미터 뒤로
+) {}
+```
+
+```txt
+string? 와 string | undefined 의 차이:
+
+  string? (선택적 파라미터):
+    TypeScript 파라미터 문법 — 호출 시 인자를 아예 생략 가능
+    뒤에 required 파라미터가 오면 TS 에러
+    find(1)  → machineId 생략 가능
+
+  string | undefined (유니온 타입):
+    타입에 undefined가 포함됐을 뿐, 파라미터 위치는 "필수"
+    뒤에 required 파라미터가 와도 에러 없음
+    find(undefined, 1)  → 첫 인자를 명시적으로 넘겨야 함
+
+  둘 다 undefined를 허용하지만 호출 방식이 다름:
+    machineId?: string        → find(1)          (생략 가능)
+    machineId: string | undefined → find(undefined, 1)  (생략 불가)
+```
+
+```typescript
+// NestJS @Query 에서 자주 만나는 케이스
+// ❌
+@Get()
+findAll(
+  @Query('machineId') machineId?: string,
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+) {}
+
+// ✅
+@Get()
+findAll(
+  @Query('machineId') machineId: string | undefined,
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+) {}
+// → [[NestJS_Controller]] @Query optional 파라미터 순서 에러 섹션
 ```

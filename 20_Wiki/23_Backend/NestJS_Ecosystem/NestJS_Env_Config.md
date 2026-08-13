@@ -427,6 +427,69 @@ export const envValidationSchema = Joi.object({
   → EnvKeys 상수를 Joi 스키마 키로 재사용 (오타 방지)
 ```
 
+## .or() · .messages() — 조건부 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+// A 또는 B 중 하나는 반드시 있어야 할 때
+export const envValidationSchema = Joi.object({
+  [EnvKeys.TMDB_ACCESS_TOKEN]: Joi.string().optional(),
+  [EnvKeys.TMDB_API_KEY]:      Joi.string().optional(),
+  // 둘 다 optional이지만 → .or()로 하나는 필수로 강제
+})
+  .or(EnvKeys.TMDB_ACCESS_TOKEN, EnvKeys.TMDB_API_KEY)
+  .messages({
+    'object.or': 'TMDB_ACCESS_TOKEN 또는 TMDB_API_KEY 중 하나는 필요합니다.',
+  });
+```
+
+```txt
+.or(key1, key2):
+  Joi.object에 체이닝
+  key1 또는 key2 중 하나 이상이 있어야 함
+  둘 다 없으면 검증 실패 → 앱 시작 시 에러
+
+  단독으로는 optional이지만 "최소 하나는 있어야 하는" 경우에 사용
+  예: ACCESS_TOKEN 방식 또는 API_KEY 방식 둘 중 하나 선택
+
+.messages({ 'object.or': '...' }):
+  Joi 기본 에러 메시지를 커스텀 문구로 교체
+  'object.or' = .or() 검증 실패 시 에러 코드
+  → 로그에 직관적인 메시지가 찍혀 원인 파악이 쉬움
+
+  자주 쓰는 에러 코드:
+    'object.or'    → .or() 실패 (하나도 없음)
+    'object.and'   → .and() 실패 (같이 있어야 하는데 하나만 있음)
+    'any.required' → .required() 실패
+    'string.min'   → .min(n) 실패
+    'number.port'  → .port() 실패 (유효한 포트 번호 아님)
+```
+
+
+```typescript
+// 실전 전체 예시
+export const envValidationSchema = Joi.object({
+  [EnvKeys.PORT]:     Joi.number().default(3050),
+  [EnvKeys.FRONTEND_URL]: Joi.string().uri().required(),
+  [EnvKeys.DATABASE_URL]: Joi.string().uri().required(),
+
+  [EnvKeys.POSTGRES_PORT]:     Joi.number().port().optional(),
+  [EnvKeys.POSTGRES_USER]:     Joi.string().optional(),
+  [EnvKeys.POSTGRES_PASSWORD]: Joi.string().optional(),
+  [EnvKeys.POSTGRES_DB]:       Joi.string().optional(),
+
+  [EnvKeys.API_JWT_SECRET]: Joi.string().min(16).required(),
+
+  // 둘 중 하나는 반드시 필요
+  [EnvKeys.TMDB_ACCESS_TOKEN]: Joi.string().optional(),
+  [EnvKeys.TMDB_API_KEY]:      Joi.string().optional(),
+})
+  .or(EnvKeys.TMDB_ACCESS_TOKEN, EnvKeys.TMDB_API_KEY)
+  .messages({
+    'object.or': 'TMDB_ACCESS_TOKEN 또는 TMDB_API_KEY 중 하나는 필요합니다.',
+  });
+```
+
+
 ## ConfigModule에 연결 ⭐️⭐️⭐️⭐️
 
 ```typescript

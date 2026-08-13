@@ -11,6 +11,7 @@ aliases:
   - Pick
   - Readonly
   - Required
+  - Awaited
 tags:
   - TypeScript
 related:
@@ -360,6 +361,59 @@ type Post = Awaited<ReturnType<typeof fetchPost>>;
 // = Post 모델 타입 (Promise 제거 + ReturnType 추출)
 ```
 
+---
+## Awaited + ReturnType + 인덱스드 액세스 조합 ⭐️⭐️⭐️⭐️
+
+```typescript
+// TmdbService의 getMovie 메서드가 반환하는 타입을 꺼내는 패턴
+movie: Awaited<ReturnType<TmdbService['getMovie']>> | null;
+//                        ↑ 인덱스드 액세스
+//             ↑ 메서드 반환 타입 추출
+//     ↑ Promise 벗기기
+```
+
+
+```txt
+분해:
+
+TmdbService['getMovie']:
+  클래스·객체에서 특정 메서드의 타입을 꺼내는 인덱스드 액세스
+  typeof TmdbService.prototype.getMovie 와 같은 의미
+
+ReturnType<TmdbService['getMovie']>:
+  getMovie 함수 타입에서 반환 타입을 추출
+  getMovie()가 Promise<TmdbMovie>를 반환하면
+  → ReturnType = Promise<TmdbMovie>
+
+Awaited<ReturnType<TmdbService['getMovie']>>:
+  Promise를 벗겨서 안의 타입만 꺼냄
+  → TmdbMovie
+
+| null:
+  getMovie가 실패하거나 결과 없으면 null을 허용
+
+전체:
+  "TmdbService.getMovie()가 resolve한 값 또는 null"
+  → getMovie의 반환 타입이 바뀌면 자동으로 따라옴
+```
+
+```typescript
+// typeof vs 인덱스드 액세스
+type A = Awaited<ReturnType<typeof tmdbService.getMovie>>;
+//               ↑ 인스턴스가 있을 때
+
+type B = Awaited<ReturnType<TmdbService['getMovie']>>;
+//               ↑ 클래스 타입만 있을 때 (인스턴스 없이)
+
+// 실전 — Service 메서드 반환 타입을 state·prop에 재사용
+type MovieState = {
+  movie: Awaited<ReturnType<TmdbService['getMovie']>> | null;
+  isLoading: boolean;
+};
+
+// 함수 반환 타입이 바뀌면 MovieState도 자동으로 바뀜
+// → 타입을 따로 정의·관리하지 않아도 됨
+```
 ---
 
 # Parameters\<T\> — 함수 파라미터 타입 추출 ⭐️⭐️
