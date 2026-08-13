@@ -4,6 +4,7 @@ aliases:
   - 캐시 테이블(Pool)
   - ORDER BY RANDOM()
   - Cache-aside (Look-aside)
+  - Hit 가드
 tags:
   - NestJS
 related:
@@ -322,6 +323,93 @@ upsert를 쓰는 이유:
   upsert = "있으면 update, 없으면 create" → 안전
 ```
 
+## Hit 가드 — 불완전한 캐시 걸러내기 ⭐️⭐️⭐️⭐
+
+```txt
+캐싱 용어 먼저:
+  Cache Hit  = 캐시에서 데이터를 찾음 → DB 반환 (빠름)
+  Cache Miss = 캐시에 없음 → 외부 API 호출 (느림)
+
+  일반적으로 Hit = "데이터가 있으니 쓸 수 있다"고 가정
+  → 하지만 항상 그렇지 않음
+
+문제 — "있지만 불완전한" 캐시:
+  seedPool()로 Discover 목록을 먼저 저장 (title, poster만)
+  상세 필드(genreIds, originCountries)는 아직 비어 있음
+  이후 getCached() 호출 → Cache Hit
+  → 하지만 genreIds = [] → 장르 필터 기능 못 씀
+
+Hit 가드:
+  "Hit가 됐어도, 내가 필요한 데이터가 들어있는지 확인"
+  = 캐시 존재 여부(있음/없음)가 아닌 캐시 유효성(완전/불완전) 확인
+  불완전하면 → Miss처럼 취급 → 외부 API 재호출 → 완전한 데이터로 덮어씀
+```
+
+
+```txt
+문제:
+  seedPool()이나 배치 동기화로 row가 먼저 생성됨
+  이 시점에 genreIds · originCountries 같은 상세 필드가 비어 있음
+  이후 getCached() 호출 시 캐시 "히트"가 되지만
+  데이터가 불완전 → 화면에 장르·국가가 안 뜸
+
+해결 — hit 가드:
+  캐시가 있어도 "필수 필드가 있는지" 확인
+  없으면 히트로 취급하지 않고 외부 API를 다시 호출
+  → 이번에 가져온 데이터로 row를 update(upsert)
+```
+
+```typescript
+async getCached(externalId: string): Promise<AppResource> {
+  const cached = await this.prisma.resourcePool.findUnique({
+    where: { sourceId: externalId },
+  });
+
+  // Hit 가드 — 있어도 필수 필드가 비어 있으면 히트 아님
+  if (
+    cached &&
+    (cached.genreIds.length > 0 || cached.originCountries.length > 0)
+  ) {
+    return this.fromPool(cached);  // 완전한 데이터 → 반환
+  }
+  // cached가 없거나 데이터 불완전 → 외부 API 호출
+
+  const data = await this.externalApi.fetch(externalId);
+
+  await this.prisma.resourcePool.upsert({
+    where:  { sourceId: externalId },
+    create: { sourceId: externalId, title: data.title, genreIds: data.genre_ids },
+    update: { title: data.title, genreIds: data.genre_ids, syncedAt: new Date() },
+    //       ↑ 이번에 가져온 완전한 데이터로 덮어씀
+  });
+
+  return data;
+}
+```
+
+
+```txt
+hit 가드 조건 설계:
+  "이 필드가 없으면 불완전하다"는 기준을 코드로 표현
+  length > 0  → 배열이 채워져 있는지
+  !== null    → 단일 값이 있는지
+  !== ''      → 문자열이 비어있지 않은지
+
+  너무 엄격하면: 항상 외부 API 호출 → 캐시 의미 없음
+  너무 느슨하면: 불완전한 데이터 반환
+
+  기준 예시:
+    최소 데이터(title만 있으면 됨) → hit 가드 불필요
+    장르·국가 필터 기능이 있음     → genreIds.length > 0 필요
+    상세 페이지가 있음              → overview, posterPath 필요
+
+언제 불완전한 캐시가 생기는가:
+  seedPool()이 Discover 목록만 가져오고 상세는 생략했을 때
+  배치가 실패해서 일부 필드만 저장됐을 때
+  스키마에 새 컬럼을 추가했지만 기존 row는 비어 있을 때
+  → hit 가드로 "필요한 필드가 있는 row만" 캐시로 사용
+```
+
 ---
 ## Prisma 랜덤 선택 — skip + count
 
@@ -353,3 +441,58 @@ skip + count 랜덤 vs ORDER BY RANDOM():
   → [[PG_DML]] ORDER BY RANDOM() 섹션
 ```
 
+---
+## Fallback 전략 — Pool → 외부 API
+
+```typescript
+async pickWithFallback(
+  filters: Record<string, string> = {},
+  excludeIds: string[] = [],
+): Promise<AppResource> {
+
+  // 조건 없는 요청 → Pool 우선
+  if (Object.keys(filters).length === 0) {
+    const where = excludeIds.length
+      ? { sourceId: { notIn: excludeIds } }
+      : {};
+
+    const count = await this.prisma.resourcePool.count({ where });
+    if (count > 0) {
+      const row = await this.prisma.resourcePool.findFirst({
+        where,
+        skip: Math.floor(Math.random() * count),
+      });
+      if (row) return this.fromPool(row);
+    }
+  }
+
+  // 특수 조건 또는 Pool 비어있음 → 외부 API 폴백
+  const result = await this.externalApi.search(filters);
+  if (!result.items.length) {
+    throw new ServiceUnavailableException('결과를 찾지 못했습니다.');
+  }
+
+  // 재시도로 excludeIds 처리
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const item = result.items[Math.floor(Math.random() * result.items.length)];
+    if (!excludeIds.includes(item.id)) {
+      return this.getCached(item.id); // 캐시에 저장하면서 반환
+    }
+  }
+  throw new ServiceUnavailableException('선택 가능한 항목이 없습니다.');
+}
+```
+
+```txt
+Fallback 설계 기준:
+  필터 없음 + Pool에 데이터 있음 → Pool (빠름, rate limit 무관)
+  특수 필터 또는 Pool 비어있음   → 외부 API
+
+  getCached()와 연결:
+  외부 API 결과도 getCached()로 가져오면
+  → 자동으로 Pool에 쌓임 → 다음엔 Pool에서 히트
+
+재시도 (attempt 루프):
+  excludeIds에 걸리면 다시 랜덤 선택
+  최대 N번 시도 후 없으면 예외
+```

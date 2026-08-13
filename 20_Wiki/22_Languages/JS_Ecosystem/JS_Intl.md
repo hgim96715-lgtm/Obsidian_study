@@ -3,6 +3,7 @@ aliases:
   - 국제화API
   - 날짜 포맷
   - 타임존 변환
+  - ISO 3166-1
 tags:
   - JavaScript
 related:
@@ -366,3 +367,94 @@ function formatCurrency(amount: number, currency = 'KRW'): string {
 ```
 
 ---
+# ISO 3166-1 — 국가 코드 표준 ⭐️⭐️⭐️⭐️
+
+```txt
+ISO 3166-1 = 국가를 2글자 알파벳으로 표현하는 국제 표준
+  KR = 대한민국
+  JP = 일본
+  US = 미국
+  GB = 영국 (Great Britain)
+  FR = 프랑스
+  DE = 독일
+  CN = 중국
+  TW = 대만
+  HK = 홍콩
+
+외부 API에서 자주 보이는 필드명:
+  iso_3166_1       → 표준 이름 그대로 (TMDB, 공공 API 등)
+  countryCode      → 앱마다 다른 이름으로 래핑
+  country          → 2글자 코드를 그냥 country로 쓰기도 함
+```
+
+```typescript
+// TMDB API 응답 예시
+type ProductionCountry = {
+  iso_3166_1: string;  // "KR", "US", "JP"
+  name:       string;  // "South Korea", "United States of America"
+};
+
+// 실전 — 국가 코드 추출 패턴
+const originCountries =
+  detail.origin_country ??                                    // 배열이면 바로 사용
+  detail.production_countries?.map((c) => c.iso_3166_1) ??  // 없으면 국가명에서 추출
+  [];
+```
+
+```txt
+detail.origin_country ?? ... ?? []:
+  origin_country가 있으면 그대로 사용 (string[])
+  없으면 production_countries에서 iso_3166_1만 뽑음
+  둘 다 없으면 빈 배열
+
+?? (nullish coalescing):
+  null 또는 undefined일 때만 다음으로 넘어감
+  빈 배열 []은 falsy지만 ?? 에서는 그대로 사용됨
+  → || 와 다름 (|| 는 빈 배열도 falsy로 취급)
+```
+
+## Intl.DisplayNames — 코드 → 국가 이름 표시
+
+```typescript
+// 국가 코드를 사람이 읽을 수 있는 이름으로 변환
+const countryNames = new Intl.DisplayNames(['ko'], { type: 'region' });
+
+countryNames.of('KR')  // "대한민국"
+countryNames.of('US')  // "미국"
+countryNames.of('JP')  // "일본"
+countryNames.of('GB')  // "영국"
+
+// 영문으로
+const enNames = new Intl.DisplayNames(['en'], { type: 'region' });
+enNames.of('KR')  // "South Korea"
+
+// 유틸 함수
+function toCountryName(code: string, locale = 'ko'): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;  // 알 수 없는 코드면 코드 그대로
+  }
+}
+
+toCountryName('KR')      // "대한민국"
+toCountryName('UNKNOWN') // "UNKNOWN" (fallback)
+
+// API 응답에서 국가 이름 표시
+const countries = detail.production_countries
+  ?.map((c) => toCountryName(c.iso_3166_1))
+  .join(', ');
+// "미국, 영국"
+```
+
+## 관련 표준
+
+```txt
+ISO 3166-1 alpha-2: 2글자 (KR, US, JP) ← 가장 흔히 보이는 것
+ISO 3166-1 alpha-3: 3글자 (KOR, USA, JPN)
+ISO 3166-1 numeric: 숫자 (410, 840, 392)
+
+ISO 639-1: 언어 코드 (ko, en, ja)
+  → locale 문자열: "ko-KR", "en-US", "ja-JP"
+  → Intl API의 locale 파라미터에서 사용
+```
