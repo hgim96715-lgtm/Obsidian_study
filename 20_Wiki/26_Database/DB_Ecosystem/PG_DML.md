@@ -1,6 +1,15 @@
 ---
-aliases: [서브쿼리, CTE(WITH), DELETE, INSERT, JOIN, SELECT, UPDATE]
-tags: [SQL, PostgreSQL]
+aliases:
+  - 서브쿼리
+  - CTE(WITH)
+  - DELETE
+  - INSERT
+  - JOIN
+  - SELECT
+  - UPDATE
+tags:
+  - SQL
+  - PostgreSQL
 related:
   - "[[00_DB_HomePage]]"
   - "[[NestJS_PostgreSQL]]"
@@ -8,6 +17,7 @@ related:
   - "[[PG_Aggregate]]"
   - "[[PG_DDL]]"
   - "[[PG_Types]]"
+  - "[[NestJS_CacheTable]]"
 ---
 # PG_DML — PostgreSQL 데이터 조작 언어
 
@@ -107,6 +117,48 @@ LIMIT 20 OFFSET 40                -- 41번째부터 20개 (페이지 3)
 
 -- OFFSET 페이지네이션의 한계:
 -- 데이터가 많을수록 느려짐 → 커서 페이지네이션 권장 → [[NestJS_Pagination]]
+```
+
+## ORDER BY RANDOM() — 랜덤 정렬 ⭐️⭐️⭐️
+
+```sql
+-- 전체에서 랜덤으로 5개 선택
+SELECT * FROM movies
+ORDER BY RANDOM()
+LIMIT 5;
+
+-- 조건 필터 후 랜덤 선택
+SELECT * FROM resource_pool
+WHERE is_active = true
+  AND tags && ARRAY['horror']   -- 태그 필터
+ORDER BY RANDOM()
+LIMIT 10;
+
+-- 이미 선택된 항목 제외 후 랜덤
+SELECT * FROM resource_pool
+WHERE id != ALL(ARRAY['id1', 'id2'])  -- 제외 목록
+ORDER BY RANDOM()
+LIMIT 1;
+```
+
+```txt
+RANDOM():
+  PostgreSQL 내장 함수 — 0.0 이상 1.0 미만의 무작위 실수 반환
+  ORDER BY RANDOM() = 행마다 무작위 값을 붙여서 정렬
+  → 매번 다른 순서 보장
+
+LIMIT과 함께 쓰면:
+  무작위 순서 중 앞에서 N개 → 공정한 랜덤 샘플링
+
+성능 주의:
+  테이블 전체를 정렬한 뒤 자름 → 대용량에서 느릴 수 있음
+  수만 건 이하면 실용적으로 충분
+  수십만 건 이상이면 → TABLESAMPLE 또는 랜덤 ID 방식 고려
+
+뽑기·추천 기능에서:
+  외부 API는 순서 고정 → RANDOM() 불가
+  DB 캐시 테이블(Pool)에 저장해두면 RANDOM() 가능
+  → [[NestJS_CacheTable]] 외부 API 캐시 테이블 패턴
 ```
 
 ---

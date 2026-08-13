@@ -42,11 +42,11 @@ cssclasses:
 
 ## 🐘 PostgreSQL — SQL
 
-| 노트 | 내용 |
-|---|---|
-| [[PG_DDL]] | CREATE TABLE · ALTER · DROP · 제약조건 · 인덱스 DDL |
-| [[PG_DML]] | SELECT · INSERT · UPDATE · DELETE · JOIN · 서브쿼리 |
-| [[PG_Aggregate]] | COUNT · SUM · AVG · GROUP BY · HAVING · 윈도우 함수 |
+| 노트               | 내용                                                                  |
+| ---------------- | ------------------------------------------------------------------- |
+| [[PG_DDL]]       | CREATE TABLE · ALTER · DROP · 제약조건 · 인덱스 DDL                        |
+| [[PG_DML]]       | SELECT · INSERT · UPDATE · DELETE · JOIN · 서브쿼리 · ORDER BY RANDOM() |
+| [[PG_Aggregate]] | COUNT · SUM · AVG · GROUP BY · HAVING · 윈도우 함수                      |
 
 ```txt
 PG_DDL (Data Definition Language) — 구조 정의:
@@ -57,6 +57,8 @@ PG_DDL (Data Definition Language) — 구조 정의:
   인덱스 DDL   — CREATE INDEX · UNIQUE INDEX · Partial Index
 
 PG_DML (Data Manipulation Language) — 데이터 조작:
+  SELECT · WHERE · ORDER BY(RANDOM 포함) · LIMIT · OFFSET
+  INSERT · UPDATE · DELETE · JOIN · 서브쿼리
   SELECT      — WHERE · ORDER BY · LIMIT · OFFSET
   JOIN        — INNER · LEFT · RIGHT · FULL OUTER
   INSERT      — 단건 · 다건 · ON CONFLICT

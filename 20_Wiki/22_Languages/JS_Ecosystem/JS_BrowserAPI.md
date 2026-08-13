@@ -3,6 +3,7 @@ aliases:
   - 브라우저 API
   - window
   - addEventListener
+  - IntersectionObserver
 tags:
   - JavaScript
 related:
@@ -194,6 +195,105 @@ useLayoutEffect를 쓰는 이유:
   useEffect는 그린 뒤 실행 → 위치가 잘못된 상태로 잠깐 보임
 ```
 
+---
+# IntersectionObserver — 요소가 화면에 보이는지 감지 ⭐️⭐️⭐️⭐️
+
+```txt
+IntersectionObserver = "이 요소가 뷰포트(또는 특정 컨테이너)에 보이는지"를 감지하는 API
+
+scroll 이벤트 대신 쓰는 이유:
+  scroll → 스크롤마다 getBoundingClientRect() 호출 → 비쌈
+  IntersectionObserver → 브라우저가 알아서 감지 → 성능 좋음
+
+주요 사용처:
+  무한 스크롤 (load more trigger)
+  이미지 지연 로딩 (화면에 보일 때 src 설정)
+  애니메이션 진입 효과 (보이기 시작할 때 클래스 추가)
+```
+
+```typescript
+// 기본 구조
+const observer = new IntersectionObserver(
+  (entries) => {
+    // entries = 감시 중인 요소들의 교차 상태 배열
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        // 요소가 뷰포트에 진입함
+        doSomething();
+      }
+    });
+  },
+  {
+    root:       null,    // null = 브라우저 뷰포트 기준 (기본값)
+    rootMargin: '0px',   // root 경계 확장 — 미리 감지하려면 '120px'
+    threshold:  0,       // 0 = 1px이라도 보이면 감지, 1 = 완전히 보일 때
+  },
+);
+
+observer.observe(element);   // 감시 시작
+observer.unobserve(element); // 특정 요소 감시 해제
+observer.disconnect();       // 전체 감시 해제 (cleanup)
+```
+
+```typescript
+// 옵션 설명
+{
+  root: scrollRef.current,  // 특정 스크롤 컨테이너 기준 (null이면 뷰포트)
+  rootMargin: '120px',      // 아직 뷰포트 밖 120px에 있을 때부터 감지
+  //  → 화면에 닿기 전 미리 loadMore() 호출 (끊김 없는 무한 스크롤)
+  threshold: 0.5,           // 50% 이상 보일 때 감지
+}
+```
+
+## 무한 스크롤 — useEffect 패턴
+
+```typescript
+// 리스트 맨 아래에 빈 div를 두고 그게 보이면 loadMore() 호출
+const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+const scrollRef          = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  const node = loadMoreTriggerRef.current;
+  const root = scrollRef.current;
+  if (!node || !root || !hasMore) return;
+  // hasMore가 false면 더 불러올 것 없음 → observer 등록 안 함
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) void loadMore();
+      //                ↑ 트리거 div가 뷰포트에 보임 → loadMore 호출
+    },
+    { root, rootMargin: '120px' },
+  );
+
+  observer.observe(node);
+  return () => observer.disconnect();  // 클린업: 언마운트 or deps 변경 시
+}, [hasMore, loadMore, items.length]);
+//           ↑ loadMore가 바뀌거나, 아이템이 추가될 때마다 observer 재등록
+```
+
+```tsx
+// JSX
+<div ref={scrollRef} style={{ overflow: 'auto', height: '500px' }}>
+  {items.map(item => <Item key={item.id} {...item} />)}
+  <div ref={loadMoreTriggerRef} />  {/* 트리거 — 화면에 보이면 loadMore */}
+</div>
+```
+
+```txt
+왜 items.length를 deps에 넣는가:
+  아이템이 추가되면 트리거 div 위치가 바뀜
+  observer를 재등록해야 새 위치에서 감지
+
+rootMargin: '120px':
+  트리거 div가 아직 화면 밖 120px에 있을 때부터 isIntersecting = true
+  → 사용자가 맨 아래에 닿기 전에 미리 로딩 시작
+  → 끊김 없는 무한 스크롤
+
+void loadMore():
+  loadMore()가 async함수인 경우 Promise 반환
+  void = "이 Promise 무시" (useEffect 콜백은 Promise를 반환하면 안 됨)
+```
 ---
 
 # 자주 쓰는 패턴

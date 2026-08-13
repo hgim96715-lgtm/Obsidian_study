@@ -8,6 +8,7 @@ aliases:
   - sr-only
   - role
   - tabIndex
+  - 인터랙티브 요소 중첩 금지
 tags:
   - HTML
   - React
@@ -310,4 +311,94 @@ display: none vs aria-hidden vs sr-only:
   클릭
 </div>
 // → 그냥 <button>을 쓰는 게 훨씬 낫고, 이 모든 게 기본 지원됨
+```
+
+----
+# 인터랙티브 요소 중첩 금지 ⭐️⭐️⭐️⭐️
+
+```txt
+HTML 규칙: button 안에 button 올 수 없음
+interactive 요소(button, a, input, select, textarea) 안에
+또 다른 interactive 요소를 넣으면 안 됨
+
+증상:
+  클릭이 안 먹거나 부모 이벤트에 먹힘
+  카드만 뒤집히고 내부 버튼 토글이 안 됨
+  button cannot be a descendant of button (hydration 경고)
+```
+
+## 플립 카드 + 마크 버튼 패턴
+
+```tsx
+// ❌ 플립 컨테이너(button/role="button") 안에 button 중첩
+<button className="room-flip" onClick={handleFlip}>
+  {/* 앞면 */}
+  <div className="room-flip-front">...</div>
+  {/* 뒷면 */}
+  <div className="room-flip-back">...</div>
+  {/* ❌ 여기 button 넣으면 안 됨 */}
+  <button onClick={handleMark}>찜</button>
+  <button onClick={handleWatch}>봤어요</button>
+</button>
+```
+
+```tsx
+// ✅ 마크 버튼을 플립 밖으로 분리
+<li className="room-movie">
+  {/* 플립 컨테이너 — 앞/뒤 면만 */}
+  <div role="button" tabIndex={0} className="room-flip" onClick={handleFlip}>
+    <div className="room-flip-front">...</div>
+    <div className="room-flip-back">...</div>
+  </div>
+
+  {/* 마크 버튼 — 플립 밖 */}
+  <div className="room-flip-marks">
+    <button onClick={handleMark}>찜</button>
+    <button onClick={handleWatch}>봤어요</button>
+  </div>
+</li>
+```
+
+```txt
+왜 클릭이 부모로 먹히는가:
+  button 안의 button을 클릭하면
+  브라우저가 HTML 규칙 위반으로 DOM을 재해석
+  → 내부 button이 부모 밖으로 빠져나가거나 무시됨
+  → 클릭 이벤트가 의도한 곳에 안 닿음
+
+가챠 결과 모달도 동일:
+  모달 안에 플립 카드가 있고 마크 버튼이 필요하면
+  → 마크는 모달 actions 영역(플립 밖)에 배치
+
+기준:
+  플립 컨테이너(또는 카드)가 클릭 가능하면
+  → 그 안에 다른 클릭 가능한 요소 넣지 말 것
+  → 분리할 수 없으면 e.stopPropagation() 고려
+    (근본 해결은 아님 — HTML 구조 수정이 우선)
+```
+
+## 자주 만나는 중첩 금지 케이스
+
+```tsx
+// ❌ a 안에 button
+<a href="/post/1">
+  <button>공유</button>  {/* 안 됨 */}
+</a>
+
+// ✅ 구조 분리
+<div className="post-item">
+  <a href="/post/1">제목</a>
+  <button>공유</button>
+</div>
+
+// ❌ a 안에 a
+<a href="/user/1">
+  <a href="/post/1">게시글</a>  {/* 안 됨 */}
+</a>
+
+// ✅ e.stopPropagation (임시 방편)
+<a href="/user/1">
+  <a href="/post/1" onClick={e => e.stopPropagation()}>게시글</a>
+</a>
+// → 구조 개선이 먼저
 ```
