@@ -272,7 +272,49 @@ export function formatKstDateTime(date = new Date()): string {
 // 날짜만 필요하면 slice
 formatKstDateTime().slice(0, 10)  // "2024-01-15"
 ```
----
+
+## en-CA — @db.Date용 KST 달력 날짜 ⭐️⭐️⭐️⭐️
+
+```typescript
+/** 임의 시각 → KST 달력 날짜 Date (@db.Date 컬럼에 저장할 때) */
+export function toKstDate(instant: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year:  'numeric',
+    month: '2-digit',
+    day:   '2-digit',
+  }).format(instant);
+  // parts = "2024-01-16"  (en-CA = YYYY-MM-DD 형식)
+  return new Date(`${parts}T00:00:00.000Z`);
+  // "2024-01-16T00:00:00.000Z" — Prisma @db.Date가 날짜만 저장
+}
+```
+
+```txt
+왜 en-CA인가:
+  en-CA (캐나다 영어)의 날짜 형식 = "YYYY-MM-DD"
+  → new Date(parts) 에 바로 넣을 수 있는 ISO 8601 날짜 문자열
+  sv-SE와 달리 시각 없이 날짜만 가져올 때 편함
+
+왜 T00:00:00.000Z를 붙이는가:
+  Prisma @db.Date 컬럼은 Date 객체를 받음
+  날짜 문자열 "2024-01-16"만 넘기면 JS가 로컬 TZ로 해석 → 하루 밀릴 수 있음
+  "2024-01-16T00:00:00.000Z"처럼 UTC 자정으로 명시하면 안전
+
+언제 쓰는가:
+  @db.Date 컬럼에 "오늘 KST 날짜"를 저장할 때
+  UTC 기준으로 오전 9시 이전에는 KST 날짜가 하루 앞서므로 직접 변환 필요
+
+예시:
+  new Date('2024-01-15T17:30:00.000Z')  // UTC 1월 15일 오후 5시 30분
+  toKstDate(...)                         // KST 기준 1월 16일 → Date("2024-01-16T00:00:00.000Z")
+  // → DB에 2024-01-16 저장
+
+sv-SE vs en-CA:
+  sv-SE → 날짜 + 시각이 필요할 때  ("2024-01-16 02:30:00")
+  en-CA → 날짜만 필요할 때         ("2024-01-16")
+```
+
 
 # 자주 쓰는 유틸 함수 정리
 

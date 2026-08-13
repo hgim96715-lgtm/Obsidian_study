@@ -202,13 +202,14 @@ React 19 form action (단순):
 
 ## 🔟 유틸
 
-| 노트 | 내용 |
-|---|---|
-| [[JS_Date]] | Date 객체 · 계산 · 비교 · 타임존 |
-| [[JS_Intl]] | DateTimeFormat · 상대시간("5분 전") · NumberFormat · 통화 |
-| [[JS_JSON]] | stringify · parse · undefined·Date 주의 · 깊은 복사 |
-| [[JS_WebStorage]] | localStorage · sessionStorage · Next.js SSR 주의 |
-| [[JS_URL_Encoding]] | encodeURIComponent · new URL · URLSearchParams |
+| 노트                                  | 내용                                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| [[JS_Date]]                         | Date 객체 · 계산 · 비교 · 타임존                                                               |
+| [[JS_Intl]]                         | DateTimeFormat · sv-SE 트릭 · en-CA + @db.Date · 상대시간 · NumberFormat                    |
+| [[Snippet_date-statistics-pattern]] | toTzDateKey · startOfTzDay · formatFeedDate · formatCommentDate · toKstDate(@db.Date) |
+| [[JS_JSON]]                         | stringify · parse · undefined·Date 주의 · 깊은 복사                                         |
+| [[JS_WebStorage]]                   | localStorage · sessionStorage · Next.js SSR 주의                                        |
+| [[JS_URL_Encoding]]                 | encodeURIComponent · new URL · URLSearchParams                                        |
 
 ---
 

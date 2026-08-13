@@ -165,6 +165,7 @@ model User {
 | `@db.VarChar(n)`            | `VARCHAR(n)` 명시                                              |
 | `@db.Uuid`                  | PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)                |
 | `@db.Timestamptz(n)`        | PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`) |
+| `@db.Date`                  | 날짜만 저장 — 시각 없음 (생년월일·예약일 등 "며칠"이 중요한 것)                      |
 
 ## @map · @@map — 이름 매핑 ⭐️⭐️⭐️⭐️
 
@@ -295,6 +296,49 @@ precision (3):
     USING "createdAt" AT TIME ZONE 'UTC';
 
 timestamp vs timestamptz 차이의 PostgreSQL 원리 → [[NestJS_PostgreSQL]]
+```
+
+## @db.Date — 날짜만 (시각 없음) ⭐️⭐️⭐️
+
+```txt
+@db.Timestamptz vs @db.Date:
+  Timestamptz → "언제" — 날짜 + 시각 + 타임존 (2024-01-15 14:30:00+09)
+  Date        → "무슨 날" — 날짜만 (2024-01-15)
+
+  시각이 의미 없는 경우에 Date를 씀:
+  생년월일, 예약 날짜, 휴가 날짜, 만료 날짜 등
+  "몇 시"가 아니라 "며칠"이 중요한 것
+```
+
+```prisma
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  eventDate DateTime @db.Date   // 날짜만 저장 (시각 없음)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model User {
+  id          String    @id @default(cuid())
+  birthday    DateTime? @db.Date   // 생년월일 — 시각 불필요
+  memberUntil DateTime? @db.Date   // 멤버십 만료일
+}
+```
+
+
+```txt
+@db.Date 없이 DateTime만 쓰면:
+  PostgreSQL에 timestamp로 저장 → 시각(00:00:00)이 함께 저장됨
+  날짜만 필요한 데이터에 불필요한 시각 정보가 붙음
+
+@db.Date를 붙이면:
+  PostgreSQL의 date 타입으로 저장 — 날짜만
+  Prisma Client TS 타입은 여전히 Date 객체
+  → JS에서 읽으면 그 날의 00:00:00 UTC로 나옴
+
+주의:
+  JS Date 객체를 넘길 때 시각 부분은 무시됨
+  new Date('2024-01-15') 또는 new Date('2024-01-15T00:00:00Z') 로 넘기면 됨
 ```
 
 ## @@unique — 복합 유니크 ⭐️⭐️⭐️⭐️
