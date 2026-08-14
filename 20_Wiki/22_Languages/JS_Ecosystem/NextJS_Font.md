@@ -3,6 +3,8 @@ aliases:
   - Font
   - GoogleFonts
   - CSS
+  - localFont
+  - "@import"
 tags:
   - NextJS
 related:
@@ -10,55 +12,247 @@ related:
   - "[[NextJS_Concept]]"
   - "[[React_Styling]]"
 ---
-# NextJS_Font — 폰트 관리
+# NextJS_Font — 폰트 설정
 
-> [!info]
->  Next.js에서 폰트를 쓰는 방법은 두 가지 — `next/font`(자동 최적화)와 CSS `@import`(직접 로드). 
->  한글 폰트처럼 라틴 서브셋만으로는 안 되는 경우 `globals.css @import`를 쓴다.
+> [!info] 
+> `next/font/google`으로 Google Fonts를 번들에 포함 — 외부 요청 없이 자체 서빙.
+>  폰트를 CSS 변수(`--font-xxx`)로 등록하고 `body`나 특정 요소에 적용.
+>   `tailwind.config`에 등록하면 클래스로 사용 가능.
 
 ---
 
-# next/font vs CSS @import ⭐️⭐️⭐️⭐️
-
-| |`next/font`|CSS `@import`|
-|---|---|---|
-|설정 위치|`layout.tsx` 또는 컴포넌트|`globals.css`|
-|최적화|✅ 자동 (preload, swap)|❌ 직접 설정 필요|
-|번들 방식|서버에서 처리 → 외부 요청 없음|브라우저가 Google Fonts 직접 요청|
-|한글 지원|⚠️ Latin subset 기본 — 한글 글리프 누락|✅ 전체 글리프 포함 가능|
-|언제|영문 폰트, 서브셋 지원 폰트|한글 폰트, 전체 글리프가 필요한 폰트|
+# 왜 next/font인가 ⭐️⭐️⭐️
 
 ```txt
-next/font가 한글 폰트에 부적합한 이유:
-  next/font는 Google Fonts에서 폰트를 받아올 때 latin subset을 기본으로 사용
-  한글 글리프는 latin subset에 없음 → 한글이 표시 안 되거나 폴백 폰트로 대체됨
+일반적인 Google Fonts 사용:
+  <link href="https://fonts.googleapis.com/..." rel="stylesheet">
+  → 페이지 로드 시 외부 서버에 요청 → 느림, 개인정보 문제
 
-  Nanum Pen Script 같은 한글 손글씨 폰트는 subset 지정이 복잡
-  → globals.css에 @import로 직접 로드하는 것이 더 안전
+next/font/google:
+  빌드 시 폰트 파일을 다운로드 → Next.js 서버에서 자체 서빙
+  외부 네트워크 요청 없음 → 빠름, GDPR 문제 없음
+  layout shift 방지 (폰트 로드 전/후 레이아웃 틀어짐 없음)
 ```
 
 ---
 
-# next/font — 영문 폰트 (권장) ⭐️⭐️⭐️
+# 사용 순서 ⭐️⭐️⭐️⭐️
+
+## 1. 폰트 이름 찾기
+
+```txt
+Google Fonts (fonts.google.com) 에서 원하는 폰트 검색
+Next.js 폰트 이름 = Google Fonts 이름을 CamelCase + 언더스코어로 변환
+
+Nanum Pen Script → Nanum_Pen_Script
+Noto Sans KR     → Noto_Sans_KR
+Roboto           → Roboto
+Inter            → Inter
+```
+
+## 2. 폰트 설정 — CSS 변수 등록
+
+```typescript
+// app/layout.tsx 또는 lib/fonts.ts
+import { Nanum_Pen_Script, Noto_Sans_KR } from 'next/font/google';
+
+const nanumPen = Nanum_Pen_Script({
+  variable: '--font-nanum-pen',  // CSS 변수 이름 (내가 정함)
+  subsets:  ['latin'],           // 사용할 문자 범위
+  weight:   '400',               // 폰트 굵기 (string 또는 배열)
+});
+
+const notoSansKR = Noto_Sans_KR({
+  variable: '--font-noto-sans-kr',
+  subsets:  ['latin'],
+  weight:   ['400', '700'],      // 여러 굵기를 배열로
+});
+```
+
+```txt
+variable: '--font-xxx':
+  CSS 커스텀 속성(변수) 이름 — 내가 원하는 이름으로 지정
+  이후 CSS에서 font-family: var(--font-nanum-pen) 로 사용
+
+subsets:
+  'latin'     = 영문 기본 (용량 최소)
+  'latin-ext' = 영문 확장
+  한국어 폰트는 대부분 subset 없이 전체 사용 (용량 큼)
+
+weight:
+  고정 굵기 폰트: weight 지정 필수 ('400', '700' 등)
+  가변 폰트(variable font): 생략 가능 (모든 굵기 포함)
+  배열로 여러 굵기 동시 로드 가능
+```
+
+## 3. body 또는 html에 className 등록
 
 ```typescript
 // app/layout.tsx
-import { Inter, Playfair_Display } from 'next/font/google';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',   // CSS 변수로 등록
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-});
-
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html className={`${inter.variable} ${playfair.variable}`}>
-      <body>{children}</body>
+    <html lang="ko" className={`${nanumPen.variable} ${notoSansKR.variable}`}>
+    //               ↑ html에 붙이는 방식도 자주 씀
+    //                 body에 붙이는 것과 차이:
+    //                 html에 붙이면 :root CSS 변수처럼 최상위에서 접근 가능
+      <body>
+        {children}
+      </body>
+    </html>
+  );
+}
+
+// body에 붙이는 방식
+<body className={nanumPen.variable}>
+
+// 둘 다 붙이는 방식 (공식 Next.js 예제)
+<html className={nanumPen.variable}>
+  <body className="font-sans">  {/* Tailwind 기본 폰트 클래스 */}
+```
+
+```txt
+html vs body 어디에:
+  html에 붙이기 → CSS에서 :root와 비슷하게 최상위 변수
+  body에 붙이기 → body 하위 요소에서 접근 가능
+  결과는 거의 같음 — 공식 Next.js 문서는 html에 붙임
+```
+
+---
+
+# ⚠️ 한국어 폰트와 next/font — 주의사항 ⭐️⭐️⭐️⭐️
+
+```txt
+next/font의 구조:
+  Google Fonts에서 폰트를 받아올 때 subset 단위로 다운로드
+  'latin' subset = 영문·숫자·기본 기호만 포함
+  한글 글리프는 latin subset에 없음
+
+한글 폰트(Nanum Pen Script 등)를 next/font로 쓸 때 문제:
+  subsets: ['latin']  → 한글 글자가 포함된 글리프 없음
+                         → 한글이 표시 안 되거나 폴백 폰트로 대체됨
+
+  한글 폰트는 subset 구성이 복잡
+  (CJK 글리프 = 수만 개 → 파일이 매우 크고 subset 지정 어려움)
+```
+
+## 해결 — globals.css에서 직접 import ⭐️⭐️⭐️
+
+```css
+/* globals.css */
+/* 한글 폰트는 Google Fonts @import로 직접 로드 */
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
+
+/* 사용 */
+.handwriting {
+  font-family: 'Nanum Pen Script', cursive;
+}
+```
+
+```txt
+next/font 대신 @import 장점:
+  한글 글리프 전체 포함 (subset 문제 없음)
+  설정이 단순
+
+단점:
+  외부 요청 발생 (Google 서버에 의존)
+  next/font처럼 자체 서빙 아님
+
+절충안:
+  영문 폰트 → next/font (latin subset 문제 없음)
+  한글 폰트 → globals.css @import 또는 localFont
+```
+
+## localFont — 직접 다운받아 자체 서빙 ⭐️⭐️⭐️
+
+```typescript
+// 폰트 파일을 직접 다운받아 /public/fonts/ 또는 /app/fonts/에 두기
+import localFont from 'next/font/local';
+
+const nanumPen = localFont({
+  src: './fonts/NanumPenScript-Regular.ttf',
+  variable: '--font-nanum-pen',
+});
+```
+
+```txt
+localFont가 한글 폰트에 적합한 이유:
+  파일 전체를 그대로 사용 → subset 문제 없음
+  자체 서빙 → 외부 요청 없음
+  Next.js가 자동으로 최적화 (woff2 변환 등)
+
+폰트 파일 얻는 방법:
+  Google Fonts → 폰트 선택 → Download family
+  .ttf 또는 .otf 파일을 /public/fonts/ 또는 /app/fonts/ 에 복사
+```
+
+## 4. CSS에서 사용
+
+```css
+/* globals.css */
+
+/* 전체 앱 기본 폰트 */
+body {
+  font-family: var(--font-noto-sans-kr), sans-serif;
+}
+
+/* 특정 요소에만 */
+.handwriting {
+  font-family: var(--font-nanum-pen), cursive;
+}
+
+.title {
+  font-family: var(--font-nanum-pen);
+  font-size: 2rem;
+}
+```
+
+---
+
+# Tailwind CSS와 함께 ⭐️⭐️⭐️
+
+```typescript
+// tailwind.config.ts
+import type { Config } from 'tailwindcss';
+
+export default {
+  theme: {
+    extend: {
+      fontFamily: {
+        'nanum-pen': ['var(--font-nanum-pen)', 'cursive'],
+        'noto-kr':   ['var(--font-noto-sans-kr)', 'sans-serif'],
+      },
+    },
+  },
+} satisfies Config;
+```
+
+```tsx
+// 클래스로 사용
+<h1 className="font-nanum-pen text-3xl">손글씨 제목</h1>
+<p className="font-noto-kr">본문 텍스트</p>
+```
+
+---
+
+# 전체 예시 — Nanum Pen Script
+
+```typescript
+// app/layout.tsx
+import { Nanum_Pen_Script } from 'next/font/google';
+
+const nanumPen = Nanum_Pen_Script({
+  variable: '--font-nanum-pen',
+  subsets:  ['latin'],
+  weight:   '400',
+  // display: 'swap',  // 폰트 로드 전 대체 폰트 표시 (기본값)
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ko">
+      <body className={nanumPen.variable}>
+        {children}
+      </body>
     </html>
   );
 }
@@ -66,325 +260,61 @@ export default function RootLayout({ children }) {
 
 ```css
 /* globals.css */
-body {
-  font-family: var(--font-inter), sans-serif;
+.pen-font {
+  font-family: var(--font-nanum-pen), cursive;
 }
 ```
 
-```txt
-next/font 장점:
-  빌드 타임에 폰트 다운로드 → CDN에 올림
-  font-display: swap 자동 적용 → 폴백 폰트 → 웹폰트 전환
-  외부 Google Fonts 요청 없음 → 성능 + 프라이버시
-  variable로 CSS 변수 등록 → Tailwind의 fontFamily와 연결 가능
+```tsx
+/* 사용 */
+<p className="pen-font">손글씨처럼 보이는 텍스트</p>
 ```
 
 ---
 
-# CSS @import — 한글 폰트 ⭐️⭐️⭐️⭐️
-
-```css
-/* app/globals.css */
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
-```
-
-```txt
-display=swap:
-  폰트 로딩 전에 폴백 폰트(시스템 폰트)를 먼저 보여줌
-  폰트가 로드되면 교체 — 레이아웃 시프트는 있지만 텍스트가 숨지 않음
-
-@import 위치:
-  globals.css 최상단에 두어야 함
-  다른 CSS 규칙 아래에 있으면 일부 브라우저에서 무시됨
-```
-
----
-
-# 커스텀 폰트 클래스 패턴 ⭐️⭐️⭐️⭐️
-
-```css
-/* globals.css */
-@import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
-
-.napkin-hand {
-  font-family: 'Nanum Pen Script', 'Apple SD Gothic Neo', cursive;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-}
-```
+# 자주 쓰는 한국어 폰트
 
 ```typescript
-//web/lib/fontname.ts
-// 클래스 이름을 상수로 관리 — 오타 방지, 변경 시 한 곳만 수정
-export const napkinHandClassName = 'napkin-hand';
-
-// 커스텀 클래스 + Tailwind 조합
-export const napkinMoodInputClassName = [
-  napkinHandClassName,
-  'w-[9.5rem]',
-  'border-0 border-b border-dashed border-[#c9a66b]/40',
-  'bg-transparent px-0.5 py-1',
-  'text-[1.2rem] leading-none text-[#c9a66b]',
-  'outline-none',
-  'placeholder:text-[#a89880]/45',
-  'focus:border-[#c9a66b]',
-].join(' ');
-
-// 사용
-<input className={napkinMoodInputClassName} />
+import {
+  Noto_Sans_KR,          // 본고딕 계열 — 가독성 좋음
+  Nanum_Gothic,          // 나눔고딕
+  Nanum_Myeongjo,        // 나눔명조 (serif)
+  Nanum_Pen_Script,      // 손글씨
+  Gowun_Dodum,           // 고운돋움 — 부드러운 느낌
+  IBM_Plex_Sans_KR,      // IBM Plex 한국어
+} from 'next/font/google';
 ```
 
 ```txt
-클래스 이름을 상수로 분리하는 이유:
-  'napkin-hand' 문자열을 여러 컴포넌트에 직접 쓰면 오타 발생 가능
-  napkinHandClassName 상수로 관리하면 IDE 자동완성 + 변경 시 한 곳만 수정
-
-커스텀 클래스 + Tailwind 조합:
-  .napkin-hand       → globals.css에 font-family 등 폰트 속성
-  Tailwind 클래스    → 크기, 여백, 색상 등 나머지 스타일
-  분리하는 이유: font-family 폴백 스택은 Tailwind arbitrary value로 표현하기 어려움
-```
-
-## 폰트 스택 (fallback) 설계
-
-```css
-.napkin-hand {
-  font-family:
-    'Nanum Pen Script',     /* 1순위: 웹폰트 */
-    'Apple SD Gothic Neo',  /* 2순위: Mac/iOS 시스템 한글 폰트 */
-    cursive;                /* 3순위: 시스템 손글씨 계열 (최후 폴백) */
-}
-```
-
-```txt
-폰트 스택이 필요한 이유:
-  웹폰트가 아직 로드 안 됐거나 실패했을 때 대체 폰트가 없으면
-  브라우저 기본 폰트(보통 맑은 고딕/Apple SD Gothic)로 표시됨
-  → 손글씨 느낌이 전혀 없는 폰트로 나옴
-
-  'Apple SD Gothic Neo' 를 중간에 두는 이유:
-  cursive(시스템 손글씨)보다 한글이 더 자연스럽게 나오는 경우가 있어서
-
-자주 쓰는 한글 시스템 폰트:
-  'Apple SD Gothic Neo'   Mac/iOS
-  'Noto Sans KR'          Android/Web (설치 시)
-  '맑은 고딕'             Windows
-  sans-serif              전체 폴백
+한국어 폰트 주의사항:
+  한국어는 글자 수가 많아서 폰트 파일이 큼 (수 MB)
+  subset 지정으로 용량 줄이기 어려움
+  display: 'swap' (기본값) — 폰트 로드 전 시스템 폰트 먼저 표시
+  
+  wght (가변 폰트) 지원 확인:
+    Noto Sans KR — weight 배열로 여러 굵기
+    Nanum Gothic — 고정 굵기 지정 필요
 ```
 
 ---
 
-# Tailwind에 커스텀 폰트 등록 ⭐️⭐️
-
-```javascript
-// tailwind.config.ts
-export default {
-  theme: {
-    extend: {
-      fontFamily: {
-        hand: ['var(--font-napkin)', 'Apple SD Gothic Neo', 'cursive'],
-        // → className="font-hand"로 사용 가능
-      },
-    },
-  },
-};
-```
-
-```css
-/* globals.css */
-:root {
-  --font-napkin: 'Nanum Pen Script';
-}
-```
-
-```txt
-Tailwind에 등록하면:
-  className="font-hand" 로 간결하게 사용
-  arbitrary value [font-family:...] 보다 읽기 쉬움
-
-next/font variable과 연결:
-  const nanum = localFont({ src: './NanumPenScript.woff2', variable: '--font-napkin' });
-  → Tailwind의 var(--font-napkin)과 자동 연결
-```
----
-
-# 사용자 설정 폰트 시스템 ⭐️⭐️⭐️⭐️
-
-```txt
-패턴: localStorage 저장 → CSS 변수 주입 → CSS calc/var 적용
-  JS에서 fontId, scale을 저장하고
-  CSS --room-chat-font-family, --room-chat-font-scale 변수로 주입
-  CSS에서 var()로 읽어 실제 스타일 적용
-```
-
-## 상수 & 타입 정의
+# 로컬 폰트
 
 ```typescript
-// as const 배열 → T[number] 타입 → 타입 서술어 조합 패턴
-export const CHAT_FONT_IDS    = ['default', 'gothic', 'serif', 'hand'] as const;
-export const CHAT_FONT_SCALES = ['S', 'M', 'L'] as const;
+// 직접 다운받은 폰트 파일 사용
+import localFont from 'next/font/local';
 
-export type ChatFontId    = (typeof CHAT_FONT_IDS)[number];
-// → 'default' | 'gothic' | 'serif' | 'hand'
-export type ChatFontScale = (typeof CHAT_FONT_SCALES)[number];
-// → 'S' | 'M' | 'L'
+const myFont = localFont({
+  src: './fonts/MyFont.woff2',  // public/ 기준 경로
+  variable: '--font-my',
+});
 
-export type ChatFontPrefs = {
-  fontId: ChatFontId;
-  scale:  ChatFontScale;
-};
+// 여러 파일 (굵기별)
+const myFont = localFont({
+  src: [
+    { path: './fonts/MyFont-Regular.woff2', weight: '400' },
+    { path: './fonts/MyFont-Bold.woff2',    weight: '700' },
+  ],
+  variable: '--font-my',
+});
 ```
-
-## Record 룩업 테이블
-
-
-```typescript
-/** 화면에 표시할 레이블 */
-export const CHAT_FONT_LABELS: Record<ChatFontId, string> = {
-  default: '기본',
-  gothic:  '고딕',
-  serif:   '세리프',
-  hand:    '손글씨',
-};
-
-export const CHAT_FONT_SCALE_LABELS: Record<ChatFontScale, string> = {
-  S: '작게', M: '보통', L: '크게',
-};
-
-/** CSS에 주입할 배율 */
-export const CHAT_FONT_SCALE_VALUE: Record<ChatFontScale, number> = {
-  S: 0.92, M: 1, L: 1.12,
-};
-
-/** CSS font-family 값 (폰트 스택 포함) */
-export const CHAT_FONT_FAMILY: Record<ChatFontId, string> = {
-  default: 'inherit',
-  gothic:  '"Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
-  serif:   '"Noto Serif KR", "Apple SD Gothic Neo", serif',
-  hand:    '"napkin-hand", "Nanum Pen Script", cursive',
-};
-```
-
-```txt
-Record<K, V> + as const 조합이 좋은 이유:
-  CHAT_FONT_IDS에 새 폰트를 추가하면
-  TypeScript가 CHAT_FONT_FAMILY 등 Record에서 누락 항목을 에러로 잡아줌
-  → 상수 하나 추가 시 자동으로 모든 테이블 동기화 강제
-  → [[TS_Utility_Types]] Record 참고
-```
-
-## localStorage 저장/읽기 — 타입 검증 포함
-
-
-```typescript
-const PREFIX = 'chat-font:';
-
-function storageKey(userId: string) { return `${PREFIX}${userId}`; }
-
-// 타입 서술어 — 유효한 값인지 검증
-function isFontId(v: string): v is ChatFontId {
-  return (CHAT_FONT_IDS as readonly string[]).includes(v);
-}
-function isScale(v: string): v is ChatFontScale {
-  return (CHAT_FONT_SCALES as readonly string[]).includes(v);
-}
-
-function defaultPrefs(): ChatFontPrefs { return { fontId: 'default', scale: 'M' }; }
-
-// 읽기
-export function getChatFontPrefs(userId: string): ChatFontPrefs {
-  if (typeof window === 'undefined') return defaultPrefs();  // SSR 가드
-  const raw = localStorage.getItem(storageKey(userId));
-  if (!raw) return defaultPrefs();
-  try {
-    const parsed = JSON.parse(raw) as Partial<ChatFontPrefs>;
-    return {
-      fontId: isFontId(parsed.fontId ?? '') ? parsed.fontId! : 'default',
-      scale:  isScale(parsed.scale  ?? '') ? parsed.scale!  : 'M',
-    };
-  } catch {
-    return defaultPrefs();
-  }
-}
-
-// 쓰기 — 저장 전에도 검증
-export function setChatFontPrefs(userId: string, prefs: ChatFontPrefs) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(storageKey(userId), JSON.stringify({
-    fontId: isFontId(prefs.fontId) ? prefs.fontId : 'default',
-    scale:  isScale(prefs.scale)   ? prefs.scale  : 'M',
-  }));
-}
-```
-
-
-```txt
-이 패턴이 다루는 세 가지 방어:
-  1. SSR 가드  typeof window === 'undefined'  서버에서 실행 시 기본값
-  2. 없는 값   !raw → defaultPrefs()           처음 방문 시 기본값
-  3. 잘못된 값 isFontId/isScale 검증          저장값이 손상됐을 때 기본값
-
-parsed.fontId ?? '':
-  Partial<T>이라 fontId가 없을 수 있음 → ?? '' → isPresetId('') → false → 기본값
-  → [[TS_Utility_Types]] Partial / [[TS_Type_Guards]] as const 타입 서술어 참고
-```
-
----
-
-## CSS 변수로 동적 폰트 적용 ⭐️⭐️⭐️⭐️
-
-
-```css
-/* globals.css 또는 컴포넌트 스코프 CSS */
-.room-chat-font .room-bubble,
-.room-chat-font .room-composer textarea {
-  font-family: var(--room-chat-font-family, inherit);
-  font-size:   calc(15px * var(--room-chat-font-scale, 1));
-}
-```
-
-```typescript
-// JS에서 CSS 변수 주입
-function applyChatFontPrefs(element: HTMLElement, prefs: ChatFontPrefs) {
-  element.style.setProperty(
-    '--room-chat-font-family',
-    CHAT_FONT_FAMILY[prefs.fontId],
-  );
-  element.style.setProperty(
-    '--room-chat-font-scale',
-    String(CHAT_FONT_SCALE_VALUE[prefs.scale]),
-  );
-}
-
-// React에서 사용
-const containerRef = useRef<HTMLDivElement>(null);
-
-useEffect(() => {
-  if (!containerRef.current) return;
-  applyChatFontPrefs(containerRef.current, prefs);
-}, [prefs]);
-
-return <div ref={containerRef} className="room-chat-font">...</div>;
-```
-
-```txt
-CSS 변수 + calc() 패턴:
-  var(--room-chat-font-family, inherit)
-    → 변수가 없으면 inherit(기본값) 사용
-
-  calc(15px * var(--room-chat-font-scale, 1))
-    → scale: S(0.92) → 13.8px
-    → scale: M(1)    → 15px
-    → scale: L(1.12) → 16.8px
-    → JS에서 숫자(배율)만 바꾸면 CSS가 알아서 계산
-
-.room-chat-font 클래스 범위:
-  전체 앱에 적용하지 않고 채팅 컨테이너(.room-chat-font)에만 적용
-  CSS 변수는 해당 요소와 자식에만 영향
-
-setProperty vs className:
-  className    → 클래스를 통째로 바꿔야 해서 경우의 수가 많음
-  setProperty  → 변수 값만 바꾸면 CSS가 자동으로 반영 → 조합이 자유로움
-```
-
----

@@ -1,18 +1,6 @@
 ---
-aliases:
-  - filter
-  - forEach
-  - map
-  - reduce
-  - Set
-  - sort
-  - localcompare
-  - ReadonlySet
-  - find
-  - slice
-  - splice
-tags:
-  - JavaScript
+aliases: [Array.from, Fetch, fetchAPI, HTTP, Network]
+tags: [JavaScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Object_Methods]]"
@@ -25,6 +13,7 @@ related:
 >`filter` · `map` · `some` · `find` — 전부 이 하나의 구조다.
 > `sort`는 비교 함수의 반환값(음수/0/양수)으로 순서를 결정하며, 문자열·날짜 정렬엔 `localeCompare`를 쓴다. 
 > `slice(1)` · `slice(0, N)` · `slice(-N)`으로 배열 일부를 추출한다. 
+> `Array.from({ length: n }, (_, i) => ...)` — 숫자 n개만큼 반복하는 배열을 만들 때. 
 > Set은 중복 없는 값의 모음 — `ReadonlySet<T>`으로 읽기 전용을 표현한다.
 
 ---
@@ -791,4 +780,108 @@ forEach가 async를 기다리지 않는 이유:
 
 순서가 중요 → for...of + await
 순서 무관, 동시에 빠르게 → Promise.all + map
+```
+----
+# Array.from — 배열이 아닌 것을 배열로 ⭐️⭐️⭐️⭐️
+
+```txt
+Array.from(배열처럼 생긴 것, 변환함수?)
+
+배열이 아닌데 배열처럼 순회하고 싶을 때:
+  문자열, Set, Map, NodeList, arguments 등
+  또는 { length: n } 으로 원하는 길이의 배열을 만들 때
+```
+
+## 기본 사용
+
+```typescript
+// 문자열 → 배열 (한 글자씩)
+Array.from('hello')           // ['h', 'e', 'l', 'l', 'o']
+
+// Set → 배열 (중복 제거 후 배열로)
+Array.from(new Set([1, 2, 2, 3]))  // [1, 2, 3]
+
+// NodeList → 배열 (DOM 쿼리 결과)
+Array.from(document.querySelectorAll('li'))
+
+// 두 번째 인자 — 변환 함수 (map처럼)
+Array.from([1, 2, 3], (x) => x * 2)  // [2, 4, 6]
+```
+
+## { length: n } — 원하는 길이로 배열 생성 ⭐️⭐️⭐️⭐️
+
+```typescript
+// n번 반복하는 배열이 필요할 때
+Array.from({ length: 3 })
+// [undefined, undefined, undefined]  — 3칸
+
+Array.from({ length: 3 }, (_, i) => i)
+// [0, 1, 2]
+//   ↑ 첫 번째 인자: 현재 값 (undefined라 _ 로 무시)
+//      ↑ 두 번째 인자: 인덱스
+
+Array.from({ length: 5 }, (_, i) => i + 1)
+// [1, 2, 3, 4, 5]
+```
+
+```txt
+(_, i) 에서 _ 가 뭔가:
+  Array.from의 변환 함수는 (값, 인덱스) 두 인자를 받음
+  { length: n }으로 만들면 값이 undefined라 쓸모없음
+  → _  로 "이 인자는 안 쓴다"는 관례
+  → i  로 인덱스만 사용
+
+왜 .map() 안 쓰는가:
+  5.map(...)      → 숫자는 .map() 없음 (배열 아님)
+  [].map(...)     → 빈 배열에 .map()하면 결과도 빈 배열
+  Array.from({ length: 5 }, ...) → 길이만 알면 배열 생성 가능
+```
+
+## React — 별점·슬롯·반복 UI ⭐️⭐️⭐️⭐️
+
+```typescript
+// 별점 컴포넌트 (4.5점 → ★★★★☆ + 반쪽)
+function RatingStars({ rating }: { rating: number }) {
+  const full  = Math.floor(rating);          // 꽉 찬 별 수
+  const half  = rating - full >= 0.5;        // 반쪽 별 여부
+  const empty = 5 - full - (half ? 1 : 0);  // 빈 별 수
+
+  return (
+    <span aria-label={`${rating}점`}>
+      {Array.from({ length: full }, (_, i) => (
+        <Star key={`f${i}`} fill="currentColor" />
+        //                   ↑ key에 f/e 접두사 — full과 empty가 겹치지 않게
+      ))}
+      {half && <StarHalf fill="currentColor" />}
+      {Array.from({ length: empty }, (_, i) => (
+        <Star key={`e${i}`} />  // fill 없음 = 빈 별
+      ))}
+    </span>
+  );
+}
+```
+
+
+```typescript
+// 그리드·슬롯 반복
+Array.from({ length: 12 }, (_, i) => (
+  <div key={i} className="grid-cell" />
+))
+
+// 페이지 번호 버튼
+Array.from({ length: totalPages }, (_, i) => (
+  <button key={i} onClick={() => goTo(i + 1)}>{i + 1}</button>
+))
+
+// 스켈레톤 UI (로딩 중 자리 표시)
+Array.from({ length: 5 }, (_, i) => (
+  <div key={i} className="skeleton-card" />
+))
+```
+
+```txt
+key에 접두사를 붙이는 이유:
+  full 별 i=0,1,2 / empty 별 i=0,1 → 같은 인덱스 충돌
+  key="f0", "f1" / "e0", "e1" → 중복 없음
+  React는 key로 요소를 식별하므로 같은 레벨에서 유일해야 함
 ```

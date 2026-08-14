@@ -173,17 +173,95 @@ setState(prev => ({ ...prev, theme: 'dark' }));
 
 # Map — 동적 key-value 저장소 ⭐️⭐️⭐️⭐️
 
+```txt
+Map = "키로 값을 꺼내는 상자"
+
+Object와 비슷하지만 다른 점:
+  Object: 키가 항상 string (또는 Symbol)
+  Map:    키가 숫자, 객체 등 어떤 타입이든 가능
+
+언제 Map을 선택하는가:
+  키가 숫자일 때     → movie.id(number)로 영화를 찾을 때
+  키가 런타임에 결정 → API 응답의 id를 키로
+  여러 번 id 탐색    → .find()보다 빠름 (O(1))
+  순서 보장 필요     → 삽입 순서 유지
+
+언제 Object를 선택하는가:
+  구조가 고정됨      → { title, content, createdAt }
+  JSON 직렬화 필요   → Map은 JSON.stringify 지원 안 함
+  알려진 키만        → { id, name, email }
+```
+
+## TypeScript 제네릭 `new Map<K, V>()` ⭐️⭐️⭐️⭐️
+
 ```typescript
+// new Map<키 타입, 값 타입>()
+const map = new Map<number, GachaMovie>();
+//                  ↑ 키     ↑ 값
+//   map.set(123, movieObj)  → number 키, GachaMovie 값
+//   map.get(123)            → GachaMovie | undefined
+
+const userMap  = new Map<string, User>();
+const scoreMap = new Map<string, number>();
+const tagMap   = new Map<number, string[]>();  // 키:숫자, 값:문자열 배열
+```
+
+```txt
+제네릭 <K, V>를 지정하는 이유:
+  map.set(123, '잘못된 값')  → TS 에러 (값 타입이 GachaMovie가 아님)
+  map.get(123)               → GachaMovie | undefined (타입 안전)
+
+  undefined가 포함되는 이유:
+  키가 없으면 .get()은 undefined를 반환
+  → 반드시 if (movie) 체크 후 사용
+```
+
+## 점진적으로 채우는 패턴 ⭐️⭐️⭐️
+
+```typescript
+// 조건에 따라 Map을 점진적으로 채우기
+const map = new Map<number, GachaMovie>();
+
+if (today.status === 'used' && today.movie) {
+  map.set(today.movie.id, today.movie);
+  //           ↑ 키 (number)  ↑ 값 (GachaMovie)
+}
+if (yesterday.movie) {
+  map.set(yesterday.movie.id, yesterday.movie);
+}
+
+// 이후 ID로 즉시 조회
+const found = map.get(targetId);  // GachaMovie | undefined
+if (found) { /* 사용 */ }
+```
+
+```txt
+왜 배열이 아닌 Map인가:
+  배열: [movie1, movie2] → id로 찾으려면 .find(m => m.id === id)
+        → 배열이 커질수록 느림 (O(n))
+
+  Map: map.get(id) → 즉시 반환 (O(1))
+       나중에 id로 자주 찾아야 할 때 Map이 유리
+
+왜 Object가 아닌 Map인가:
+  키가 number → Object 키는 string으로 변환됨
+               → map[123]은 실제로 map["123"]
+  Map<number, ...>은 진짜 number 키
+```
+
+
+```typescript
+// 기본 API
 const map = new Map<string, User>();
 
-// 쓰기 / 읽기 / 확인 / 삭제
 map.set('user-1', { id: 'user-1', name: '홍길동' });
 map.get('user-1')     // { id: 'user-1', name: '홍길동' } — 없으면 undefined
 map.has('user-1')     // true
-map.delete('user-1')  // 삭제 후 true 반환
+map.delete('user-1')  // 삭제
 map.size              // 항목 수
+map.clear()           // 전체 삭제
 
-// 초기화
+// 초기값으로 생성
 const map2 = new Map([
   ['a', 1],
   ['b', 2],
@@ -211,6 +289,7 @@ const cache = new Map<string, User>();
 cache.set(userId, user);
 ```
 
+---
 ## O(1) vs O(n) — 탐색 속도 차이 ⭐️⭐️⭐️⭐️
 
 ```txt

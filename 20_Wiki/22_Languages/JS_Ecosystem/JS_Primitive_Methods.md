@@ -1,8 +1,10 @@
 ---
 aliases:
-  - String
-  - Number
+  - 해시 함수
   - Math
+  - Number
+  - String
+  - FNV-1a
 tags:
   - JavaScript
 related:
@@ -138,6 +140,31 @@ padStart 사용 예:
 
 // 배열 → 문자열 (join은 Array 메서드)
 ['a', 'b', 'c'].join(', ')   // 'a, b, c'
+```
+
+## charCodeAt — 문자 → 숫자 코드 ⭐️⭐️⭐️
+
+```typescript
+// 문자열의 특정 위치 문자를 숫자(유니코드 코드 포인트)로 반환
+'A'.charCodeAt(0)      // 65
+'a'.charCodeAt(0)      // 97
+'가'.charCodeAt(0)     // 44032
+'hello'.charCodeAt(1)  // 101  ('e')
+
+// 문자열을 순서대로 숫자로 변환
+for (let i = 0; i < 'hi'.length; i++) {
+  console.log('hi'.charCodeAt(i));  // 104, 105
+}
+```
+
+```txt
+charCodeAt이 필요한 이유:
+  문자를 직접 수식에 쓸 수 없음 ('A' + 1 = 'A1' 문자열 연결)
+  charCodeAt으로 숫자로 바꾼 다음 수식 적용
+
+  주로 쓰이는 곳:
+  해시 함수 — 문자열을 숫자 하나로 변환 (아래 해시 함수 섹션)
+  문자열 비교 — 알파벳 순서 비교
 ```
 
 ---
@@ -354,6 +381,153 @@ Math.floor vs Math.trunc (음수에서 다름):
   양수에서는 동일, 음수에서 다름
   일반적으로 양수 계산에는 Math.floor
   음수도 포함하면 Math.trunc 고려
+```
+
+# Math.imul — 32비트 정수 곱셈 ⭐️⭐️
+
+```typescript
+Math.imul(3, 4)            // 12
+Math.imul(0xffffffff, 5)   // -5 (32비트 오버플로우)
+
+// 일반 곱셈과의 차이
+3 * 4                      // 12       (64비트 부동소수점)
+Math.imul(3, 4)            // 12       (32비트 정수)
+
+// 큰 수에서 차이 발생
+Math.imul(0xffffffff, 0xffffffff)  // 1  (32비트 넘치면 버림)
+0xffffffff * 0xffffffff            // 1.844674... (부동소수점 정밀도 손실)
+```
+
+```txt
+Math.imul이 필요한 이유:
+  해시 함수에서 큰 수를 곱할 때
+  일반 * 연산은 부동소수점 → 큰 수에서 정밀도 손실
+  Math.imul은 32비트 정수 범위에서 정확하게 곱셈
+  → 해시 계산처럼 비트 조작이 필요한 곳에서 사용
+
+>>> 0 (부호 없는 오른쪽 시프트):
+  Math.imul 결과가 음수일 수 있음 (32비트 오버플로우)
+  >>> 0 으로 양수 32비트 정수로 변환
+  h >>> 0 → 항상 0 이상의 정수
+```
+
+---
+
+# 해시 함수 — 문자열 → 고정된 숫자 ⭐️⭐️⭐️
+
+## 해시란
+
+```txt
+해시(Hash) = 임의 길이의 데이터를 고정 길이의 숫자로 변환하는 것
+
+  입력: "hello-world-post-id-abc123" (긴 문자열)
+  출력: 2847291048                   (32비트 숫자 하나)
+
+  "안녕하세요"도 숫자 하나
+  "a"도 숫자 하나
+  → 길이에 상관없이 항상 같은 크기의 숫자
+
+왜 필요한가:
+  문자열을 직접 비교하면 글자 수만큼 시간이 걸림
+  숫자 하나로 바꾸면 비교가 O(1)
+  배열 인덱스로 쓸 수 있음 (hash % 배열길이)
+  같은 입력 → 항상 같은 출력 → 색상·위치 배정 등에 활용
+```
+
+## 해시 함수의 3가지 특성
+
+```txt
+1. 결정론적 (Deterministic):
+   같은 입력 → 항상 같은 출력
+   "abc" → 언제 실행해도 항상 2851307223
+
+2. 단방향 (One-way):
+   출력 → 원래 입력으로 복원 불가
+   2851307223 → "abc"를 역으로 계산할 방법 없음
+   (암호화와 다름 — 복호화가 설계상 불가)
+
+3. 균일 분포 (Avalanche Effect):
+   입력이 조금만 달라도 출력이 크게 달라짐
+   "abc" → 2851307223
+   "abd" → 9284019283  (한 글자만 다른데 결과가 완전히 다름)
+   → 다른 입력이 같은 해시를 갖는 "충돌"을 줄임
+```
+
+## FNV-1a란
+
+```txt
+FNV = Fowler–Noll–Vo
+  1991년 Glenn Fowler, Landon Noll, Phong Vo가 설계한 해시 알고리즘
+
+FNV-1a 변형:
+  빠르고 구현이 단순 (XOR + 곱셈 두 연산만)
+  균일한 분산 (충돌이 적음)
+  암호학적 안전성은 없음 (보안용 아님, 성능용)
+
+사용처:
+  데이터베이스 해시 테이블
+  캐시 키 생성
+  UI에서 id → 색상·위치 배정
+  데이터 무결성 체크섬
+```
+
+## FNV-1a 코드 분해
+
+```typescript
+function hashId(id: string): number {
+  let h = 2166136261;
+  //       ↑ FNV offset basis: 32비트 해시의 초기값 (마법 상수)
+  //         왜 이 숫자? — 해시 분산이 가장 균일하도록 실험적으로 결정됨
+
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    // ↑ XOR: 현재 해시 h와 이 글자의 코드를 비트 단위로 섞음
+    //   XOR(^) = 같으면 0, 다르면 1
+    //   각 글자가 해시에 영향을 줌
+
+    h = Math.imul(h, 16777619);
+    //              ↑ FNV prime: 32비트용 소수 (마법 상수)
+    //                곱셈으로 비트를 넓게 퍼뜨림 (avalanche effect)
+    //                Math.imul = 32비트 정수 곱셈 (정밀도 손실 없음)
+  }
+
+  return h >>> 0;
+  //       ↑ 부호 없는 32비트 양수로 변환
+  //         Math.imul 결과가 음수일 수 있어서 항상 양수로
+}
+```
+
+
+```txt
+알고리즘 흐름 (문자 하나씩):
+  초기값 h = 2166136261
+  'h' (104) → h = h XOR 104 → h = h × 16777619
+  'i' (105) → h = h XOR 105 → h = h × 16777619
+  최종 h >>> 0 → 양수 32비트 정수
+
+  각 글자가 XOR로 섞이고 곱셈으로 퍼짐
+  → 순서도 중요 ("ab"와 "ba"는 다른 결과)
+```
+
+## 실전 활용
+
+```typescript
+const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12'];
+const LAYOUTS = ['top-left', 'center', 'bottom-right', 'top-right'];
+
+// id → 항상 같은 색상 (새로고침해도 바뀌지 않음)
+const color  = COLORS[hashId(post.id) % COLORS.length];
+const layout = LAYOUTS[hashId(post.id) % LAYOUTS.length];
+
+// 같은 id → 항상 같은 위치·색상 배정
+// 다른 id → 다른 결과 (균일하게 분산)
+```
+
+```txt
+주의: FNV-1a는 보안용이 아님
+  비밀번호 해시 → bcrypt, argon2 (보안 해시)
+  데이터 무결성 → SHA-256 (암호학적 해시)
+  UI 배정·캐시 키 → FNV-1a, djb2 (비보안 해시, 빠름)
 ```
 
 ---
