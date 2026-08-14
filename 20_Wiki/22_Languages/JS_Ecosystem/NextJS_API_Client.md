@@ -1,18 +1,13 @@
 ---
-aliases:
-  - api.ts
-  - fetch 래퍼
-  - fetchAPIVoid
-  - fetchPosts
-tags:
-  - NextJS
+aliases: [api.ts, fetch 래퍼, fetchAPIVoid, fetchPosts]
+tags: [NextJS]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NextJS_API_Mapper]]"
-  - "[[NextJS_Types]]"
-  - "[[NextJS_Concept]]"
   - "[[JS_Fetch_API]]"
+  - "[[NextJS_API_Mapper]]"
+  - "[[NextJS_Concept]]"
   - "[[NextJS_ServerClient]]"
+  - "[[NextJS_Types]]"
 ---
 # NextJS_API_Client — API 클라이언트 레이어
 
@@ -20,7 +15,101 @@ related:
 >Next.js에서 NestJS API를 호출할 때 `fetch`를 직접 쓰지 않고 래퍼로 감싼다. **패턴 A** — `fetchApi`(공개)·`authFetchApi`(Bearer 자동) 두 함수로 역할 분리. **패턴 B** — `apiFetch(path, { token? })` 하나로 통합. 둘 다 도메인 파일(`auth.ts`, `users.ts`)에 엔드포인트 함수를 모으고 화면은 함수만 호출한다.
 
 ---
+# 핵심 개념 먼저 ⭐️⭐️⭐️⭐️
 
+```txt
+NestJS (서버)           Next.js (클라이언트)
+  요청을 받는 쪽  ←←←  브라우저가 fetch로 요청을 보내는 쪽
+
+이 파일이 다루는 것:
+
+  fetch         브라우저 내장 HTTP 요청 함수
+                Promise를 반환 — 네트워크가 끝날 때까지 기다림
+
+  인프라 함수   fetchApi / apiFetch
+                URL 조합·헤더 설정·에러 처리를 한 곳에서 담당
+
+  도메인 함수   엔드포인트별 함수 (lib/api/posts.ts, users.ts ...)
+                "무엇을 어떤 path로 보내는가"를 정의
+                화면은 이 함수만 호출
+
+  <T> 제네릭    apiFetch<T>(...) 의 T
+                "이 API가 반환하는 데이터의 타입"
+                → 화면에서 타입 안전하게 사용 가능
+
+  Input 타입    내가 서버에 보내는 것 (요청 body)
+                NestJS DTO와 같은 필드
+
+  Response 타입 서버가 나에게 주는 것 (응답 body)
+                NestJS 응답 DTO / Prisma 모델 형태
+
+  token         로그인한 유저임을 증명하는 문자열
+                Authorization: Bearer {token} 헤더로 전달
+                Guard가 있는 엔드포인트에 필요
+```
+
+## 타입이 흐르는 방향
+
+```typescript
+// GET — 데이터 조회 (token 필요, body 없음)
+export function getPost(token: string, postId: string) {
+  return apiFetch<PostItem>(`/posts/${postId}`, { token });
+  //              ↑ 응답 타입 (받는 것)
+}
+
+// POST — 데이터 생성 (token + body)
+export function createPost(token: string, input: CreatePostInput) {
+  //                                              ↑ 요청 body 타입 (보내는 것)
+  return apiFetch<PostItem>('/posts', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+// PATCH — 일부 수정
+export function updatePost(token: string, postId: string, input: UpdatePostInput) {
+  return apiFetch<PostItem>(`/posts/${postId}`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+// DELETE — 삭제 (응답 없음이면 void)
+export function deletePost(token: string, postId: string) {
+  return apiFetch<void>(`/posts/${postId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+// 공개 API — token 없이
+export function getPublicPosts() {
+  return apiFetch<PostItem[]>('/posts');
+}
+```
+
+```txt
+패턴 정리:
+  apiFetch<응답타입>(path, { method, token?, body? })
+
+  token 있음 → 로그인 필요한 API (Guard 있는 엔드포인트)
+  token 없음 → 공개 API (로그인 없이 접근 가능)
+  body 있음  → POST·PATCH·PUT (데이터 전송)
+  body 없음  → GET·DELETE (path만으로 처리)
+
+  Input 타입 (보내는 것):
+    CreatePostInput → NestJS CreatePostDto와 같은 필드
+    UpdatePostInput → NestJS UpdatePostDto (보통 Partial)
+
+  Response 타입 (받는 것):
+    PostItem        → NestJS 응답 DTO / Prisma 모델 형태
+    PostItem[]      → 목록
+    void            → 응답 body 없음 (DELETE 등)
+```
+
+---
 # 왜 API 클라이언트 레이어가 필요한가 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -228,6 +317,72 @@ export function register(email: string, password: string, nickname: string) {
 export async function fetchMe(): Promise<ApiAuthUser> {
   return authFetchApi<ApiAuthUser>('/auth/me');
 }
+```
+
+## 도메인 함수 만드는 법 — 제네릭과 타입 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 예시: 게시글 생성 API 함수
+export function createWallPost(
+  token: string,              // Bearer 토큰 (로그인한 사용자)
+  input: CreateWallPostInput, // 요청 body 타입 (보내는 것)
+) {
+  return apiFetch<WallPostItem>('/wall-posts', {
+  //             ↑ 제네릭 <T>
+  //               "이 API가 반환하는 데이터의 타입"
+    method: 'POST',
+    token,                       // Bearer 헤더에 자동 추가
+    body: JSON.stringify(input), // 요청 body
+  });
+  // 반환: Promise<WallPostItem>
+}
+```
+
+```typescript
+// 타입 정의 (lib/api/apiTypes.ts 또는 도메인 파일)
+type CreateWallPostInput = {
+  content:  string;    // 보내는 것 (요청 body)
+  imageUrl?: string;
+};
+
+type WallPostItem = {
+  id:        string;   // 받는 것 (응답 body)
+  content:   string;
+  createdAt: string;
+  author:    { id: string; nickname: string };
+};
+```
+
+```txt
+apiFetch<WallPostItem>(...) 분해:
+
+  apiFetch       = 인프라 함수 (URL·헤더·에러처리)
+  <WallPostItem> = TypeScript 제네릭 — "이 fetch가 반환하는 타입"
+                   Promise<WallPostItem> 이 반환됨
+                   → 화면에서 data.id, data.content 타입 안전하게 접근
+
+  token: string  = Bearer 토큰 — apiFetch 내부에서 Authorization 헤더로 변환
+  input: CreateWallPostInput
+                 = 요청 body의 타입
+                 → JSON.stringify(input)으로 body에 넣음
+
+정리:
+  CreateWallPostInput = "내가 서버에 보내는 것"의 타입  (보내는 쪽)
+  WallPostItem        = "서버가 나에게 주는 것"의 타입  (받는 쪽)
+  token               = "내가 로그인한 유저임을 증명"   (인증)
+
+NestJS DTO와의 대응:
+  CreateWallPostInput ↔ NestJS CreateWallPostDto (같은 필드)
+  WallPostItem        ↔ NestJS 응답 DTO / Prisma 모델
+```
+
+```typescript
+// 호출 시
+const post = await createWallPost(accessToken, {
+  content:  '오늘 들은 음악',
+  imageUrl: '/images/album.jpg',
+});
+// post는 WallPostItem 타입 → post.id, post.author.nickname 등 자동완성
 ```
 
 ## index.ts — 진입점

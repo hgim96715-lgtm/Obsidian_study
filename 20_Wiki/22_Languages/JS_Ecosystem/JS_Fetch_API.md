@@ -4,6 +4,7 @@ aliases:
   - HTTP
   - Fetch
   - Network
+  - 요청 옵션
 tags:
   - JavaScript
 related:
@@ -166,38 +167,137 @@ Content-Type 확인:
 ```
 
 ---
-
-# 요청 옵션 ⭐️⭐️⭐️⭐️
+️
+# 요청 옵션 — URL 다음에 뭘 넣는가 ⭐️⭐️⭐️⭐️
 
 ```typescript
-const res = await fetch(url, {
-  method:  'POST',           // GET(기본) / POST / PATCH / PUT / DELETE
+fetch(url, {
+  method:  'POST',
+  headers: { ... },
+  body:    JSON.stringify(data),
+})
+//   ↑ 이 두 번째 인자가 RequestInit
+//     "어떻게 요청을 보낼 것인가"를 정의
+```
+
+## 언제 무엇을 넣는가
+
+```typescript
+// GET — 데이터 조회 (method, body 없어도 됨)
+fetch('/posts')
+
+// GET + 인증 — 로그인 필요한 조회
+fetch('/posts/my', {
+  headers: { Authorization: `Bearer ${token}` },
+  // method 생략 = GET (기본값)
+  // body 없음 = 조회니까
+})
+
+// POST — 데이터 생성 (method + body + token)
+fetch('/posts', {
+  method:  'POST',
   headers: {
-    'Content-Type': 'application/json',  // body 형식 알림
-    'Authorization': `Bearer ${token}`,  // 인증 토큰
+    'Content-Type':  'application/json',   // body 형식 알림
+    'Authorization': `Bearer ${token}`,    // 인증
   },
-  body: JSON.stringify({ name: '홍길동' }),  // 전송할 데이터
-});
+  body: JSON.stringify({ title: '제목', content: '내용' }),
+  // body = 서버에 보내는 데이터
+})
+
+// PATCH — 일부 수정 (POST와 구조 같음, method만 다름)
+fetch('/posts/123', {
+  method:  'PATCH',
+  headers: {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${token}`,
+  },
+  body: JSON.stringify({ title: '수정된 제목' }),
+})
+
+// DELETE — 삭제 (body 없음)
+fetch('/posts/123', {
+  method:  'DELETE',
+  headers: { Authorization: `Bearer ${token}` },
+  // body 없음 = 삭제 대상은 URL의 /123으로 이미 지정
+})
+```
+
+## 조합 기준
+
+```txt
+method:
+  생략      → GET (조회)
+  'POST'    → 생성 (body 있음)
+  'PATCH'   → 일부 수정 (body 있음)
+  'PUT'     → 전체 교체 (body 있음)
+  'DELETE'  → 삭제 (body 보통 없음)
+
+headers.Authorization:
+  Guard 있는 NestJS 엔드포인트 → 반드시 필요
+  공개 API → 생략
+
+headers.Content-Type:
+  body가 있을 때만 → 'application/json'
+  body 없으면 생략 (GET, DELETE)
+  FormData 업로드 → 생략 (브라우저가 자동 설정)
+
+body:
+  POST·PATCH·PUT → JSON.stringify(데이터)
+  GET·DELETE     → 생략
+  파일 업로드    → FormData 객체 (JSON.stringify 안 함)
+```
+
+## Input 타입 vs Response 타입 — 무엇을 보내고 받는가
+
+```typescript
+// Input 타입 = 내가 body에 담아 보내는 것
+type CreatePostInput = {
+  title:   string;
+  content: string;
+};
+
+// Response 타입 = 서버가 주는 것 (제네릭 <T>로 표현)
+type PostItem = {
+  id:        string;
+  title:     string;
+  content:   string;
+  createdAt: string;
+};
+
+// 도메인 함수에서
+async function createPost(token: string, input: CreatePostInput) {
+  //                               ↑ 보내는 것 타입          ↑ 받는 것 타입
+  const res = await fetch('/posts', {                      //  ↓
+    method:  'POST',                           const data: PostItem = await res.json();
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),  // Input 타입 → JSON 문자열
+  });
+  return res.json() as PostItem;  // 응답 → Response 타입으로
+}
 ```
 
 ```txt
-method 기본값은 GET — body 없는 요청은 method 생략 가능
+token: string
+  → 문자열 그 자체 (Bearer 뒤에 붙임)
+  → 어디서 왔는가: 로그인 시 서버가 발급, 앱에서 저장
+  → [[NextJS_TokenStorage]] 토큰 저장 방법
 
-headers:
-  Content-Type: 'application/json'
-    → "body가 JSON 형식이야"를 서버에 알림
-    → 이 헤더가 없으면 서버가 body를 파싱하지 못할 수 있음
+input: CreatePostInput
+  → 요청 body의 타입 = "내가 서버에 보내는 데이터의 구조"
+  → JSON.stringify(input) 으로 문자열화해서 body에 넣음
+  → NestJS의 CreatePostDto와 같은 필드
 
-  Authorization: `Bearer ${token}`
-    → JWT 인증 토큰 첨부
-
-body:
-  반드시 문자열이나 FormData 형태여야 함
-  객체를 그냥 넣으면 "[object Object]" 문자열이 됨
-  → JSON.stringify()로 반드시 변환
+<PostItem> 제네릭
+  → "이 fetch가 반환하는 데이터의 타입"
+  → res.json() 결과가 PostItem 타입임을 TypeScript에 알림
+  → 화면에서 data.title, data.createdAt 자동완성 가능
 ```
 
-## credentials — 쿠키 포함 ⭐️⭐️⭐️
+---
+# credentials — 쿠키 포함 ⭐️⭐️⭐️
 
 ```typescript
 const res = await fetch('/api/user', {

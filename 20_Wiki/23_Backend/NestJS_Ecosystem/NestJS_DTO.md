@@ -170,20 +170,55 @@ transform: true 가 중요한 이유:
 
 ## 타입 검증
 
-|데코레이터|검증 내용|
-|---|---|
-|`@IsString()`|문자열|
-|`@IsNumber()`|숫자|
-|`@IsBoolean()`|불린|
-|`@IsInt()`|정수|
-|`@IsArray()`|배열|
-|`@IsObject()`|객체|
-|`@IsEmail()`|이메일 형식|
-|`@IsUrl()`|URL 형식|
-|`@IsUUID()`|UUID 형식|
-|`@IsDateString()`|ISO 날짜 문자열|
-|`@IsEnum(MyEnum)`|TypeScript enum 값 중 하나|
-|`@IsIn([...])`|배열에 포함된 값 중 하나|
+| 데코레이터                                | 검증 내용                  |
+| ------------------------------------ | ---------------------- |
+| `@IsString()`                        | 문자열                    |
+| `@IsNumber()`                        | 숫자 (정수·소수 모두)          |
+| `@IsNumber({ maxDecimalPlaces: 1 })` | 소수점 1자리까지만 허용          |
+| `@IsBoolean()`                       | 불린                     |
+| `@IsInt()`                           | 정수만 (소수 불가)            |
+| `@IsArray()`                         | 배열                     |
+| `@IsObject()`                        | 객체                     |
+| `@IsEmail()`                         | 이메일 형식                 |
+| `@IsUrl()`                           | URL 형식                 |
+| `@IsUUID()`                          | UUID 형식                |
+| `@IsDateString()`                    | ISO 날짜 문자열             |
+| `@IsEnum(MyEnum)`                    | TypeScript enum 값 중 하나 |
+| `@IsIn([...])`                       | 배열에 포함된 값 중 하나         |
+## @IsNumber 옵션 ⭐️⭐️⭐️
+
+```typescript
+// 숫자만 검증 (정수·소수 모두 허용)
+@IsNumber()
+price: number;  // 1, 1.5, 1.234 모두 통과
+
+// 소수점 자릿수 제한
+@IsNumber({ maxDecimalPlaces: 1 })
+rating: number;  // 4.5 ✅, 4.55 ❌, 4 ✅
+
+// 정수만 (소수 불가)
+@IsInt()
+count: number;  // 1 ✅, 1.5 ❌
+
+// 옵션 전체
+@IsNumber({
+  maxDecimalPlaces: 2,   // 소수점 최대 자릿수 (2 = 0.00까지)
+  allowNaN:        false, // NaN 허용 여부 (기본 false)
+  allowInfinity:   false, // Infinity 허용 여부 (기본 false)
+})
+```
+
+```txt
+@IsNumber() vs @IsInt():
+  @IsNumber() → 정수·소수 모두 허용
+  @IsInt()    → 정수만 (소수 넣으면 에러)
+
+maxDecimalPlaces 실전:
+  평점(별점)  → maxDecimalPlaces: 1  (4.5)
+  가격        → maxDecimalPlaces: 0  (@IsInt()와 같음)
+  좌표(위도)  → maxDecimalPlaces: 6  (37.123456)
+  퍼센트      → maxDecimalPlaces: 2  (99.99%)
+```
 
 ## @IsIn vs @IsEnum — 열거형 검증 ⭐️⭐️⭐️⭐️
 
