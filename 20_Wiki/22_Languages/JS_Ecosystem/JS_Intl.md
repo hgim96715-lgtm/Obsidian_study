@@ -4,12 +4,14 @@ aliases:
   - 날짜 포맷
   - 타임존 변환
   - ISO 3166-1
+  - Intl.DateTimeFormatPartTypes
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Intl]]"
   - "[[React_DatePicker]]"
+  - "[[Snippet_date-statistics-pattern]]"
 ---
 # JS_Intl — 국제화 포맷 API
 
@@ -122,6 +124,74 @@ date.toLocaleString('ko-KR', { month: 'long', day: 'numeric' })
 
 date.toLocaleDateString('ko-KR')  // 날짜만
 date.toLocaleTimeString('ko-KR')  // 시간만
+```
+
+## formatToParts — 부분별로 꺼내기 ⭐️⭐️⭐️⭐️
+
+
+```typescript
+// format()  → "2024년 1월 15일 월요일 오후 3시 30분" (완성된 문자열)
+// formatToParts() → [{ type: 'year', value: '2024' }, { type: 'month', ... }]
+//                    각 부분을 따로 꺼낼 수 있는 배열
+
+const parts = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year:    'numeric',
+  month:   'long',
+  day:     'numeric',
+  weekday: 'short',
+  hour:    '2-digit',
+  minute:  '2-digit',
+  hour12:  false,
+}).formatToParts(new Date());
+// parts = [
+//   { type: 'year',    value: '2024' },
+//   { type: 'literal', value: '년 ' },
+//   { type: 'month',   value: '1' },
+//   { type: 'literal', value: '월 ' },
+//   { type: 'day',     value: '15' },
+//   { type: 'weekday', value: '월' },
+//   { type: 'hour',    value: '15' },
+//   { type: 'minute',  value: '30' },
+//   ...
+// ]
+```
+
+```typescript
+// 타입별로 꺼내는 헬퍼 함수
+const get = (type: Intl.DateTimeFormatPartTypes) => {
+  return parts.find((part) => part.type === type)?.value ?? '';
+  //            ↑ type이 일치하는 part를 찾아서 value만 꺼냄
+  //                                              ↑ 없으면 빈 문자열
+};
+
+// 원하는 형식으로 조합
+const label = `${get('year')}년 ${get('month')}월 ${get('day')}일 · ${get('weekday')} · ${get('hour')}:${get('minute')}`;
+// "2024년 1월 15일 · 월 · 15:30"
+```
+
+```txt
+Intl.DateTimeFormatPartTypes:
+  TypeScript 타입 — formatToParts()가 반환하는 part.type의 가능한 값들
+  'year' | 'month' | 'day' | 'weekday' | 'hour' | 'minute' | 'second'
+  | 'dayPeriod' | 'era' | 'timeZoneName' | 'literal'
+
+  literal:
+    숫자 사이의 구분자 ("년 ", "월 ", " · " 등)
+    로케일에 따라 자동으로 들어오는 텍스트
+
+왜 formatToParts()를 쓰는가:
+  format()은 로케일 형식 그대로만 나옴 → 커스텀 불가
+  formatToParts()는 각 부분을 따로 꺼내서 원하는 형식으로 조합 가능
+
+  예: "2024년 1월 15일 · 월 · 15:30"
+  → 이 형식은 어떤 locale도 기본으로 지원 안 함
+  → formatToParts()로 year·month·day·weekday·hour·minute 각각 꺼내서 조합
+
+get() 헬퍼 패턴:
+  parts.find((p) => p.type === 'year')?.value
+  → type으로 찾고 value만 꺼내는 패턴을 함수로 재사용
+  Intl.DateTimeFormatPartTypes로 type에 자동완성 + 오타 방지
 ```
 
 ---
@@ -316,7 +386,72 @@ sv-SE vs en-CA:
   en-CA → 날짜만 필요할 때         ("2024-01-16")
 ```
 
+## en-CA + +09:00 — KST 기간 범위 ⭐️⭐️⭐️⭐️
 
+```typescript
+/** KST 오늘 00:00 ~ 익일 00:00 — DB 쿼리 기간 범위 */
+function kstTodayRange(now = new Date()): { start: Date; end: Date } {
+  const day = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);                            // "2026-07-15"
+
+  const start = new Date(`${day}T00:00:00+09:00`);
+  //                                       ↑ +09:00 = KST 오프셋 명시
+  //                                         KST 자정 → UTC instant로 정확 변환
+  const end   = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { start, end };
+}
+
+/** KST 이번 주 월요일 00:00 ~ 다음 월요일 00:00 */
+function kstWeekRange(now = new Date()): { start: Date; end: Date } {
+  const { start: todayStart } = kstTodayRange(now);
+
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    weekday: 'short',    // 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'
+  }).format(now);
+  // ↑ 왜 en-US인가:
+  //   'ko-KR' → '월' '화' '수' ... (한글 — 코드 매핑에 불편)
+  //   'en-US' → 'Mon' 'Tue' 'Wed' ... (영문 — { Mon:0, Tue:1 } 매핑이 단순)
+  //   en-CA도 같은 결과 — 어떤 영문 로케일이든 weekday: 'short'는 동일
+
+  const monOffset =
+    { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[weekday] ?? 0;
+  //  ↑ 오늘이 월요일로부터 며칠째인가
+
+ // 밀리초 상수 [[JS_Date#밀리초 상수 — 자주 쓰는 값 ⭐️⭐️⭐️]] 여기에서 86400000 참조 
+ // 86400000 = 24 * 60 * 60 * 1000
+  const start = new Date(todayStart.getTime() - monOffset * 86400000);
+  const end   = new Date(start.getTime() + 7 * 86400000);
+  return { start, end };
+}
+```
+
+```txt
+T00:00:00+09:00 패턴:
+  en-CA로 "2026-07-15" 날짜 문자열을 얻고
+  +09:00을 붙여 KST 자정을 UTC instant로 변환
+  → Railway·Vercel 서버 TZ가 UTC여도 항상 KST 자정
+
+  setHours(0,0,0,0)을 쓰면 안 되는 이유:
+  서버 TZ에 따라 결과가 달라짐
+  UTC 서버에서 setHours(0)은 UTC 자정 → KST 자정이 아님
+
+kstTodayRange 언제 쓰는가:
+  WHERE created_at >= start AND created_at < end
+  오늘 DAU · 오늘 뽑기 횟수 · 오늘 게시글 수
+
+kstWeekRange 언제 쓰는가:
+  이번 주 기준 집계 쿼리
+  주간 순위 · 주간 DAU · 이번 주 게시글 수
+
+  monOffset 계산 예:
+  오늘 수요일(Wed: 2) → 오늘 00:00 - 2일 = 월요일 00:00
+  월요일 00:00 + 7일 = 다음 주 월요일 00:00 (범위 끝)
+```
+
+---
 # 자주 쓰는 유틸 함수 정리
 
 ```typescript

@@ -215,6 +215,61 @@ export function getTzMonthKey(date: Date): string {
 export function getTzYear(date: Date): number {
   return Number(toTzDateKey(date).slice(0, 4));
 }
+
+/** KST 오늘 00:00 ~ 익일 00:00 범위
+ *  WHERE created_at >= start AND created_at < end 용
+ */
+export function kstTodayRange(now = new Date()): { start: Date; end: Date } {
+  const day = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  const start = new Date(`${day}T00:00:00${UTC_OFFSET}`);
+  // UTC_OFFSET = '+09:00' → KST 자정을 UTC instant로 변환
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { start, end };
+}
+
+/** KST 이번 주 월요일 00:00 ~ 다음 월요일 00:00 범위 */
+export function kstWeekRange(now = new Date()): { start: Date; end: Date } {
+  const { start: todayStart } = kstTodayRange(now);
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    weekday: 'short',
+    // 왜 en-US: 'ko-KR' → '월'·'화'·'수' (한글 매핑 불편)
+    //           'en-US' → 'Mon'·'Tue'·'Wed' (ASCII → { Mon:0 } 매핑 단순)
+  }).format(now);
+  const monOffset =
+    { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[weekday] ?? 0;
+  // monOffset = "오늘이 월요일로부터 며칠째인가"
+  const start = new Date(todayStart.getTime() - monOffset * 86400000);
+  const end   = new Date(start.getTime() + 7 * 86400000);
+  return { start, end };
+}
+```
+
+```txt
+kstTodayRange — 언제 쓰는가:
+  "오늘" 기준 통계·집계 쿼리
+  WHERE created_at >= start AND created_at < end
+  DAU (일일 활성 유저), 오늘 뽑기 횟수, 오늘 게시글 수
+
+  `${day}T00:00:00${UTC_OFFSET}`:
+    en-CA로 "2026-07-15" 형태 날짜 문자열 얻기
+    +09:00 붙여서 KST 자정을 UTC instant로 정확하게 변환
+    setHours(0,0,0,0) 대신 쓰는 이유 → 서버 TZ와 무관하게 KST 보장
+
+kstWeekRange — 언제 쓰는가:
+  "이번 주" 기준 통계·집계 쿼리
+  주간 순위, 이번 주 DAU 합계, 주간 게시글 수
+
+  monOffset 계산:
+    en-US weekday: 'short' → 'Mon' | 'Tue' | ... | 'Sun'
+    오늘이 수요일(Wed: 2)이면 월요일로부터 2일 지남
+    todayStart - 2일 = 이번 주 월요일 00:00
+    start + 7일 = 다음 주 월요일 00:00 (범위 끝)
 ```
 
 ---
@@ -284,7 +339,7 @@ function formatAxisDate(dateKey: string): string {
 
 ## 6. 레거시 vs TZ-aware (마이그레이션 메모)
 
-||`setHours(0,0,0,0)` + `getDate()`|**이 스니펫 (Intl + offset)**|
+| |`setHours(0,0,0,0)` + `getDate()`|**이 스니펫 (Intl + offset)**|
 |---|---|---|
 |로컬 Mac|✅ 보통 OK|✅|
 |Railway / Vercel server UTC|❌ “오늘” 틀림|✅|

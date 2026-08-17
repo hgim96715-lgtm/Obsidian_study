@@ -1,15 +1,11 @@
 ---
-aliases:
-  - Nivo
-  - chart library
-  - PartialTheme
-tags:
-  - React
+aliases: [chart library, Nivo, PartialTheme]
+tags: [React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[NestJS_Prisma]]"
-  - "[[NextJS_ServerClient]]"
   - "[[NestJS_StatsBucket]]"
+  - "[[NextJS_ServerClient]]"
 ---
 # React_Charts — 차트 라이브러리 공통 패턴
 

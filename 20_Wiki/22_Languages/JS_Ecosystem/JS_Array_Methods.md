@@ -837,6 +837,57 @@ Array.from({ length: 5 }, (_, i) => i + 1)
   Array.from({ length: 5 }, ...) → 길이만 알면 배열 생성 가능
 ```
 
+## 초기값으로 채우기 — 통계 버킷 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// () => 0 — 변환 함수로 인덱스 무시하고 고정값으로 채움
+const series = Array.from({ length: slotCount }, () => 0);
+// slotCount가 7이면 → [0, 0, 0, 0, 0, 0, 0]
+
+// 비교: (_, i) vs () =>
+Array.from({ length: 5 }, (_, i) => i)  // [0, 1, 2, 3, 4]  인덱스 값
+Array.from({ length: 5 }, () => 0)      // [0, 0, 0, 0, 0]  고정값
+Array.from({ length: 5 }, () => [])     // [[], [], [], [], []]  빈 배열
+Array.from({ length: 5 }, () => null)   // [null, null, null, null, null]
+```
+
+```txt
+왜 new Array(n).fill(0) 대신 Array.from을 쓰는가:
+
+  new Array(5).fill(0)           → [0, 0, 0, 0, 0]   간단한 경우
+  Array.from({ length: 5 }, () => 0) → 같은 결과
+
+  차이점:
+  new Array(n).fill(obj)는 같은 객체 참조를 공유
+    new Array(3).fill([])       → [ref, ref, ref]  같은 배열!
+    arr[0].push(1) → arr[1]도 바뀜 (참조 공유)
+
+  Array.from({ length: n }, () => []) → 독립된 배열 3개
+    arr[0].push(1) → arr[1] 영향 없음
+
+  초기값이 원시값(0, '', null)이면 fill()도 안전
+  초기값이 객체·배열이면 Array.from 사용
+```
+
+```typescript
+// 실전 — 시간대별 통계 버킷 초기화
+const slotCount = 24;  // 24시간
+const series = Array.from({ length: slotCount }, () => 0);
+// [0, 0, 0, ..., 0]  길이 24
+
+// 이후 데이터가 들어올 때마다 해당 슬롯을 증가
+for (const time of times) {
+  const slot = Math.floor((time.getTime() - start.getTime()) / slotMs);
+  if (slot >= 0 && slot < slotCount) {
+    series[slot]++;  // 해당 시간대 카운트 증가
+  }
+}
+// 결과: [3, 0, 1, 5, 0, 0, 2, ...]  시간대별 집계
+```
+
+
+
+
 ## React — 별점·슬롯·반복 UI ⭐️⭐️⭐️⭐️
 
 ```typescript
