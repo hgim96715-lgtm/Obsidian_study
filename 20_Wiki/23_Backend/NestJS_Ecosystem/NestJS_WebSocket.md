@@ -18,32 +18,11 @@ related:
 ---
 # NestJS_WebSocket — Socket.IO Gateway
 
-> [!info] 
-> Gateway = WebSocket 이벤트를 처리하는 Controller. 
-> `@SubscribeMessage`가 `@Get/@Post` 역할, `@ConnectedSocket`이 `@Req` 역할을 한다.
->연결한 클라이언트 하나 = Socket 객체. 클라이언트(Next.js) 구현 → [[NextJS_WebSocket]]
-
----
-# 흐름도
-
-```mermaid
-sequenceDiagram
-  participant C as Client
-  participant G as Gateway
-  participant Room as Socket Room
-
-  C->>G: 1. connect (JWT)
-  Note over G: 연결 인증 · user 룸 입장
-
-  C->>G: 2. emit 이벤트 (join)
-  G->>Room: 3. 소켓을 Room에 넣기
-  G-->>C: ack (응답)
-
-  Note over G,Room: 4. 서버가 Room에 emit
-  Room-->>C: 5. 같은 Room 전원 수신
-
-  C->>G: 6. leave / disconnect
-```
+>[!info]
+>Gateway = WebSocket 이벤트를 처리하는 Controller.
+> `@SubscribeMessage`가 `@Get/@Post` 역할, `@ConnectedSocket`이 `@Req` 역할을 한다. 
+> 연결한 클라이언트 하나 = Socket 객체.
+>  클라이언트(Next.js) 구현 → [[NextJS_WebSocket]]
 
 ---
 
@@ -97,6 +76,58 @@ export class RoomsGateway implements OnGatewayConnection {
 
 ```bash
 pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
+```
+
+---
+
+# CORS 설정 ⭐️⭐️⭐️
+
+```typescript
+// 개발 환경 — origin: true (모든 출처 허용, 간단)
+@WebSocketGateway({
+  namespace: '/chat',
+  cors: { origin: true, credentials: true },
+})
+
+// 운영 환경 권장 — 허용 출처 명시
+@WebSocketGateway({
+  namespace: '/chat',
+  cors: {
+    origin: [
+      'http://localhost:3031',    // 로컬 개발 — localhost
+      'http://127.0.0.1:3031',   // 로컬 개발 — 127.0.0.1 (브라우저마다 다르게 처리)
+      process.env.FRONTEND_URL
+        ? new URL(process.env.FRONTEND_URL).origin
+        : undefined,
+    ].filter(Boolean),  // undefined 제거
+    credentials: true,
+  },
+})
+```
+
+```txt
+localhost vs 127.0.0.1 둘 다 넣는 이유:
+  localhost와 127.0.0.1은 같은 IP를 가리키지만 브라우저는 다른 origin으로 취급
+  http://localhost:3031  ≠  http://127.0.0.1:3031  (다른 출처)
+  어떤 브라우저/환경은 localhost를, 어떤 것은 127.0.0.1을 사용하는 경우가 있음
+  → 둘 다 허용해야 로컬 개발 시 CORS 에러 없음
+
+origin: true  vs  origin: [배열]:
+  true  → 어떤 출처에서든 허용 (개발 시 편하지만 운영에선 위험)
+  [배열] → 허용 출처 명시 (운영 권장)
+
+new URL(process.env.FRONTEND_URL).origin:
+  'https://my-app.vercel.app/some/path' → 'https://my-app.vercel.app'
+  경로가 포함된 URL에서 origin(프로토콜+도메인+포트)만 추출
+  환경변수에 경로가 포함돼 있어도 정확한 origin을 얻을 수 있음
+
+.filter(Boolean):
+  FRONTEND_URL 없으면 ternary가 undefined 반환
+  배열에 undefined 있으면 에러 → filter(Boolean)으로 제거
+
+credentials: true:
+  쿠키 포함 요청 허용 — 클라이언트 socket.io의 withCredentials: true 와 세트
+  이 설정 없이 withCredentials: true 를 클라이언트에서 쓰면 CORS 에러
 ```
 
 ---
@@ -309,6 +340,44 @@ client.to vs server.to:
 
 ---
 
+# payload — emit의 두 번째 인자 ⭐️⭐️⭐️
+
+```typescript
+// server.to(room).emit(이벤트명, payload)
+//                              ↑ 클라이언트에 전달되는 실제 데이터
+
+emitMessageReaction(
+  roomId: string,
+  payload: {
+    messageId: string;
+    userId:    string;
+    emoji:     string;
+    removed:   boolean;  // true = 삭제됨, false = 추가됨
+  },
+) {
+  this.server.to(`room:${roomId}`).emit('message:reaction', payload);
+}
+```
+
+```txt
+payload = emit의 두 번째 인자 = REST 응답 body와 같은 역할, 소켓으로 전달
+
+REST → WS 반응 토글 흐름:
+  ① 클라이언트 → POST /reaction
+  ② 서버 → DB 토글 → { messageId, userId, emoji, removed } 반환
+  ③ Controller → gateway.emitMessageReaction(roomId, result)
+  ④ Gateway → server.to('room:xxx').emit('message:reaction', payload)
+  ⑤ 방 안의 모든 클라이언트 → 'message:reaction' 수신
+  ⑥ 클라이언트 → applyReactionLocal(payload) 로 state 직접 수정
+
+removed 필드:
+  클라이언트가 이모지를 추가할지/제거할지 알 수 있도록
+  → [[NestJS_Prisma_Patterns]] 토글 패턴
+  → [[React_AsyncUI]] applyLocal 패턴
+```
+
+---
+
 # @SubscribeMessage — 이벤트 핸들러 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -462,42 +531,61 @@ export class RoomsController {
 }
 ```
 
----
-
-# payload — emit의 두 번째 인자 ⭐️⭐️⭐️
+## 서비스에서 emit ⭐️⭐️⭐️⭐️
 
 ```typescript
-// server.to(room).emit(이벤트명, payload)
-//                              ↑ 클라이언트에 전달되는 실제 데이터
+// rooms.service.ts — Gateway를 직접 주입해서 emit
+@Injectable()
+export class RoomsService {
+  constructor(
+    private readonly prisma:   PrismaService,
+    private readonly gateway:  RoomsGateway,  // 서비스가 Gateway 앎
+  ) {}
 
-emitMessageReaction(
-  roomId: string,
-  payload: {
-    messageId: string;
-    userId:    string;
-    emoji:     string;
-    removed:   boolean;  // true = 삭제됨, false = 추가됨
-  },
-) {
-  this.server.to(`room:${roomId}`).emit('message:reaction', payload);
+  async createMessage(roomId: string, userId: string, dto: CreateRoomMessageDto) {
+    const message = await this.prisma.message.create({ data: { roomId, userId, ...dto } });
+    this.gateway.emitMessage(roomId, message);  // DB 커밋 직후 바로 emit
+    return message;
+  }
+
+  // 컨트롤러를 타지 않는 cron도 같은 메서드로 emit 가능
+  async closeForNight() {
+    const updated = await this.prisma.room.updateMany({ data: { status: 'closed' } });
+    this.gateway.emitRoomClosed();  // cron에서도 정상 방송
+  }
+}
+
+// rooms.controller.ts — 얇게 유지
+@Controller('rooms')
+export class RoomsController {
+  constructor(private readonly roomsService: RoomsService) {}
+
+  @Post(':id/messages')
+  sendMessage(@UserId() userId: string, @Param('id') roomId: string, @Body() dto: CreateRoomMessageDto) {
+    return this.roomsService.createMessage(roomId, userId, dto);
+    // emit은 서비스 안에서 처리 — 컨트롤러는 한 줄
+  }
 }
 ```
 
 ```txt
-payload = emit의 두 번째 인자 = REST 응답 body와 같은 역할, 소켓으로 전달
+컨트롤러에서 emit vs 서비스에서 emit:
 
-REST → WS 반응 토글 흐름:
-  ① 클라이언트 → POST /reaction
-  ② 서버 → DB 토글 → { messageId, userId, emoji, removed } 반환
-  ③ Controller → gateway.emitMessageReaction(roomId, result)
-  ④ Gateway → server.to('room:xxx').emit('message:reaction', payload)
-  ⑤ 방 안의 모든 클라이언트 → 'message:reaction' 수신
-  ⑥ 클라이언트 → applyReactionLocal(payload) 로 state 직접 수정
+  컨트롤러에서 emit:
+    DB 저장 → 방송 → 응답 흐름이 한눈에 보임
+    컨트롤러가 Gateway도 알아야 함
+    cron 등 컨트롤러를 안 타는 경우 → emit 누락 가능
+    같은 emit 로직을 여러 컨트롤러에서 반복
 
-removed 필드:
-  클라이언트가 이모지를 추가할지/제거할지 알 수 있도록
-  → [[NestJS_Prisma_Patterns]] 토글 패턴
-  → [[React_AsyncUI]] applyLocal 패턴
+  서비스에서 emit:
+    DB 커밋 직후, 성공한 경우만 방송
+    cron·REST 둘 다 같은 서비스 메서드를 탐 → emit 통일
+    컨트롤러가 얇게 유지됨 (한 줄 호출)
+    단점: 서비스가 Gateway(인프라)를 앎 → 의존성 방향 주의
+
+  선택 기준:
+    cron이나 이벤트에서도 같은 emit이 필요하면 → 서비스
+    REST만 있고 흐름을 명확히 보여주고 싶으면 → 컨트롤러
 ```
 
 ---
@@ -563,47 +651,39 @@ emitMemberKicked(roomId: string, targetUserId: string) {
 
 ---
 
-# CORS 설정 ⭐️⭐️⭐️
+# 모듈 등록 ⭐️⭐️⭐️
 
 ```typescript
-@WebSocketGateway({
-  namespace: '/chat',
-  cors: {
-    origin: [
-    'http://localhost:3031', // 로컬 개발 — localhost 
-    'http://127.0.0.1:3031', // 로컬 개발 — 127.0.0.1 (브라우저마다 다르게 처리)
-      process.env.FRONTEND_URL
-        ? new URL(process.env.FRONTEND_URL).origin
-        : undefined,
-    ].filter(Boolean),  // undefined 제거
-    credentials: true,  // 쿠키 포함 요청 — 클라이언트 withCredentials: true 와 세트
-  },
+@Module({
+  providers:   [RoomsGateway, RoomsService],  // ⚠️ Gateway는 providers에 (controllers 아님)
+  controllers: [RoomsController],
 })
+export class RoomsModule {}
 ```
 
 ```txt
-localhost vs 127.0.0.1 둘 다 넣는 이유:
-  localhost와 127.0.0.1은 같은 IP를 가리키지만 브라우저는 다른 origin으로 취급
-  http://localhost:3031  ≠  http://127.0.0.1:3031  (다른 출처)
-  어떤 브라우저/환경은 localhost를, 어떤 것은 127.0.0.1을 사용하는 경우가 있음
-  → 둘 다 허용해야 로컬 개발 시 CORS 에러 없음
+Gateway를 providers에 등록하는 이유:
+  Gateway는 HTTP 요청을 처리하는 게 아니라 DI 컨테이너에서 관리되는 서비스
+  같은 모듈 안에 있으면 RoomsController가 RoomsGateway를 주입받을 수 있음
+  다른 모듈에서 쓰려면 exports: [RoomsGateway] 추가 필요
+```
 
-origin: true  vs  origin: [배열]:
-  true  → 어떤 출처에서든 허용 (개발 시 편하지만 운영에선 위험)
-  [배열] → 허용 출처 명시 (운영 권장)
+---
 
-new URL(process.env.FRONTEND_URL).origin:
-  'https://my-app.vercel.app/some/path' → 'https://my-app.vercel.app'
-  경로가 포함된 URL에서 origin(프로토콜+도메인+포트)만 추출
-  환경변수에 경로가 포함돼 있어도 정확한 origin을 얻을 수 있음
+# 이벤트 이름 규칙
 
-.filter(Boolean):
-  FRONTEND_URL 없으면 ternary가 undefined 반환
-  배열에 undefined 있으면 에러 → filter(Boolean)으로 제거
+```txt
+단순 동사       message, join, leave
+리소스:동작     room:updated, room:kicked, message:deleted, message:reaction
 
-credentials: true:
-  쿠키 포함 요청 허용 — 클라이언트 socket.io의 withCredentials: true 와 세트
-  이 설정 없이 withCredentials: true 를 클라이언트에서 쓰면 CORS 에러
+prefix 방식(room:, message:)을 쓰는 이유:
+  이벤트가 많아져도 어떤 리소스에 관한 이벤트인지 이름만 보고 파악 가능
+  클라이언트에서 on('room:kicked') → "아, 룸에서 강퇴됐을 때 처리구나"
+
+서버 이벤트명 = 클라이언트 이벤트명 (정확히 같아야 함)
+  서버: server.to(room).emit('room:updated', payload)
+  클라이언트: socket.on('room:updated', handler)
+  이름이 다르면 조용히 무시 (에러 없음, 이벤트 수신 안 됨)
 ```
 
 ---
@@ -697,42 +777,6 @@ export class RoomsGateway implements OnGatewayConnection {
 
 ---
 
-# 모듈 등록 ⭐️⭐️⭐️
-
-```typescript
-@Module({
-  providers:   [RoomsGateway, RoomsService],  // ⚠️ Gateway는 providers에 (controllers 아님)
-  controllers: [RoomsController],
-})
-export class RoomsModule {}
-```
-
-```txt
-Gateway를 providers에 등록하는 이유:
-  Gateway는 HTTP 요청을 처리하는 게 아니라 DI 컨테이너에서 관리되는 서비스
-  같은 모듈 안에 있으면 RoomsController가 RoomsGateway를 주입받을 수 있음
-  다른 모듈에서 쓰려면 exports: [RoomsGateway] 추가 필요
-```
-
----
-
-# 이벤트 이름 규칙
-
-```txt
-단순 동사       message, join, leave
-리소스:동작     room:updated, room:kicked, message:deleted, message:reaction
-
-prefix 방식(room:, message:)을 쓰는 이유:
-  이벤트가 많아져도 어떤 리소스에 관한 이벤트인지 이름만 보고 파악 가능
-  클라이언트에서 on('room:kicked') → "아, 룸에서 강퇴됐을 때 처리구나"
-
-서버 이벤트명 = 클라이언트 이벤트명 (정확히 같아야 함)
-  서버: server.to(room).emit('room:updated', payload)
-  클라이언트: socket.on('room:updated', handler)
-  이름이 다르면 조용히 무시 (에러 없음, 이벤트 수신 안 됨)
-```
-
----
 # Gateway 책임 분리 — 순환 참조 없이 구조화하기 ⭐️⭐️⭐️⭐️
 
 ```txt

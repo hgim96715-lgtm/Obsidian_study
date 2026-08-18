@@ -192,15 +192,15 @@ React_CSSProperties  인라인 style 타입 · camelCase · CSS 변수(--var) + 
 
 ### JavaScript
 
-| 노트                       | 내용                                          |
-| ------------------------ | ------------------------------------------- |
-| [[JS_Operators]]         | 구조분해 · 스프레드 · ?. · ?? · !! · Truthy/Falsy   |
-| [[JS_Promise]]           | async/await · Promise\<T\> · Promise.all    |
-| [[JS_Array_Methods]]     | some · filter · map · reduce · 불변성 · Set    |
-| [[JS_Object_Methods]]    | Object.keys · entries · fromEntries · Map   |
-| [[JS_FunctionPatterns]]  | 옵션 객체 · early return · async 래퍼             |
-| [[JS_Primitive_Methods]] | String · Number · Math · 해시함수               |
-| [[JS_Regex]]             | test · replace · match · 캡처그룹 · `/\/$/ ` 분석 |
+| 노트                       | 내용                                                |
+| ------------------------ | ------------------------------------------------- |
+| [[JS_Operators]]         | 구조분해 · 스프레드 · ?. · ?? · !! · Truthy/Falsy         |
+| [[JS_Promise]]           | async/await · Promise\<T\> · Promise.all          |
+| [[JS_Array_Methods]]     | some · filter · map · reduce · 불변성 · Set          |
+| [[JS_Object_Methods]]    | Object.keys · entries · fromEntries · Map         |
+| [[JS_FunctionPatterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
+| [[JS_Primitive_Methods]] | String · Number · Math · 해시함수                     |
+| [[JS_Regex]]             | test · replace · match · 캡처그룹 · `/\/$/ ` 분석       |
 
 ---
 

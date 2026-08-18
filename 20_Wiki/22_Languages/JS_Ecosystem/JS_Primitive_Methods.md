@@ -1,10 +1,13 @@
 ---
 aliases:
   - 해시 함수
+  - fallback
+  - FNV-1a
   - Math
+  - NFKC
+  - normalize
   - Number
   - String
-  - FNV-1a
 tags:
   - JavaScript
 related:
@@ -12,14 +15,18 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[JS_Operators]]"
   - "[[TS_Generics]]"
+  - "[[JS_FunctionPatterns]]"
 ---
 # JS_Primitive_Methods — String · Number · Math
 
 > [!info] 
 > 원시 타입(string, number)의 메서드들. 
-> string 메서드는 항상 새 문자열을 반환 — 원본을 바꾸지 않는다. 
-> Number.isNaN vs isNaN 혼동 주의. 
-> 문자열 조합 패턴(템플릿 리터럴·배열 join)도 이 파일에 정리.
+> string 메서드는 항상 새 문자열을 반환 — 원본을 바꾸지 않는다.
+>  `normalize('NFKC')`로 전각·유니코드 정규화. 
+>  `charCodeAt(i)`로 문자 → 숫자 변환 (해시 함수에 사용). 
+>  `Math.imul` — 32비트 정수 곱셈. 
+>  `Number.isNaN` vs `isNaN` 혼동 주의. 
+>  문자열 조합 패턴(템플릿 리터럴·배열 join), 검색 쿼리 정규화·폴백 패턴도 이 파일에 정리.
 
 ---
 
@@ -117,6 +124,88 @@ slice vs substring:
 padStart 사용 예:
   날짜·시간 포맷: String(month).padStart(2, '0')  → '01', '12'
   ID 앞에 0 붙이기: id.toString().padStart(6, '0')  → '000001'
+```
+
+## normalize — 유니코드 정규화 ⭐️⭐️⭐️
+
+```typescript
+// 전각 문자 → 반각 문자, 유사한 유니코드 통일
+'ａｂｃ'.normalize('NFKC')    // 'abc'  (전각 영문 → 반각)
+'１２３'.normalize('NFKC')    // '123'  (전각 숫자 → 반각)
+'ｱｲｳ'.normalize('NFKC')     // 'アイウ' (반각 카타카나 → 전각)
+'café'.normalize('NFC')       // 'café'  (분리된 é → 합성 é)
+```
+
+```txt
+유니코드 정규화 형식:
+  NFC  — 합성 형식 (문자 합치기)
+  NFD  — 분해 형식 (문자 쪼개기)
+  NFKC — 호환 합성 (전각/반각 통일 + 합성) ← 검색에 가장 유용
+  NFKD — 호환 분해
+
+NFKC가 검색에 유용한 이유:
+  '１２３' 과 '123' 은 다른 문자 코드지만 같은 의미
+  normalize('NFKC') 하면 둘 다 '123' 으로 통일
+  → 전각으로 입력해도 검색 결과가 나옴
+```
+
+## 검색 쿼리 정규화 패턴 ⭐️⭐️⭐️
+
+```typescript
+/** 검색어 앞뒤·연속 공백, 전각 문자 정리 */
+function normalizeSearchQuery(query: string): string {
+  return query
+    .normalize('NFKC')  // 전각 → 반각, 유니코드 통일
+    .trim()             // 앞뒤 공백 제거
+    .replace(/\s+/g, ' '); // 연속 공백 → 하나로 (탭, 줄바꿈 포함)
+}
+
+normalizeSearchQuery('  hello   world  ')  // 'hello world'
+normalizeSearchQuery('１２３　abc')         // '123 abc'  (전각 정리)
+```
+
+
+```typescript
+/** 한글 붙여쓰기 → 공백 삽입 폴백 (외부 API 검색 보정용)
+ *  폴백(fallback) = 1차 검색이 실패했을 때 대신 시도하는 쿼리 목록 반환
+ *  예: "싱스트리트" 검색 결과 없음 → "싱 스트리트"로 재시도
+ */
+function searchQueryFallbacks(query: string): string[] {
+  if (/\s/.test(query) || query.length < 3) return [];
+  // 이미 공백 있거나 3자 미만이면 폴백 불필요
+
+  const out: string[] = [];
+  out.push(`${query.slice(0, 1)} ${query.slice(1)}`);
+  // "싱스트리트" → "싱 스트리트"
+
+  if (query.length >= 4) {
+    out.push(`${query.slice(0, 2)} ${query.slice(2)}`);
+    // "싱스트리트" → "싱스 트리트"
+  }
+  return out;
+}
+
+searchQueryFallbacks('싱스트리트')  // ['싱 스트리트', '싱스 트리트']
+searchQueryFallbacks('어벤져스')    // ['어 벤져스', '어벤 져스']
+```
+
+```txt
+폴백(fallback)이란:
+  주요 방법이 실패했을 때 대신 시도하는 것
+  1차: "싱스트리트" 검색 → 결과 없음
+  폴백: "싱 스트리트"로 재검색 → 결과 있음
+
+  searchQueryFallbacks가 필요한 이유:
+  TMDB 같은 외부 API는 한글 제목을 띄어쓰기 기준으로 색인
+  사용자가 "싱스트리트"로 붙여서 검색하면 결과 없음
+  → 폴백 목록을 만들어 순서대로 재검색
+
+  /\s/.test(query):
+  이미 공백이 있으면 → 띄어쓰기를 알고 입력한 것 → 폴백 불필요
+
+  slice(0, 1) + ' ' + slice(1):
+  첫 글자 + 공백 + 나머지
+  "싱스트리트" → "싱" + " " + "스트리트" = "싱 스트리트"
 ```
 
 ## 검색 · 치환

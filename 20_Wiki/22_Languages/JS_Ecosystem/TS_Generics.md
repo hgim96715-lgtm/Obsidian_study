@@ -381,3 +381,119 @@ type AdminRequest = Request & {
 ```txt
 실제 사용 위치 → [[NestJS_WebSocket]]
 ```
+
+----
+# never — 절대 존재할 수 없는 타입 ⭐️⭐️⭐️⭐️
+
+```txt
+never = "이 타입의 값은 절대 존재할 수 없다"
+
+  void  = 반환값이 없음 (undefined 반환)
+  never = 이 코드에 절대 도달하지 않음 (함수가 끝나지 않음)
+
+언제 나타나는가:
+  빈 배열의 요소 타입   → never
+  도달 불가 코드        → never
+  조건부 타입에서 제외   → T extends never ? 걸러냄
+  throw만 하는 함수     → never 반환
+```
+
+```typescript
+// 빈 배열 → never
+first([])    // T = never (요소가 없으니 타입을 알 수 없음)
+
+// 항상 throw → 절대 반환 안 함 → never
+function fail(msg: string): never {
+  throw new Error(msg);
+}
+
+// 도달 불가 코드
+function check(x: string | number) {
+  if (typeof x === 'string') return x.toUpperCase();
+  if (typeof x === 'number') return x.toFixed();
+  // 여기 x의 타입은 never — string도 number도 아닌 경우가 없음
+}
+```
+
+---
+
+# 조건부 타입 + never — 타입 가드 ⭐️⭐️⭐️⭐️
+
+```typescript
+// T extends U ? X : Y
+// "T가 U에 할당 가능하면 X, 아니면 Y"
+
+type IsString<T> = T extends string ? 'yes' : 'no';
+type A = IsString<string>  // 'yes'
+type B = IsString<number>  // 'no'
+```
+
+```typescript
+// extends never — "이 타입이 never인지 확인"
+type IsNever<T> = T extends never ? true : false;
+
+// 실전 — 배열 요소 타입이 never면 (빈 배열/없는 필드) → 다른 타입 반환
+type SafeElement<T> =
+  T extends never
+    ? never                          // never이면 never 그대로
+    : { snapshot: T; closed: boolean }; // 값이 있으면 래핑
+```
+
+## 인덱스드 액세스 + [number] + 조건부 타입 조합 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 실전 예
+apiFetch<
+  CafeHallResponse['tables'][number] extends never
+    ? never
+    : { snapshot: CafeTableSnapshot; cafeJustClosed: boolean }
+>
+
+// 분해:
+// ① CafeHallResponse['tables']
+//    → CafeHallResponse 타입에서 tables 필드의 타입 꺼내기
+//    → 예: CafeTable[]
+
+// ② CafeHallResponse['tables'][number]
+//    → 배열 타입에서 요소 타입 꺼내기
+//    → CafeTable[number] = CafeTable (배열의 한 요소)
+//    → 배열이 never[]이면 never
+
+// ③ extends never ? never : { snapshot: ...; cafeJustClosed: boolean }
+//    → tables가 비어있거나(never) → never 반환 (API 타입 없음)
+//    → tables에 실제 타입 있으면 → 실제 응답 타입 사용
+```
+
+```typescript
+// [number] — 배열 요소 타입 꺼내기
+type Items = string[];
+type Item = Items[number];  // string
+//                 ↑ "배열의 인덱스 타입(number)으로 접근" = 요소 타입
+
+type Users = { id: string; name: string }[];
+type User = Users[number];  // { id: string; name: string }
+
+// 0, 1, 2... 특정 인덱스로도 가능
+type Tuple = [string, number, boolean];
+type First  = Tuple[0];  // string
+type Second = Tuple[1];  // number
+```
+
+```txt
+T[number] 읽는 법:
+  "이 배열 타입 T에서 number 인덱스로 접근했을 때의 타입"
+  = 배열의 요소 타입
+
+T['fieldName'] vs T[number]:
+  T['fieldName'] → 객체 필드 타입 꺼내기
+  T[number]      → 배열 요소 타입 꺼내기
+
+조건부 타입이 필요한 이유:
+  API가 items: [] 처럼 빈 배열을 반환할 수 있음
+  [number]로 꺼내면 never → 응답 타입도 never
+  extends never 체크 → never이면 안전하게 never 반환
+  → 호출하는 쪽에서 never 타입을 인지하고 처리 가능
+
+→ [[TS_Type_Guards]] never 섹션
+→ [[TS_Utility_Types]] Awaited + ReturnType 조합
+```

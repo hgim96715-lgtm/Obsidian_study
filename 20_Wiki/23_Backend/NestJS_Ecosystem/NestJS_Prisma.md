@@ -162,7 +162,7 @@ model User {
 | `@updatedAt`                | 수정 시 자동 갱신                                                   |
 | `@map("컬럼명")`               | 코드 필드명 ↔ DB 컬럼명 매핑                                           |
 | `@@map("테이블명")`             | 코드 모델명 ↔ DB 테이블명 매핑                                          |
-| `@db.VarChar(n)`            | `VARCHAR(n)` 명시                                              |
+| `@db.VarChar(n)`            | `VARCHAR(n)` 명시 — 최대 n글자 문자열. 안 붙이면 PostgreSQL `TEXT` (무제한)  |
 | `@db.Uuid`                  | PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)                |
 | `@db.Timestamptz(n)`        | PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`) |
 | `@db.Date`                  | 날짜만 저장 — 시각 없음 (생년월일·예약일 등 "며칠"이 중요한 것)                      |
@@ -262,6 +262,39 @@ id String @id @default(uuid(7))   // v7 — 생성 시각 순으로 정렬됨
 v7은 값 앞부분에 타임스탬프가 들어가 있어서 생성 순서대로 정렬됨
 INSERT가 많은 테이블의 PK라면 v7이 인덱스 단편화를 줄여 더 유리
 추측하기 어려운 정도는 v4와 동일
+```
+
+## @db.VarChar(n) — 최대 길이 문자열 ⭐️⭐️⭐️
+
+```prisma
+model User {
+  id       String @id @default(cuid())
+  name     String                    // TEXT (무제한)
+  email    String @db.VarChar(255)   // VARCHAR(255)
+  nickname String @db.VarChar(30)    // VARCHAR(30)
+  bio      String?                   // TEXT (긴 텍스트는 TEXT로)
+}
+```
+
+```txt
+String 기본값:
+  Prisma의 String → PostgreSQL TEXT (길이 제한 없음)
+
+@db.VarChar(n):
+  최대 n글자까지만 허용
+  n글자 초과 삽입 시 DB 레벨에서 에러
+
+언제 쓰는가:
+  이메일 → VARCHAR(255)   (이메일 표준 최대 길이)
+  닉네임 → VARCHAR(30)    (UI 표시 제한에 맞춤)
+  제목   → VARCHAR(200)   (게시글 제목 등)
+  본문   → TEXT            (길이 제한 없음)
+
+TEXT vs VARCHAR 성능:
+  PostgreSQL에서 TEXT와 VARCHAR는 내부적으로 거의 동일
+  → 성능 차이 없음
+  → 의미상 길이 제한이 필요할 때만 VARCHAR 사용
+  → 비즈니스 규칙을 DB 레벨에서도 강제하는 효과
 ```
 
 ## @db.Timestamptz(3) — DateTime을 timezone-aware 타입으로 ⭐️⭐️⭐️⭐️

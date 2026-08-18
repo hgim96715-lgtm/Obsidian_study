@@ -5,6 +5,7 @@ aliases:
   - use client
   - use server
   - async/await 사이에서 narrowing이 풀린다
+  - never
 tags:
   - TypeScript
 related:
@@ -454,6 +455,10 @@ never가 등장하는 다른 상황:
 
   불가능한 타입 조합
   type Impossible = string & number  // → never
+
+  조건부 타입에서 "이 경우는 없다"를 표현
+  T extends never ? never : ActualType
+  → [[TS_Generics]] 조건부 타입 + never 섹션
 ```
 
 ---

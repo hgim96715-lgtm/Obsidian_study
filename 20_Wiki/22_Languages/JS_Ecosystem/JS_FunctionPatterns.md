@@ -1,26 +1,20 @@
 ---
-aliases:
-  - 조기반환
-  - 함수 설계 패턴
-  - force=false
-  - Early Return
-  - 내부 함수 추출
-  - 화살표 함수 암시적 반환
-tags:
-  - JavaScript
+aliases: [내부 함수 추출, 조기반환, 함수 설계 패턴, 화살표 함수 암시적 반환, Early Return, fallback(폴백), force=false]
+tags: [JavaScript, React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Operators]]"
-  - "[[React_AsyncUI]]"
-  - "[[NextJS_WebSocket]]"
   - "[[JS_Promise]]"
+  - "[[NextJS_WebSocket]]"
+  - "[[React_AsyncUI]]"
 ---
 # JS_FunctionPatterns — 함수 설계 패턴
 
 >[!info]
 >함수 설계 패턴 모음. 
 >옵션 객체, 조기 반환, async 래퍼, 화살표 함수 암시적 반환(`=>{}` vs `=>`) 등. 
->중괄호 없으면 자동 return, 중괄호 있으면 return 키워드 필수 — map 콜백에서 자주 실수.
+>중괄호 없으면 자동 return, 중괄호 있으면 return 키워드 필수 — map 콜백에서 자주 실수. 
+>**폴백(fallback)** = 주요 방법이 실패하거나 없을 때 대신 시도하는 것 — `??` 기본값·캐시 미스·에러 시 백업 서비스 등 모든 레이어에서 사용.
 
 ---
 
@@ -374,5 +368,119 @@ x => {
 // ③ 흔한 실수 — return 없는 블록
 x => {
   x * 2;             // ← 계산은 하지만 반환 안 함 → undefined
+}
+```
+
+---
+# 폴백(Fallback) 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+폴백(fallback) = 주요 방법이 실패하거나 없을 때 대신 시도하는 것
+
+  1차 시도 → 실패 or 없음 → 폴백(대안) → 결과
+
+코딩에서 가장 자주 나오는 패턴 중 하나
+```
+
+## 종류별 폴백 패턴
+
+```typescript
+// ① 기본값 폴백 — 값이 없으면 대체값
+const name = user?.name ?? '익명';
+//                         ↑ null/undefined이면 '익명'
+
+const port = process.env.PORT ?? '3030';
+
+// ② 캐시 폴백 — DB에 없으면 외부 API
+const cached = await db.findUnique({ where: { id } });
+if (cached) return cached;   // 캐시 히트
+const fresh = await externalApi.fetch(id);  // 캐시 미스 → 폴백
+await db.create({ data: fresh });
+return fresh;
+
+// ③ 배열 폴백 — 빈 배열이면 다른 방법
+const results = await search(query);
+if (results.length > 0) return results;
+// 결과 없음 → 폴백: 유사어로 재검색
+const fallbacks = generateFallbacks(query);
+for (const q of fallbacks) {
+  const r = await search(q);
+  if (r.length > 0) return r;
+}
+return [];
+
+// ④ 에러 폴백 — 실패하면 다른 방법
+try {
+  return await primaryService.fetch(id);
+} catch {
+  return await fallbackService.fetch(id);  // 1차 실패 → 폴백 서비스
+}
+
+// ⑤ 설정값 폴백 — 단계적으로 확인
+function getConfig(key: string): string {
+  return (
+    process.env[key]           ??  // 환경변수 → 없으면
+    configFile[key]            ??  // 설정 파일 → 없으면
+    defaultConfig[key]         ??  // 기본값 → 없으면
+    ''                             // 빈 문자열
+  );
+}
+```
+
+```txt
+폴백이 나오는 곳:
+  API 검색  → 결과 없음 → 다른 쿼리로 재검색
+  캐시      → 미스 → 원본 API 호출
+  서비스    → 실패 → 백업 서비스
+  인증      → 토큰 만료 → refresh → 재로그인
+  폰트      → 커스텀 폰트 없음 → 시스템 폰트 (CSS fallback font)
+  UI 이미지 → 로드 실패 → 기본 이미지 (onError)
+
+  ?? (nullish coalescing):
+  JavaScript에서 가장 단순한 폴백 표현
+  left ?? right = left가 null/undefined이면 right
+
+  || (OR) vs ??:
+  || = 0, '', false 도 폴백으로 넘어감 (falsy 전체)
+  ?? = null/undefined 만 폴백으로 넘어감
+  → 0이나 빈 문자열이 유효한 값이면 ?? 사용
+```
+
+## 실전 예 — 이미지 로드 폴백
+
+```typescript
+// React — 이미지 로드 실패 시 기본 이미지로
+<img
+  src={user.avatarUrl}
+  onError={(e) => {
+    e.currentTarget.src = '/default-avatar.png';  // 폴백 이미지
+  }}
+  alt={user.name}
+/>
+```
+
+## 실전 예 — 인증 폴백
+
+```typescript
+// 토큰 만료 → refresh → 재시도 → 실패 시 로그아웃
+async function fetchWithAuth(url: string) {
+  let res = await fetch(url, { headers: bearerHeader(accessToken) });
+
+  if (res.status === 401) {
+    // 1차 폴백: 토큰 갱신 시도
+    const newToken = await refreshToken();
+    if (newToken) {
+      res = await fetch(url, { headers: bearerHeader(newToken) });
+    }
+  }
+
+  if (res.status === 401) {
+    // 2차 폴백: 갱신도 실패 → 로그아웃
+    clearSession();
+    router.push('/login');
+    throw new Error('인증 만료');
+  }
+
+  return res.json();
 }
 ```
