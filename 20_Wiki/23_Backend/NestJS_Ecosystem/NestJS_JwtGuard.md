@@ -494,6 +494,11 @@ import { APP_GUARD } from '@nestjs/core';
       provide:  APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    ...
   ],
 })
 export class AppModule {}
@@ -789,20 +794,99 @@ user.roles = ['admin', 'editor']      user.role = 'admin'
   단일 검사가 맞음
 ```
 
-## 데코레이터
+## 데코레이터 — 두 가지 구현 방법 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// auth/decorators/roles.decorator.ts
+// apps/api/src/auth/decorators/roles.decorator.ts
+// 방법 1 — Role 타입을 직접 정의
 import { SetMetadata } from '@nestjs/common';
+
 export const ROLES_KEY = 'roles';
 export type Role = 'user' | 'admin';
+
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+// @Roles('admin') → SetMetadata('roles', ['admin'])
+```
+
+```typescript
+// apps/api/src/auth/decorators/roles.decorator.ts
+// 방법 2 — JwtPayload['role']로 타입 연결 ⭐️
+import { SetMetadata }     from '@nestjs/common';
+import type { JwtPayload } from '../jwt-payload';
+
+export const ROLES_KEY = 'roles';
+
+export const Roles = (...roles: JwtPayload['role'][]) =>
+  SetMetadata(ROLES_KEY, roles);
+//                      ↑ JwtPayload에서 role 필드 타입을 꺼냄
+//   JwtPayload = { sub: string; role: 'user' | 'admin' }
+//   JwtPayload['role']  = 'user' | 'admin'
+//   JwtPayload['role'][] = ('user' | 'admin')[]
+```
+
+```txt
+두 방법의 차이:
+
+  방법 1 — type Role 직접 정의:
+    Role 타입을 별도로 관리
+    JwtPayload.role이 바뀌면 두 곳을 수정해야 함
+
+  방법 2 — JwtPayload['role'] 인덱스드 액세스:
+    JwtPayload.role 타입을 그대로 참조
+    role 종류가 바뀌면 JwtPayload 한 곳만 수정
+    Single Source of Truth
+
+  JwtPayload['role']:
+    TypeScript 인덱스드 액세스 타입
+    "JwtPayload 타입에서 role 필드의 타입을 꺼내라"
+    → [[TS_Utility_Types]] 인덱스드 액세스 섹션
+
+  실무 기준:
+    방법 2가 더 안전
+    JWT 발급 타입 = Guard 검증 타입 → 항상 일치 보장
 ```
 
 ## RolesGuard — 단일 role 방식
 
 ```typescript
 // auth/roles.guard.ts
+// 방법 2번 사용했을때 decorator.ts
+import {
+  CanActivate, ExecutionContext, ForbiddenException, Injectable,
+} from '@nestjs/common';
+import { Reflector }        from '@nestjs/core';
+import { ROLES_KEY }        from './decorators/roles.decorator';
+import type { JwtPayload }  from './jwt-payload';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const roles = this.reflector.getAllAndOverride<JwtPayload['role'][]>(
+      //                                           ↑ Role[] 대신 JwtPayload['role'][]
+      //                                             @Roles 데코레이터와 타입 일치
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    // @Roles() 없는 라우트는 통과
+    if (!roles || roles.length === 0) return true;
+
+    // request.user.role — 단일 role
+    const request = context.switchToHttp().getRequest<{ user?: JwtPayload }>();
+    const role    = request.user?.role;
+
+    if (role && roles.includes(role)) return true;
+
+    throw new ForbiddenException('관리자만 사용할 수 있습니다.');
+  }
+}
+```
+
+```typescript
+// auth/roles.guard.ts
+// 방법 1번 선택했을때 decorator.ts
 import {
   CanActivate, ExecutionContext, ForbiddenException, Injectable,
 } from '@nestjs/common';
@@ -836,9 +920,27 @@ export class RolesGuard implements CanActivate {
 ```
 
 ```txt
+getAllAndOverride<JwtPayload['role'][]>:
+  데코레이터에서 SetMetadata로 저장한 값을 꺼낼 때 타입 지정
+  @Roles 데코레이터가 JwtPayload['role'][]로 받으니
+  Guard에서 꺼낼 때도 JwtPayload['role'][]로 맞춰야 타입 일치
+
+  Role[] 쓰면:
+    Role 타입이 따로 있어야 하고
+    JwtPayload.role과 다른 타입이 되면 불일치 발생
+
+  JwtPayload['role'][] 쓰면:
+    JwtPayload에서 직접 꺼내므로 항상 일치
+    Single Source of Truth 유지
+
+request.user?.role:
+  JwtAuthGuard가 verifyAsync 후 request.user에 JwtPayload를 넣음
+  RolesGuard는 JwtAuthGuard 이후에 실행 → user가 이미 있음
+  APP_GUARD 순서: JwtAuthGuard → RolesGuard
+
 ForbiddenException vs return false:
   return false → 403 Forbidden (NestJS 기본 메시지)
-  ForbiddenException → "권한이 없습니다." 직접 지정 가능 → 권장
+  ForbiddenException → 직접 지정 가능 → 권장
 
 나중에 다중 역할로 바꾸려면:
   user.role → user.roles 배열로 변경
