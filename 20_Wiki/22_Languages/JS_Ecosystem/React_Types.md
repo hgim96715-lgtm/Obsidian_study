@@ -6,6 +6,7 @@ aliases:
   - 이벤트타입
   - Fragment
   - Ref
+  - React.Dispatch<React.SetStateAction<T>>
 tags:
   - React
 related:
@@ -357,4 +358,97 @@ function DefinitionList({ items }: { items: { term: string; desc: string }[] }) 
 }
 // DOM: <dl><dt>...</dt><dd>...</dd><dt>...</dt><dd>...</dd></dl>
 // div 없이 dl의 직접 자식으로 dt, dd 위치
+```
+
+---
+# React.Dispatch · React.SetStateAction — setState 함수 타입 ⭐️⭐️⭐️⭐️
+
+```typescript
+// useState를 쓰면 두 가지가 반환됨
+const [count, setCount] = useState<number>(0);
+//     ↑ 값    ↑ 변경 함수
+
+// setCount의 타입을 풀어보면:
+// React.Dispatch<React.SetStateAction<number>>
+```
+
+```txt
+왜 이 복잡한 타입이 필요한가:
+  setCount를 다른 컴포넌트·함수에 props로 넘길 때
+  TypeScript가 타입을 알아야 자동완성·타입 체크가 됨
+
+  setCount를 그냥 함수로 표현하면?
+    (value: number) => void
+    → setCount(5) 는 되지만
+    → setCount(prev => prev + 1) 은 타입 에러
+    → 두 가지 사용법을 모두 허용하지 못함
+
+  React.SetStateAction<number> =
+    number             — 값을 직접 넘기기
+    (prev: number) => number  — 이전 값을 받아서 계산하기
+    → 둘 다 허용하는 유니온 타입
+```
+
+## 구조 이해
+
+```typescript
+// React.SetStateAction<T> = T | (prev: T) => T
+// "T 자체" 또는 "이전 T를 받아서 새 T를 반환하는 함수"
+
+setCount(5)               // T 자체 전달
+setCount(prev => prev + 1) // 이전 값 기반 계산
+
+// React.Dispatch<A> = (value: A) => void
+// "A 타입을 받아서 실행하는 함수"
+// → Dispatch<SetStateAction<number>>
+//   = (value: number | (prev: number) => number) => void
+```
+
+## 함수·Props로 넘길 때 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 자식 컴포넌트에 setter를 넘길 때 타입 명시
+type CounterProps = {
+  setCount: React.Dispatch<React.SetStateAction<number>>;
+};
+
+function Counter({ setCount }: CounterProps) {
+  return (
+    <button onClick={() => setCount(prev => prev + 1)}>+1</button>
+  );
+}
+
+// 부모
+function Parent() {
+  const [count, setCount] = useState(0);
+  return <Counter setCount={setCount} />;
+  //              ↑ useState가 반환한 setter를 그대로 전달
+}
+```
+
+```typescript
+// 여러 setter를 묶어서 넘길 때 — 커스텀 훅, WebSocket 핸들러 등
+type Args = {
+  setItems:    React.Dispatch<React.SetStateAction<Item[]>>;
+  setLoading:  React.Dispatch<React.SetStateAction<boolean>>;
+  setError:    React.Dispatch<React.SetStateAction<string | null>>;
+};
+
+function setupSocketHandlers({ setItems, setLoading, setError }: Args) {
+  socket.on('data',  (items) => setItems(items));
+  socket.on('done',  ()      => setLoading(false));
+  socket.on('error', (msg)   => setError(msg));
+}
+```
+
+```txt
+자주 보이는 곳:
+  자식 컴포넌트에 setState 넘기기
+  커스텀 훅 인자
+  WebSocket 이벤트 핸들러 인자
+  유틸 함수 인자
+
+짧게 쓰는 방법:
+  type SetItems = React.Dispatch<React.SetStateAction<Item[]>>;
+  → 타입 별칭으로 반복 줄이기
 ```

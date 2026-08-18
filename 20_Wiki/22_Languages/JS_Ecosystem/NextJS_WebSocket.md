@@ -1,25 +1,27 @@
 ---
 aliases:
-  - WebSocket
-  - socket.io
   - client
   - emit
-  - on
   - off
+  - on
+  - socket.io
+  - WebSocket
 tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_WebSocket]]"
-  - "[[JS_Operators]]"
   - "[[JS_FunctionPatterns]]"
+  - "[[JS_Operators]]"
+  - "[[NestJS_WebSocket]]"
+  - "[[React_Types]]"
 ---
 # NextJS_WebSocket — Socket.IO 클라이언트 패턴
 
-> [!info] 
-> WebSocket = 한 번 연결하면 서버도 클라이언트에게 언제든 데이터를 보낼 수 있는 실시간 통신 방식. 
-> 이 노트는 Next.js(클라이언트)에서 socket.io-client로 NestJS Gateway와 연결하는 패턴을 다룬다. 
-> 서버 Gateway 구현 → [[NestJS_WebSocket]]
+>[!info]
+>Next.js에서 Socket.IO 클라이언트로 NestJS Gateway와 통신. 
+>`socket.io-client`의 `io()`로 연결, `on`으로 구독, `emit`으로 발신. 
+>타입 안전한 `Socket<ServerToClient, ClientToServer>` 제네릭으로 이벤트 타입 정의. `
+>useEffect`로 연결·구독·해제를 커스텀 훅으로 분리. NestJS 서버 → [[NestJS_WebSocket]]
 
 ---
 
@@ -28,544 +30,341 @@ related:
 ```txt
 HTTP:
   클라이언트가 요청 → 서버가 응답 → 연결 끊김
-  서버가 먼저 데이터를 보낼 방법이 없음
-  "새 메시지 있어?" 를 알려면 클라이언트가 계속 물어봐야 함 (폴링)
+  서버가 먼저 데이터를 보낼 수 없음
 
 WebSocket:
-  한 번 연결하면 연결이 유지됨
-  서버도 클라이언트에게 언제든 데이터를 보낼 수 있음
-  다른 사람이 메시지를 보내면 → 서버가 즉시 나에게 전달
+  한 번 연결하면 양쪽이 언제든 메시지를 보낼 수 있음
+  서버 → 클라이언트 push 가능
+  연결 유지 (실시간 채팅, 알림, 라이브 업데이트)
 
-채팅이 WebSocket이 필요한 이유:
-  HTTP로는 서버가 먼저 "새 메시지 왔어"를 알릴 수 없음
-  5초마다 "새 메시지 있어?"를 물어보는 방식 → 지연 발생, 서버 부하
-  WebSocket → 서버가 메시지가 오는 순간 연결된 모든 클라이언트에게 즉시 전달
-```
-
-```txt
-HTTP:
-  클라이언트 ──요청──▶ 서버 ──응답──▶ 클라이언트  (연결 끊김)
-
-WebSocket (연결 유지):
-  클라이언트 ────────────────────── 서버
-             ◀── 메시지 도착 알림 ──
-             ──── "메시지 전송" ────▶
-             ◀── 다른 사람 입력 ────
-             ◀── 읽음 처리 알림 ────
+언제 WebSocket:
+  채팅·댓글·좋아요 실시간 반영
+  다른 유저의 행동이 내 화면에 즉시 반영
+  서버에서 주기적으로 데이터를 밀어야 할 때
 ```
 
 ---
 
-# socket.io란 ⭐️⭐️⭐️
-
-```txt
-브라우저 기본 WebSocket API 위에 편의 기능을 얹은 라이브러리
-
-socket.io가 추가해주는 것:
-  자동 재연결   네트워크가 잠깐 끊겨도 자동으로 다시 연결
-  room        채팅방처럼 특정 그룹에게만 메시지 보내기
-  namespace   연결 단위 분리 (/chat, /notification 등)
-  acknowledgement  emit하고 서버 응답을 콜백으로 받는 기능
-
-서버(NestJS)와 클라이언트(Next.js) 양쪽 모두 socket.io를 씀:
-  서버: socket.io (npm: socket.io)
-  클라이언트: socket.io-client (npm: socket.io-client)
-```
-
----
-
-# emit / on — 양방향 통신의 핵심 ⭐️⭐️⭐️⭐️
-
-```txt
-emit = "이 이벤트를 보내다"
-on   = "이 이벤트를 받으면 이 함수를 실행해"
-
-서버와 클라이언트 둘 다 emit과 on을 가짐:
-  클라이언트가 emit('join', { roomId })
-  → 서버의 @SubscribeMessage('join') 핸들러가 받음
-
-  서버가 socket.emit('message', data) 또는 room으로 broadcast
-  → 클라이언트의 socket.on('message', handler)가 받음
-```
+# emit · on — 양방향 통신의 핵심 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// 클라이언트 → 서버 방향
-socket.emit('join', { roomId: '123' });  // 클라이언트가 보냄
-// 서버의 @SubscribeMessage('join') 이 받음
+// emit — 상대에게 이벤트 보내기
+socket.emit('이벤트명', 데이터);
 
-// 서버 → 클라이언트 방향
-socket.on('message', (data) => {         // 클라이언트가 받을 준비
-  setMessages(prev => [...prev, data]);
-});
-// 서버가 socket.emit('message', ...) 또는 broadcast 하면 이 핸들러 실행
+// on — 이벤트 받기 (구독)
+socket.on('이벤트명', (데이터) => { /* 처리 */ });
+
+// off — 구독 해제
+socket.off('이벤트명', 핸들러);
 ```
 
 ```txt
-이벤트 이름은 서버와 클라이언트가 정확히 같아야 함:
-  서버: this.server.to(roomId).emit('message', data)
-  클라이언트: socket.on('message', handler)
-              ↑ 같은 이름 'message'
-
-  이름이 다르면 이벤트가 전달되지 않음 (에러도 안 남, 조용히 무시)
+이벤트 기반:
+  HTTP처럼 path가 아닌 "이벤트 이름"으로 구분
+  socket.emit('join', { roomId })  → 서버의 @SubscribeMessage('join')
+  server.emit('message', data)     → 클라이언트의 socket.on('message', ...)
 ```
 
 ---
 
-# 설치 및 기본 연결 ⭐️⭐️⭐️
+# 설치 및 타입 안전한 소켓 ⭐️⭐️⭐️⭐️
 
 ```bash
 pnpm add socket.io-client
 ```
 
 ```typescript
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
-const socket = io('http://localhost:3000');        // 기본 연결 (/ 네임스페이스)
-const socket = io('http://localhost:3000/chat');   // /chat 네임스페이스
+// 서버 → 클라이언트 이벤트 타입 (서버 emit, 클라이언트 on)
+type ServerToClient = {
+  message:    (payload: MessageItem) => void;
+  userJoined: (payload: { userId: string }) => void;
+};
+
+// 클라이언트 → 서버 이벤트 타입 (클라이언트 emit, 서버 @SubscribeMessage)
+type ClientToServer = {
+  join:        (roomId: string) => void;
+  sendMessage: (dto: CreateMessageDto) => void;
+};
+
+// 타입이 적용된 소켓 타입
+type ChatSocket = Socket<ServerToClient, ClientToServer>;
+//                       ↑ .on() 타입   ↑ .emit() 타입
 ```
 
 ```txt
-io(url):
-  서버에 WebSocket 연결을 시작하고 Socket 인스턴스를 반환
-  기본적으로 호출과 동시에 연결 시도
+Socket<ServerToClient, ClientToServer> 효과:
+  socket.on('message', (p) => ...)  → p가 MessageItem 자동완성
+  socket.emit('join', roomId)       → 인자 타입 체크
+  socket.on('없는이벤트', ...)       → TS 에러
 
-URL 구조:
-  io('http://localhost:3000/chat')
-       ↑ 서버 주소 (포트 포함)  ↑ 네임스페이스
-  
-  네임스페이스 = 연결 단위 분리
-  서버의 @WebSocketGateway({ namespace: '/chat' }) 와 일치해야 함
-  없으면 기본값 '/'
+  ServerToClient 이름 ↔ NestJS gateway emit 이름 일치 필요
+  ClientToServer 이름 ↔ @SubscribeMessage('이름') 일치 필요
 ```
 
-## 연결 관련 이벤트
+## 연결 팩토리 함수
 
 ```typescript
-socket.on('connect', () => {
-  console.log('연결됨, id:', socket.id);   // 서버가 부여한 고유 ID
-});
+// lib/chat-socket.ts
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3050';
 
-socket.on('disconnect', (reason) => {
-  console.log('연결 끊김:', reason);
-  // 'io server disconnect' → 서버가 끊음
-  // 'transport close'      → 네트워크 문제
-});
-
-socket.on('connect_error', (err) => {
-  console.error('연결 에러:', err.message);
-  // 토큰 만료나 인증 실패가 여기서 잡힘
-});
-```
-
----
-
-# 왜 싱글턴이 필요한가 ⭐️⭐️⭐️⭐️
-
-```txt
-❌ 컴포넌트 안에서 io()를 직접 호출하면:
-```
-
-```typescript
-function ChatRoom({ roomId }) {
-  useEffect(() => {
-    const socket = io('http://localhost:3000/chat');  // ❌
-    // 이 컴포넌트가 렌더링될 때마다 새 연결이 생성됨
-    // roomId가 바뀔 때마다, 부모 리렌더 때마다 새 소켓
-    // → 서버에 연결이 누적됨 (10개, 100개...)
-  }, [roomId]);
+export function connectChatSocket(token: string): ChatSocket {
+  return io(`${API_URL}/chat`, {
+    auth:       { token },       // handshake.auth.token → 서버 인증
+    transports: ['websocket'],   // polling 없이 바로 WebSocket
+  }) as ChatSocket;
 }
 ```
 
 ```txt
-✅ 해결 — 모듈 스코프 싱글턴:
-  파일 레벨의 변수로 소켓 하나만 유지
-  getRoomSocket()으로 있으면 재사용, 없으면 생성
-  io()는 앱 전체에서 딱 한 번만 호출됨
+auth: { token }:
+  서버 handleConnection에서 socket.handshake.auth.token 으로 꺼냄
+  JWT 검증에 사용
+
+transports: ['websocket']:
+  기본값 ['polling', 'websocket'] → polling 먼저, 그 다음 upgrade
+  ['websocket'] 단독 → 바로 연결 (더 빠름)
 ```
 
 ---
 
-# 싱글턴 소켓 유틸 구현 ⭐️⭐️⭐️⭐️
+# 커스텀 훅 패턴 — useEffect로 소켓 관리 ⭐️⭐️⭐️⭐️
+
+```txt
+소켓 연결·구독·해제를 커스텀 훅으로 분리하는 것이 표준 패턴
+
+이유:
+  useEffect cleanup → 언마운트 시 socket.disconnect() 자동 실행
+  deps 변경(토큰 갱신) 시 자동으로 재연결
+  컴포넌트에서 소켓 로직 분리 → 컴포넌트가 얇아짐
+```
+
+## 훅 없이 — 컴포넌트에서 직접
 
 ```typescript
-// lib/roomSocket.ts
-import { io, type Socket } from 'socket.io-client';
+// 소켓 로직이 단순하거나 한 곳에서만 쓸 때
+'use client';
+import { useEffect } from 'react';
+import { connectChatSocket } from '@/lib/chat-socket';
 
-let socket: Socket | null = null;  // 모듈 스코프 — 앱 전체에서 하나
+function ChatRoom({ roomId }: { roomId: string }) {
+  const [messages, setMessages] = useState<MessageItem[]>([]);
+  const accessToken = useAuthStore(s => s.accessToken);
 
-export function getRoomSocket(): Socket {
-  // 이미 연결된 소켓이 있으면 그대로 반환
-  if (socket?.connected) return socket;
+  useEffect(() => {
+    if (!accessToken) return;
 
-  const token = getApiAccessToken();
-  if (!token) throw new Error('로그인이 필요합니다.');
+    const socket = connectChatSocket(accessToken);
 
-  if (!socket) {
-    // 소켓이 없으면 새로 만들기
-    socket = io(`${getApiBaseUrl()}/chat`, {
-      autoConnect:     false,         // io() 호출과 동시에 연결 안 함
-      auth:            { token },     // 서버 handleConnection에서 검증
-      withCredentials: true,          // 쿠키 포함
+    socket.on('connect', () => {
+      socket.emit('join', roomId);
     });
-  } else {
-    socket.auth = { token };          // 기존 소켓 — 토큰만 갱신
-  }
 
-  if (!socket.connected) socket.connect();  // 직접 연결 시작
+    socket.on('message', (payload) => {
+      setMessages(prev => [...prev, payload]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken, roomId]);
+
+  return <div>{messages.map(m => <p key={m.id}>{m.text}</p>)}</div>;
+}
+```
+
+```txt
+훅으로 분리 vs 컴포넌트에서 직접:
+
+  컴포넌트에서 직접:
+    소켓 이벤트가 2-3개로 단순할 때
+    이 컴포넌트 하나에서만 소켓을 씀
+    빠르게 구현이 필요할 때
+
+  커스텀 훅으로 분리:
+    이벤트가 많아서 컴포넌트가 복잡해질 때
+    여러 컴포넌트에서 같은 소켓 로직을 씀
+    args(setter들)가 많아서 하나로 묶고 싶을 때
+    → 외부에서 재사용 가능, 컴포넌트가 얇아짐
+
+  결과는 동일 — 구조의 차이만 있음
+```
+
+## 커스텀 훅으로 분리한 버전
+
+```typescript
+// hooks/useChatSocket.ts
+'use client';
+import { useEffect } from 'react';
+import { connectChatSocket } from '@/lib/chat-socket';
+
+type Args = {
+  accessToken:  string | null;
+  setMessages:  React.Dispatch<React.SetStateAction<MessageItem[]>>;
+  setOnlineCount: React.Dispatch<React.SetStateAction<number>>;
+};
+
+export function useChatSocket({ accessToken, setMessages, setOnlineCount }: Args) {
+  useEffect(() => {
+    if (!accessToken) return;  // 토큰 없으면 연결 안 함
+    //   ↑ early return → cleanup 함수도 없음 (연결 안 했으니 해제도 없음)
+
+    const socket = connectChatSocket(accessToken);
+
+    // 연결 완료 → 방 입장 emit
+    socket.on('connect', () => {
+      socket.emit('join', roomId);
+    });
+
+    // 서버 이벤트 구독
+    socket.on('message', (payload) => {
+      setMessages(prev => [...prev, payload]);
+      //                    ↑ prev → 최신 상태 기반으로 업데이트
+    });
+
+    socket.on('userJoined', ({ userId }) => {
+      setOnlineCount(prev => prev + 1);
+    });
+
+    // cleanup — 컴포넌트 언마운트 or accessToken 변경 시 실행
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken, setMessages, setOnlineCount]);
+  //  ↑ accessToken 바뀌면 이전 소켓 해제 후 새 소켓 연결
+}
+```
+
+```typescript
+// 컴포넌트에서 사용
+function ChatRoom() {
+  const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const accessToken = useAuthStore(s => s.accessToken);
+
+  useChatSocket({ accessToken, setMessages, setOnlineCount });
+  //  ↑ 한 줄로 소켓 관리 완료 — 컴포넌트가 얇게 유지됨
+
+  return (
+    <div>
+      {messages.map(m => <Message key={m.id} {...m} />)}
+    </div>
+  );
+}
+```
+
+```txt
+setMessages(prev => [...prev, payload]):
+  prev → 을 쓰는 이유:
+  useEffect 클로저는 마운트 시점의 messages를 캡처
+  직접 setMessages([...messages, payload]) 하면 클로저의 오래된 messages 참조
+  prev → 콜백 형태는 항상 최신 상태를 받음 → 안전
+
+accessToken을 deps에 넣는 이유:
+  토큰이 갱신되면 이전 소켓을 끊고 새 토큰으로 재연결
+  → cleanup(disconnect) → effect 재실행(새 연결)
+```
+
+---
+
+# 이벤트 구독 패턴 — on / off ⭐️⭐️⭐️⭐️
+
+```typescript
+useEffect(() => {
+  if (!socket) return;
+
+  const handleMessage = (payload: MessageItem) => {
+    setMessages(prev => [...prev, payload]);
+  };
+
+  // 구독
+  socket.on('message', handleMessage);
+
+  // 반드시 cleanup에서 off
+  return () => {
+    socket.off('message', handleMessage);
+  };
+}, [socket]);
+```
+
+```txt
+off 할 때 같은 함수 참조 필요:
+  socket.on('message', handleMessage)   ← 이름 있는 함수
+  socket.off('message', handleMessage)  ← 같은 참조로 해제
+
+  arrow 함수를 on/off에 직접 넣으면 참조가 달라서 off 안 됨:
+  ❌ socket.on('message', (p) => setMessages(...))
+     socket.off('message', (p) => setMessages(...))  ← 다른 함수!
+
+useEffect 하나에 on/off 쌍으로:
+  구독과 해제가 항상 쌍으로 묶임 → 메모리 누수 방지
+```
+
+---
+
+# 싱글턴 소켓 — 연결 재사용 ⭐️⭐️⭐️
+
+```typescript
+// lib/room-socket.ts — 여러 컴포넌트가 같은 소켓 재사용
+let socket: ChatSocket | null = null;
+
+export function getRoomSocket(token: string): ChatSocket {
+  if (socket?.connected) return socket;  // 이미 연결됨 → 재사용
+  socket = connectChatSocket(token);
   return socket;
 }
 
 export function disconnectRoomSocket() {
   socket?.disconnect();
-  socket = null;   // 인스턴스도 초기화 — 다음 로그인 시 새로 만들기 위해
+  socket = null;
 }
 ```
 
 ```txt
-autoConnect: false 이유:
-  io()를 호출하는 시점과 실제 연결 시점을 분리
-  토큰을 확인하고 auth에 세팅한 뒤 직접 socket.connect()를 호출하기 위해
+왜 싱글턴이 필요한가:
+  컴포넌트 A, B가 같은 소켓을 써야 할 때
+  각자 io()를 부르면 연결이 두 개 생김 → 이벤트 두 번 수신
 
-socket.auth = { token } 이유:
-  토큰이 만료되어 갱신된 경우, 기존 소켓 인스턴스에 새 토큰을 세팅하고 재연결
-  socket = null 후 새로 만드는 것보다 효율적
+  커스텀 훅 방식:
+  훅 하나가 소켓 전체를 관리 → 싱글턴 불필요
+  훅이 여러 곳에 있으면 → 싱글턴 또는 Context로 공유
 
-disconnectRoomSocket()이 socket = null 까지 하는 이유:
-  disconnect()만 하면 인스턴스는 남아있음
-  다음 로그인 시 getRoomSocket()이 끊긴 인스턴스를 재사용하려 해서 문제 생길 수 있음
-  null로 초기화하면 다음 호출 시 새 인스턴스 생성
-
-withCredentials: true:
-  쿠키 포함 요청 — 서버 CORS credentials: true 와 세트로 필요
+getRoomSocket() 부르는 이유:
+  socket이 null이면 새로 연결
+  이미 연결돼 있으면 기존 소켓 반환
+  → 중복 연결 방지
 ```
 
 ---
 
-# acknowledgement — emit하고 서버 응답 받기 ⭐️⭐️⭐️⭐️
-
-```txt
-일반 HTTP: 요청 → 응답이 자연스러움
-WebSocket emit: 기본적으로 "쏘고 끝" — 응답이 없음
-
-acknowledgement:
-  emit의 세 번째 인자로 콜백을 넘기면
-  서버 핸들러가 return한 값을 그 콜백으로 받을 수 있음
-  → "쏘고 응답 대기"가 가능해짐
-```
-
-## const s = getRoomSocket() — 모든 함수가 이걸 먼저 부르는 이유 ⭐️⭐️⭐️⭐️
+# 재연결 시 자동 재입장 ⭐️⭐️⭐️
 
 ```typescript
-export function socketJoin(resourceId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();  // ① 항상 이 줄부터
-  // ...
-}
-```
+useEffect(() => {
+  if (!accessToken) return;
 
-```txt
-getRoomSocket()이 하는 일:
-  ① 이미 연결된 소켓이 있으면 → 그 소켓을 그대로 반환
-  ② 소켓이 없으면 → 새로 만들고 connect() 호출 후 반환
+  const socket = connectChatSocket(accessToken);
 
-왜 모든 함수에서 호출하는가:
-  소켓 인스턴스가 모듈 스코프 변수(let socket)에 담겨있음
-  let socket: Socket | null = null  ← 파일 맨 위에 선언된 변수
-
-  export function socketJoin(...) {
-    socket.emit(...)  // ❌ socket이 null일 수 있음 → 타입 에러 + 런타임 에러
+  function joinRoom() {
+    socket.emit('join', roomId);
   }
 
-  → "null인지 확인하고 없으면 만들어서 연결까지 해주는" 과정을
-    getRoomSocket() 하나가 담당
-  → 모든 함수가 이 한 줄로 "유효한 소켓 인스턴스"를 얻음
+  // 최초 연결 + 재연결 시 모두 입장
+  socket.on('connect', joinRoom);
 
-const s = ... 로 받는 이유:
-  getRoomSocket()이 socket을 반환하지만 반환 타입이 Socket (null 아님)
-  s라는 새 변수에 받아두면 이후 코드에서 null 체크 없이 바로 사용 가능
-  함수 안에서 socket 모듈 변수를 직접 쓰지 않고 s를 쓰는 것이 더 명확
-```
-
-## 기본 패턴 — 이미 연결된 경우
-
-```typescript
-export function socketLeave(resourceId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();           // ① 소켓 가져오기
-  return new Promise((resolve) => {
-    s.emit(                            // ② 이벤트 전송
-      'featureA:leave',
-      { resourceId },
-      (res: { ok: boolean }) => resolve(res),  // ③ 서버 응답을 콜백으로 받음
-    );
-  });
-}
+  return () => {
+    socket.off('connect', joinRoom);
+    socket.disconnect();
+  };
+}, [accessToken, roomId]);
 ```
 
 ```txt
-socket.emit(이벤트이름, payload, 콜백) — 인자 세 가지:
-
-  ① 이벤트 이름 (string)
-    서버의 @SubscribeMessage('featureA:leave') 와 정확히 일치해야 함
-    대소문자 포함 완전히 같아야 함 — 다르면 서버가 조용히 무시
-
-  ② payload (보낼 데이터, 선택)
-    서버 핸들러의 @MessageBody()로 받는 값
-    객체, 문자열, 숫자 등 어떤 타입이든 가능
-    보낼 데이터가 없으면 생략하거나 null
-
-    { resourceId }  →  { resourceId: resourceId } 와 동일 (단축 표기)
-    서버에서: @MessageBody() body: { resourceId: string }
-
-  ③ acknowledgement 콜백 (선택)
-    서버 핸들러가 return한 값을 받는 함수
-    이 인자를 넣어야 서버 응답을 받을 수 있음
-    안 넣으면 "쏘고 끝" — 서버가 뭘 return하든 클라이언트는 모름
-
-    (res: { ok: boolean }) => resolve(res)
-    ↑ res = 서버 핸들러의 return 값
-
-payload 없이 콜백만 넣을 때:
-  s.emit('ping', (res) => resolve(res))
-  → 두 번째 인자를 생략하고 콜백만 넣으면 됨
-```
-
-
-## 연결 중이면 기다렸다가 emit ⭐️⭐️⭐️
-
-```typescript
-export function socketJoin(resourceId: string): Promise<{ ok: boolean }> {
-  const s = getRoomSocket();
-
-  return new Promise((resolve) => {
-    const doEmit = () => {                              // ① 내부 함수로 추출
-      s.emit(
-        'featureA:join',
-        { resourceId },
-        (res: { ok: boolean }) => resolve(res ?? { ok: false }),
-      );
-    };
-
-    if (s.connected) doEmit();        // ② 이미 연결됨 → 즉시 실행
-    else s.once('connect', doEmit);   // ③ 연결 중 → 연결되면 참조로 전달
-  });
-}
-```
-
-```txt
-const doEmit = () => { ... } 를 왜 쓰는가:
-
-  같은 s.emit(...) 코드를 두 가지 시점에 실행해야 함
-    ② connected → 지금 바로 실행
-    ③ connecting → 나중에 connect 이벤트가 오면 실행
-
-  doEmit 없이 쓰면:
-    if (s.connected) {
-      s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
-    } else {
-      s.once('connect', () => {
-        s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
-        // ↑ 완전히 같은 코드를 또 써야 함 — 중복
-      });
-    }
-
-  doEmit으로 추출하면:
-    const doEmit = () => {
-      s.emit('featureA:join', { resourceId }, (res) => resolve(res ?? { ok: false }));
-    };
-    if (s.connected) doEmit();          // 즉시 실행
-    else s.once('connect', doEmit);     // 나중에 실행할 함수를 참조로 전달
-
-  핵심 차이:
-    doEmit()        → 소괄호 붙임 → "지금 즉시 실행"
-    doEmit          → 소괄호 없음 → "나중에 실행할 함수를 참조로 넘김"
-
-  s.once('connect', doEmit) 에서 doEmit() 이 아닌 doEmit:
-    doEmit()로 쓰면 그 줄에서 즉시 실행됨 → 아직 연결 안 됐는데 emit → 실패
-    doEmit 으로 쓰면 "connect 이벤트가 오면 이 함수를 불러줘"라는 의미
-    → 함수를 값처럼 전달하는 패턴 → [[JS_FunctionPatterns]] 내부 함수 추출 참고
-```
-
-```txt
-s.connected 분기가 필요한 이유:
-  getRoomSocket()은 소켓을 만들고 connect()를 호출하지만
-  connect()는 비동기 → 함수가 반환된 시점에 아직 연결 안 됐을 수 있음
-  연결 완료 전에 s.emit() → 서버가 못 받음 (조용히 사라짐)
-
-s.once vs s.on:
-  s.on   → 이벤트마다 계속 실행 → 여러 번 join되는 버그 발생 가능
-  s.once → 딱 한 번만 실행 후 자동 제거 → 연결 대기용으로 적합
-
-res ?? { ok: false }:
-  서버가 아무것도 return 안 한 경우 null/undefined → { ok: false }로 대체
-  네트워크 문제나 서버 에러 시 방어
-```
-
----
-
-# 이벤트 구독 패턴 — on/off ⭐️⭐️⭐️⭐️
-
-```typescript
-// 클린업 함수를 반환하는 패턴
-export function onRoomMessage(
-  handler: (message: ApiRoomMessage) => void,
-): () => void {
-  const s = getRoomSocket();
-  s.on('message', handler);
-  return () => s.off('message', handler);  // 언마운트 시 구독 해제
-}
-```
-
-```typescript
-// useEffect에서 사용
-useEffect(() => {
-  const offMessage = onRoomMessage((msg) => {
-    setMessages(prev => [...prev, msg]);
-  });
-  return offMessage;  // 언마운트 시 자동으로 s.off() 실행
-}, []);
-```
-
-```txt
-왜 클린업 함수를 반환하는가:
-  컴포넌트가 언마운트될 때 이벤트 리스너를 제거해야 함
-  제거하지 않으면 언마운트된 컴포넌트의 setState가 호출되어 메모리 누수
-  useEffect의 return 함수 = cleanup → 언마운트 시 자동 호출
-
-off()에 반드시 같은 handler 참조를 넘겨야 함:
-  ❌ socket.off('message', (data) => ...)  // 새 함수 → 다른 참조 → 제거 안 됨
-  ✅ socket.on('message', handler)
-     socket.off('message', handler)         // 같은 변수 → 정상 제거
-```
-
-## 재연결 시 자동 재입장 ⭐️⭐️⭐️
-
-```typescript
-export function onSocketConnect(handler: () => void): () => void {
-  const s = getRoomSocket();
-  s.on('connect', handler);
-  return () => s.off('connect', handler);
-}
-
-// 사용
-useEffect(() => {
-  const offConnect = onSocketConnect(() => {
-    void socketJoinRoom(roomId);  // 재연결 시 자동 재입장
-  });
-  return offConnect;
-}, [roomId]);
-```
-
-```txt
-재연결 처리가 필요한 이유:
-  네트워크가 잠깐 끊겼다 다시 연결되면 서버는 이 소켓이 어느 룸에 있었는지 모름
-  (소켓 연결이 새로 되어 서버 메모리의 룸 정보가 초기화됨)
-  → 'connect' 이벤트에서 다시 join을 보내야 메시지 수신이 정상 작동
-
-  이 처리를 안 하면:
-  재연결 후 새 메시지가 와도 이 클라이언트에 전달되지 않음
-```
-
-## 이벤트 목록 패턴
-
-```typescript
-// payload 타입을 export — 사용하는 쪽에서 타입 자동완성
-export type RoomUpdatedPayload = {
-  roomId:      string;
-  name:        string;
-  description: string | null;
-  topicTags:   string[];
-  updatedAt:   string;
-};
-
-export function onRoomUpdated(handler: (payload: RoomUpdatedPayload) => void) {
-  const s = getRoomSocket();
-  s.on('room:updated', handler);
-  return () => s.off('room:updated', handler);
-}
-
-export function onRoomMessageDeleted(
-  handler: (payload: { messageId: string }) => void,
-) {
-  const s = getRoomSocket();
-  s.on('message:deleted', handler);
-  return () => s.off('message:deleted', handler);
-}
-
-export function onRoomKicked(handler: (payload: { roomId: string }) => void) {
-  const s = getRoomSocket();
-  s.on('room:kicked', handler);
-  return () => s.off('room:kicked', handler);
-}
-```
-
-```txt
-이벤트 이름 규칙:
-  단순 동사         message, join, leave
-  리소스:동작       room:updated, room:kicked, message:deleted
-  → 이벤트가 많아져도 어떤 리소스에 관한 이벤트인지 명확
-
-room:kicked를 특정 유저에게만 보내는 이유:
-  강퇴는 방 전체가 아닌 강퇴 당한 본인에게만 전달해야 함
-  → 서버에서 user:{userId} 룸으로 개인 전송
-  → [[NestJS_WebSocket]] 참고
-```
-
----
-
-# 컴포넌트에서 전체 조립 ⭐️⭐️⭐️
-
-```typescript
-'use client';
-
-function ChatRoom({ roomId }: { roomId: string }) {
-  const [messages, setMessages] = useState<ApiRoomMessage[]>([]);
-
-  useEffect(() => {
-    let joined = false;
-
-    // ① 룸 입장
-    void socketJoinRoom(roomId).then((res) => {
-      if (res.ok) joined = true;
-    });
-
-    // ② 재연결 시 자동 재입장
-    const offConnect = onSocketConnect(() => {
-      void socketJoinRoom(roomId);
-    });
-
-    // ③ 메시지 수신
-    const offMessage = onRoomMessage((msg) =>
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;  // 중복 방지
-        return [...prev, msg];
-      })
-    );
-
-    // ④ 메시지 삭제
-    const offDeleted = onRoomMessageDeleted(({ messageId }) =>
-      setMessages((prev) => prev.filter((m) => m.id !== messageId))
-    );
-
-    // ⑤ 언마운트 시 정리
-    return () => {
-      offConnect();
-      offMessage();
-      offDeleted();
-      if (joined) void socketLeaveRoom(roomId);  // 입장했을 때만 퇴장
-    };
-  }, [roomId]);
-}
-```
-
-```txt
-joined 플래그가 필요한 이유:
-  socketJoinRoom이 비동기라 마운트 즉시 언마운트될 경우
-  join도 안 됐는데 leave를 보내면 서버에서 오류
-  join 성공 확인 후에만 leave를 보내야 안전
-
-void ... 앞의 void:
-  async 함수가 반환하는 Promise를 "의도적으로 버린다"는 표시
-  여기서는 join 결과를 then으로 처리하고 있으므로 await 대신 void 사용
-  → [[JS_Operators]] void 섹션 참고
+connect 이벤트에 joinRoom을 등록하는 이유:
+  네트워크 끊김 후 socket.io가 자동 재연결함
+  재연결 시 서버는 새 소켓으로 인식 → 방 정보 초기화
+  → connect 이벤트마다 emit('join') 재실행 → 방 유지
 ```
 
 ---
@@ -573,20 +372,16 @@ void ... 앞의 void:
 # 로그아웃 시 완전 해제 ⭐️⭐️
 
 ```typescript
-import { disconnectRoomSocket } from '@/lib/roomSocket';
-
-function handleLogout() {
-  disconnectRoomSocket();   // 소켓 연결 해제 + 인스턴스 초기화
-  // ... 나머지 로그아웃 처리 (토큰 삭제, 라우팅 등)
+function logout() {
+  clearSession();        // Zustand + localStorage 초기화
+  disconnectRoomSocket(); // 소켓 연결 끊기
+  router.push('/login');
 }
 ```
 
 ```txt
-로그아웃 시 소켓 처리가 필요한 이유:
-  소켓이 연결된 채로 로그아웃하면 서버에 인증 없는 연결이 남아있음
-  다음 다른 계정으로 로그인 시 이전 계정의 소켓이 재사용될 수 있음
-
-disconnectRoomSocket이 socket = null 까지 하는 이유:
-  disconnect()만 하면 인스턴스가 남아 다음 getRoomSocket() 호출 시 재사용 시도
-  null로 초기화 → 다음 로그인 시 새 토큰으로 완전히 새 인스턴스 생성
+로그아웃 시 소켓을 끊는 이유:
+  연결이 살아있으면 서버는 계속 이벤트를 보냄
+  다음 로그인 시 이전 이벤트가 남아있을 수 있음
+  → 명시적으로 disconnect()
 ```

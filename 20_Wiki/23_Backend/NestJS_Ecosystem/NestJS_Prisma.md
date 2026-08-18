@@ -5,6 +5,7 @@ aliases:
   - Prisma ORM
   - Model
   - $queryRaw · $executeRaw
+  - PrismaExceptionFilter
 tags:
   - NestJS
 related:
