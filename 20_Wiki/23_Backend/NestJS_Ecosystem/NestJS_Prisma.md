@@ -1394,8 +1394,67 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 ```
 
 ```typescript
+// switch 버전 — 에러 코드가 여러 개일 때 ⭐️⭐️⭐️
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
+import { Response } from 'express';
+import { Prisma } from '../generated/prisma/client';
+
+@Catch(Prisma.PrismaClientKnownRequestError)
+export class PrismaExceptionFilter implements ExceptionFilter {
+  catch(
+    exception: Prisma.PrismaClientKnownRequestError,
+    host: ArgumentsHost,
+  ) {
+    const response = host.switchToHttp().getResponse<Response>();
+
+    let status  = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = '데이터베이스 오류가 발생했습니다.';
+
+    switch (exception.code) {
+      case 'P2002':
+        status  = HttpStatus.CONFLICT;     // 409
+        message = '이미 처리된 요청입니다.';
+        break;
+      case 'P2025':
+        status  = HttpStatus.NOT_FOUND;    // 404
+        message = '요청한 데이터를 찾을 수 없습니다.';
+        break;
+    }
+
+    response.status(status).json({ statusCode: status, message });
+  }
+}
+```
+
+```typescript
 // main.ts에 전역 등록
 app.useGlobalFilters(new PrismaExceptionFilter());
+```
+
+```txt
+if vs switch:
+  에러 코드가 P2002 하나면 → if로 충분
+  P2002·P2025·P2003 등 여러 개면 → switch가 가독성 좋음
+
+HttpStatus:
+  숫자를 직접 쓰는 대신 NestJS 제공 enum 사용
+  HttpStatus.CONFLICT   = 409
+  HttpStatus.NOT_FOUND  = 404
+  HttpStatus.INTERNAL_SERVER_ERROR = 500
+  → 의미가 바로 보임
+
+getResponse<Response>():
+  Express Response 타입을 제네릭으로 명시
+  res.status(n).json(...) 자동완성 가능
+
+@Catch(Prisma.PrismaClientKnownRequestError):
+  PrismaClientKnownRequestError가 throw되면 이 Filter가 가로챔
+  서비스마다 try/catch를 쓰지 않아도 됨
+
+방법 1 vs 방법 2:
+  try/catch (방법 1) → 에러 메시지를 상황마다 다르게 할 때
+  ExceptionFilter (방법 2) → 공통 에러를 한 곳에서 처리
+  → 보통 혼용: Filter로 공통 처리 + 특수한 경우만 try/catch
 ```
 
 ```txt
