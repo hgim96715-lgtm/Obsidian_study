@@ -1,20 +1,14 @@
 ---
-aliases:
-  - NestJS Prisma
-  - Prisma
-  - Prisma ORM
-  - Model
-  - $queryRaw · $executeRaw
-  - PrismaExceptionFilter
-tags:
-  - NestJS
+aliases: [$queryRaw · $executeRaw, Model, NestJS Prisma, Prisma, Prisma ORM, PrismaExceptionFilter]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
+  - "[[HTTP_Concept]]"
   - "[[NestJS_Migration]]"
+  - "[[NestJS_PostgreSQL]]"
   - "[[NestJS_Prisma_Patterns]]"
   - "[[NestJS_Service_Provider]]"
   - "[[PG_DDL]]"
-  - "[[NestJS_PostgreSQL]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
@@ -23,29 +17,6 @@ related:
 >schema.prisma에 모델을 정의하면 `migrate dev` 한 번으로 DB 반영 + Client 자동 생성까지 된다.
 > `Prisma.RoomWhereInput` 같은 namespace 타입으로 조건을 타입 안전하게 조립하고, 중첩 where로 관계 테이블 필드까지 필터링할 수 있다. 
 > 설치·워크플로우·migrate → [[NestJS_Migration]], 패턴 → [[NestJS_Prisma_Patterns]], Prisma가 생성하는 DDL 개념 → [[PG_DDL]]
-
----
-
-# 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
-
-```txt
-"지금 조회하는 모델" vs "relations로 연결된 다른 테이블" 한 가지만 기준으로 생각하면 됨
-
-① 지금 모델의 컬럼만 필요 → select
-   민감 필드를 빼고 싶을 때 (화이트리스트)
-   아무 옵션 없으면 scalar는 전부, 관계는 안 옴
-
-② 연결된 테이블의 실제 행이 필요 → include
-   User + 그 User가 작성한 Post 목록
-   include 안에서 where / orderBy / select도 가능
-
-③ 연결된 것이 몇 개인지만 필요 → _count
-   "댓글 12개"처럼 숫자만 — 행을 통째로 안 가져와서 가벼움
-   include 안에 넣거나 select 안에 넣어도 됨
-
-⚠️ 최상위에서 select + include 동시 ❌
-   select + _count ✅
-```
 
 ---
 
@@ -106,6 +77,7 @@ PrismaService는 거의 모든 기능 모듈이 필요로 하는 성격이라 @G
 ```
 
 ---
+
 # schema.prisma 기본 구조 (Prisma 7) ⭐️⭐️⭐️⭐️
 
 ```prisma
@@ -137,7 +109,6 @@ Prisma 7 변경사항 — datasource url:
   이후(Prisma 7):   url을 schema.prisma에서 제거
                     prisma.config.ts에서 dotenv로 읽어서 관리
 ```
----
 
 # Model — 테이블 정의
 
@@ -153,20 +124,20 @@ model User {
 }
 ```
 
-| 어노테이션                       | 의미                                                           |
-| --------------------------- | ------------------------------------------------------------ |
-| `@id`                       | Primary Key                                                  |
-| `@default(autoincrement())` | 숫자 ID 자동 증가                                                  |
-| `@default(uuid())`          | UUID 자동 생성                                                   |
-| `@unique`                   | UNIQUE 제약                                                    |
-| `?`                         | nullable (없으면 `NOT NULL`)                                    |
-| `@updatedAt`                | 수정 시 자동 갱신                                                   |
-| `@map("컬럼명")`               | 코드 필드명 ↔ DB 컬럼명 매핑                                           |
-| `@@map("테이블명")`             | 코드 모델명 ↔ DB 테이블명 매핑                                          |
-| `@db.VarChar(n)`            | `VARCHAR(n)` 명시 — 최대 n글자 문자열. 안 붙이면 PostgreSQL `TEXT` (무제한)  |
-| `@db.Uuid`                  | PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)                |
-| `@db.Timestamptz(n)`        | PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`) |
-| `@db.Date`                  | 날짜만 저장 — 시각 없음 (생년월일·예약일 등 "며칠"이 중요한 것)                      |
+|어노테이션|의미|
+|---|---|
+|`@id`|Primary Key|
+|`@default(autoincrement())`|숫자 ID 자동 증가|
+|`@default(uuid())`|UUID 자동 생성|
+|`@unique`|UNIQUE 제약|
+|`?`|nullable (없으면 `NOT NULL`)|
+|`@updatedAt`|수정 시 자동 갱신|
+|`@map("컬럼명")`|코드 필드명 ↔ DB 컬럼명 매핑|
+|`@@map("테이블명")`|코드 모델명 ↔ DB 테이블명 매핑|
+|`@db.VarChar(n)`|`VARCHAR(n)` 명시 — 최대 n글자 문자열. 안 붙이면 PostgreSQL `TEXT` (무제한)|
+|`@db.Uuid`|PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)|
+|`@db.Timestamptz(n)`|PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`)|
+|`@db.Date`|날짜만 저장 — 시각 없음 (생년월일·예약일 등 "며칠"이 중요한 것)|
 
 ## @map · @@map — 이름 매핑 ⭐️⭐️⭐️⭐️
 
@@ -223,6 +194,29 @@ model Post {
 // 코드:    post.authorId, post.createdAt (camelCase 그대로 사용)
 ```
 
+# Scalar Types
+
+> PostgreSQL 타입 상세(timestamp · JSONB · UUID · ARRAY · ENUM 원리) → [[PG_Types]]
+
+|Prisma|PostgreSQL|설명|
+|---|---|---|
+|`String`|TEXT|문자열|
+|`Int` / `BigInt`|INTEGER / BIGINT|정수|
+|`Float` / `Decimal`|REAL / NUMERIC|부동소수 / 정밀 소수 (금액)|
+|`Boolean`|BOOLEAN|true/false|
+|`DateTime`|`TIMESTAMP` / `TIMESTAMPTZ`|날짜+시간 — `@db.Timestamptz(3)` 명시 권장|
+|`Json`|JSONB|JSON|
+
+```prisma
+enum Role { USER  ADMIN  MODERATOR }
+```
+
+```txt
+⚠️ Enum도 Prisma Client 생성 경로에서 import
+   다른 곳(예: 예전 TypeORM entity 파일)에서 가져오면 타입 불일치
+```
+
+---
 
 ## @db.Uuid — UUID 컬럼을 네이티브 타입으로 ⭐️⭐️
 
@@ -359,7 +353,6 @@ model User {
 }
 ```
 
-
 ```txt
 @db.Date 없이 DateTime만 쓰면:
   PostgreSQL에 timestamp로 저장 → 시각(00:00:00)이 함께 저장됨
@@ -413,35 +406,6 @@ await prisma.postLike.findUnique({
 자동 생성 이름(필드명_필드명)이 길거나 읽기 어려울 때 사용
 ```
 
-## 중복 요청 방어 — P2002 에러 처리 ⭐️⭐️⭐️⭐️
-
-```typescript
-async createLike(userId: number, postId: number) {
-  try {
-    return await this.prisma.postLike.create({ data: { userId, postId } });
-  } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === 'P2002'
-    ) {
-      throw new ConflictException('이미 좋아요를 눌렀습니다.');
-    }
-    throw e;
-  }
-}
-```
-
-```txt
-P2002가 발생하는 시점:
-  DB가 INSERT/UPDATE를 실행하는 순간 unique 제약 위반 감지
-  → "이미 있는지 먼저 조회"하는 방어 코드 없이도 DB가 보장
-  → "조회 → 없으면 INSERT" 패턴보다 안전
-    (조회와 INSERT 사이에 다른 요청이 끼어들 수 있는 race condition 방지)
-
-e.meta.target → P2002면 ['userId', 'postId'] 처럼 어떤 컬럼이 충돌인지 알려줌
-더 복잡한 중복 방어 전략(멱등키, 낙관적/비관적 잠금) → [[NestJS_Idempotency]]
-```
-
 ## @@id — 복합 PK
 
 ```prisma
@@ -481,30 +445,6 @@ WHERE/ORDER BY에 자주 쓰는 컬럼에 추가 — 조회는 빨라지지만 �
 ```txt
 중복이 "버그"면 @@unique, 중복이 "정상"인데 빠르게 찾고 싶으면 @@index
 ⚠️ @@unique는 자동으로 인덱스 역할도 겸함 — 같은 컬럼 조합에 @@index를 따로 또 만들 필요 없음
-```
-
----
-
-# Scalar Types
-
-> PostgreSQL 타입 상세(timestamp · JSONB · UUID · ARRAY · ENUM 원리) → [[PG_Types]]
-
-|Prisma|PostgreSQL|설명|
-|---|---|---|
-|`String`|TEXT|문자열|
-|`Int` / `BigInt`|INTEGER / BIGINT|정수|
-|`Float` / `Decimal`|REAL / NUMERIC|부동소수 / 정밀 소수 (금액)|
-|`Boolean`|BOOLEAN|true/false|
-|`DateTime`|`TIMESTAMP` / `TIMESTAMPTZ`|날짜+시간 — `@db.Timestamptz(3)` 명시 권장|
-|`Json`|JSONB|JSON|
-
-```prisma
-enum Role { USER  ADMIN  MODERATOR }
-```
-
-```txt
-⚠️ Enum도 Prisma Client 생성 경로에서 import
-   다른 곳(예: 예전 TypeORM entity 파일)에서 가져오면 타입 불일치
 ```
 
 ---
@@ -704,6 +644,29 @@ OrThrow가 던지는 에러:
 
 ---
 
+## 읽기 shape — 언제 뭘 쓰나 ⭐️⭐️⭐️
+
+```txt
+"지금 조회하는 모델" vs "relations로 연결된 다른 테이블" 한 가지만 기준으로 생각하면 됨
+
+① 지금 모델의 컬럼만 필요 → select
+   민감 필드를 빼고 싶을 때 (화이트리스트)
+   아무 옵션 없으면 scalar는 전부, 관계는 안 옴
+
+② 연결된 테이블의 실제 행이 필요 → include
+   User + 그 User가 작성한 Post 목록
+   include 안에서 where / orderBy / select도 가능
+
+③ 연결된 것이 몇 개인지만 필요 → _count
+   "댓글 12개"처럼 숫자만 — 행을 통째로 안 가져와서 가벼움
+   include 안에 넣거나 select 안에 넣어도 됨
+
+⚠️ 최상위에서 select + include 동시 ❌
+   select + _count ✅
+```
+
+---
+
 # CRUD 기본
 
 ```typescript
@@ -747,24 +710,63 @@ where: {
 }
 ```
 
-|연산자|SQL|
-|---|---|
-|`gt`/`gte`/`lt`/`lte`|`>` `>=` `<` `<=`|
-|`contains`/`startsWith`/`endsWith`|`LIKE`|
-|`in`/`notIn`|`IN (...)`|
+|연산자|SQL|설명|
+|---|---|---|
+|`gt`/`gte`/`lt`/`lte`|`>` `>=` `<` `<=`|숫자·날짜 비교|
+|`equals`|`= 값`|정확히 일치 — 기본 동작과 같지만 `mode`와 조합할 때 필요|
+|`not`|`!= 값` / `NOT IN`|제외|
+|`contains`/`startsWith`/`endsWith`|`LIKE`|문자열 포함·시작·끝|
+|`in`/`notIn`|`IN (...)`|배열 중 하나|
+
+## equals + mode: 'insensitive' — 대소문자 무시 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// mode: 대소문자 무시 (PostgreSQL 한정)
-{ title: { contains: 'art', mode: 'insensitive' } }
+// 대소문자 구분 없이 정확히 일치하는지 확인
+await this.prisma.table.findFirst({
+  where: {
+    label: {
+      equals: '로비',        // 정확히 '로비' — 대소문자 무시
+      mode: 'insensitive',   // 'LOBBY' = 'lobby' = '로비' 구분 없음
+    },
+  },
+});
 
-// AND (기본) / OR / NOT
-where: { isVisible: true, genre: 'drama' }      // AND
-where: { OR: [{ name: { contains: '김' } }, { email: { contains: 'gmail' } }] }
-where: { name, dob, NOT: { id } }               // findFirst에서만 가능
+// 영문 중복 체크 — 대소문자 무시
+const duplicate = await this.prisma.session.findFirst({
+  where: {
+    tableId: { not: tableId },           // 자기 자신 제외
+    label: {
+      equals: nextLabel,                 // 정확히 일치
+      mode:   'insensitive',             // 'Cafe' = 'cafe' = 'CAFE'
+    },
+  },
+});
+if (duplicate) throw new BadRequestException('이미 사용 중인 이름이에요.');
+```
+
+```typescript
+// contains + mode: 'insensitive' — 대소문자 무시 검색
+where: {
+  title: { contains: '검색어', mode: 'insensitive' }
+  // 'Hello World' contains '검색어' → 대소문자 구분 없이
+}
 ```
 
 ```txt
-관계 기반 필터 (some / every / none / is / isNot) → [[NestJS_Prisma_Patterns]]
+equals:
+  기본 { field: '값' } 과 결과는 같음
+  mode와 함께 쓸 때 명시적으로 equals를 써야 함
+  { label: '로비' }               → 기본 = equals (mode 지정 불가)
+  { label: { equals: '로비' } }  → mode 추가 가능
+
+mode: 'insensitive':
+  PostgreSQL 전용 — 대소문자 구분 없이 비교
+  'PostgreSQL', 'postgresql', 'POSTGRESQL' 모두 매칭
+  MySQL은 기본으로 대소문자 무시라 필요 없음
+
+not: tableId:
+  자기 자신을 제외하고 중복 체크
+  UPDATE 시 "이름을 변경하는데 다른 레코드와 중복이면 에러"
 ```
 
 ---
@@ -1013,68 +1015,6 @@ const rows = await this.prisma.post.groupBy({
 
 ---
 
-# Prisma namespace 타입
-
-```txt
-prisma generate를 실행하면, schema.prisma에 정의한 모델마다 자동으로 타입 생성:
-  {모델명}WhereInput         where 조건에 쓸 수 있는 타입
-  {모델명}WhereUniqueInput   unique 조건 (findUnique의 where)
-  {모델명}CreateInput        create data 타입
-  {모델명}UpdateInput        update data 타입 (전 필드 optional)
-  {모델명}OrderByWithRelationInput  orderBy 타입
-  {모델명}Select             select 옵션 타입
-  {모델명}Include            include 옵션 타입
-```
-
-```typescript
-import { Prisma } from '../generated/prisma/client';
-
-Prisma.RoomWhereInput        // where: { ... } 에 들어가는 타입
-Prisma.RoomCreateInput       // create: { data: ... } 타입
-Prisma.RoomUpdateInput       // update: { data: ... } 타입 (전 필드 optional)
-Prisma.RoomWhereUniqueInput  // findUnique의 where (unique 컬럼만)
-```
-
-## WhereInput — 조건부 where 조립 ⭐️⭐️⭐️⭐️
-
-```txt
-서비스에서 where 조건을 단계별로 조립할 때 타입 안전하게 쓰는 방법
-```
-
-```typescript
-// 조건에 따라 where를 쌓아가는 패턴
-async findRooms(q?: string, status?: RoomStatus) {
-  const where: Prisma.RoomWhereInput = {};  // 처음엔 비어있음
-
-  if (status) {
-    where.status = status;           // 조건 추가
-  }
-  if (q) {
-    where.OR = [                     // OR 조건 추가
-      { name:  { contains: q, mode: 'insensitive' } },
-      { owner: { nickname: { contains: q, mode: 'insensitive' } } },
-    ];
-  }
-
-  return this.prisma.room.findMany({ where });
-}
-```
-
-```txt
-Prisma.RoomWhereInput vs let where: object = {}:
-  object  = 어떤 객체든 가능, 타입 체크 없음
-            where.typo = 'abc' 처럼 잘못된 필드를 써도 에러 안 남
-
-  Prisma.RoomWhereInput = Room의 where 조건에 맞는 필드만 허용
-            where.typo = 'abc' → TS 에러 즉시 잡힘
-            where.OR, where.name, where.status 만 쓸 수 있음
-
-  → 실제 코드에서는 Prisma.RoomWhereInput 을 쓰는 것이 더 안전
-    조건부 where 조립 패턴 → [[NestJS_Prisma_Patterns]]
-```
-
----
-
 # 중첩 where — 관계 테이블 필드로 필터링 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -1165,6 +1105,68 @@ relation이 정의된 필드만 중첩해서 조건을 걸 수 있음
     },
     members: { some: { userId } } // 관계 필터
   }
+```
+
+---
+
+# Prisma namespace 타입
+
+```txt
+prisma generate를 실행하면, schema.prisma에 정의한 모델마다 자동으로 타입 생성:
+  {모델명}WhereInput         where 조건에 쓸 수 있는 타입
+  {모델명}WhereUniqueInput   unique 조건 (findUnique의 where)
+  {모델명}CreateInput        create data 타입
+  {모델명}UpdateInput        update data 타입 (전 필드 optional)
+  {모델명}OrderByWithRelationInput  orderBy 타입
+  {모델명}Select             select 옵션 타입
+  {모델명}Include            include 옵션 타입
+```
+
+```typescript
+import { Prisma } from '../generated/prisma/client';
+
+Prisma.RoomWhereInput        // where: { ... } 에 들어가는 타입
+Prisma.RoomCreateInput       // create: { data: ... } 타입
+Prisma.RoomUpdateInput       // update: { data: ... } 타입 (전 필드 optional)
+Prisma.RoomWhereUniqueInput  // findUnique의 where (unique 컬럼만)
+```
+
+## WhereInput — 조건부 where 조립 ⭐️⭐️⭐️⭐️
+
+```txt
+서비스에서 where 조건을 단계별로 조립할 때 타입 안전하게 쓰는 방법
+```
+
+```typescript
+// 조건에 따라 where를 쌓아가는 패턴
+async findRooms(q?: string, status?: RoomStatus) {
+  const where: Prisma.RoomWhereInput = {};  // 처음엔 비어있음
+
+  if (status) {
+    where.status = status;           // 조건 추가
+  }
+  if (q) {
+    where.OR = [                     // OR 조건 추가
+      { name:  { contains: q, mode: 'insensitive' } },
+      { owner: { nickname: { contains: q, mode: 'insensitive' } } },
+    ];
+  }
+
+  return this.prisma.room.findMany({ where });
+}
+```
+
+```txt
+Prisma.RoomWhereInput vs let where: object = {}:
+  object  = 어떤 객체든 가능, 타입 체크 없음
+            where.typo = 'abc' 처럼 잘못된 필드를 써도 에러 안 남
+
+  Prisma.RoomWhereInput = Room의 where 조건에 맞는 필드만 허용
+            where.typo = 'abc' → TS 에러 즉시 잡힘
+            where.OR, where.name, where.status 만 쓸 수 있음
+
+  → 실제 코드에서는 Prisma.RoomWhereInput 을 쓰는 것이 더 안전
+    조건부 where 조립 패턴 → [[NestJS_Prisma_Patterns]]
 ```
 
 ---
@@ -1269,6 +1271,7 @@ Json 필드를 명시적으로 비워달라고 할 때는 이 전용 상수를 �
 ```
 
 ---
+
 # $queryRaw · $executeRaw — Raw SQL ⭐️⭐️⭐️
 
 ```typescript
@@ -1327,6 +1330,7 @@ SELECT 1:
 ```
 
 ---
+
 # 에러 처리 ⭐️⭐️⭐️⭐️
 
 ## 방법 1 — try/catch로 개별 처리
@@ -1354,12 +1358,8 @@ try {
 ## 방법 2 — PrismaExceptionFilter (전역 처리) ⭐️⭐️⭐️⭐️
 
 ```typescript
-// src/common/filters/prisma-exception.filter.ts
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-} from '@nestjs/common';
+// src/common/filters/prisma-exception.filter.ts — if 버전 (단순)
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 
 @Catch(Prisma.PrismaClientKnownRequestError)
@@ -1371,24 +1371,11 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     const res = host.switchToHttp().getResponse();
 
     if (exception.code === 'P2002') {
-      return res.status(409).json({
-        statusCode: 409,
-        message: '이미 사용 중입니다.',
-      });
-    }
-    
-     if (exception.code === 'P2025') {
-      return res.status(404).json({
-        statusCode: 404,
-        message: '리소스를 찾을 수 없습니다',
-      });
+      return res.status(409).json({ statusCode: 409, message: '이미 사용 중입니다.' });
     }
 
     // 처리 안 된 Prisma 에러는 500
-    return res.status(500).json({
-      statusCode: 500,
-      message: 'Database error',
-    });
+    return res.status(500).json({ statusCode: 500, message: 'Database error' });
   }
 }
 ```
@@ -1457,25 +1444,99 @@ getResponse<Response>():
   → 보통 혼용: Filter로 공통 처리 + 특수한 경우만 try/catch
 ```
 
+## 중복 요청 방어 — P2002 에러 처리 ⭐️⭐️⭐️⭐️
+
+```typescript
+async createLike(userId: number, postId: number) {
+  try {
+    return await this.prisma.postLike.create({ data: { userId, postId } });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === 'P2002'
+    ) {
+      throw new ConflictException('이미 좋아요를 눌렀습니다.');
+    }
+    throw e;
+  }
+}
+```
+
 ```txt
-@Catch(Prisma.PrismaClientKnownRequestError):
-  PrismaClientKnownRequestError가 throw되면 이 Filter가 가로챔
-  try/catch를 서비스마다 작성하지 않아도 됨
+P2002가 발생하는 시점:
+  DB가 INSERT/UPDATE를 실행하는 순간 unique 제약 위반 감지
+  → "이미 있는지 먼저 조회"하는 방어 코드 없이도 DB가 보장
+  → "조회 → 없으면 INSERT" 패턴보다 안전
+    (조회와 INSERT 사이에 다른 요청이 끼어들 수 있는 race condition 방지)
 
-ExceptionFilter:
-  NestJS가 제공하는 예외 처리 인터페이스
-  catch(exception, host) 하나만 구현
+e.meta.target → P2002면 ['userId', 'postId'] 처럼 어떤 컬럼이 충돌인지 알려줌
+```
 
-ArgumentsHost:
-  현재 실행 컨텍스트에 대한 정보
-  host.switchToHttp().getResponse() → Express Response 객체 직접 접근
-  → res.status(409).json(...)으로 응답 직접 제어
+## P2002를 에러로 보지 않는 패턴 — 멱등 처리 ⭐️⭐️⭐️⭐️
 
-방법 1 vs 방법 2:
-  try/catch (방법 1) → 에러 메시지를 상황마다 다르게 할 때
-  ExceptionFilter (방법 2) → P2002 같은 공통 에러를 한 곳에서 처리
-  → 보통 두 가지를 혼용
-  ExceptionFilter로 공통 처리 + 특수한 경우만 try/catch
+```txt
+멱등(idempotent) = 같은 요청을 여러 번 보내도 결과가 같음
+
+문제 상황:
+  ① 클라이언트가 sit 버튼 클릭 → POST /sit
+  ② 채팅 페이지 진입하면서 sit 한 번 더 호출
+  ③ React Strict Mode에서 useEffect가 두 번 실행
+  → 거의 동시에 INSERT → P2002 충돌
+
+  → P2002를 에러로 던지면 채팅 페이지 로드가 실패
+  → 하지만 실제로는 좌석이 이미 있으니 "성공"이나 마찬가지
+
+해결 — P2002면 이미 있는 것이므로 성공으로 처리:
+```
+
+```typescript
+// ensureSeat — "있으면 성공, 없으면 생성" (멱등)
+async ensureSeat(userId: string, tableId: string) {
+  try {
+    return await this.prisma.tableSeat.create({
+      data: { userId, tableId },
+    });
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === 'P2002'
+    ) {
+      // 이미 앉아 있음 → 에러 아님, 기존 좌석 반환
+      return this.prisma.tableSeat.findFirst({
+        where: { userId, tableId },
+      });
+    }
+    throw e;
+  }
+}
+```
+
+```typescript
+// 또는 upsert로 같은 효과 (더 간결)
+async ensureSeat(userId: string, tableId: string) {
+  return this.prisma.tableSeat.upsert({
+    where:  { userId_tableId: { userId, tableId } },
+    update: {},              // 이미 있으면 아무것도 안 바꿈
+    create: { userId, tableId },
+  });
+}
+```
+
+```txt
+P2002 → 에러 vs P2002 → 성공 판단 기준:
+
+  에러로 던져야 할 때:
+    "이미 좋아요를 눌렀습니다" — 의도적인 중복 방지
+    사용자가 몰랐다면 알려줘야 함
+
+  성공으로 처리해야 할 때:
+    "좌석에 앉기" — 이미 앉아 있으면 그냥 성공
+    "생성 또는 확인" — 결과가 같으면 경로가 다를 필요 없음
+    클라이언트 재시도·useEffect 두 번 실행 등 중복 요청이 자연스러운 상황
+
+upsert vs try/catch P2002:
+  upsert → Prisma가 알아서 처리 (코드 간결)
+  try/catch → P2002일 때 다른 처리가 필요한 경우 (로그 등)
 ```
 
 ## Prisma 에러 코드
@@ -1485,7 +1546,6 @@ ArgumentsHost:
 |`P2002`|Unique 제약 위반 (중복)|`409 Conflict`|
 |`P2003`|FK 제약 위반|`400 Bad Request`|
 |`P2025`|대상 레코드 없음|`404 Not Found`|
-
 
 ```typescript
 // exception.code와 meta 활용
@@ -1498,8 +1558,18 @@ if (exception.code === 'P2002') {
   });
 }
 ```
+
 ---
 
+# 자주 만나는 에러
+
+|증상|원인|해결|
+|---|---|---|
+|복합 unique 에러|`findUnique({ where: { name, dob } })` 처럼 따로 넘김|`where: { name_dob: { name, dob } }` 로 묶어서|
+|TypeORM 문법 사용|`find({ relations: {...} })`|`findMany({ include: {...} })`|
+|타입 자동완성 안 바뀜|`migrate dev`/`generate` 누락 또는 서버 재시작 안 함|[[NestJS_Migration]] 체크리스트 참고|
+|`Ambiguous relation detected`|같은 모델을 두 번 참조하는데 관계 이름 없음|충돌하는 두 필드에 `@relation("이름")`, 양쪽 동일하게|
+|`exports is not defined in ES module scope`|`moduleFormat = "cjs"` 누락|schema.prisma generator 블록에 추가|
 # TypeORM ↔ Prisma 메서드 대조
 
 |TypeORM|Prisma|용도|
@@ -1512,14 +1582,3 @@ if (exception.code === 'P2002') {
 |`delete({ id })`|`delete({ where })`|삭제|
 |`find({ relations: {...} })`|`findMany({ include: {...} })`|관계 조회|
 
----
-
-# 자주 만나는 에러
-
-| 증상                                          | 원인                                              | 해결                                         |
-| ------------------------------------------- | ----------------------------------------------- | ------------------------------------------ |
-| 복합 unique 에러                                | `findUnique({ where: { name, dob } })` 처럼 따로 넘김 | `where: { name_dob: { name, dob } }` 로 묶어서 |
-| TypeORM 문법 사용                               | `find({ relations: {...} })`                    | `findMany({ include: {...} })`             |
-| 타입 자동완성 안 바뀜                                | `migrate dev`/`generate` 누락 또는 서버 재시작 안 함       | [[NestJS_Migration]] 체크리스트 참고              |
-| `Ambiguous relation detected`               | 같은 모델을 두 번 참조하는데 관계 이름 없음                       | 충돌하는 두 필드에 `@relation("이름")`, 양쪽 동일하게      |
-| `exports is not defined in ES module scope` | `moduleFormat = "cjs"` 누락                       | schema.prisma generator 블록에 추가             |

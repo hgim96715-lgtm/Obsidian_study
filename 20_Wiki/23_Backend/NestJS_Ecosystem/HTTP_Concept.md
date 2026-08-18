@@ -17,6 +17,7 @@ related:
   - "[[NestJS_JwtGuard]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_Service_Provider]]"
+  - "[[NestJS_Prisma]]"
 ---
 # HTTP_Concept — HTTP 요청 · 응답 · 헤더
 
@@ -120,6 +121,11 @@ REST API는 HTTP 메서드 + 경로로 "무엇을 어떻게 할지"를 표현하
   GET·DELETE는 재시도해도 안전
   POST는 재시도하면 중복 데이터 생성 위험
   → 결제·주문처럼 중요한 POST는 Idempotency-Key 헤더로 중복 방지
+
+  POST를 멱등하게 만드는 방법 (서버에서):
+  P2002(중복 키) 에러를 에러로 던지지 않고 성공으로 처리
+  upsert 사용 — "없으면 생성, 있으면 무시"
+  → [[NestJS_Prisma]] P2002 멱등 처리 패턴 섹션
 ```
 
 ```txt
