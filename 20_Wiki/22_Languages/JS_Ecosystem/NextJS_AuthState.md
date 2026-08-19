@@ -271,3 +271,131 @@ Context vs Zustand:
   인증 상태처럼 단순하면 Context로 충분
   앱 전역 상태가 많아지면 Zustand 권장
 ```
+
+---
+# children 감싸는 래퍼 3종 비교 ⭐️⭐️⭐️⭐️
+
+```txt
+Provider, Gate, Bootstrap — 겉모양이 같지만 역할이 다름
+
+  공통점: <Wrapper>{children}</Wrapper> 형태
+  차이점: 내부에서 뭘 하는가
+
+  Provider  → createContext로 값을 아래로 내려줌
+              children은 항상 렌더됨
+              context 값을 소비하는 하위 컴포넌트를 위한 것
+
+  Gate      → 조건 확인 후 children 렌더 여부 결정
+              조건 실패 시 redirect 또는 null
+              children 자체가 렌더될 자격을 따짐
+
+  Bootstrap → 초기화만 수행하고 children을 그대로 반환
+              화면에 아무것도 더하지 않음
+              ex) 앱 시작 시 localStorage → Zustand 복원
+```
+
+## Gate 패턴 — 조건부 children 렌더 ⭐️⭐️⭐️⭐️
+
+```typescript
+// AdminGate — admin이 아니면 redirect, 맞으면 children 렌더
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter }           from 'next/navigation';
+import { useAuthStore }        from '@/lib/auth-store';
+
+export function AdminGate({ children }: { children: React.ReactNode }) {
+  const router      = useRouter();
+  const accessToken = useAuthStore(s => s.accessToken);
+  const user        = useAuthStore(s => s.user);
+  const [ready, setReady] = useState(false);
+
+  // SSR 후 클라이언트 마운트 확인 (hydrate 완료 후 체크)
+  useEffect(() => { setReady(true); }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!accessToken) {
+      router.replace('/login?next=/admin');  // 미로그인 → 로그인 페이지
+      return;
+    }
+    if (!user) return;                       // user 로딩 중 → 대기
+    if (user.role !== 'admin') router.replace('/');  // 일반 유저 → 홈
+  }, [ready, accessToken, user, router]);
+
+  // 확인 중 → 로딩 표시
+  if (!ready || !accessToken || !user) return <p>확인 중…</p>;
+
+  // admin 아니면 아무것도 안 그림 (redirect 중)
+  if (user.role !== 'admin') return null;
+
+  return children;  // admin만 도달
+}
+```
+
+```typescript
+// 사용 — layout.tsx에서 전체 감싸기
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminGate>
+      <div className="admin-shell">
+        <aside>...</aside>
+        {children}
+      </div>
+    </AdminGate>
+  );
+}
+```
+
+```txt
+Gate 내부 흐름:
+  ready = false (SSR/마운트 전) → "확인 중…"
+  accessToken 없음              → /login으로 redirect
+  user 없음                     → "확인 중…" (auth/me 응답 대기)
+  user.role !== 'admin'         → / 로 redirect → null 반환
+  user.role === 'admin'         → children 렌더 ✅
+
+ready 가드가 필요한 이유:
+  Zustand는 SSR 시 초기값(null)으로 시작
+  마운트 전에 체크하면 항상 "미로그인"으로 판단 → 잘못된 redirect
+  useEffect(() => setReady(true)) → 클라이언트 마운트 후에만 체크
+  → [[React_Zustand]] hydrate 패턴 참고
+
+AuthBootstrap과의 차이:
+  AuthBootstrap → localStorage 복원 + /auth/me 호출 (초기화)
+  AdminGate     → 그 결과를 보고 접근 허용/거부 (게이트)
+  둘을 함께 쓰면: Bootstrap이 user를 채우면 Gate가 판단
+```
+
+## 범용 Gate 패턴
+
+```typescript
+// 조건만 바꾸면 어디서든 재사용
+function AuthGate({ children }: { children: React.ReactNode }) {
+  // 로그인한 유저만
+  if (!user) { router.replace('/login'); return null; }
+  return children;
+}
+
+function AdminGate({ children }: { children: React.ReactNode }) {
+  // 어드민만
+  if (user?.role !== 'admin') { router.replace('/'); return null; }
+  return children;
+}
+
+function GuestGate({ children }: { children: React.ReactNode }) {
+  // 비로그인 유저만 (로그인 페이지에 이미 로그인한 유저가 접근하면 홈으로)
+  if (user) { router.replace('/'); return null; }
+  return children;
+}
+```
+
+```txt
+Gate 이름 패턴:
+  [대상]Gate — 그 대상만 통과
+  AdminGate, AuthGate, GuestGate, PremiumGate ...
+
+Context Provider가 아닌 이유:
+  Provider는 createContext + value를 내려줌
+  Gate는 값을 내려주지 않고 렌더 여부만 결정
+  형태가 비슷해도 역할이 전혀 다름
+```

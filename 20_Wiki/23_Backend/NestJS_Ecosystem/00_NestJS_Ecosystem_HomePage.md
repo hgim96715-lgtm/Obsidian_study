@@ -80,15 +80,15 @@ NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentia
 
 ## 🗄️ 데이터베이스
 
-| | 노트 |
-|---|---|
-| **연결** | [[NestJS_PostgreSQL]] |
-| **Prisma** | [[NestJS_Prisma]] |
-| **마이그레이션** | [[NestJS_Migration]] |
-| **트랜잭션** | [[NestJS_Transaction]] |
+|                | 노트                                                |
+| -------------- | ------------------------------------------------- |
+| **연결**         | [[NestJS_PostgreSQL]]                             |
+| **Prisma**     | [[NestJS_Prisma]]                                 |
+| **마이그레이션**     | [[NestJS_Migration]]                              |
+| **트랜잭션**       | [[NestJS_Transaction]]                            |
 | **PostgreSQL** | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
-| **통계** | [[NestJS_StatsBucket]] |
-| **DB 전체** | [[00_DB_HomePage]] |
+| **통계**         | [[NestJS_StatsBucket]]                            |
+| **DB 전체**      | [[00_DB_HomePage]]                                |
 
 ```txt
 NestJS_PostgreSQL  DB 연결 방법 선택 · DATABASE_URL vs POSTGRES_* 관계

@@ -427,8 +427,6 @@ async function checkEmail(email: string) {
 }
 ```
 
-txt
-
 ```txt
 ! 를 쓰는 이유:
   "null이면 true, 아니면 false" 를 한 글자로 표현
@@ -442,8 +440,6 @@ txt
   null  → falsy → !null   = true  → "사용 가능"
   객체  → truthy → !{...} = false → "이미 사용 중"
 ```
-
-txt
 
 ```txt
 ⚠️ || 를 기본값으로 쓸 때 주의:
@@ -703,7 +699,7 @@ setDmsUnread(hasUnreadDm || hasPendingRequest);
 
 ---
 
-# 계산된 속성명 — [key]: value ⭐️⭐️⭐️⭐️
+# 계산된 속성명 — `[key]: value` ⭐️⭐️⭐️⭐️
 
 ```typescript
 const key = 'name';
@@ -722,6 +718,39 @@ const setDisplay = (key: keyof DisplayType, on: boolean) => {
 ```txt
 대괄호 안의 표현식을 평가해서 그 결과를 속성 이름으로 사용
 keyof 타입과 조합하면 타입 안전한 동적 키 접근 가능
+```
+
+```typescript
+// Prisma — 어떤 컬럼을 증가시킬지 동적으로 결정
+type CountField = 'visits' | 'logins' | 'ticketsIssued';
+
+async function countIncrement(field: CountField, date: string) {
+  await prisma.stat.upsert({
+    where:  { date },
+    create: { date, [field]: 1 },
+    //                ↑ field = 'visits' → { date, visits: 1 }
+    update: { [field]: { increment: 1 } },
+    //                ↑ field = 'visits' → { visits: { increment: 1 } }
+  });
+}
+
+countIncrement('visits', '2026-08-18');
+// create: { date: '2026-08-18', visits: 1 }
+// update: { visits: { increment: 1 } }
+```
+
+```txt
+[field]: value 패턴:
+  대괄호 안의 변수를 평가해서 그 값을 키 이름으로 사용
+  "어떤 필드를 건드릴지" 런타임에 결정할 때 유용
+
+  하드코딩 대비:
+    { visits: { increment: 1 } }    ← visits만 처리
+    { [field]: { increment: 1 } }   ← field 변수에 따라 어떤 컬럼이든
+
+TypeScript에서 안전하게 쓰려면:
+  field의 타입을 keyof ModelType 으로 제한
+  → 존재하지 않는 컬럼명 방지
 ```
 
 ---

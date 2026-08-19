@@ -44,9 +44,11 @@ Intl.NumberFormat     숫자·통화 포맷
 로케일 = "어느 나라, 어느 언어"를 나타내는 문자열
   'ko-KR'  한국어 / 한국
   'en-US'  영어 / 미국
+  'en-GB'  영어 / 영국  ← hourCycle: 'h23' 조합에서 순수 숫자만 반환
+  'en-CA'  영어 / 캐나다 ← 날짜가 YYYY-MM-DD 형태 → ISO 8601 파싱에 활용
   'ja-JP'  일본어 / 일본
   'de-DE'  독일어 / 독일
-  'sv-SE'  스웨덴어 / 스웨덴  ← 날짜가 YYYY-MM-DD HH:mm:ss 형태라 로그·타임스탬프에 활용
+  'sv-SE'  스웨덴어 / 스웨덴 ← 날짜가 YYYY-MM-DD HH:mm:ss 형태 → 로그·타임스탬프에 활용
 
 Intl의 모든 클래스는 첫 번째 인자로 로케일을 받음
 로케일을 생략하면 브라우저/시스템의 기본 설정을 따름
@@ -83,15 +85,56 @@ new Intl.DateTimeFormat('ko-KR', {
 
 ## 주요 옵션
 
-|옵션|값|출력 예|
-|---|---|---|
-|`year`|`'numeric'` / `'2-digit'`|`2024` / `24`|
-|`month`|`'long'` / `'short'` / `'numeric'` / `'2-digit'`|`1월` / `1월` / `1` / `01`|
-|`day`|`'numeric'` / `'2-digit'`|`15` / `15`|
-|`hour`|`'numeric'` / `'2-digit'`|`9` / `09`|
-|`minute`|`'numeric'` / `'2-digit'`|`30` / `30`|
-|`weekday`|`'long'` / `'short'`|`월요일` / `월`|
-|`timeZone`|`'Asia/Seoul'` 등|서울 기준으로 변환|
+| 옵션          | 값                                                | 출력 예                     |
+| ----------- | ------------------------------------------------ | ------------------------ |
+| `year`      | `'numeric'` / `'2-digit'`                        | `2024` / `24`            |
+| `month`     | `'long'` / `'short'` / `'numeric'` / `'2-digit'` | `1월` / `1월` / `1` / `01` |
+| `day`       | `'numeric'` / `'2-digit'`                        | `15` / `15`              |
+| `hour`      | `'numeric'` / `'2-digit'`                        | `9` / `09`               |
+| `minute`    | `'numeric'` / `'2-digit'`                        | `30` / `30`              |
+| `weekday`   | `'long'` / `'short'`                             | `월요일` / `월`              |
+| `timeZone`  | `'Asia/Seoul'` 등                                 | 서울 기준으로 변환               |
+| `hour12`    | `true` / `false`                                 | 오전/오후 여부                 |
+| `hourCycle` | `'h11'`/`'h12'`/`'h23'`/`'h24'`                  | 시간 범위 명시적 지정             |
+
+
+## hourCycle — 시간 범위를 정확히 ⭐️⭐️⭐️
+
+```typescript
+// 현재 KST 시간을 0~23 정수로 얻기
+function kstHour(now = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone:  'Asia/Seoul',
+      hour:      'numeric',
+      hourCycle: 'h23',   // 자정 = 0, 오후 11시 = 23
+    }).format(now),
+  );
+}
+// kstHour() → 0~23 정수
+```
+
+```txt
+hourCycle 4가지:
+  h11  → 0~11  오전/오후 구분, 자정 = 0
+  h12  → 1~12  오전/오후 구분, 자정 = 12 (일반적인 12시간제)
+  h23  → 0~23  24시간제, 자정 = 0        ← 통계·집계에 가장 유용
+  h24  → 1~24  24시간제, 자정 = 24
+
+h23을 쓰는 이유:
+  0~23 = 배열 인덱스와 1:1 대응 → hourly[kstHour()] = 바로 버킷에 접근
+  h24면 자정이 24 → 배열 범위 초과
+
+hour12: false 대신 hourCycle: 'h23'을 쓰는 이유:
+  hour12: false → 로케일마다 자정을 "0" 또는 "24"로 다르게 출력할 수 있음
+  hourCycle: 'h23' → 항상 0~23 범위 고정, 로케일 무관
+
+en-GB (영국 영어):
+  hour: 'numeric' + hourCycle: 'h23' 조합에서
+  "15" 처럼 단순 숫자만 반환 — Number() 변환이 깔끔
+  en-US는 로케일에 따라 "3 PM" 같은 형태가 나올 수 있음
+  en-GB는 이 조합에서 숫자만 출력하는 것이 안정적
+```
 
 ## 타임존 지정
 

@@ -1,11 +1,9 @@
 ---
-aliases:
-  - 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
-tags:
-  - HomePage
+aliases: [00_JS_Ecosystem_HomePage — JS · TS · React · Next.js]
+tags: [HomePage]
 related:
-  - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
+  - "[[00_NestJS_Ecosystem_HomePage]]"
 cssclasses:
   - max
   - table-max
@@ -163,15 +161,17 @@ React 19 form action (단순):
 
 ## 8️⃣ 스타일 · 브라우저
 
-| | 노트 |
-|---|---|
-| **스타일** | [[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] · [[NextJS_Font]] |
-| **브라우저 API** | [[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]] |
-| **접근성** | [[HTML_ARIA]] |
-| **WebSocket** | [[NextJS_WebSocket]] · [[WebSocket_Patterns]] |
+|               | 노트                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **스타일**       | [[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] · [[NextJS_Font]] |
+| **차트**        | [[React_Charts]]                                                                      |
+| **브라우저 API**  | [[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]  |
+| **접근성**       | [[HTML_ARIA]]                                                                         |
+| **WebSocket** | [[NextJS_WebSocket]] · [[WebSocket_Patterns]]                                         |
 
 ```txt
 React_CSSProperties  인라인 style 타입 · camelCase · CSS 변수(--var) + as CSSProperties
+React_Charts  Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데이터 변환 패턴
 ```
 
 ---

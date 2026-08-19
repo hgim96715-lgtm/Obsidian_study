@@ -13,19 +13,23 @@ related:
   - "[[JS_Intl]]"
   - "[[JS_Date]]"
 ---
+
 # Snippet_date-statistics-pattern — 날짜 키 · KST · UI 표시
 
 > 다른 프로젝트에 쓸 때는 **`TIMEZONE` · `UTC_OFFSET` 두 상수만** 바꾸면 됨.
 
-> [!info] **DB** — `timestamptz`로 **UTC instant** 저장 (언제 일어났는지 하나로 고정)  
+> [!info]
+> **DB** — `timestamptz`로 **UTC instant** 저장 (언제 일어났는지 하나로 고정)  
 > **API (Nest)** — **집계·“오늘”** 은 서비스 타임존 **달력** (`startOfDay` + `gte`)  
 > **Web** — **화면 문구**만 (`오늘` · `3일 전`) — stats 버킷 계산은 API에 맡김
 
-> [!info] **일 키** = `YYYY-MM-DD` 문자열 하나.  
+> [!info]
+> **일 키** = `YYYY-MM-DD` 문자열 하나.  
 > `toISOString().slice(0,10)` ❌ — UTC로 **하루 밀림**.  
 > `Intl` + `timeZone` ✅ — Railway(UTC)·브라우저(KST) 어디서 돌려도 **같은 달력**.
 
-> [!warning] `setHours(0,0,0,0)` = **실행 환경 로컬** 자정.  
+> [!warning]
+> `setHours(0,0,0,0)` = **실행 환경 로컬** 자정.  
 > Mac(KST)에선 맞아 보여도 **Railway UTC**에선 “오늘”이 **9시간 어긋남**.  
 > → **`startOfTzDay`** 패턴으로 통일.
 
@@ -33,14 +37,14 @@ related:
 
 ## 꼭 기억할 것
 
-|주제|채택 ✅|피하기 ❌|
-|---|---|---|
-|**“오늘” (API)**|`createdAt >= startOfTzDay(now)`|서버 `setHours(0,0,0,0)` (UTC 배포)|
-|**일 키**|`toTzDateKey(date)` → `YYYY-MM-DD`|`date.toISOString().slice(0,10)`|
-|**일 키 → x축**|`"2026-07-01".split('-')`|`new Date("2026-07-01")` (UTC 자정)|
-|**“며칠 전” (UI)**|**달력 일** 차이 (`startOfTzDay` 끼리)|`Date.now() - ts` 만|
-|**통계 창**|달력 연속 N일 / 올해 1월~이번 달|“168시간 슬라이딩”|
-|**입력**|API ISO 문자열 `new Date(iso)`|혼용 X|
+| 주제 | 채택 ✅ | 피하기 ❌ |
+| --- | --- | --- |
+| **“오늘” (API)** | `createdAt >= startOfTzDay(now)` | 서버 `setHours(0,0,0,0)` (UTC 배포) |
+| **일 키** | `toTzDateKey(date)` → `YYYY-MM-DD` | `date.toISOString().slice(0,10)` |
+| **일 키 → x축** | `"2026-07-01".split('-')` | `new Date("2026-07-01")` (UTC 자정) |
+| **“며칠 전” (UI)** | **달력 일** 차이 (`startOfTzDay` 끼리) | `Date.now() - ts` 만 |
+| **통계 창** | 달력 연속 N일 / 올해 1월~이번 달 | “168시간 슬라이딩” |
+| **입력** | API ISO 문자열 `new Date(iso)` | 혼용 X |
 
 ---
 
@@ -56,7 +60,8 @@ const UTC_OFFSET = '+09:00'; // TIMEZONE과 짝 맞출 것
 // const UTC_OFFSET = '-05:00'; // DST 있으면 offset 고정 대신 라이브러리 검토
 ```
 
-> [!info] `UTC_OFFSET`는 **`startOfTzDay`** 에만 씀 — `"${key}T00:00:00${UTC_OFFSET}"` 로  
+> [!info]
+> `UTC_OFFSET`는 **`startOfTzDay`** 에만 씀 — `"${key}T00:00:00${UTC_OFFSET}"` 로  
 > “그 타임존 달력의 00:00” instant를 만듦.
 
 ---
@@ -164,12 +169,12 @@ export function formatFeedDate(iso: string): string {
 }
 ```
 
-|`days`|출력|
-|---|---|
-|`0`|`오늘 · 2026.07.02`|
-|`1`|`어제 · 2026.07.01`|
-|`2~6`|`3일 전 · 2026.06.29`|
-|`≥7`|`2026.06.25` (절대만)|
+| `days` | 출력 |
+| --- | --- |
+| `0` | `오늘 · 2026.07.02` |
+| `1` | `어제 · 2026.07.01` |
+| `2~6` | `3일 전 · 2026.06.29` |
+| `≥7` | `2026.06.25` (절대만) |
 
 ### `formatCommentDate` — 댓글·채팅 (짧게 · A안)
 
@@ -207,6 +212,22 @@ export function getTzHour(date: Date): number {
     }).format(date),
   );
 }
+
+/** KST 현재 시각(0~23) — hourCycle h23으로 정확한 24시간 정수 */
+export function kstHour(now = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Seoul',
+      hour:      'numeric',
+      hourCycle: 'h23',
+      // h23: 0~23 범위, 자정 = 0
+      // hour12: false 대신 hourCycle: 'h23' 쓰는 이유:
+      //   en-US + hour12: false 는 로케일에 따라 "24" 또는 "0"이 될 수 있음
+      //   hourCycle: 'h23' 은 항상 0~23 고정 → 안전
+    }).format(now),
+  );
+}
+// kstHour() → 0~23 정수
 
 export function getTzMonthKey(date: Date): string {
   return toTzDateKey(date).slice(0, 7); // YYYY-MM
@@ -270,6 +291,47 @@ kstWeekRange — 언제 쓰는가:
     오늘이 수요일(Wed: 2)이면 월요일로부터 2일 지남
     todayStart - 2일 = 이번 주 월요일 00:00
     start + 7일 = 다음 주 월요일 00:00 (범위 끝)
+
+kstDayKeys — 언제 쓰는가:
+  날짜 범위를 키 배열로 만들어야 할 때
+  차트 x축 라벨 생성 ("2026-08-12" ~ "2026-08-18")
+  빈 날짜도 0으로 채우는 버킷 초기화
+```
+
+```ts
+/**
+ * "2026-08-12" ~ "2026-08-18" 처럼
+ * from부터 to까지(양 끝 포함) KST 날짜 키 배열 반환
+ */
+export function kstDayKeys(from: string, to: string): string[] {
+  const keys: string[] = [];
+  let t   = kstDayRange(from).start.getTime();  // from 날짜 KST 자정 (ms)
+  const end = kstDayRange(to).start.getTime();  // to   날짜 KST 자정 (ms)
+
+  while (t <= end) {
+    keys.push(kstDateKey(new Date(t)));  // ms → Date → "YYYY-MM-DD" 키
+    t += DAY_MS;                          // 하루(86400000ms) 씩 전진
+  }
+  return keys;
+}
+```
+
+```txt
+while (t <= end) 패턴:
+  날짜를 밀리초 숫자로 다루면 += DAY_MS 만으로 하루씩 이동
+  Date 객체를 직접 조작하면 (setDate, addDays 등) 서버 TZ 영향을 받을 수 있음
+  ms 숫자 산술은 TZ 무관 → 안전
+
+  왜 for 루프 대신 while인가:
+    날짜 범위 = 종료 조건이 값 비교 (t <= end)
+    for (let i = 0; i < n; i++) 를 쓰려면 일수를 미리 계산해야 함
+    while은 조건이 자명하고 가독성이 좋음
+
+  t += DAY_MS:
+    DAY_MS = 86400000 = 24 * 60 * 60 * 1000
+    하루를 밀리초로 표현
+    DST(서머타임)가 없는 KST에서는 항상 정확
+    → [[JS_Date]] 밀리초 상수 섹션
 ```
 
 ---
@@ -294,22 +356,22 @@ flowchart LR
     end
 ```
 
-|레이어|하는 일|안 하는 일|
-|---|---|---|
-|**Nest**|`gte startOfTzDay` · Map 버킷 · `daily[]`|“3일 전” 한글 문구|
-|**Web**|`formatFeedDate` · `formatCommentDate`|stats “오늘” 창 계산|
-|**DB**|UTC instant 저장|KST로 저장 X|
+| 레이어 | 하는 일 | 안 하는 일 |
+| --- | --- | --- |
+| **Nest** | `gte startOfTzDay` · Map 버킷 · `daily[]` | “3일 전” 한글 문구 |
+| **Web** | `formatFeedDate` · `formatCommentDate` | stats “오늘” 창 계산 |
+| **DB** | UTC instant 저장 | KST로 저장 X |
 
 ---
 
 ## 5. 통계 패턴 — 기간 창
 
-|의미|시작 (TZ 달력)|버킷|
-|---|---|---|
-|오늘 DAU|`lastActiveAt >= startOfTzDay(now)`|1일|
-|최근 7일|`startOfTzDay(now) - 6 × 86400000ms`|7 × `toTzDateKey`|
-|7일+ 미접속|`null` OR `< startOfTzDay - 7일`|카운트|
-|올해 월별|`getTzYear` · `getTzMonthKey`|`YYYY-MM`|
+| 의미 | 시작 (TZ 달력) | 버킷 |
+| --- | --- | --- |
+| 오늘 DAU | `lastActiveAt >= startOfTzDay(now)` | 1일 |
+| 최근 7일 | `startOfTzDay(now) - 6 × 86400000ms` | 7 × `toTzDateKey` |
+| 7일+ 미접속 | `null` OR `< startOfTzDay - 7일` | 카운트 |
+| 올해 월별 | `getTzYear` · `getTzMonthKey` | `YYYY-MM` |
 
 ```ts
 /** 최근 N일(오늘 포함) 일 키 배열 — Map 초기값 */
@@ -339,39 +401,28 @@ function formatAxisDate(dateKey: string): string {
 
 ## 6. 레거시 vs TZ-aware (마이그레이션 메모)
 
-| |`setHours(0,0,0,0)` + `getDate()`|**이 스니펫 (Intl + offset)**|
-|---|---|---|
-|로컬 Mac|✅ 보통 OK|✅|
-|Railway / Vercel server UTC|❌ “오늘” 틀림|✅|
-|브라우저 Web UI|TZ = 사용자 기기 (대부분 OK)|✅ **서비스 TZ 고정**|
-|다른 프로젝트 이식|환경마다 다름|**상수 2개만 교체**|
+| | `setHours(0,0,0,0)` + `getDate()` | **이 스니펫 (Intl + offset)** |
+| --- | --- | --- |
+| 로컬 Mac | ✅ 보통 OK | ✅ |
+| Railway / Vercel server UTC | ❌ “오늘” 틀림 | ✅ |
+| 브라우저 Web UI | TZ = 사용자 기기 (대부분 OK) | ✅ **서비스 TZ 고정** |
+| 다른 프로젝트 이식 | 환경마다 다름 | **상수 2개만 교체** |
 
 ---
 
 ## 7. 함정 체크리스트
 
-|❌|✅|
-|---|---|
-|`new Date('2026-07-01')`|`key.split('-')`|
-|`toISOString().slice(0,10)`|`toTzDateKey(date)`|
-|Web에서 stats “오늘” 계산|Nest `daily[]` · `today` 필드|
-|댓글에 `formatFeedDate`|`formatCommentDate` (짧게)|
-|`timestamp` without tz|`timestamptz`|
+| ❌ | ✅ |
+| --- | --- |
+| `new Date('2026-07-01')` | `key.split('-')` |
+| `toISOString().slice(0,10)` | `toTzDateKey(date)` |
+| Web에서 stats “오늘” 계산 | Nest `daily[]` · `today` 필드 |
+| 댓글에 `formatFeedDate` | `formatCommentDate` (짧게) |
+| `timestamp` without tz | `timestamptz` |
 
 ---
 
-## 8. music-community 파일 맵
-
-|파일|역할|
-|---|---|
-|`apps/web/lib/date.ts`|`formatFeedDate` · `formatCommentDate`|
-|`apps/api/src/common/kst-date.ts`|`toKstDateKey` · `startOfKstDay` · hour/month/year|
-|`apps/api/src/admin/admin-stats.service.ts`|daily · monthly · hourly 버킷|
-|`apps/docs/date.md`|프로젝트 정본 문서|
-
----
-
-## 9. 전체 복붙 템플릿 (`lib/date.ts`)
+## 8. 전체 복붙 템플릿 (`lib/date.ts`)
 
 ```ts
 /** Snippet_date-statistics-pattern — TIMEZONE/UTC_OFFSET만 프로젝트에 맞게 */

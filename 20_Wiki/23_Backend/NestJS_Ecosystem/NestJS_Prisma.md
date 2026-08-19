@@ -1,6 +1,13 @@
 ---
-aliases: [$queryRaw · $executeRaw, Model, NestJS Prisma, Prisma, Prisma ORM, PrismaExceptionFilter]
-tags: [NestJS]
+aliases:
+  - $queryRaw · $executeRaw
+  - Model
+  - NestJS Prisma
+  - Prisma
+  - Prisma ORM
+  - PrismaExceptionFilter
+tags:
+  - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[HTTP_Concept]]"
@@ -8,7 +15,9 @@ related:
   - "[[NestJS_PostgreSQL]]"
   - "[[NestJS_Prisma_Patterns]]"
   - "[[NestJS_Service_Provider]]"
+  - "[[NestJS_Transaction]]"
   - "[[PG_DDL]]"
+  - "[[JS_Operators]]"
 ---
 # NestJS_Prisma — Prisma ORM
 
@@ -1270,6 +1279,64 @@ Json 컬럼에서는 두 가지 "없음"이 구분됨:
 Json 필드를 명시적으로 비워달라고 할 때는 이 전용 상수를 씀
 ```
 
+---
+# $transaction — 여러 쿼리를 한 번에 ⭐️⭐️⭐️
+
+```typescript
+// 배열 방식 — 쿼리를 모아서 한 번에 실행
+const [result1, result2] = await this.prisma.$transaction([
+  this.prisma.user.update({ where: { id }, data: { score: { increment: 1 } } }),
+  this.prisma.log.create({ data: { userId: id, action: 'scored' } }),
+]);
+// 하나라도 실패하면 전체 롤백
+```
+
+```typescript
+// null/undefined 필터링 후 실행 — 조건부 쿼리 조합
+async countIncrement(field: CountField, date: string, hour: number) {
+  const daily =
+    field === 'logins'
+      ? null                                // logins는 daily만 (hourly 없음)
+      : this.prisma.dailyStat.upsert({
+          where:  { date },
+          create: { date, [field]: 1 },
+          update: { [field]: { increment: 1 } },
+        });
+
+  const hourly =
+    field === 'reviews'
+      ? null                                // reviews는 hourly 없음
+      : this.prisma.hourlyStat.upsert({
+          where:  { date_hour: { date, hour } },
+          create: { date, hour, [field]: 1 },
+          update: { [field]: { increment: 1 } },
+        });
+
+  // null 제거 후 남은 쿼리만 트랜잭션으로
+  await this.prisma.$transaction(
+    [daily, hourly].filter((q) => q !== null),
+  );
+}
+```
+
+```txt
+$transaction 배열 방식:
+  쿼리 객체(Promise)의 배열을 넘기면
+  Prisma가 DB 트랜잭션 안에서 순서대로 실행
+  하나라도 실패 → 전체 롤백
+
+.filter((q) => q !== null):
+  조건에 따라 어떤 쿼리를 실행할지 결정
+  null인 쿼리는 빼고, 남은 것만 묶음
+  실행할 쿼리가 1개여도, 0개여도 안전
+
+배열 방식 vs 콜백 방식:
+  배열: 미리 만들어둔 쿼리 객체를 한번에 실행 → 단순
+  콜백: $transaction(async (tx) => { ... })
+        → tx로 중간 결과를 읽으면서 조건 분기 가능
+        → 더 복잡한 로직에 사용
+  → [[NestJS_Transaction]] 콜백 방식 포함 전체 패턴
+```
 ---
 
 # $queryRaw · $executeRaw — Raw SQL ⭐️⭐️⭐️

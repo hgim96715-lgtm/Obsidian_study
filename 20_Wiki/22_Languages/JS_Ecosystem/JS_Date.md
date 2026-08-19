@@ -4,12 +4,14 @@ aliases:
   - format
   - ISO
   - toISOString()
+  - 날짜 범위 순회
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Intl]]"
   - "[[React_DatePicker]]"
+  - "[[Snippet_date-statistics-pattern]]"
 ---
 # JS_Date — Date 객체
 
@@ -315,4 +317,61 @@ function isSameDay(a: Date, b: Date): boolean {
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
+```
+
+---
+# 날짜 범위 순회 — while + getTime() ⭐️⭐️⭐️
+
+```typescript
+// from 날짜부터 to 날짜까지 하루씩 순회
+function eachDay(from: Date, to: Date, callback: (day: Date) => void) {
+  let t = from.getTime();         // 시작 날짜 → 밀리초
+  const end = to.getTime();       // 끝 날짜 → 밀리초
+
+  while (t <= end) {
+    callback(new Date(t));        // ms → Date 객체로 변환해서 처리
+    t += 86400000;                // 하루(DAY_MS) 씩 전진
+  }
+}
+
+// 날짜 범위를 키 배열로 생성 — 차트 x축, 버킷 초기화 등
+function dayKeyRange(from: string, to: string): string[] {
+  const keys: string[] = [];
+  let t = new Date(`${from}T00:00:00+09:00`).getTime(); // KST 자정
+  const end = new Date(`${to}T00:00:00+09:00`).getTime();
+
+  while (t <= end) {
+    const d = new Date(t);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    keys.push(key);
+    t += 86400000;
+  }
+  return keys;
+}
+// dayKeyRange('2026-08-12', '2026-08-18')
+// → ['2026-08-12', '2026-08-13', ..., '2026-08-18']
+```
+
+
+```txt
+왜 Date 객체 대신 getTime() 밀리초로 반복하는가:
+
+  Date 객체를 직접 조작:
+    d.setDate(d.getDate() + 1) → 서버 TZ에 따라 결과 다름
+    UTC 서버에서 "8월 18일 + 1일" 계산이 TZ 의존적
+
+  getTime() 밀리초 산술:
+    숫자 + 숫자 → TZ 완전 무관
+    t += 86400000 → 항상 정확히 24시간 전진
+    KST처럼 DST 없는 TZ에서 안전
+
+왜 for 루프 대신 while인가:
+  for (let i = 0; i < dayCount; i++) → 일수를 미리 계산해야 함
+  while (t <= end)                   → 끝 조건이 직관적
+  날짜 범위 순회는 while이 의도를 더 잘 표현
+
+실전 용도:
+  chart 라이브러리 x축 라벨 생성 (날짜 문자열 배열)
+  통계 버킷 초기화 — 빈 날짜도 0으로 채우기
+  → Snippet_date-statistics-pattern 참고
 ```
