@@ -14,7 +14,7 @@ related:
   - "[[React_Context_Provider]]"
   - "[[React_Zustand]]"
 ---
-# NextJS_AuthState — 로그인 유저 상태 관리
+# NextJS_AuthState — 로그인 유저 상태 관리ㅔ
 
 > [!info] 
 > 로그인한 유저 정보를 앱 전체에서 공유하는 방법. 

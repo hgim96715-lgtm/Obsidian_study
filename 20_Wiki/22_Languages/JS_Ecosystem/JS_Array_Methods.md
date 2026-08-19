@@ -683,6 +683,83 @@ members.map(member => ({
   index로 접근이 필요할 때
 ```
 
+## Set을 필터 가드로 — 중복 제거 + 변환 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 여러 배열을 합쳤을 때 id가 겹칠 수 있는 경우
+const all = [
+  ...kr.flatrate ?? [],   // 구독 서비스
+  ...kr.rent    ?? [],    // 대여
+  ...kr.buy     ?? [],    // 구매
+];
+// 같은 provider가 flatrate·rent 둘 다 있을 수 있음 → 중복 제거 필요
+
+const seen = new Set<number>();
+
+const unique = all
+  .filter((p) => {
+    if (seen.has(p.provider_id)) return false;  // 이미 본 것 → 제거
+    seen.add(p.provider_id);                    // 처음 본 것 → 기록
+    return true;                                // 처음 본 것 → 통과
+  })
+  .map((p) => ({                                // 통과한 것만 변환
+    id:        p.provider_id,
+    name:      p.provider_name,
+    logo_path: p.logo_path,
+  }));
+```
+
+```txt
+seen Set이 하는 일:
+  filter를 돌면서 "이미 지나친 id"를 기억하는 가드
+  처음 보는 id → seen에 추가 → true (통과)
+  다시 보는 id → 이미 있음 → false (제거)
+
+왜 [...new Set(arr)] 대신 이 방식인가:
+  [...new Set(arr)] → 원시값(숫자, 문자열) 중복 제거에만 가능
+  객체 배열에서 특정 필드 기준으로 중복 제거 → Set + filter 필요
+  + filter와 map을 체이닝해서 한 번에 처리 가능
+
+.filter().map() 체이닝:
+  filter → 조건 통과한 것만 남김  (여기서는 중복 제거)
+  map    → 형태를 바꿈            (여기서는 필드명 변환)
+  두 작업을 배열 순회 하나로 처리
+
+  순서가 중요:
+  filter 먼저 → 줄어든 배열을 map → 효율적
+  map 먼저   → 전체 변환 후 filter → 불필요한 변환 발생
+```
+
+```typescript
+// 범용 패턴 — 어떤 필드로든 중복 제거
+function uniqueBy<T>(arr: T[], key: (item: T) => string | number): T[] {
+  const seen = new Set<string | number>();
+  return arr.filter((item) => {
+    const k = key(item);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+// 사용
+uniqueBy(providers, p => p.provider_id)
+uniqueBy(users, u => u.email)
+uniqueBy(tags, t => t.id)
+```
+
+```txt
+언제 Set을 쓰는가:
+  배열에서 중복 제거 → [...new Set(arr)]
+  "이 값이 목록에 있는가" 를 여러 번 확인할 때 → Set.has()
+  순서가 필요 없는 고유 값들의 컬렉션
+
+언제 배열을 쓰는가:
+  순서가 중요할 때
+  같은 값이 여러 번 나와야 할 때
+  index로 접근이 필요할 때
+```
+
 ## React state에서 Set ⭐️⭐️⭐️
 
 ```typescript

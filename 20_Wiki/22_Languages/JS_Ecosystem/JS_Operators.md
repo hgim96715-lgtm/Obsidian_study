@@ -21,6 +21,7 @@ aliases:
   - Falsy
   - _접두사
   - "! 연산자"
+  - null 방어 스프레드
 tags:
   - JavaScript
 related:
@@ -313,6 +314,77 @@ const rows = await this.prisma.post.findMany({
 const nums = [1, 5, 3, 2, 4];
 Math.max(...nums);  // Math.max(1, 5, 3, 2, 4)
 ```
+
+## null 방어 스프레드 — ??(nullish coalescing) + 스프레드 ⭐️⭐️⭐️⭐️
+
+```typescript
+// null/undefined일 수 있는 배열을 안전하게 합칠 때
+const all = [
+  ...(source.a ?? []),  // null/undefined이면 빈 배열로 대체
+  ...(source.b ?? []),
+  ...(source.c ?? []),
+];
+```
+
+```txt
+...(source.a ?? []) 분해:
+
+  source.a         → null 또는 undefined일 수 있는 배열
+  source.a ?? []   → null/undefined이면 [] 로 대체
+  ...(source.a ?? []) → 그것을 펼침
+
+  source.a = [1, 2] → ...[1, 2] → 1, 2가 배열에 추가됨
+  source.a = null   → ...[]     → 아무것도 추가 안 됨
+
+직접 spread하면 안 되는 이유:
+  ...(null)      → TypeError: null is not iterable
+  ...(undefined) → 동일 에러
+  → ?? [] 로 항상 배열임을 보장한 뒤 spread
+```
+
+```typescript
+// 객체도 동일 — null/undefined면 빈 객체로
+const merged = {
+  ...defaults,
+  ...(overrides ?? {}),   // overrides가 null이면 {} 로 대체
+};
+
+// 자주 보이는 실전 패턴들
+const providers = [
+  ...(data.flatrate ?? []),  // API 응답 일부가 없을 때
+  ...(data.rent     ?? []),
+  ...(data.buy      ?? []),
+];
+
+const tags = [
+  ...(post.tags     ?? []),  // optional 필드 합치기
+  ...(post.extraTags ?? []),
+];
+
+const options = {
+  ...baseOptions,
+  ...(userOptions   ?? {}),  // 설정 오버라이드
+  ...(envOptions    ?? {}),
+};
+```
+
+```txt
+조건부 스프레드 vs null 방어 스프레드:
+
+  조건부: ...(condition ? { key: value } : {})
+    → "이 속성을 넣을지 말지" 결정
+    → 조건이 false이면 빈 것을 spread
+
+  null 방어: ...(value ?? []) 또는 ...(value ?? {})
+    → "이 값이 null일 수 있는데 안전하게 합치기"
+    → null/undefined이면 빈 것으로 대체
+
+  둘 다 결과적으로 "없으면 아무것도 안 추가"지만
+  의도가 다름:
+    조건부 = 논리 조건으로 포함 여부 결정
+    null 방어 = 타입 안전을 위한 방어 코드
+```
+
 
 ---
 
