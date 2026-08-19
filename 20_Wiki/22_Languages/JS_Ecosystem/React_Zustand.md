@@ -292,6 +292,69 @@ typeof window === 'undefined' 체크:
   → undefined 체크로 서버에서는 바로 return
 ```
 
+## hydrate란 — 서버 → 클라이언트 전환 시 store 복원 ⭐️⭐️⭐️⭐️
+
+```txt
+Next.js는 서버에서 먼저 렌더링한다.
+서버에는 localStorage가 없다 → store 초기값은 null로 시작
+
+서버 렌더:    accessToken = null  (localStorage 없음)
+브라우저 마운트: useEffect → hydrate() → accessToken = "eyJhb..."
+
+hydrate() = localStorage에서 토큰을 꺼내 Zustand store에 넣는 동작
+  "서버에서 빈 상태로 시작한 store를 실제 값으로 채운다"는 의미
+  = Next.js의 Hydration(서버 HTML + 클라이언트 JS 결합)에서 온 단어
+```
+
+## hydrated — "판단 가능한가" 플래그 ⭐️⭐️⭐️⭐️
+
+```txt
+문제:
+  브라우저가 처음 뜨는 순간 accessToken은 항상 null
+  hydrate가 아직 안 된 것뿐인데
+  Gate가 "null = 비로그인"으로 판단 → /login으로 튕김
+
+hydrated 플래그로 해결:
+  hydrated: false → "아직 localStorage 못 읽었음, 기다려"
+  hydrated: true  → "localStorage 읽기 완료, 이제 판단해도 됨"
+
+  마운트 직후   hydrated: false, accessToken: null → 아직 모름, 대기
+  hydrate 완료  hydrated: true,  accessToken: null → 진짜 비로그인 → /login
+  hydrate 완료  hydrated: true,  accessToken: "eyJ..." → 로그인 됨 → 통과
+```
+
+```typescript
+// AuthBootstrap — 앱 시작 시 hydrate 호출
+'use client';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/lib/auth-store';
+
+export function AuthBootstrap() {
+  const hydrate = useAuthStore(s => s.hydrate);
+
+  useEffect(() => {
+    hydrate();  // 마운트 직후 localStorage → store
+  }, [hydrate]);
+
+  return null;  // 화면에 아무것도 안 그림
+}
+
+// layout.tsx
+<AuthBootstrap />    ← 전역 최상단에 두면 hydrate 보장
+{children}
+```
+
+```txt
+hydrate()가 useEffect 안에 있는 이유:
+  useEffect는 브라우저에서만 실행됨
+  서버 렌더 시 실행 안 됨 → localStorage 에러 없음
+  typeof window === 'undefined' 체크와 같은 효과
+
+→ [[NextJS_AuthState]] Gate에서 hydrated 사용 패턴
+  서버에는 window·localStorage가 없어서 에러
+  → undefined 체크로 서버에서는 바로 return
+```
+
 ```typescript
 // app/layout.tsx — 앱 시작 시 토큰 복원
 'use client';
