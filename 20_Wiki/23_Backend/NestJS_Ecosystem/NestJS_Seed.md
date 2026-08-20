@@ -10,305 +10,366 @@ related:
   - "[[NestJS_Prisma]]"
   - "[[NestJS_Env_Config]]"
 ---
-# NestJS_Seed — 시드 (테스트 데이터)
+# NestJS_Seed — Seed · CLI 패턴
 
-> [!info] 
-> 시드(Seed) = 개발/테스트 환경에 가짜 데이터를 넣는 스크립트. 
-> 페이지네이션, 검색, UI 레이아웃 등을 실제 데이터처럼 테스트할 때 사용한다. 
-> 운영 DB에는 절대 실행하지 않는다.
+>[!info]
+>Seed = 개발·스테이징 환경에서 DB에 초기 데이터를 넣는 작업. 
+>단순 bulk insert라면 Prisma seed + `createMany`로 충분. **비즈니스 로직(규칙·카운트·FK 검증)을 그대로 타야 한다면** `NestFactory.createApplicationContext`로 DI 컨테이너만 띄워서 기존 `@Injectable()` 서비스를 직접 호출한다. 
+>운영 환경 실수 방지를 위해 env 가드 필수.
 
 ---
 
-# 시드란? ⭐️⭐️⭐️
+# Seed란 ⭐️⭐️⭐️⭐️
 
 ```txt
-개발 중 이런 상황이 생김:
-  "멤버가 1명뿐인데 페이지네이션이 제대로 되는지 어떻게 테스트하지?"
-  "검색 기능을 만들었는데 데이터가 없어서 결과가 없음"
-  "무한 스크롤 구현했는데 데이터가 5개밖에 없어서 스크롤이 안 됨"
+Seed = DB에 초기 데이터를 심는 스크립트
 
-시드 스크립트로 해결:
-  npx tsx scripts/seed-members.ts ROOM_ID=xxx COUNT=50
-  → DB에 가짜 멤버 50명 즉시 생성
-  → 실제처럼 테스트 가능
+DB를 처음 만들거나 초기화했을 때:
+  로그인할 계정이 없음
+  테스트할 게시글이 없음
+  화면이 텅 비어있어서 개발이 어려움
+  → Seed를 실행하면 필요한 데이터가 자동으로 들어감
 
-삭제도 쉽게:
-  @seed.local 같은 식별 가능한 이메일 패턴으로 생성
-  → cleanup 스크립트로 한 번에 삭제
+비유:
+  화분(DB)에 흙(schema)을 채웠으면
+  씨앗(seed)을 심어야 식물(데이터)이 자람
+
+언제 실행하는가:
+  새 개발 환경을 세팅할 때         (clone 후 초기화)
+  migrate reset으로 DB를 날렸을 때
+  스테이징 환경에 데모 데이터가 필요할 때
+
+운영(production)에는 쓰지 않는다:
+  실제 서비스 DB에 가짜 데이터가 들어가면 안 됨
+  → 환경변수 가드로 실수 방지
 ```
 
 ---
 
-# package.json 스크립트 등록 ⭐️⭐️⭐️
+# 두 가지 방법 — 언제 뭘 쓰는가 ⭐️⭐️⭐️⭐️
 
-```json
-{
-  "scripts": {
-    "prisma:migrate":    "prisma migrate dev",
-    "seed:members":      "npx tsx scripts/seed-members.ts",
-    "seed:cleanup":      "npx tsx scripts/cleanup-seed-users.ts"
-  }
-}
-```
+```txt
+방법 1 — Prisma seed (prisma/seed.ts):
+  NestJS와 무관하게 PrismaClient를 직접 써서 DB에 넣음
+  비즈니스 로직을 타지 않음 → 빠르고 단순
+  → 관리자 계정, 카테고리, 코드 테이블 같은 필수 초기값
 
-```bash
-# 실행 방법
-cd apps/api
+방법 2 — NestJS CLI (src/cli/*.ts):
+  DI 컨테이너를 띄워서 기존 서비스를 호출
+  비즈니스 로직(유효성 검사, 카운트 집계, FK 검증)이 그대로 실행됨
+  → 실제 사용자 행동을 시뮬레이션하는 데모 데이터
+  → 규칙이 복잡한 도메인 데이터 (후기, 티켓, 활동 집계 등)
 
-# ROOM_ID 없으면 활성 방 목록만 출력
-npm run seed:members
-
-# 방 지정
-ROOM_ID=019f7dd4-... npm run seed:members
-
-# 방 + 수량 + 접두사 지정
-ROOM_ID=019f7dd4-... COUNT=50 PREFIX=bot npm run seed:members
-
-# DRY_RUN — 실제 DB 변경 없이 어떻게 실행되는지 미리 확인
-DRY_RUN=1 ROOM_ID=019f7dd4-... npm run seed:cleanup
+Prisma seed를 쓰면 안 되는 경우:
+  서비스 레이어에서 검증하는 "하루 1회 제한" 같은 규칙
+  countIncrement 같은 집계가 함께 돌아야 하는 경우
+  JWT 발급·인증 플로우를 거쳐야 하는 경우
 ```
 
 ---
 
-# 시드 스크립트 구조 ⭐️⭐️⭐️⭐️
+# 파일 구조 ⭐️⭐️⭐️⭐️
+
+```txt
+방법 1 (Prisma seed):
+  prisma/
+    seed.ts             PrismaClient 직접 사용
+  package.json          "prisma.seed" 항목에 등록
+
+방법 2 (NestJS CLI):
+  apps/api/src/cli/
+    demo-seed.ts        메인 시드 스크립트 (nest build 대상)
+    demo-purge.ts       데모 데이터 일괄 삭제
+  apps/api/package.json "scripts"에 등록
+
+  disposable/demo-seed/ 오픈 전 통째 삭제할 "쓰레기통"
+    personas.json       닉네임 풀·후기 템플릿 (런타임에 fs로 읽음)
+    config.ts           수치·이메일 규칙 (문서용)
+
+분리 이유:
+  cli/        → nest build 대상. Prisma·DI와 같은 컴파일 파이프에 포함
+  disposable/ → 코드가 아닌 데이터 파일만. 오픈 전 디렉터리째 삭제 가능
+
+선택 기준:
+  Prisma seed → 대량 bulk insert, 비즈니스 로직 없이 그냥 행을 넣으면 됨
+  NestJS CLI  → register·login·도메인 액션을 순서대로 거쳐야 함
+```
+
+---
+
+# 방법 1 — Prisma seed (단순 데이터) ⭐️⭐️⭐️
 
 ```typescript
-// scripts/seed-members.ts
-import 'dotenv/config';   // .env 로드 (DATABASE_URL 등)
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client';
+// prisma/seed.ts
+import { PrismaClient } from '../generated/prisma/client';
 
-// 1. 환경변수로 파라미터 받기
-const roomId = process.env.ROOM_ID?.trim();
-const count  = Math.min(Math.max(Number(process.env.COUNT ?? 20), 1), 200);
-const prefix = (process.env.PREFIX ?? 'seed').trim() || 'seed';
+const prisma = new PrismaClient();
 
-// 2. Prisma 직접 연결 (NestJS DI 없이)
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-});
-
-async function seed() {
-  // 3. 생성할 데이터 만들기
-  const stamp = Date.now().toString(36);   // 타임스탬프 기반 짧은 고유 문자열
-  const users = Array.from({ length: count }, (_, i) => {
-    const n = String(i + 1).padStart(3, '0');  // 001, 002, ...
-    return {
-      email:        `${prefix}_${stamp}_${n}@seed.local`,  // 식별용 도메인
-      nickname:     `${prefix}_${n}_${stamp.slice(-4)}`,
-      passwordHash: null,  // 시드 유저는 로그인 불필요
-    };
-  });
-
-  // 4. 트랜잭션으로 원자적 삽입
-  const result = await prisma.$transaction(async (tx) => {
-    for (const u of users) {
-      const user = await tx.user.create({ data: u });
-      await tx.member.create({
-        data: { roomId, userId: user.id, role: 'member' },
-      });
-    }
-    // 5. 집계 필드 동기화
-    const total = await tx.member.count({ where: { roomId } });
-    await tx.room.update({
-      where: { id: roomId },
-      data:  { memberCount: total },
-    });
-    return total;
-  });
-
-  console.log(`✅ ${count}명 추가 · 총 ${result}명`);
-}
-
-// 6. main + 에러 처리 + 연결 해제
 async function main() {
-  if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL 없음');
-    process.exitCode = 1;
-    return;
-  }
-  if (!roomId) {
-    // ROOM_ID 없으면 목록 출력 (안내용)
-    await listItems();
-    return;
-  }
-  await seed();
+  // upsert — 여러 번 실행해도 중복 없음 (멱등)
+  await prisma.user.upsert({
+    where:  { email: 'admin@example.com' },
+    update: {},
+    create: {
+      email:    'admin@example.com',
+      nickname: '관리자',
+      role:     'admin',
+      password: await bcrypt.hash('Admin1234!', 10),
+    },
+  });
+  console.log('✅ Seed 완료');
 }
 
 main()
-  .catch((e) => { console.error(e); process.exitCode = 1; })
-  .finally(async () => { await prisma.$disconnect(); });
+  .catch(e => { console.error(e); process.exit(1); })
+  .finally(() => prisma.$disconnect());
 ```
 
----
-
-# 식별 가능한 이메일 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-email: `${prefix}_${stamp}_${n}@seed.local`
-// 예: seed_lf2k8x_001@seed.local
-//     bot_lf2k8x_002@seed.local
-```
-
-```txt
-@seed.local 도메인을 쓰는 이유:
-  실제 이메일 주소가 아님 → 실수로 이메일이 발송되는 것 방지
-  cleanup 스크립트에서 @seed.local 로 끝나는 계정만 삭제 가능
-  운영 데이터와 명확하게 구분됨
-
-Date.now().toString(36):
-  현재 타임스탬프를 36진수(0-9a-z)로 변환 → 짧은 고유 문자열
-  예: 1718000000000 → 'lf2k8x'
-  같은 시간에 여러 번 실행해도 PREFIX나 COUNT로 구분
-
-padStart(3, '0'):
-  1 → '001', 10 → '010' — 정렬 시 일관된 순서 유지
-```
-
----
-
-# DRY_RUN 패턴 ⭐️⭐️⭐️
-
-```typescript
-const dryRun = process.env.DRY_RUN === '1';
-
-async function cleanup() {
-  const targets = await prisma.user.findMany({
-    where: { email: { endsWith: '@seed.local' } },
-    select: { id: true, email: true },
-  });
-
-  console.log(`삭제 대상: ${targets.length}명`);
-  targets.forEach((u) => console.log(`  ${u.email}`));
-
-  if (dryRun) {
-    console.log('\nDRY_RUN=1 — 실제 삭제 안 함');
-    return;
+```json
+// package.json
+{
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
-
-  await prisma.user.deleteMany({
-    where: { email: { endsWith: '@seed.local' } },
-  });
-  console.log(`✅ ${targets.length}명 삭제 완료`);
 }
 ```
 
 ```bash
-# 삭제 전 확인
-DRY_RUN=1 npm run seed:cleanup
-
-# 실제 삭제
-npm run seed:cleanup
-```
-
-```txt
-DRY_RUN 패턴:
-  실제 DB를 바꾸기 전에 "무엇을 삭제할 것인지" 미리 확인
-  실수로 중요한 데이터를 삭제하는 것 방지
-
-  process.env.DRY_RUN === '1':
-    '1' 이외의 값(undefined, '0', 'false')은 모두 false → 실제 실행
+pnpm prisma db seed
+pnpm prisma migrate reset   # reset 시 자동으로 seed 실행
 ```
 
 ---
 
-# cleanup 스크립트 패턴 ⭐️⭐️⭐️
+# 방법 2 — NestJS CLI (서비스 레이어 활용) ⭐️⭐️⭐️⭐️
+
+## 핵심 개념 — ApplicationContext
 
 ```typescript
-// scripts/cleanup-seed-users.ts
-async function cleanup() {
-  // 1. 대상 조회
-  const users = await prisma.user.findMany({
-    where: { email: { endsWith: '@seed.local' } },
-    select: { id: true, email: true, _count: { select: { memberships: true } } },
-  });
-  console.log(`대상 ${users.length}명`);
+import { NestFactory } from '@nestjs/core';
+import { AppModule }   from '../app.module';
 
-  if (dryRun || users.length === 0) return;
+async function bootstrap() {
+  // HTTP 서버 없이 DI 컨테이너만 띄움
+  const app = await NestFactory.createApplicationContext(AppModule);
 
-  // 2. 관계된 데이터 먼저 삭제 (FK 제약)
-  const userIds = users.map((u) => u.id);
+  // 기존 서비스를 꺼내서 직접 호출
+  const authService   = app.get(AuthService);
+  const reviewService = app.get(ReviewPostService);
 
-  await prisma.$transaction([
-    prisma.member.deleteMany({ where: { userId: { in: userIds } } }),
-    prisma.user.deleteMany({   where: { id:     { in: userIds } } }),
-  ]);
+  await authService.register({ email, password, nickname });
+  await reviewService.create(userId, dto);
 
-  // 3. 집계 필드 동기화
-  // memberCount를 쓰는 경우 cleanup 후 다시 count하여 업데이트 필요
+  await app.close();  // 반드시 종료
+}
+bootstrap();
+```
+
+```txt
+createApplicationContext(AppModule):
+  HTTP 서버(@nestjs/platform-express)는 안 올라감
+  DI 컨테이너·ConfigService·Prisma·서비스만 올라옴
+  → app.get(서비스) 로 원하는 서비스를 꺼낼 수 있음
+
+컨트롤러를 직접 부르지 않는 이유:
+  파이프·JWT Guard·@UserId() 데코레이터는 컨트롤러 책임
+  CLI는 userId를 이미 알고 있으니 서비스를 직접 호출하면 됨
+  컨트롤러 우회 없이 짧고 명확하게
+
+app.close():
+  안 하면 프로세스가 종료 안 될 수 있음
+  finally 블록에서 반드시 호출
+```
+
+## 왜 nest build 후 실행인가
+
+```txt
+CLI 실행 방법 비교:
+
+  tsx / esbuild로 AppModule 직접 실행:
+    emitDecoratorMetadata 없음 → ConfigService injection 실패
+
+  ts-node로 src/ import:
+    Prisma 7 generated client의 .js 상대 import 해석 실패
+
+  nest build 후 dist/*.js 실행: ✅
+    tsc + Nest와 동일 경로·DI 정상 동작
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "seed:demo": "nest build && node -r dotenv/config dist/cli/demo-seed.js",
+    "seed:purge": "nest build && node -r dotenv/config dist/cli/demo-purge.js"
+  }
 }
 ```
 
 ```txt
-FK 제약 순서:
-  User를 먼저 삭제하면 → Member(userId FK) 에러
-  Member 먼저 삭제 → User 삭제 (참조하는 쪽부터)
-
-$transaction([...]):
-  배열로 여러 쿼리를 하나의 트랜잭션으로 실행
-  하나라도 실패하면 전체 롤백
+-r dotenv/config:
+  dist/ 실행 전에 apps/api/.env 를 로드
+  ENABLE_DEMO_SEED, DEMO_SEED_PASSWORD 등을 process.env에 주입
 ```
 
----
+## 파일 구조
 
-# Prisma 직접 연결 (스크립트용) ⭐️⭐️
+```txt
+apps/api/src/cli/
+  demo-seed.ts          메인 시드 스크립트 (build 대상)
+  demo-purge.ts         demo 데이터 일괄 삭제
+
+disposable/demo-seed/
+  config.ts             수치·이메일 규칙 (문서용)
+  personas.json         닉네임 풀·후기 템플릿
+  seed-day.ts           deprecated stub
+
+분리 이유:
+  cli/     → nest build 대상, DI·Prisma와 같은 컴파일 파이프
+  disposable/ → 오픈 전 통째로 삭제할 "쓰레기통", JSON·설정만
+```
+
+## env 가드 — 운영 실수 방지
 
 ```typescript
-// NestJS DI 없이 스크립트에서 Prisma 직접 사용
-import 'dotenv/config';   // .env 파일 로드 (반드시 최상단)
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client';
+// apps/api/src/cli/demo-seed.ts
+function assertEnv() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ production에서 demo seed 금지');
+    process.exit(1);
+  }
+  if (process.env.ENABLE_DEMO_SEED !== '1') {
+    console.error('❌ ENABLE_DEMO_SEED=1 필요');
+    process.exit(1);
+  }
+  if (!process.env.DEMO_SEED_PASSWORD) {
+    console.error('❌ DEMO_SEED_PASSWORD 필요');
+    process.exit(1);
+  }
+}
+```
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-  }),
-});
-
-// 마지막에 반드시 연결 해제
-.finally(async () => {
-  await prisma.$disconnect();
-})
+```dotenv
+# apps/api/.env  (local / staging — prod 금지)
+ENABLE_DEMO_SEED=1
+DEMO_SEED_PASSWORD=change-me-demo-seed
 ```
 
 ```txt
-import 'dotenv/config':
-  반드시 최상단에 — 다른 import보다 먼저 실행돼야 .env가 로드됨
-  없으면 DATABASE_URL 등 환경변수가 undefined
+왜 두 단계 가드인가:
+  NODE_ENV=production 체크 → 배포 환경 자체를 막음
+  ENABLE_DEMO_SEED=1 체크  → 스테이징에서도 명시적으로 켜야 실행
 
-PrismaPg adapter:
-  PostgreSQL 연결 방식 — 프로젝트 설정에 따라 다름
-  일반 Prisma 연결이면 adapter 없이 new PrismaClient()로도 됨
+DEMO_SEED_PASSWORD:
+  seed로 만드는 계정의 비밀번호를 환경변수로 분리
+  코드에 비밀번호 하드코딩 방지
+  팀원마다 다른 값 사용 가능
+```
+
+## 전체 CLI 스크립트 구조
+
+```typescript
+// src/cli/demo-seed.ts
+import { NestFactory }    from '@nestjs/core';
+import { AppModule }      from '../app.module';
+import { AuthService }    from '../auth/auth.service';
+import { ReviewService }  from '../reviews/review.service';
+
+async function main() {
+  assertEnv();  // 가드 먼저
+
+  const app = await NestFactory.createApplicationContext(AppModule);
+
+  try {
+    const auth   = app.get(AuthService);
+    const review = app.get(ReviewService);
+
+    const PASSWORD = process.env.DEMO_SEED_PASSWORD!;
+
+    // 신규 유저 등록
+    for (let seq = 0; seq < NEW_PER_DAY; seq++) {
+      const email = demoEmail(seq);   // demo+{date}-{seq}@demo.example.invalid
+      const { user } = await auth.register({ email, password: PASSWORD, nickname: pickNickname() });
+
+      await runActivity(app, user.id);
+      await sleep(STAGGER_MS);  // 전광판 시간대 분산
+    }
+
+    // 기존 유저 재방문
+    const returning = await getReturningUsers(app, TOTAL - NEW_PER_DAY);
+    for (const user of returning) {
+      await auth.login({ email: user.email, password: PASSWORD });
+      await runActivity(app, user.id);
+      await sleep(STAGGER_MS);
+    }
+
+    console.log('✅ Demo seed 완료');
+  } finally {
+    await app.close();
+  }
+}
+
+main().catch(e => { console.error(e); process.exit(1); });
+```
+
+```typescript
+// 이메일 규칙 — 날짜 + 순번으로 고유성 보장
+function demoEmail(seq: number): string {
+  const date = kstDateKey(new Date());  // "2026-08-20"
+  return `demo+${date}-${seq}@demo.example.invalid`;
+  // 같은 날 재실행: seq만 증가 → 의도적으로 새 계정 생성
+  // .invalid 도메인 → 실제 이메일 없는 가짜 계정임을 명시
+}
 ```
 
 ---
 
-# 한눈에
+# 멱등성 — 여러 번 실행해도 안전하게 ⭐️⭐️⭐️
+
+```typescript
+// Prisma seed 방식 — upsert
+await prisma.user.upsert({
+  where:  { email: 'admin@example.com' },
+  update: {},          // 있으면 아무것도 안 바꿈
+  create: { ... },     // 없으면 생성
+});
+
+// CLI 방식 — 이메일에 날짜+seq 포함
+// demo+2026-08-20-0@demo.example.invalid → 같은 날 재실행해도 새 계정
+// → 의도적으로 멱등하지 않음 (하루치 활동을 추가로 쌓는 것이 목적)
+```
+
+---
+
+# purge — demo 데이터 일괄 삭제
+
+```typescript
+// src/cli/demo-purge.ts
+async function purge() {
+  assertEnv();
+
+  const app = await NestFactory.createApplicationContext(AppModule);
+  try {
+    const prisma = app.get(PrismaService);
+
+    // 자식 먼저 삭제 → 부모 (외래키 순서)
+    await prisma.review.deleteMany({
+      where: { author: { email: { contains: '@demo.example.invalid' } } },
+    });
+    await prisma.user.deleteMany({
+      where: { email: { contains: '@demo.example.invalid' } },
+    });
+
+    console.log('✅ Demo 데이터 삭제 완료');
+  } finally {
+    await app.close();
+  }
+}
+```
 
 ```txt
-시드 = 개발용 가짜 데이터 생성 스크립트 (운영 DB에 절대 실행 금지)
-
-식별 패턴:
-  이메일: xxx@seed.local  → cleanup으로 한 번에 삭제
-  닉네임: prefix_001_stamp
-
-환경변수 파라미터:
-  ROOM_ID=uuid  대상 지정
-  COUNT=50      생성 수 (Math.min/max로 범위 제한)
-  PREFIX=bot    식별 접두사
-  DRY_RUN=1     실제 변경 없이 미리 보기
-
-스크립트 구조:
-  import 'dotenv/config'  ← 최상단
-  환경변수 파싱
-  PrismaClient 직접 생성
-  main() → .catch → .finally(disconnect)
-
-트랜잭션:
-  $transaction(async tx => {...})  여러 테이블 원자적 삽입
-  삭제 시 FK 순서: 참조하는 테이블 먼저
-
-DRY_RUN:
-  DRY_RUN=1 → 조회만, 실제 변경 없음
-  DRY_RUN 없음 → 실제 실행
+.invalid 도메인을 쓰는 이유:
+  실제 존재하지 않는 도메인 (.invalid는 RFC로 보장)
+  WHERE email LIKE '%@demo.example.invalid' 로 정확히 필터
+  실제 유저 데이터와 확실히 구분
 ```

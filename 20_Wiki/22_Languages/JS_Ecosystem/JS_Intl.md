@@ -494,6 +494,118 @@ kstWeekRange 언제 쓰는가:
   월요일 00:00 + 7일 = 다음 주 월요일 00:00 (범위 끝)
 ```
 
+## weekday 값으로 요일 조건 판단 ⭐️⭐️⭐️
+
+```typescript
+// KST 기준 오늘이 월요일인지 확인
+function isKstMonday(now = new Date()): boolean {
+  return (
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul',
+      weekday:  'short',
+    }).format(now) === 'Mon'
+    // weekday: 'short' + en-US → 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'
+    // 'Mon' 과 비교 → true/false
+  );
+}
+```
+
+```typescript
+// 범용 패턴 — 어떤 요일이든
+function isKstWeekday(
+  day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun',
+  now = new Date(),
+): boolean {
+  return (
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul',
+      weekday:  'short',
+    }).format(now) === day
+  );
+}
+
+isKstWeekday('Mon')  // 오늘 KST 기준 월요일인지
+isKstWeekday('Sun')  // 일요일인지
+```
+
+```txt
+언제 쓰는가:
+  주간 seed, 주간 초기화 크론 → 월요일에만 실행
+  주말 알림 → Sat·Sun 체크
+  특정 요일 한정 기능
+
+왜 getDay() 안 쓰는가:
+  new Date().getDay() → 서버 TZ 기준 (UTC 서버면 UTC 요일)
+  Intl.DateTimeFormat + Asia/Seoul → KST 기준 요일 보장
+  UTC 서버에서 월요일 새벽 9시 이전에는 getDay()가 일요일을 반환
+
+en-US + weekday: 'short' → 'Mon'~'Sun' 영문 고정
+ko-KR + weekday: 'short' → '월'~'일' 한글 (문자열 비교가 덜 직관적)
+```
+
+## ko-KR month + day — "8월 11일" 형식  & 지난주 KST 월~일 라벨⭐️⭐️⭐️
+
+```typescript
+// 날짜를 "8월 11일" 형식으로
+const fmt = (d: Date) =>
+  new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'long',    // '8월'
+    day:   'numeric', // '11일'
+  }).format(d);
+
+fmt(new Date('2026-08-11T00:00:00+09:00'))  // "8월 11일"
+fmt(new Date('2026-08-17T00:00:00+09:00'))  // "8월 17일"
+```
+
+```typescript
+/** 지난주 KST 월~일 라벨 — "8월 11일 ~ 8월 17일" */
+function kstPreviousWeekRangeLabel(now = new Date()): string {
+  const DAY_MS    = 86400000;
+  const todayKey  = kstDateKey(now);
+  const todayStart = new Date(`${todayKey}T00:00:00+09:00`);
+
+  // 이번 주 월요일 구하기 (kstWeekRange와 동일 로직)
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', weekday: 'short',
+  }).format(now);
+  const monOffset = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[weekday] ?? 0;
+  const thisMon = new Date(todayStart.getTime() - monOffset * DAY_MS);
+
+  // 지난주 범위: 이번 주 월요일 기준으로 7일 전
+  const prevMon = new Date(thisMon.getTime() - 7 * DAY_MS);  // 지난주 월요일
+  const prevSun = new Date(thisMon.getTime() - DAY_MS);      // 지난주 일요일 (이번 주 월요일 - 1일)
+
+  // ko-KR로 "8월 11일" 형식 포맷
+  const fmt = (d: Date) =>
+    new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      month: 'long',
+      day:   'numeric',
+    }).format(d);
+
+  return `${fmt(prevMon)} ~ ${fmt(prevSun)}`;
+  // "8월 11일 ~ 8월 17일"
+}
+```
+
+```txt
+계산 흐름:
+  오늘 todayStart (KST 자정)
+  - monOffset * DAY_MS = thisMon (이번 주 월요일 00:00 KST)
+  - 7 * DAY_MS         = prevMon (지난주 월요일)
+  thisMon - 1일         = prevSun (지난주 일요일)
+
+  왜 prevSun = thisMon - 1일인가:
+  이번 주 월요일 00:00 - 하루 = 지난주 일요일 00:00
+  일요일 자정을 가리키지만 날짜만 쓰므로 "지난주 일요일"
+
+locale 조합:
+  en-US + weekday: 'short' → 요일 계산용 'Mon'~'Sun' 영문
+  ko-KR + month/day         → 화면 표시용 "8월 11일" 한글
+  한 함수 안에서 두 locale을 목적에 맞게 혼용
+```
+
 ---
 # 자주 쓰는 유틸 함수 정리
 

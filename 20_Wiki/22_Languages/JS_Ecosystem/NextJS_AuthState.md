@@ -310,3 +310,103 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 }
 ```
+
+---
+# SSR Hydration 불일치 — suppressHydrationWarning ⭐️⭐️⭐️⭐️
+
+```txt
+Hydration(리액트 DOM Hydration)이란:
+  Next.js는 서버에서 HTML을 먼저 만들어서 브라우저에 보냄 (SSR)
+  브라우저가 그 HTML을 받아서 React가 이벤트·상태를 붙임
+  이 과정 = "Hydration"
+
+불일치(mismatch) 문제:
+  서버가 HTML 만들 때와 브라우저가 Hydration 할 때 값이 다르면 경고
+  
+  예: 날짜·시간
+    서버: KST 현재 시각을 모름 (서버 TZ 또는 빌드 시점 기준)
+    클라이언트: 브라우저의 현재 시각
+    → 둘이 다르면 Hydration 경고 또는 화면 깜빡임
+
+  예: localStorage 값
+    서버: localStorage 없음 → null
+    클라이언트: 실제 저장된 값 → 다를 수 있음
+```
+
+## 해결 패턴 — useState + useEffect + suppressHydrationWarning
+
+```tsx
+'use client';
+import { useState, useEffect } from 'react';
+
+function DateLabel() {
+  // SSR 초기값은 중립값 '—' (서버도 클라이언트도 처음엔 같은 값)
+  const [dateLabel, setDateLabel] = useState('—');
+
+  useEffect(() => {
+    // 마운트 후(클라이언트에서만) 실제 KST 날짜로 교체
+    setDateLabel(kstLobbyDateLabel());
+  }, []);
+
+  return (
+    <span suppressHydrationWarning>
+      {dateLabel}
+    </span>
+  );
+}
+```
+
+```txt
+흐름:
+  SSR    → dateLabel = '—'  → HTML: <span>—</span>
+  마운트  → useEffect 실행   → dateLabel = 'KST 날짜'
+  업데이트 → <span>2026년 8월 20일 · 목 · 14:30</span>
+
+  서버와 클라이언트 둘 다 초기값 '—' 으로 같음
+  → Hydration 시 불일치 없음
+  → useEffect 후 클라이언트에서 실제 값으로 교체
+
+suppressHydrationWarning:
+  이 prop이 있는 요소는 서버·클라이언트 값이 달라도 React가 경고하지 않음
+  "이 요소의 불일치는 알고 있어, 무시해"라고 React에게 알리는 것
+  → useState + useEffect 패턴의 보험
+
+  자식 요소에는 적용 안 됨 — 해당 요소 하나에만
+  남용하면 실제 버그를 숨길 수 있음 → 날짜·시간·로케일처럼
+  "서버와 클라이언트가 다를 수밖에 없는 경우"에만 사용
+```
+
+## 언제 이 패턴이 필요한가
+
+
+```tsx
+// ① 날짜·시간 — 서버 TZ와 클라이언트 TZ가 다를 수 있음
+const [time, setTime] = useState('—');
+useEffect(() => { setTime(kstLobbyDateLabel()); }, []);
+
+// ② 로컬 저장값 — 서버엔 localStorage 없음
+const [theme, setTheme] = useState('light');
+useEffect(() => {
+  setTheme(localStorage.getItem('theme') ?? 'light');
+}, []);
+
+// ③ 브라우저 전용 API — window, navigator 등
+const [ua, setUa] = useState('');
+useEffect(() => { setUa(navigator.userAgent); }, []);
+```
+
+
+```txt
+공통 패턴:
+  서버에서는 알 수 없는 값 → 초기값을 중립값('—', 'light', '')으로
+  useEffect에서 실제 값으로 교체
+  필요 시 suppressHydrationWarning으로 잔여 불일치 완화
+
+suppressHydrationWarning 없이도 되는 경우:
+  초기값(중립값)이 서버 HTML과 완전히 같으면 불일치 자체가 없음
+  → prop 없어도 경고 없음
+
+추가해야 하는 경우:
+  초기값을 아무리 맞춰도 미세한 차이가 남을 때 (타임스탬프 등)
+  → prop 추가해서 경고 억제
+```

@@ -237,6 +237,44 @@ export function getTzYear(date: Date): number {
   return Number(toTzDateKey(date).slice(0, 4));
 }
 
+/** KST 기준 오늘이 특정 요일인지 확인 */
+export function isKstWeekday(
+  day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun',
+  now = new Date(),
+): boolean {
+  return (
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: TIMEZONE,
+      weekday:  'short',
+    }).format(now) === day
+  );
+}
+// isKstWeekday('Mon') → 오늘 KST 기준 월요일인지 true/false
+// 크론에서 특정 요일만 실행할 때, 주간 seed 진입 조건 등
+
+/** 지난주 KST 월~일 라벨 — "8월 11일 ~ 8월 17일" 같은  (화면 표시용) */
+export function kstPreviousWeekRangeLabel(now = new Date()): string {
+  const todayKey   = toTzDateKey(now);
+  const todayStart = new Date(`${todayKey}T00:00:00${UTC_OFFSET}`);
+
+  const weekday  = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE, weekday: 'short',
+  }).format(now);
+  const monOffset = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[weekday] ?? 0;
+
+  const thisMon = new Date(todayStart.getTime() - monOffset * DAY_MS);
+  const prevMon = new Date(thisMon.getTime() - 7 * DAY_MS);  // 지난주 월요일
+  const prevSun = new Date(thisMon.getTime() - DAY_MS);       // 지난주 일요일
+
+  const fmt = (d: Date) =>
+    new Intl.DateTimeFormat('ko-KR', {
+      timeZone: TIMEZONE, month: 'long', day: 'numeric',
+    }).format(d);
+
+  return `${fmt(prevMon)} ~ ${fmt(prevSun)}`;
+  // "8월 11일 ~ 8월 17일"
+}
+
 /** KST 오늘 00:00 ~ 익일 00:00 범위
  *  WHERE created_at >= start AND created_at < end 용
  */
@@ -296,6 +334,16 @@ kstDayKeys — 언제 쓰는가:
   날짜 범위를 키 배열로 만들어야 할 때
   차트 x축 라벨 생성 ("2026-08-12" ~ "2026-08-18")
   빈 날짜도 0으로 채우는 버킷 초기화
+
+isKstWeekday — 언제 쓰는가:
+  KST 기준 오늘 요일 조건 판단
+  @Cron에서 월요일에만 주간 초기화 실행
+  특정 요일 한정 기능·알림
+
+kstPreviousWeekRangeLabel — 언제 쓰는가:
+  화면에 "지난주" 날짜 범위 표시 ("8월 11일 ~ 8월 17일")
+  주간 통계 대시보드 헤더, 주간 리포트 라벨
+  en-US(요일 계산) + ko-KR(화면 표시) 두 locale 혼용 패턴
 ```
 
 ```ts
