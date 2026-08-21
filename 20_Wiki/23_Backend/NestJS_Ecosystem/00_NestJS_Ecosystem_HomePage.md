@@ -154,21 +154,24 @@ Monorepo_PNPM      초기 설정 순서 · pnpm-workspace.yaml · allowBuilds ·
 
 ## ⚙️ 패턴 · 기법
 
-|            | 노트                    |
-| ---------- | --------------------- |
-| **이메일**    | [[NestJS_Email]]      |
-| **스케줄링**   | [[NestJS_Scheduling]] |
-| **스로틀링**   | [[NestJS_Throttle]]   |
-| **로깅**     | [[NestJS_Logger]]     |
-| **페이지네이션** | [[NestJS_Pagination]] |
-| **시드**     | [[NestJS_Seed]]       |
-| **캐시 테이블** | [[NestJS_CacheTable]] |
+| |노트|
+|---|---|
+|**이메일**|[[NestJS_Email]]|
+|**스케줄링**|[[NestJS_Scheduling]]|
+|**스로틀링**|[[NestJS_Throttle]]|
+|**로깅**|[[NestJS_Logger]]|
+|**페이지네이션**|[[NestJS_Pagination]]|
+|**시드**|[[NestJS_Seed]]|
+|**통계 집계**|[[NestJS_StatsBucket]]|
+|**캐시 테이블**|[[NestJS_CacheTable]]|
+|**AI 연동**|[[NestJS_AiProvider]]|
 
 ```txt
 NestJS_Email       Resend · Nodemailer · SMTP 설정 · MailService 패턴
 NestJS_Scheduling  @Cron · @Interval · @Timeout · 타임존 · SchedulerRegistry
 NestJS_Throttle    스로틀링 · 서비스 레벨 force 패턴
 NestJS_Seed        테스트 데이터 생성 · $transaction · cleanup
+NestJS_StatsBucket 통계 버킷 · 사전집계 vs 실시간 · upsert increment · 차트 연동
 NestJS_CacheTable  외부 API(TMDB 등) 캐시 테이블 패턴 · MoviePool · ORDER BY RANDOM() · N+1 해소 · rate limit
 멱등성 개념 → [[HTTP_Concept]] REST CRUD 섹션
 ```

@@ -1,5 +1,5 @@
 ---
-aliases: [내부 함수 추출, 조기반환, 함수 설계 패턴, 화살표 함수 암시적 반환, Early Return, fallback(폴백), force=false]
+aliases: [내부 함수 추출, 조기반환, 함수 설계 패턴, 화살표 함수 암시적 반환, Early Return, fallback(폴백), Fire-and-Forget, force=false]
 tags: [JavaScript, React]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
@@ -66,6 +66,7 @@ options = {} 기본값의 의미:
 
 ## 호출 방법
 
+
 ```typescript
 await touchLastActiveAt(userId, role);                          // 기본값
 await touchLastActiveAt(userId, role, { force: true });         // 일부만
@@ -85,13 +86,86 @@ async function touchLastActiveAt(
 }
 ```
 
-## force 플래그가 자주 쓰이는 패턴
+## force 플래그가 자주 쓰이는 패턴 ⭐️⭐️⭐️⭐️
 
 ```txt
-"보통은 스킵하지만 이 경우엔 반드시 실행해야 해"
-  → 서비스 레벨 스로틀 건너뛰기 → [[NestJS_Throttle]] 참고
-  → 캐시 무효화 강제 갱신
-  → 조건부 early return 무력화
+force 플래그란:
+  force = false (기본값) = "평소대로 해줘"
+    → 캐시가 있으면 캐시 사용
+    → 이미 처리된 것은 스킵
+    → 조건이 맞으면 early return
+
+  force = true = "강제로 새로 해줘, 평소 조건 무시해"
+    → 캐시가 있어도 무시하고 새로 가져옴
+    → 이미 처리된 것도 다시 실행
+    → early return 건너뛰고 끝까지 실행
+
+  이름이 force(강제)인 이유:
+    "원래 건너뛸 상황인데 강제로 실행시킨다"는 의미
+    기본값이 false인 이유: 보통은 강제할 필요 없음
+    true는 예외 상황(수동 갱신, 버그 수정, 배치 재처리)에서만 사용
+```
+
+```typescript
+// opts?: { force?: boolean } 패턴 분해
+async function getMovieCached(
+  movieId: number,
+  opts?:   { force?: boolean },
+  //  ↑ opts 자체가 optional (없어도 됨)
+  //              ↑ force도 optional (있어도 없어도 됨)
+) {
+  const cached = await db.movie.findUnique({ where: { id: movieId } });
+
+  if (
+    !opts?.force &&     // ① force가 아니면 캐시 사용 조건 체크
+    cached &&           // ② 캐시가 있고
+    cached.isComplete   // ③ 데이터가 완전하면
+  ) {
+    return cached;      // 캐시 반환 (빠름)
+  }
+
+  // force: true이거나, 캐시 없거나, 데이터 불완전 → 새로 가져옴
+  const fresh = await fetchFromApi(movieId);
+  await db.movie.upsert({ ... });  // 캐시 저장
+  return fresh;
+}
+```
+
+```txt
+!opts?.force 읽는 법:
+
+  opts?.force:
+    opts가 없으면 undefined → false로 해석
+    opts = {} 이면 force는 undefined → false로 해석
+    opts = { force: true } 이면 true
+
+  !opts?.force:
+    "force가 true가 아닐 때" = "강제 새로고침이 아닐 때"
+    → true(캐시 써도 됨)
+    → false(강제로 새로 가져와야 함)
+
+조건 전체 뜻:
+  if (!opts?.force && cached && cached.isComplete)
+     ↑ 강제 아님      ↑ 캐시 있음 ↑ 데이터 완전함
+  → 세 조건 모두 만족 시 캐시 반환
+  → 하나라도 false면 새로 가져옴
+
+  → force: true 설정 시 캐시가 있어도 무조건 새로 가져옴
+    = "캐시를 강제로 무효화"
+```
+
+```typescript
+// 호출 방법
+getMovieCached(123)                // 기본 — 캐시 있으면 사용
+getMovieCached(123, { force: true }) // 강제 — 캐시 무시하고 새로 가져옴
+
+// 실전 예: 관리자가 수동으로 데이터 갱신 버튼 클릭
+await getMovieCached(movieId, { force: true });
+
+// 실전 예: 배치에서 특정 조건의 데이터만 강제 갱신
+if (needsRefresh(cached)) {
+  await getMovieCached(movieId, { force: true });
+}
 ```
 
 ## `Partial<T>` — 옵션 객체 타입 유틸리티 ⭐️⭐️
@@ -111,12 +185,96 @@ async function updateUser(userId: number, data: Partial<UserUpdateData>) {
 updateUser(1, { name: '새이름' });  // ✅
 ```
 
+
 ```txt
 옵션 객체는 보통 모든 필드가 선택적
 → interface에 ? 전부 붙이거나 Partial<T>를 쓰거나
 → Partial<T> 상세 → [[TS_Utility_Types]]
 ```
 
+## 콜백을 opts 안에 넣기 — 진행률·훅 주입 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 기본 파라미터는 앞에, 선택적 콜백은 opts 객체 안에
+async function seedPool(
+  filters: Record<string, string> = {},
+  pages   = 5,
+  opts?:  { onPageDone?: (page: number) => void },
+  //  ↑ 전체 opts가 optional
+  //                ↑ 콜백 자체도 optional
+) {
+  for (let page = 1; page <= pages; page++) {
+    await fetchAndSave(filters, page);
+
+    opts?.onPageDone?.(page);
+    // opts가 없어도 → opts?.onPageDone? → undefined → 안전
+    // opts는 있지만 콜백 없어도 → onPageDone? → undefined → 안전
+    // 둘 다 있어야 호출됨
+  }
+}
+
+// 콜백 없이 호출
+await seedPool({ genre: 'action' }, 10);
+
+// 콜백 포함
+await seedPool({ genre: 'action' }, 10, {
+  onPageDone: (page) => {
+    console.log(`${page}페이지 완료`);
+    setProgress(page);
+  },
+});
+```
+
+```typescript
+// 여러 콜백을 opts에 담는 경우
+type SeedOpts = {
+  onPageDone?:  (page: number) => void;
+  onError?:     (err: Error, page: number) => void;
+  onComplete?:  (total: number) => void;
+};
+
+async function seedPool(
+  filters: Record<string, string> = {},
+  pages   = 5,
+  opts?:  SeedOpts,
+) {
+  let total = 0;
+  for (let page = 1; page <= pages; page++) {
+    try {
+      const count = await fetchAndSave(filters, page);
+      total += count;
+      opts?.onPageDone?.(page);
+    } catch (err) {
+      opts?.onError?.(err as Error, page);
+    }
+  }
+  opts?.onComplete?.(total);
+}
+```
+
+```txt
+왜 직접 파라미터 대신 opts 객체에 넣는가:
+
+  직접 넣으면:
+    function seedPool(filters, pages, onPageDone?, onError?, onComplete?)
+    → 파라미터가 많아질수록 순서를 기억해야 함
+    → onError만 넣고 싶을 때 onPageDone 자리에 undefined 필요
+
+  opts 객체에 넣으면:
+    seedPool(filters, pages, { onError: handler })
+    → 필요한 것만 이름으로 전달
+    → 순서 무관, 나중에 콜백 추가해도 기존 호출 코드 안 바뀜
+
+opts?.callback?.() — 옵셔널 체이닝 두 번:
+  opts?       → opts가 undefined이면 여기서 멈춤
+  .onPageDone?→ 콜백이 undefined이면 여기서 멈춤
+  ()          → 둘 다 있을 때만 호출
+
+콜백 타입 읽는 법:
+  (page: number) => void
+  ↑ 인자 이름: 타입   ↑ 반환 없음 (결과 무시)
+  → [[React_Types]] React.Dispatch와 비교
+```
 ---
 
 # 조기 반환 (Early Return) ⭐️⭐️⭐️
@@ -188,6 +346,137 @@ runAction이 적합한 경우:
   액션마다 다른 후처리 (삭제 성공 후 편집 모드 닫기 등)
   대상별 pending id를 각자 관리해야 할 때
   → [[React_AsyncUI]] 이벤트 핸들러 섹션 참고
+```
+
+---
+# Fire-and-Forget — 쏘고 잊기 ⭐️⭐️⭐️⭐️
+
+```txt
+fire-and-forget = 비동기 작업을 시작하고 결과를 기다리지 않는 패턴
+
+  일반 await:
+    결과를 받아야 다음으로 진행
+    작업이 끝날 때까지 응답이 지연됨
+
+  fire-and-forget:
+    작업을 시작만 하고 즉시 다음으로 진행
+    작업은 백그라운드에서 계속 실행됨
+    응답 속도가 빨라짐
+
+  이름 유래:
+    총을 쏘고(fire) 탄이 어디 떨어지는지 신경 쓰지 않는(forget) 것
+    "일단 실행시켜놓고 결과는 나중에 (또는 신경 안 씀)"
+```
+
+## 기본 구조
+
+```typescript
+// await 있음 — 결과를 기다림
+const enriched = await this.enrichIfNeeded(id, title, overview);
+return { ...movie, ...enriched };  // enriched가 완료된 후 반환
+
+// fire-and-forget — 결과를 기다리지 않음
+void this.enrichIfNeeded(id, title, overview)
+  .catch(err => this.logger.warn(`enrich 실패: ${err.message}`));
+return movie;  // enrichIfNeeded가 끝나기 전에 즉시 반환
+```
+
+
+```txt
+void 키워드:
+  "이 Promise의 결과를 의도적으로 무시한다"고 명시
+  void 없으면 TypeScript/ESLint가 "await 안 했음" 경고
+  → void = "알고 있어, 일부러 기다리지 않는 거야"
+
+.catch() 가 반드시 필요한 이유:
+  await 없이 Promise를 실행하면 에러가 어디에도 잡히지 않음
+  → UnhandledPromiseRejection → 앱 크래시 가능
+  .catch()로 에러를 잡아서 로그에 기록
+  → 에러가 나도 응답에 영향 없음
+```
+
+## 실전 — fromPool 캐시 hit 후 백그라운드 보강
+
+```typescript
+private async fromPool(row: MoviePool): Promise<GachaMovie> {
+  // 캐시에서 즉시 응답할 데이터 조립
+  const movie: GachaMovie = {
+    id:           row.tmdbId,
+    title:        row.title,
+    overview:     row.overview,
+    poster_path:  row.posterPath,
+    release_date: row.releaseDate,
+    director:     row.director,
+  };
+
+  // 번역·보강은 백그라운드에서 — 응답은 지금 바로
+  void this.enrichIfNeeded(
+    row.tmdbId,
+    movie.title,
+    movie.overview ?? '',
+    movie.release_date ?? '',
+  ).catch(err =>
+    this.logger.warn(`background enrich 실패: ${(err as Error).message}`),
+  );
+
+  return movie;  // enrichIfNeeded 완료 전에 즉시 반환
+}
+```
+
+
+```txt
+흐름:
+  캐시 hit → movie 조립 (빠름)
+  enrichIfNeeded 시작 (백그라운드)  ← 기다리지 않음
+  즉시 movie 반환 → 클라이언트가 빠르게 받음
+  (시간이 지나면 enrichIfNeeded 완료 → DB 업데이트)
+
+왜 이렇게 하는가:
+  enrichIfNeeded = 번역·AI 호출 등 느린 작업
+  이걸 기다리면 응답이 느려짐
+  캐시에 이미 기본 데이터는 있으니 먼저 반환
+  보강 데이터는 다음 캐시 hit 때 사용됨
+```
+
+## 언제 fire-and-forget 쓰는가
+
+
+```typescript
+// ✅ 적합한 경우
+
+// ① 결과가 현재 응답에 필요 없을 때
+void this.notificationService.send(userId, '가입 환영합니다');
+return { success: true };
+
+// ② 중요하지 않은 사이드 이펙트 (통계, 로그)
+void this.statsService.increment('pageView');
+return pageData;
+
+// ③ 캐시를 백그라운드에서 갱신
+void this.cacheService.refresh(key)
+  .catch(err => this.logger.warn('캐시 갱신 실패'));
+return cachedData;
+
+// ❌ 적합하지 않은 경우
+
+// 결과가 응답에 필요할 때
+void this.getUserProfile(id);  // ← 이 결과가 없으면 응답 불완전
+return { user: ??? };
+
+// 실패 시 반드시 알아야 할 때 (결제, 주문)
+void this.paymentService.charge(amount);  // ← 결제 실패를 모름
+return { orderId };  // ← 사실 결제 안 됐을 수 있음
+```
+
+
+```txt
+fire-and-forget 쓰면 안 되는 경우:
+  결과 데이터가 현재 응답에 필요한 경우
+  실패 시 사용자에게 알려야 하는 중요한 작업
+  다음 작업이 이 작업의 완료에 의존하는 경우
+
+  → 중요한 작업은 반드시 await
+  → 실패해도 괜찮은 부가 작업에만 fire-and-forget
 ```
 
 ---

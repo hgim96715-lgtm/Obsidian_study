@@ -22,6 +22,7 @@ aliases:
   - _접두사
   - "! 연산자"
   - null 방어 스프레드
+  - Symbol
 tags:
   - JavaScript
 related:
@@ -31,6 +32,7 @@ related:
   - "[[React_AsyncUI]]"
   - "[[JS_Array_Methods]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[NestJS_AiProvider]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
@@ -863,3 +865,47 @@ useEffect(() => {
 void vs await 판단 기준 → [[React_AsyncUI]] "fire-and-forget" 섹션
 함수 옵션 객체 패턴 (force = false, Partial<T>) → [[JS_FunctionPatterns]]
 ```
+
+---
+# Symbol — 전역 유일 식별자 ⭐️⭐️⭐️
+
+```typescript
+const a = Symbol('설명');
+const b = Symbol('설명');
+a === b  // false — 설명이 같아도 항상 다른 값
+```
+
+```txt
+Symbol = "세상에 딱 하나뿐인 값"
+  같은 설명('AI_PROVIDER')으로 만들어도 두 Symbol은 다름
+  문자열·숫자처럼 충돌 가능성 없음
+
+  Symbol('설명')의 '설명':
+    디버깅할 때 어떤 Symbol인지 알아보기 위한 레이블
+    Symbol의 동일성에는 영향 없음 (그냥 메모)
+```
+
+```typescript
+// 왜 문자열 대신 Symbol인가
+const TOKEN_STR = 'AI_PROVIDER';          // 다른 라이브러리가 같은 문자열 쓰면 충돌
+const TOKEN_SYM = Symbol('AI_PROVIDER');  // 이 파일에서만 만들어진 유일한 값 → 충돌 없음
+
+// NestJS DI 토큰으로 사용
+export const AI_PROVIDER = Symbol('AI_PROVIDER');
+
+// 주입 시
+@Inject(AI_PROVIDER) private readonly ai: IAiProvider;
+// → [[NestJS_AiProvider]] DI 토큰 섹션
+```
+
+```typescript
+// 객체 키로 Symbol — 외부에서 접근·충돌 불가
+const SECRET = Symbol('secret');
+const obj = { [SECRET]: '비밀값', name: '공개값' };
+
+obj[SECRET]    // '비밀값'  (Symbol 참조 있어야 접근 가능)
+obj.name       // '공개값'
+Object.keys(obj)   // ['name']  (Symbol 키는 열거 안 됨)
+JSON.stringify(obj) // '{"name":"공개값"}' (Symbol 무시됨)
+```
+

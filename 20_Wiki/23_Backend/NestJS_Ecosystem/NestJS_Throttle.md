@@ -11,6 +11,7 @@ related:
   - "[[JS_Promise]]"
   - "[[NestJS_Prisma]]"
   - "[[JS_Operators]]"
+  - "[[JS_FunctionPatterns]]"
 ---
 # NestJS_Throttle — Rate Limiting (요청 속도 제한)
 

@@ -304,3 +304,81 @@ const match = 'John 30'.match(/(\w+)\s(\d+)/);
   → 패턴 입력하면 실시간으로 어디가 매칭되는지 시각화
   → 각 특수문자의 의미도 설명해줌 (정규식 공부에 매우 유용)
 ```
+
+---
+
+# 유니코드 범위 — \u 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+\uXXXX = 유니코드 코드 포인트를 16진수로 지정
+  \u0041 = 'A' (U+0041)
+  \uAC00 = '가' (U+AC00)
+  \uD7AF = '힣' (U+D7AF)
+
+[범위] = 그 범위 안의 모든 문자
+  [\uAC00-\uD7AF] = 한글 가~힣 (11,172자 한글 음절 전체)
+  [\u0020-\u007E] = 기본 ASCII 출력 가능 문자 (스페이스~물결표)
+```
+
+## 자주 쓰는 유니코드 범위
+
+```typescript
+/[\uAC00-\uD7AF]/   // 한글 음절 (가~힣)
+/[\u0020-\u007E]/   // ASCII 출력 가능 (스페이스, 영문, 숫자, 기호)
+/[^\u0020-\u007E]/  // ASCII가 아닌 문자 (한글, 일본어, 중국어, 특수문자 등)
+/[\u3040-\u309F]/   // 일본어 히라가나
+/[\u4E00-\u9FFF]/   // CJK 통합 한자
+```
+
+## 번역 필요 여부 판단 — 실전 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// "한글이 없고 비ASCII 문자가 있으면 번역 필요"
+const needsTitle =
+  !/[\uAC00-\uD7AF]/.test(title) &&  // 한글이 없고
+  /[^\u0020-\u007E]/.test(title);    // ASCII도 아닌 문자가 있음
+
+const needsDirector =
+  !!director &&                            // director가 있고
+  !/[\uAC00-\uD7AF]/.test(director) &&    // 한글이 없고
+  /[^\u0020-\u007E]/.test(director);      // 비ASCII 문자가 있음
+```
+
+```txt
+조건 분해:
+
+  !/[\uAC00-\uD7AF]/.test(title):
+    한글이 없다 = 한국어 제목이 아님
+    /[\uAC00-\uD7AF]/ 에 매칭 안 되면 한글 없음
+
+  /[^\u0020-\u007E]/.test(title):
+    ASCII가 아닌 문자가 있다 = 영어도 아님
+    일본어, 중국어, 아랍어, 특수 유니코드 등
+
+  둘 다 true:
+    한글도 없고 영어도 아닌 문자가 있음
+    = 일본어나 중국어 원제를 한국어로 번역해야 함
+
+  예시:
+    title = "Sing Street"   → 한글 없음 ✓, ASCII만 있음 → false (번역 불필요)
+    title = "シング・ストリート" → 한글 없음 ✓, 비ASCII 있음 ✓ → true (번역 필요)
+    title = "싱 스트리트"   → 한글 있음 → false (이미 한국어)
+
+  !!director:
+    director가 null/undefined/'' 이면 false → 전체 false
+    있을 때만 번역 여부 체크
+```
+
+```typescript
+// 범용 유틸
+function needsKoreanTranslation(text: string): boolean {
+  const hasKorean = /[\uAC00-\uD7AF]/.test(text);
+  const hasNonAscii = /[^\u0020-\u007E]/.test(text);
+  return !hasKorean && hasNonAscii;
+}
+
+needsKoreanTranslation('Sing Street')        // false — 영문
+needsKoreanTranslation('싱 스트리트')         // false — 이미 한국어
+needsKoreanTranslation('シング・ストリート')   // true  — 일본어 → 번역 필요
+needsKoreanTranslation('少年의 時間')         // true  — 한자 → 번역 필요
+```
