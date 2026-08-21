@@ -986,7 +986,7 @@ include용으로 만들어둔 객체의 _count 부분만 따로 꺼내서 select
 
 ---
 
-# orderBy / take / skip
+# orderBy / take / skip / distinct
 
 ```typescript
 this.prisma.post.findMany({
@@ -998,6 +998,44 @@ this.prisma.post.findMany({
 
 > 커서 기반 페이지네이션 → [[NestJS_Pagination]]
 
+## distinct — 중복 제거 ⭐️⭐️⭐️
+
+```typescript
+// 특정 필드 기준으로 중복 행을 제거하고 반환
+this.prisma.reviewPost.findMany({
+  distinct: ['tmdbId'],          // tmdbId 값이 같은 행 중 첫 번째만 반환
+  select: { tmdbId: true },
+});
+// 같은 tmdbId로 작성된 후기가 여러 개여도 tmdbId 하나만 나옴
+// → 후기가 있는 영화 id 목록을 중복 없이 가져올 때
+```
+
+```typescript
+// 복합 distinct — 여러 필드 조합
+this.prisma.post.findMany({
+  distinct: ['authorId', 'category'],
+  // authorId + category 조합이 같은 것 중 첫 번째만
+});
+
+// orderBy와 함께 — "각 tmdbId별 최신 후기"
+this.prisma.reviewPost.findMany({
+  distinct:  ['tmdbId'],
+  orderBy:   { createdAt: 'desc' },
+  // 각 tmdbId 그룹에서 createdAt이 가장 최신인 행 반환
+});
+```
+
+```txt
+distinct vs groupBy:
+  distinct → 중복 제거된 행 자체를 반환 (select로 원하는 필드 지정)
+  groupBy  → 집계 함수(_count, _sum 등)와 함께 사용
+
+  "어떤 값들이 있는가" → distinct
+  "각 그룹의 수는?" → groupBy + _count
+
+SQL 대응:
+  distinct: ['tmdbId'] → SELECT DISTINCT tmdb_id FROM review_posts
+```
 ---
 
 # count / aggregate / groupBy
