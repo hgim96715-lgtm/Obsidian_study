@@ -195,12 +195,13 @@ React_Charts  Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데
 | 노트                       | 내용                                                |
 | ------------------------ | ------------------------------------------------- |
 | [[JS_Operators]]         | 구조분해 · 스프레드 · ?. · ?? · !! · Truthy/Falsy         |
-| [[JS_Promise]]           | async/await · Promise\<T\> · Promise.all          |
+| [[JS_Promise]]           | async/await · Promise<T> · Promise.all            |
 | [[JS_Array_Methods]]     | some · filter · map · reduce · 불변성 · Set          |
 | [[JS_Object_Methods]]    | Object.keys · entries · fromEntries · Map         |
 | [[JS_FunctionPatterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
-| [[JS_Primitive_Methods]] | String · Number · Math · 해시함수                     |
-| [[JS_Regex]]             | test · replace · match · 캡처그룹 · `/\/$/ ` 분석       |
+| [[JS_AlgorithmPatterns]] | GCD(최대공약수) · 서로소 step · 격자 산포 배치 · clamp          |
+| [[JS_Primitive_Methods]] | String · Number · Math                            |
+| [[JS_Regex]]             | test · replace · match · 캡처그룹 · `/\/$/` 분석        |
 
 ---
 
