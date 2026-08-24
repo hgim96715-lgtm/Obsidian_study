@@ -281,34 +281,59 @@ React에 dangerouslySetInnerHTML이 있는 이유가 바로 이것
 ## isComposing — 한글 입력 중 Enter 문제 ⭐️⭐️⭐️⭐️
 
 ```typescript
-onKeyDown={(e) => {
-  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-    e.preventDefault();
-    commit();
-  }
-}}
+const isComposingRef = useRef(false);
+
+<input
+  onCompositionStart={() => { isComposingRef.current = true; }}
+  onCompositionEnd={() => { isComposingRef.current = false; }}
+  onKeyDown={(e) => {
+    if (e.nativeEvent.isComposing || isComposingRef.current) return;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    }
+  }}
+/>
 ```
 
 ```txt
-왜 필요한가:
-  한글은 자음+모음을 조합해서 한 글자를 만듦 (IME: Input Method Editor)
-  '분' 입력할 때: 'ㅂ' → '부' → '분' 조합 중
+한글은 자음+모음을 조합해서 한 글자를 만드는 IME(Input Method Editor)를 사용함
 
-  조합 중에 Enter를 누르면 두 이벤트가 발생:
-    1. IME가 조합 중인 글자를 "확정"하는 Enter
-    2. 우리가 처리하려는 "제출"용 Enter
+조합 중 Enter:
+  ① IME가 조합 중인 글자를 확정
+  ② 앱의 keydown 핸들러도 Enter를 감지할 수 있음
 
-  isComposing = true  → 조합 중 Enter (확정용) — 무시해야 함
-  isComposing = false → 조합 끝난 뒤 Enter — 처리할 Enter
+isComposing = true  → 조합 중 Enter — 무시
+isComposing = false → 조합이 끝난 뒤 Enter — 처리
 
-  체크 안 하면: '분' 입력 → Enter(조합확정) → commit() 실행 → 의도 않은 제출
+브라우저·OS·IME에 따라 keydown 시점의 isComposing 값이 다를 수 있음
+→ compositionStart/End를 ref로 함께 추적하면 조합 상태를 보완할 수 있음
+```
+
+### 태그·검색어 입력 중복 추가
+
+```txt
+원인:
+  onBlur 자동 추가 + Enter 처리 + 버튼 click이 같은 입력을 여러 번 확정함
+  button click 전에 input blur가 먼저 발생하면 추가 함수가 연속 호출될 수 있음
+
+해결:
+  onBlur 자동 추가 제거 → Enter · 쉼표 · 버튼 click에서만 확정
+  keydown에서 nativeEvent.isComposing 또는 composition ref가 true면 무시
+  button onMouseDown에서 preventDefault() → blur 선행 방지
+  여러 state를 갱신할 때 setState(prev => ...) 사용 → stale state 방지
+
+preventDefault() → 기본 포커스 이동을 막음
+stopPropagation() → 부모로 이벤트가 전파되는 것을 막음
+→ blur 선행 방지는 stopPropagation이 아니라 preventDefault의 역할
 ```
 
 ## e.nativeEvent란
 
 ```txt
 React는 브라우저 이벤트를 SyntheticEvent로 감싸서 브라우저 간 일관성을 보장
-isComposing은 SyntheticEvent에 없음 → e.nativeEvent (원본 DOM 이벤트)로 접근
+isComposing은 원본 KeyboardEvent의 속성이므로 e.nativeEvent로 접근
 ```
 
 ---

@@ -161,17 +161,19 @@ React 19 form action (단순):
 
 ## 8️⃣ 스타일 · 브라우저
 
-|               | 노트                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------- |
-| **스타일**       | [[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] · [[NextJS_Font]] |
-| **차트**        | [[React_Charts]]                                                                      |
-| **브라우저 API**  | [[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]  |
-| **접근성**       | [[HTML_ARIA]]                                                                         |
-| **WebSocket** | [[NextJS_WebSocket]] · [[WebSocket_Patterns]]                                         |
+| |노트|
+|---|---|
+|**스타일**|[[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] · [[NextJS_Font]]|
+|**CSS 패턴**|[[CSS_Tricks]]|
+|**차트**|[[React_Charts]]|
+|**브라우저 API**|[[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]|
+|**접근성**|[[HTML_ARIA]]|
+|**WebSocket**|[[NextJS_WebSocket]] · [[WebSocket_Patterns]]|
 
 ```txt
 React_CSSProperties  인라인 style 타입 · camelCase · CSS 변수(--var) + as CSSProperties
-React_Charts  Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데이터 변환 패턴
+CSS_Tricks           line-clamp · overflow:hidden + ::after 클리핑 문제 · 말풍선 꼬리
+React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데이터 변환 패턴
 ```
 
 ---

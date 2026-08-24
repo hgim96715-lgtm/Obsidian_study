@@ -250,6 +250,75 @@ status?: 'active' | 'closed' | 'archived';
   'a' | 'b' | 'c' 같은 리터럴 유니온이면 → @IsIn(['a', 'b', 'c'])
 ```
 
+## @IsIn + { each: true } — 배열의 각 요소 검증 ⭐️⭐️⭐️⭐️
+
+```typescript
+// OTT 서비스 id 상수 배열
+const OTT_IDS = [8, 337, 356] as const; // Netflix, Disney+, Wavve...
+
+export class FilterDto {
+  @IsOptional()
+  @IsArray()
+  @IsIn(OTT_IDS, { each: true })
+  //             ↑ each: true = 배열의 각 요소마다 검증 적용
+  ottIds?: number[];
+}
+```
+
+```txt
+{ each: true }:
+  배열 전체가 아닌 배열의 각 요소 하나하나에 데코레이터를 적용
+  @IsIn(OTT_IDS)만 쓰면 배열 자체가 OTT_IDS 안에 있는지 체크 (의미 없음)
+  @IsIn(OTT_IDS, { each: true }) → 배열의 각 number가 OTT_IDS 안에 있는지 체크
+
+  없이: [8, 337] 자체가 OTT_IDS에 있나? → 항상 false
+  있이: 8이 OTT_IDS에 있나? 337이 있나? → 각각 체크
+
+각 데코레이터에서 each: true 쓰는 패턴:
+  @IsString({ each: true })  → 배열의 각 요소가 string인지
+  @IsInt({ each: true })     → 배열의 각 요소가 정수인지
+  @IsIn(arr, { each: true }) → 배열의 각 요소가 arr 안에 있는지
+  @IsEnum(MyEnum, { each: true }) → 배열의 각 요소가 enum 값인지
+```
+
+## @ArrayMaxSize · @ArrayMinSize — 배열 길이 제한 ⭐️⭐️⭐️
+
+```typescript
+export class FilterDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)                    // 배열 요소 최대 10개
+  @IsIn(OTT_IDS, { each: true })
+  ottIds?: number[];
+}
+
+export class CreateTagsDto {
+  @IsArray()
+  @ArrayMinSize(1)                     // 최소 1개 이상
+  @ArrayMaxSize(5)                     // 최대 5개
+  @IsString({ each: true })
+  tags!: string[];
+}
+```
+
+
+```txt
+@ArrayMaxSize(n):
+  배열 길이가 n 초과이면 에러
+  쿼리 파라미터 남용 방지, 배열 크기 제한
+
+@ArrayMinSize(n):
+  배열 길이가 n 미만이면 에러
+  빈 배열 방지
+
+배열 검증 세트:
+  @IsArray()                     배열인지
+  @ArrayMinSize(1)               최소 길이
+  @ArrayMaxSize(10)              최대 길이
+  @IsIn(허용값, { each: true })  각 요소 허용값 체크
+```
+
+
 ## @ApiProperty({ enum }) + @IsIn — 세트로 사용 ⭐️⭐️⭐️⭐️
 
 ```typescript
