@@ -8,7 +8,7 @@ tags:
   - PostgreSQL
 related:
   - "[[00_DB_HomePage]]"
-  - "[[Deploy_CloudMVP]]"
+  - "[[Deploy_FullStack]]"
   - "[[NestJS_Migration]]"
   - "[[PG_DDL]]"
 ---

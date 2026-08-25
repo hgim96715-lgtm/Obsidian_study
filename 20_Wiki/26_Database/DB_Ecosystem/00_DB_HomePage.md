@@ -33,6 +33,7 @@ cssclasses:
 | SELECT · INSERT · UPDATE · DELETE · JOIN | [[PG_DML]] |
 | COUNT · SUM · GROUP BY · 윈도우 함수 | [[PG_Aggregate]] |
 | NULL UNIQUE 함정 · ON CONFLICT · 인덱스 | [[PG_Patterns]] |
+| 테이블·오브젝트 존재 여부 확인 (`to_regclass`) | [[PG_Patterns]] |
 | 트랜잭션 · 격리 수준 · DEADLOCK | [[PG_Transaction]] |
 | ACID · BASE · CAP 이론 | [[DB_Transaction]] |
 | 캐싱 · TTL · Pub/Sub | [[Redis_Patterns]] |
@@ -89,6 +90,7 @@ PG_Patterns:
   RETURNING   — INSERT/UPDATE/DELETE 결과 즉시 반환 (추가 SELECT 불필요)
   인덱스 전략  — 복합 인덱스 순서 · Partial Index · 언제 만드는가
   EXPLAIN ANALYZE — Seq Scan vs Index Scan · 실행 계획 읽는 법
+  to_regclass — 테이블·오브젝트 존재 여부 확인 (존재하면 이름 반환 · 없으면 NULL)
 
 PG_Transaction:
   격리 수준   — READ COMMITTED(기본) · REPEATABLE READ · SERIALIZABLE

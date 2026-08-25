@@ -7,6 +7,7 @@ aliases:
   - useRouter
   - redirect
   - window.location.replace
+  - middleware
 tags:
   - React
   - NextJS
@@ -437,3 +438,69 @@ useSearchParams:
 | `usePathname()`     | ❌      | ✅      | Client Component에서 현재 경로    |
 | `redirect()`        | ✅      | ❌      | Server Component에서 리다이렉트    |
 | `<Link>`            | ✅      | ✅      | 어디서나 사용 가능                  |
+
+---
+
+# Middleware 리다이렉트 — 쿼리 파라미터 우회 플래그 ⭐️⭐️⭐️⭐️
+
+```txt
+패턴:
+  특정 경로(ex. /)에 접근 시 미들웨어가 자동으로 다른 경로로 리다이렉트
+  단, 특정 쿼리 파라미터가 있으면 리다이렉트를 건너뜀
+
+예시:
+  /              → 관리자 감지 → /admin 자동 이동
+  /?lobby=1      → lobby=1 플래그 감지 → 리다이렉트 없이 / 그대로 표시
+```
+
+```typescript
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+
+  // / 접근 시 관리자이면 /admin으로 자동 이동
+  // /?lobby=1 이면 우회 — 로비를 그대로 표시
+  if (pathname === '/' && !searchParams.get('lobby')) {
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+}
+```
+
+```typescript
+// 관리자 화면에서 로비로 이동하는 링크
+// ❌ 잘못된 사용 — / 접근 시 다시 /admin으로 리다이렉트됨
+<Link href="/">로비로</Link>
+
+// ✅ 올바른 사용 — lobby=1 플래그로 미들웨어 우회
+<Link href="/?lobby=1">로비로</Link>
+```
+
+```txt
+왜 이 패턴이 필요한가:
+  미들웨어는 경로(pathname)만으로 리다이렉트를 판단
+  → /admin에 있는 관리자가 /로 가면 → 또 /admin으로 튕겨나감
+  → 관리자가 실제 로비(/)를 보려면 우회 수단이 필요
+
+쿼리 파라미터 우회 플래그:
+  ?lobby=1 처럼 "리다이렉트 건너뜀" 신호를 쿼리 파라미터로 전달
+  미들웨어가 해당 파라미터를 보고 → redirect 없이 통과
+  로비 페이지 자체에서는 이 파라미터를 신경 쓸 필요 없음 (단순 무시)
+
+주의:
+  이 플래그는 URL에 남아있음 → /?lobby=1이 로비 URL이 됨
+  보기 싫으면 로비 page.tsx에서 router.replace('/')로 파라미터 제거 가능
+  (하지만 replace 시 미들웨어 재실행 → 다시 /admin으로 튕길 수 있으므로 주의)
+```
+
+```txt
+범용 패턴:
+  미들웨어 리다이렉트를 특정 상황에서만 건너뛰어야 할 때
+  쿼리 파라미터를 "우회 플래그"로 사용하는 것이 관례
+
+  다른 예:
+    /  → 로그인 사용자를 /dashboard로 → /?noRedirect=1로 우회
+    /  → 지역에 따라 /ko 또는 /en으로 → /?locale=skip으로 우회
+```

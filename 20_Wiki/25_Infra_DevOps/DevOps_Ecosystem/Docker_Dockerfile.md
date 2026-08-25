@@ -9,7 +9,7 @@ tags:
 related:
   - "[[00_DevOps_Ecosystem_HomePage]]"
   - "[[Docker_Compose]]"
-  - "[[Deploy_CloudMVP]]"
+  - "[[Deploy_FullStack]]"
 ---
 # Docker_Dockerfile — 이미지 빌드
 
@@ -190,7 +190,7 @@ CMD ["node", "dist/main"]
   단일 스테이지 (개발도구 포함): 수백 MB ~ 1GB
   멀티스테이지 (실행 파일만):    수십 MB ~ 수백 MB
 
-실제 배포 예시 → [[Deploy_CloudMVP]] 참고
+실제 배포 예시 → [[Deploy_FullStack]] 참고
 ```
 
 ---

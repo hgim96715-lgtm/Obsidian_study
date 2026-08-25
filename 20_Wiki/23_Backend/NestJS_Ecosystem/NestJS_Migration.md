@@ -278,7 +278,7 @@ Railway/Neon 배포 시:
 ⚠️ DATABASE_URL이 운영 DB를 가리켜야 함
    Railway 환경변수에 Neon 연결 문자열이 설정돼 있어야 함
 
-Railway 배포 전체 흐름 (Dockerfile · start:deploy · Neon URL) → [[Deploy_CloudMVP]]
+Railway 배포 전체 흐름 (Dockerfile · start:deploy · Neon URL) → [[Deploy_FullStack]]
 
 로컬에서 Neon에 직접 적용해야 할 때 (Railway 재배포 없이):
 ```
@@ -551,9 +551,9 @@ upsert를 쓰는 이유:
 |ENUM ADD VALUE 트랜잭션 에러|PostgreSQL ENUM 제약|migration.sql에서 트랜잭션 블록 밖으로 이동|
 |`migration_lock.toml` 충돌|다른 provider로 migrate 시도|provider 확인 + lock 파일 재생성|
 |`exports is not defined in ES module scope`|`moduleFormat = "cjs"` 누락|schema.prisma generator 블록에 추가|
-|Railway 배포 후 API 500 "데이터베이스 오류" — 쿼리는 실행되는데 테이블 없음|`prisma generate`(Client 생성)만 빌드에 포함, `migrate deploy`(테이블 적용)는 미실행|`start:deploy` 스크립트에 `prisma migrate deploy &&` 포함 확인 / 로컬에서 즉시 반영: `pnpm --filter api exec prisma migrate deploy` → [[Deploy_CloudMVP]]|
+|Railway 배포 후 API 500 "데이터베이스 오류" — 쿼리는 실행되는데 테이블 없음|`prisma generate`(Client 생성)만 빌드에 포함, `migrate deploy`(테이블 적용)는 미실행|`start:deploy` 스크립트에 `prisma migrate deploy &&` 포함 확인 / 로컬에서 즉시 반영: `pnpm --filter api exec prisma migrate deploy` → [[Deploy_FullStack]]|
 |배포 후 신규 테이블·컬럼이 운영 DB에 없음|`prisma/migrations/` 가 `.gitignore`에 들어가 있거나 커밋 누락|마이그레이션 파일은 반드시 Git 커밋 대상 — `.gitignore`에서 제거 후 커밋|
-|`Cannot find module '../generated/prisma/client'`|Railway 깨끗한 빌드 환경에 `generated/` 없음 (`.gitignore` 대상)|build 스크립트에 `prisma generate` 먼저 추가 → [[Deploy_CloudMVP]]|
+|`Cannot find module '../generated/prisma/client'`|Railway 깨끗한 빌드 환경에 `generated/` 없음 (`.gitignore` 대상)|build 스크립트에 `prisma generate` 먼저 추가 → [[Deploy_FullStack]]|
 
 ```txt
 운영 중 스키마를 안전하게 변경해야 한다면 (컬럼 이름 변경, 타입 변경, NOT NULL 추가 등):

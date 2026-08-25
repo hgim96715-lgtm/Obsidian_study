@@ -4,10 +4,15 @@ aliases:
   - Docker
   - Linux
   - GitHub Actions
+  - Vercel
+  - Railway
+  - Neon
+  - 배포
+  - openssl
 tags:
   - HomePage
+  - Deploy
 related:
-  - "[[00_Deployment_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
 cssclasses:
@@ -15,45 +20,61 @@ cssclasses:
   - table-max
   - table-wrap
 ---
-# 00_DevOps_Ecosystem_HomePage — Docker · Git · Linux · GitHub Actions
+# 00_DevOps_Ecosystem_HomePage — Docker · Git · Linux · GitHub Actions · 배포
 
 > [!info]
->  언어/프레임워크가 아닌 인프라·툴링 레이어를 모아두는 홈페이지
+>  인프라·툴링 레이어와 배포 플랫폼을 모아두는 홈페이지.
 >   Docker(컨테이너), Git(버전 관리), Linux(서버 환경), GitHub Actions(자동화) — 어느 스택이든 공통으로 쓰인다.
->   배포 자체(Vercel · Railway · Neon)는 [[00_Deployment_HomePage]] 참고.
+>   Deployment — Vercel · Railway · Neon으로 코드를 실제로 돌리는 환경.
 
 ```txt
-폴더 위치: 26_Infra_DevOps/DevOps_Ecosystem/
-형제 폴더: 26_Infra_DevOps/Deployment/ ← 배포 플랫폼 노트
+폴더 위치: 25_Infra_DevOps/DevOps_Ecosystem/
+  Docker_ / Git_ / Linux_ / GitHub_ / Deploy_ 파일명 prefix로 주제 구분
 
-이 폴더에 없는 것:
-  배포 플랫폼(Vercel/Railway/Neon) → Deployment 폴더
-  DB 환경(PostgreSQL Docker Compose) → NestJS_PostgreSQL에 이미 정리됨
-  Linux가 많아지면 → Linux_Ecosystem/ 분리 검토 (특히 데이터 엔지니어링용)
+DB 환경(PostgreSQL Docker Compose) → NestJS_PostgreSQL에 이미 정리됨
+Linux가 많아지면 → Linux_Ecosystem/ 분리 검토 (특히 데이터 엔지니어링용)
 ```
 
 ```mermaid-beautiful
 flowchart TB
-    subgraph DEVOPS["DevOps_Ecosystem (이 폴더)"]
+    subgraph DEVOPS["DevOps_Ecosystem"]
         direction TB
         D["Docker\nDocker_Compose · Docker_Dockerfile"]
         G["Git\nGit_Basics · Git_Branch\nGit_Workflow · Git_Rebase"]
         L["Linux\nLinux_Command · Linux_Permission\nLinux_Process · Linux_Shell"]
-        GA["GitHub Actions\nschedule · secrets\ncurl · cron secret"]
+        GA["GitHub Actions\nschedule · secrets · cron"]
     end
 
-    subgraph INFRA["26_Infra_DevOps (상위 폴더)"]
-        DEPLOY["Deployment/\nDeploy_CloudMVP"]
+    subgraph DEPLOY["Deployment"]
+        MVP["Deploy_FullStack\nVercel + Railway + Neon"]
     end
 
     NEST["NestJS_Ecosystem"]
     DATA["데이터 엔지니어링"]
 
     D -->|"로컬 DB 환경"| NEST
-    D -->|"Dockerfile"| DEPLOY
-    GA -->|"API 자동 호출"| NEST
+    D -->|"Dockerfile"| MVP
+    GA -->|"CI/CD · 자동 호출"| MVP
     L -->|"서버 환경"| DATA
     L -->|"CLI 도구"| D
+```
+
+---
+
+# Deployment ⭐️⭐️⭐️⭐️
+
+```txt
+코드를 실제로 돌리는 환경 — 배포 플랫폼·패턴 노트
+```
+
+|노트|내용|
+|---|---|
+|[[Deploy_FullStack]]|Vercel + Railway + Neon — pnpm 모노레포 MVP 배포 패턴|
+
+```txt
+앞으로 추가될 수 있는 것들:
+  Deploy_AWS         — AWS 배포 패턴
+  Deploy_Monitoring  — 로그/모니터링 설정
 ```
 
 ---
@@ -63,7 +84,7 @@ flowchart TB
 ```txt
 이미 다른 노트에 분산된 Docker 내용:
   NestJS_PostgreSQL → Docker Compose로 로컬 PostgreSQL 띄우기
-  Deploy_CloudMVP   → Dockerfile 작성 (NestJS API 빌드/실행)
+  Deploy_FullStack   → Dockerfile 작성 (NestJS API 빌드/실행)
   → 이 노트들과 역링크로 연결, 중복 작성 없이 개념만 정리
 ```
 
@@ -78,11 +99,11 @@ flowchart TB
 
 ```txt
 [[Docker_Compose]]는 [[NestJS_PostgreSQL]]의 Docker Compose 섹션과 역링크로 연결
-[[Docker_Dockerfile]]은 [[Deploy_CloudMVP]]의 Dockerfile 섹션과 역링크로 연결
+[[Docker_Dockerfile]]은 [[Deploy_FullStack]]의 Dockerfile 섹션과 역링크로 연결
 
 빠르게 참고할 때:
   로컬 DB 띄우기    → [[NestJS_PostgreSQL]] "Docker Compose" 섹션
-  배포용 빌드       → [[Deploy_CloudMVP]] "Dockerfile" 섹션
+  배포용 빌드       → [[Deploy_FullStack]] "Dockerfile" 섹션
   개념/명령어 정리  → 이 폴더의 Docker_xxx 노트
 ```
 
@@ -99,8 +120,23 @@ flowchart TB
 | [[Git_Undo]]     | reset(soft/mixed/hard) · revert · stash · restore        |
 
 ```txt
-Git 명령어 자체는 이 폴더 / 배포 플랫폼(Vercel·Railway)은 Deployment 폴더
+Git 명령어 자체는 이 폴더 / 배포 플랫폼(Vercel·Railway) → 아래 Deployment 섹션
 GitHub Actions 워크플로우 → 아래 섹션 참고
+```
+
+---
+
+# OpenSSL ⭐️⭐️⭐️
+
+| 노트 | 핵심 내용 |
+|---|---|
+|[[OpenSSL]]|`rand` 난수 생성 · `-base64` vs `-hex` · `dgst` 해시 · 자체 서명 인증서|
+
+```txt
+주 용도:
+  시크릿 키 생성 (JWT_SECRET · NEXTAUTH_SECRET · SESSION_SECRET)
+  파일 무결성 체크 (SHA-256 해시)
+  로컬 HTTPS 개발용 자체 서명 인증서
 ```
 
 ---
@@ -145,19 +181,14 @@ GitHub Actions 워크플로우 → 아래 섹션 참고
 # 폴더 구성 이유
 
 ```txt
-왜 Docker · Git · Linux를 한 폴더에:
-  셋 다 언어/프레임워크가 아닌 "인프라·툴링 레이어"
-  JS_Ecosystem은 JS끼리, NestJS는 NestJS끼리 묶듯이
-  도구 계열은 도구끼리 묶는 게 자연스러움
-  지금 노트 수가 적어서 폴더 3개로 쪼개면 빈 폴더만 생김
-  파일명 prefix(Docker_ / Git_ / Linux_)로 이미 구분됨
+왜 Docker · Git · Linux · GitHub Actions · Deployment를 한 홈페이지에:
+  Deployment 노트가 Deploy_FullStack 하나뿐이라 별도 홈페이지 오버헤드
+  → 인프라 레이어 전체를 한 곳에서 탐색하는 게 실용적
+
+파일명 prefix로 구분됨:
+  Docker_ / Git_ / Linux_ / Deploy_ / GitHub_Actions
 
 나중에 분리할 조건:
-  Linux 노트가 10개+ 쌓이고 데이터 엔지니어링 비중이 높아질 때
-  → Linux_Ecosystem/ 별도 폴더 검토
-
-26_Infra_DevOps 상위 폴더 구조:
-  Deployment/       배포 플랫폼 (Vercel · Railway · Neon)
-  DevOps_Ecosystem/ 도구 (Docker · Git · Linux · GitHub Actions)
-  → "무엇을 배포하는가"와 "어떤 도구를 쓰는가"로 자연스럽게 나뉨
+  Deployment 노트가 5개+ 늘어나면 → 00_Deployment_HomePage 별도 부활
+  Linux 노트가 10개+ 쌓이고 데이터 엔지니어링 비중이 높아질 때 → Linux_Ecosystem/ 분리 검토
 ```

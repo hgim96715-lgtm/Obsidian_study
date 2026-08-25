@@ -17,7 +17,7 @@ tags:
   - GitHub
 related:
   - "[[00_DevOps_Ecosystem_HomePage]]"
-  - "[[Deploy_CloudMVP]]"
+  - "[[Deploy_FullStack]]"
   - "[[NestJS_Scheduling]]"
   - "[[NestJS_Controller]]"
   - "[[NestJS_Excel]]"
@@ -121,7 +121,7 @@ PORT 값 확인:
   → 외부 도메인 접근 자체가 안 됨 → curl --fail-with-body 에러
 
   해결: app.listen(process.env.PORT ?? 3000)
-  → [[Deploy_CloudMVP#2. Railway (API)]]
+  → [[Deploy_FullStack#2. Railway (API)]]
 ```
 
 ```yaml
@@ -191,14 +191,14 @@ Actions 실행 중 curl 에러 원인 판단:
 
   exit code 22 + {"statusCode":500, "message":"데이터베이스 오류"}
     → API는 정상 기동, DB 테이블이 없음 → migration 미적용
-    → prisma migrate deploy 필요 → [[Deploy_CloudMVP#prisma generate vs prisma migrate deploy]]
+    → prisma migrate deploy 필요 → [[Deploy_FullStack#prisma generate vs prisma migrate deploy]]
 
   exit code 6 또는 curl: (6) Could not resolve host
     → API_URL Secret 값 오타 또는 Railway 도메인 미발급
 
   exit code 22 + {"statusCode":500} (응답 없이)
     → PORT 불일치 → app.listen(process.env.PORT ?? 3000) 확인
-    → [[Deploy_CloudMVP#2. Railway (API)]]
+    → [[Deploy_FullStack#2. Railway (API)]]
 ```
 
 ---

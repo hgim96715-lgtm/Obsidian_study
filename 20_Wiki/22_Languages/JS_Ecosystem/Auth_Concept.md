@@ -14,11 +14,15 @@ related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[NestJS_Auth]]"
   - "[[NestJS_JwtGuard]]"
+  - "[[OpenSSL]]"
 ---
 # Auth_Concept — 인증 · 인가 개념
 
 >[!info]
->인증(Authentication) = "당신이 누구인지 확인". 인가(Authorization) = "당신이 무엇을 할 수 있는지 확인". JWT = 서버가 서명한 토큰으로 인증 상태를 증명. NestJS 구현 → [[NestJS_Auth]], Guard(인가) → [[NestJS_JwtGuard]]
+>인증(Authentication) = "당신이 누구인지 확인". 
+>인가(Authorization) = "당신이 무엇을 할 수 있는지 확인". 
+>JWT = 서버가 서명한 토큰으로 인증 상태를 증명. NestJS 구현 → [[NestJS_Auth]], Guard(인가) → [[NestJS_JwtGuard]]
+>JWT_SECRET · NEXTAUTH_SECRET 등 시크릿 키 생성 → [[OpenSSL]]
 
 ---
 

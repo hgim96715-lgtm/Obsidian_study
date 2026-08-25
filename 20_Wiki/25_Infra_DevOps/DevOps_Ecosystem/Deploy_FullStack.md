@@ -11,16 +11,15 @@ tags:
   - NextJS
   - NestJS
 related:
-  - "[[00_Deployment_HomePage]]"
+  - "[[00_DevOps_Ecosystem_HomePage]]"
   - "[[Docker_Dockerfile]]"
   - "[[NestJS_Env_Config]]"
   - "[[NestJS_Migration]]"
-  - "[[NestJS_Prisma_Monorepo]]"
   - "[[NestJS_Prisma]]"
   - "[[NextJS_AuthState]]"
   - "[[Web_XSS_CSRF]]"
 ---
-# Deploy_CloudMVP — Vercel + Railway + Neon (pnpm 모노레포)
+# Deploy_FullStack — Vercel + Railway + Neon (pnpm 모노레포)
 
 > [!info] 
 >  Next.js(Web)는 Vercel, NestJS(API)는 Railway(Docker), Postgres는 Neon으로 배포하는 무료/저비용 풀스택 MVP 스택이다.
@@ -153,6 +152,67 @@ pnpm --filter api exec prisma migrate deploy
   → migrations/ 안의 미적용 migration이 Neon에 즉시 적용됨
   → Railway 재배포 없이 테이블 구조 반영 가능
   ⚠️ 로컬 .env의 DATABASE_URL이 Neon 진짜 URL인지 확인 후 실행
+```
+
+## ⚠️ 배포된 Railway 컨테이너 Shell에서 직접 migrate 실행 ⭐️⭐️⭐️⭐️
+
+```txt
+언제 쓰나:
+  이미 배포된 상태에서 새 migration이 생겼고
+  전체 재배포 없이 즉시 DB에 migration을 적용하고 싶을 때
+
+  start:deploy 스크립트가 컨테이너 기동 시 자동으로 실행하지만
+  이미 돌고 있는 컨테이너에 새 migration을 바로 밀어넣으려면
+  Railway Shell(Console)로 직접 접속해서 실행
+```
+
+```txt
+Railway Shell 접속 방법:
+  Railway 대시보드 → API 서비스 클릭
+  → 상단 탭에서 Deploy (또는 Deployments) 선택
+  → 활성 배포(Active deployment) 클릭
+  → Shell (또는 Console) 탭 클릭
+  → 터미널 열림
+```
+
+```bash
+# Railway Shell에서 실행 — DATABASE_URL은 Railway Variables에서 자동 주입됨
+pnpm --filter api exec prisma migrate deploy
+```
+
+```txt
+Railway Variables에 DATABASE_URL이 이미 있으므로
+로컬처럼 .env 파일 확인 없이 바로 실행 가능
+
+출력 예시:
+  Prisma Migrate Deploy
+  1 migration found in prisma/migrations
+  
+  migrations/20250801000000_add_admin_daily_reports/migration.sql
+  ✓ Applied
+
+→ 이 출력이 나오면 Neon DB에 테이블 생성 완료
+```
+
+```sql
+-- Neon / DataGrip에서 테이블 존재 확인
+SELECT to_regclass('public.admin_daily_reports');
+
+-- 결과:
+--   to_regclass
+-- ─────────────────────────
+--   public.admin_daily_reports   ← 존재함
+--   NULL                          ← 없음 (migration 미적용)
+```
+
+```txt
+⚠️ Railway Shell은 현재 실행 중인 컨테이너에 붙는 것
+  컨테이너가 재시작되면 Shell 세션도 끊김
+  migration 실행 중에 컨테이너가 재시작되면 재실행 필요
+
+migrate vs 재배포 선택:
+  긴급하게 migration만 적용 → Shell에서 즉시 실행 (빠름)
+  코드 변경도 함께 → 코드 push → 자동 재배포 (start:deploy가 migrate 자동 처리)
 ```
 
 ## env 검증 — 클라우드 전용 변수는 optional로 ⭐️⭐️⭐️
@@ -470,15 +530,63 @@ export class HealthController {
 Vercel은 웹 프론트엔드, 특히 Next.js 애플리케이션을 간편하게 빌드하고 배포하는 클라우드 플랫폼
 ```
 
-
 ```txt
 Vercel → Import GitHub repo
 Root Directory: apps/web
 ```
 
+## 환경변수 등록 ⭐️⭐️⭐️⭐️
+
+```txt
+프로젝트 → Settings → Environment Variables
+  → Name:        NEXT_PUBLIC_API_URL
+  → Value:       https://<railway-domain>.up.railway.app   ← /v1 붙이지 않음 ⭐️
+  → Environment: Production ✅ (Preview / Development는 선택)
+  → Save
+```
+
 |변수|값|
 |---|---|
 |`NEXT_PUBLIC_API_URL`|`https://<railway-domain>` (끝 `/` 없음, 경로 없음)|
+
+```txt
+⚠️ Railway API URL 값 주의:
+  Railway 도메인 전체를 그대로 입력
+  https://api-production-xxxx.up.railway.app   ← /v1 붙이지 않음 ⭐️
+
+  /v1은 코드에서 경로로 붙이는 것 — 베이스 URL에 포함 금지
+
+  올바른 사용:
+    env: NEXT_PUBLIC_API_URL=https://api-production-xxxx.up.railway.app
+    코드: fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/users`)
+       → https://api-production-xxxx.up.railway.app/v1/users  ✅
+
+  잘못된 사용:
+    env: NEXT_PUBLIC_API_URL=https://api-production-xxxx.up.railway.app/v1
+    코드: fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/users`)
+       → https://api-production-xxxx.up.railway.app/v1/v1/users  ❌ /v1 중복
+```
+
+## ⚠️ 변수 등록/변경 후 반드시 재배포 ⭐️⭐️⭐️⭐️
+
+```txt
+NEXT_PUBLIC_ 변수는 빌드 시 브라우저 번들에 정적으로 포함됨
+  → Next.js가 빌드 시 process.env.NEXT_PUBLIC_X를 실제 값으로 치환해서 번들에 박아버림
+  → 런타임에 동적으로 읽는 구조가 아님
+
+결과:
+  Vercel에 환경변수를 새로 등록하거나 값을 바꿔도
+  기존 빌드 결과물(번들)에는 반영 안 됨
+  → 재배포(새 빌드)를 해야 새 값이 번들에 들어감
+
+Vercel Redeploy 방법:
+  방법 A: main 브랜치에 커밋 push → 자동 배포
+  방법 B: Vercel 대시보드 → Deployments 탭 → 최근 배포 → ⋯ → Redeploy
+
+증상:
+  Vercel Settings에 등록 완료했는데 여전히 undefined
+  → 재배포 안 한 것 → Redeploy 실행
+```
 
 ```txt
 Deploy → Web URL 복사 (예: https://xxx.vercel.app)
@@ -593,7 +701,8 @@ Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
 |---|---|---|
 |`Property 'xxx' does not exist on type 'PrismaService'` / `Cannot find module '../generated/prisma/client'`|`generated/` 폴더가 `.gitignore` 대상 → Railway 깨끗한 빌드 환경에 Prisma Client 없음|`apps/api/package.json` build 스크립트에 `prisma generate --schema prisma/schema.prisma &&` 먼저 추가|
 |`https://<railway-domain>` 접근 실패 / Actions curl 에러|`app.listen(3000)` 하드코딩 → Railway가 주입한 PORT와 불일치|`main.ts` → `app.listen(process.env.PORT ?? 3000)` + Generate Domain 입력값과 일치 확인|
-|500 "데이터베이스 오류" — API는 뜨는데 쿼리 실패|`prisma generate`는 Client만 생성, DB 테이블은 `migrate deploy`가 적용 — migration 누락|`start:deploy`에 `prisma migrate deploy &&` 포함 확인 / 또는 로컬에서 `pnpm --filter api exec prisma migrate deploy` 직접 실행|
+|500 "데이터베이스 오류" — API는 뜨는데 쿼리 실패|`prisma generate`는 Client만 생성, DB 테이블은 `migrate deploy`가 적용 — migration 누락|`start:deploy`에 `prisma migrate deploy &&` 포함 확인 / 또는 Railway Shell에서 `pnpm --filter api exec prisma migrate deploy` 직접 실행|
+|새 테이블이 Neon에 없음 — 재배포는 싫고 즉시 적용하고 싶음|`start:deploy`가 기동 시 실행하는데 이미 실행 중인 컨테이너에는 미반영|Railway 대시보드 → API 서비스 → Deployments → Active → Shell → `pnpm --filter api exec prisma migrate deploy` ⭐️|
 |`Cannot find module .../dist/main`|Nest 빌드 출력이 `dist/src/main.js`인데 `dist/main`으로 참조|`start:deploy` → `node dist/src/main`으로 수정|
 |`PrismaConfigEnvError: DATABASE_URL` (Docker build)|Prisma 7 `prisma.config.ts`가 빌드 시점에도 env 요구|Dockerfile `RUN`에 더미 URL 추가 (§ Dockerfile 참고)|
 |Railway 빌드 성공인데 migrate/API 연결 실패|Variables에 `DATABASE_URL` 없거나 더미 URL 넣음|Neon Connect → 복사 → Railway Variables에 진짜 URL|
@@ -603,6 +712,8 @@ Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
 |CORS 에러 (그 외)|`FRONTEND_URL` ≠ 실제 Vercel origin|브라우저 주소창 origin과 동일하게 · Redeploy|
 |`POSTGRES_USER required` 에러|env validation에서 로컬 전용 변수를 `required`로 선언|`POSTGRES_*`를 `optional()`로 변경|
 |Vercel 빌드 실패 — workspace 못 찾음|`vercel.json`의 `cd ../..`가 없어서 루트 install 안 됨|`installCommand` 확인|
+|Vercel에 `NEXT_PUBLIC_API_URL` 등록했는데 클라이언트에서 `undefined`|등록 후 재배포 안 함 — `NEXT_PUBLIC_` 변수는 빌드 시 번들에 정적으로 포함|Vercel Deployments 탭 → 최근 배포 → ⋯ → Redeploy ⭐️|
+|API 요청 경로가 `/v1/v1/users`로 중복|`NEXT_PUBLIC_API_URL`에 `/v1` 경로 포함시킴|env에는 도메인만, `/v1`은 코드에서 붙임 ⭐️|
 |Railway health check 실패|`/health` 엔드포인트 없음|`HealthController` 추가|
 
 ---
@@ -633,7 +744,10 @@ Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
 배포 순서:
   □ Neon DB 생성 → Connect → DATABASE_URL 복사 (진짜 URL)
   □ Railway API만 배포 → API URL 확보 (Web 서비스 Railway에 올리지 않기)
+  □ Vercel Web 배포 전: Settings → Environment Variables → NEXT_PUBLIC_API_URL 등록
+      값: https://<railway-domain> (경로·슬래시 없음, /v1 붙이지 않음) ⭐️
   □ Vercel Web 배포 → Web URL 확보
+  □ ⚠️ NEXT_PUBLIC_ 변수 등록/변경 후 반드시 Redeploy — 재배포 없으면 번들에 반영 안 됨 ⭐️
   □ Railway FRONTEND_URL = Web origin만 (경로 없음) → Redeploy
   □ GET {API}/health → { ok: true } 확인
   □ Web에서 가입 · 로그인 E2E 확인

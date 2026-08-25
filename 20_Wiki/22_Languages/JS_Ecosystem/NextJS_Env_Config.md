@@ -13,10 +13,11 @@ related:
 # NextJS_Env_Config — Next.js 환경변수
 
 >[!info]
->`NEXT_PUBLIC_` 접두사가 없으면 서버에서만 접근 가능. 있으면 클라이언트(브라우저)에서도 접근 가능 — 브라우저 소스에 노출됨. 
->`.env.local`은 git에 올리지 않고 로컬 개발에만 사용. 
->프로덕션에서 `.env` 파일 기본 미로드 → 배포 플랫폼 대시보드에 직접 설정. 
->검증이 필요하면 Zod + `@t3-oss/env-nextjs`. 
+>`NEXT_PUBLIC_` 접두사가 없으면 서버에서만 접근 가능. 있으면 클라이언트(브라우저)에서도 접근 가능 — 브라우저 소스에 노출됨.
+>`.env.local`은 git에 올리지 않고 로컬 개발에만 사용.
+>프로덕션에서 `.env` 파일 기본 미로드 → 배포 플랫폼 대시보드에 직접 설정.
+>⚠️ `NEXT_PUBLIC_` 변수는 **빌드 시 번들에 정적으로 포함** — Vercel에 등록 후 **반드시 재배포**해야 반영됨.
+>검증이 필요하면 Zod + `@t3-oss/env-nextjs`.
 >NestJS 서버 환경변수 → [[NestJS_Env_Config]]
 
 ---
@@ -188,23 +189,80 @@ env 객체로 한 곳에서 관리하면:
 
 ---
 
-# 배포 환경 설정 ⭐️⭐️⭐️
+# 배포 환경 설정 — Vercel ⭐️⭐️⭐️⭐️
+
+## Vercel 등록 절차
 
 ```txt
-Vercel:
-  프로젝트 → Settings → Environment Variables
-  Production / Preview / Development 환경별로 설정 가능
-  NEXT_PUBLIC_ 변수도 여기서 설정
+프로젝트 → Settings → Environment Variables
+  → Name:        NEXT_PUBLIC_API_URL
+  → Value:       https://api-production-xxxx.up.railway.app
+  → Environment: Production ✅ (Preview / Development는 선택)
+  → Save
+```
 
-Railway (API 서버):
+```txt
+⚠️ Railway API URL 값 주의:
+  Railway 도메인 전체를 그대로 입력
+  https://api-production-xxxx.up.railway.app   ← /v1 붙이지 않음 ⭐️
+
+  /v1은 코드에서 경로로 붙이는 것 — 베이스 URL에 포함 금지
+
+  올바른 사용:
+    env: NEXT_PUBLIC_API_URL=https://api-production-xxxx.up.railway.app
+    코드: fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/users`)
+       → https://api-production-xxxx.up.railway.app/v1/users  ✅
+
+  잘못된 사용:
+    env: NEXT_PUBLIC_API_URL=https://api-production-xxxx.up.railway.app/v1
+    코드: fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/users`)
+       → https://api-production-xxxx.up.railway.app/v1/v1/users  ❌ /v1 중복
+```
+
+---
+
+## ⚠️ 변수 변경 후 반드시 재배포 ⭐️⭐️⭐️⭐️
+
+```txt
+NEXT_PUBLIC_ 변수는 빌드 시 브라우저 번들에 정적으로 포함됨
+  → Next.js가 빌드 시 process.env.NEXT_PUBLIC_X를 실제 값으로 치환해서 번들에 박아버림
+  → 런타임에 동적으로 읽는 구조가 아님
+
+결과:
+  Vercel에 환경변수를 새로 등록하거나 값을 바꿔도
+  기존 빌드 결과물(번들)에는 반영 안 됨
+  → 재배포(새 빌드)를 해야 새 값이 번들에 들어감
+
+Vercel Redeploy 방법:
+  방법 A: main 브랜치에 커밋 push → 자동 배포
+  방법 B: Vercel 대시보드 → Deployments 탭 → 최근 배포 → ⋯ → Redeploy
+
+증상:
+  Vercel Settings에 등록 완료했는데 여전히 undefined
+  → 재배포 안 한 것 → Redeploy 실행
+```
+
+---
+
+## 환경별 값 관리
+
+```txt
+로컬 개발:
+  .env.local
+    NEXT_PUBLIC_API_URL=http://localhost:3030
+
+Vercel Production:
+  Settings → Environment Variables → Production 환경
+    NEXT_PUBLIC_API_URL=https://api-production-xxxx.up.railway.app
+
+Vercel Preview (PR 미리보기 배포):
+  별도 스테이징 API URL 지정 가능
+  없으면 Production과 동일한 값으로 설정
+
+Railway (NestJS API 서버):
   프로젝트 → Variables 탭
-  (NestJS 서버 환경변수)
-
-로컬 개발 흐름:
-  .env.local에 NEXT_PUBLIC_API_URL=http://localhost:3030
-
-배포 후:
-  Vercel에서 NEXT_PUBLIC_API_URL=https://api.myapp.com 설정
+  → DATABASE_URL, JWT_SECRET 등 NestJS 서버 전용 환경변수
+  → NEXT_PUBLIC_ 변수는 여기 넣지 않음 (Vercel 쪽 변수)
 ```
 
 ---
@@ -314,9 +372,10 @@ const apiUrl = env.NEXT_PUBLIC_API_URL;  // string, undefined 아님
   server/client 분리가 명확히 필요해지면 그때 추가
 ```
 
-| 에러                       | 원인                      | 해결                    |
-| ------------------------ | ----------------------- | --------------------- |
-| 클라이언트에서 env가 `undefined` | `NEXT_PUBLIC_` 접두사 없음   | `NEXT_PUBLIC_` 붙이기    |
-| 서버에서만 쓰는 값이 번들에 포함됨      | `NEXT_PUBLIC_` 붙인 민감 정보 | 접두사 제거 (서버에서만 접근)     |
-| 빌드 후에도 env가 없음           | Vercel 등 배포 환경에 설정 안 함  | 배포 플랫폼 환경변수 대시보드에서 추가 |
-| `.env.local` 변경 후 반영 안 됨 | dev 서버 재시작 필요           | `pnpm dev` 재실행        |
+| 에러                                    | 원인                           | 해결                                      |
+| ------------------------------------- | ---------------------------- | --------------------------------------- |
+| 클라이언트에서 env가 `undefined`              | `NEXT_PUBLIC_` 접두사 없음        | `NEXT_PUBLIC_` 붙이기                      |
+| 서버에서만 쓰는 값이 번들에 포함됨                  | `NEXT_PUBLIC_` 붙인 민감 정보      | 접두사 제거 (서버에서만 접근)                       |
+| Vercel에 등록했는데 배포 후에도 `undefined`      | 등록 후 재배포 안 함                 | Vercel Deployments → Redeploy ⭐️        |
+| API 요청 경로가 `/v1/v1/users` 로 중복됨       | env에 `/v1` 포함시킴              | env에는 도메인만, `/v1`은 코드에서 붙임 ⭐️          |
+| `.env.local` 변경 후 로컬에서 반영 안 됨        | dev 서버 재시작 필요               | `pnpm dev` 재실행                          |

@@ -233,3 +233,35 @@ EXPLAIN vs EXPLAIN ANALYZE:
   → EXPLAIN ANALYZE는 실제로 쿼리가 실행되므로 SELECT에만 사용 권장
      (UPDATE/DELETE에 사용 시 실제 데이터가 변경됨)
 ```
+---
+
+# to_regclass — 오브젝트 존재 여부 확인 ⭐️⭐️⭐️
+
+```txt
+PostgreSQL 시스템 카탈로그 함수
+  존재하면 → 오브젝트 이름(regclass) 반환
+  없으면   → NULL 반환 (에러 없이 조용히 반환 — 이게 핵심)
+
+확인 가능한 오브젝트: 테이블 · 인덱스 · 시퀀스 · 뷰
+```
+
+```sql
+-- 테이블 존재 여부 확인 — migration 적용 후 검증 등에 사용
+SELECT to_regclass('public.admin_daily_reports');
+--  결과: 'public.admin_daily_reports'  → 존재함
+--  결과: NULL                          → 없음 (migration 미적용)
+
+-- 스키마 없이도 가능 (search_path 기준)
+SELECT to_regclass('admin_daily_reports');
+```
+
+```txt
+언제 쓰나:
+  prisma migrate deploy 후 테이블 실제 생성 여부 확인
+  Railway Shell · DataGrip에서 migration 적용 확인
+  조건부 DDL 실행 전 존재 여부 체크
+
+비교:
+  to_regclass  → NULL 반환 (에러 없음) — 존재 체크용
+  ::regclass   → 없으면 에러 발생      — 존재 확신할 때
+```
