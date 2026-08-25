@@ -182,15 +182,16 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 
 ### TypeScript
 
-| 노트 | 내용 |
-|---|---|
-| [[TS_TsConfig]] | API vs Web 옵션 비교 · strictPropertyInitialization · outDir+rootDir · include/exclude |
-| [[TS_Generics]] | `<T>` · keyof · Partial · readonly T[] · `&` 교차 타입 (RequestInit & {token?}) |
-| [[TS_Utility_Types]] | Partial · Required · Omit · Pick · Record · ReturnType · Awaited |
-| [[TS_Type_Guards]] | typeof · instanceof · in · is · never · async/await 사이 narrowing 풀림 |
-| [[TS_TypeAssertion]] | `as` · `!` non-null · `satisfies` |
-| [[TS_ImportType]] | import type · .d.ts · 경로 별칭 · declare global · declare module · express.d.ts 패턴 |
-| [[TS_Class_Patterns]] | implements · extends · readonly |
+| 노트                    | 내용                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [[TS_TsConfig]]       | API vs Web 옵션 비교 · strictPropertyInitialization · outDir+rootDir · include/exclude                                                |
+| [[TS_Generics]]       | `<T>` · keyof · Partial · readonly T[] · `&` 교차 타입 (RequestInit & {token?})                                                       |
+| [[TS_Utility_Types]]  | Partial · Omit · Pick · Record · ReturnType · Awaited · 교차타입 패턴 · PartialBy · RequiredBy · Override · DeepPartial · SerializeDate |
+| [[TS_Type_Guards]]    | typeof · instanceof · in · is · never · async/await 사이 narrowing 풀림                                                               |
+| [[TS_AsyncNarrowing]] | async 경계에서 narrowing 풀림 · const 캡처 패턴 · user! 단언 위험성 · cancelled 플래그                                                              |
+| [[TS_TypeAssertion]]  | `as` · `!` non-null · `satisfies`                                                                                                 |
+| [[TS_ImportType]]     | import type · .d.ts · 경로 별칭 · declare global · declare module · express.d.ts 패턴                                                   |
+| [[TS_Class_Patterns]] | implements · extends · readonly                                                                                                   |
 
 ### JavaScript
 

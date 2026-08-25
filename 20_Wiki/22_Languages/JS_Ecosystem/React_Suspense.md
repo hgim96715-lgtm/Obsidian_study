@@ -181,6 +181,40 @@ React.lazy()가 필요한 이유:
   실제 필요할 때 다운로드 → 초기 로딩 빠름
 ```
 
+## ③ useSearchParams() — 정적 렌더링 시 Suspense 필수 ⭐️⭐️⭐️⭐️
+
+```tsx
+// ❌ 에러 — Suspense 경계 없음
+// "useSearchParams() should be wrapped in a suspense boundary" 빌드 에러
+export default function LoginPage() {
+  return <LoginForm />;  // LoginForm 내부에서 useSearchParams() 호출
+}
+```
+
+```tsx
+// ✅ useSearchParams()를 쓰는 컴포넌트를 Suspense로 감싸기
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<p className="auth-status">불러오는 중…</p>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+```
+
+```txt
+왜 Suspense가 필요한가:
+  useSearchParams()는 URL 쿼리 파라미터(?key=value)를 읽는 훅
+  Next.js 정적 렌더링 시 → 빌드 시점에 URL을 알 수 없음
+  → useSearchParams()가 있는 컴포넌트가 "준비 안 됨" 신호를 던짐 (throw Promise)
+  → 이 신호를 받아줄 Suspense가 없으면 빌드 에러 발생
+
+규칙:
+  useSearchParams()를 직접 쓰는 컴포넌트를 별도 파일(LoginForm 등)로 분리
+  page.tsx에서 그 컴포넌트를 <Suspense>로 감싸기
+  → page.tsx 자체에서 useSearchParams()를 쓰면 page 전체가 동적 렌더링이 되어 비효율
+```
+
 ---
 
 # Suspense 위치 — 어디에 감싸는가 ⭐️⭐️⭐️⭐️

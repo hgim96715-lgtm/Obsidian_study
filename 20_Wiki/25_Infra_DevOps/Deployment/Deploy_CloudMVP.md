@@ -298,6 +298,31 @@ Neon       = PostgreSQL을 클라우드에서 생성·운영해 주는 서비스
 ```bash
 # 복사된 URL 모양 (비밀번호·호스트는 프로젝트마다 다름)
 postgresql://<role>:<password>@<host>-pooler.<region>.aws.neon.tech/neondb?sslmode=require
+#            ───┬───  ───┬───  ──────────────────┬──────────────── ───┬───
+#              user    password                  host               database
+```
+
+```txt
+URL 구조 파싱:
+  user     → <role>                              (Neon Console에서 확인)
+  password → <password>                          (Neon Console에서 확인)
+  host     → <host>-pooler.<region>.aws.neon.tech  ← -pooler. 까지 전부 host
+  port     → 5432                                (명시 없으면 기본값)
+  database → neondb
+  SSL      → require
+```
+
+```txt
+DataGrip (또는 다른 DB 클라이언트) 연결 시:
+  Host     → <host>-pooler.<region>.aws.neon.tech  ← @ 뒤부터 / 앞까지 전체
+  Port     → 5432
+  User     → <role>
+  Password → <password>
+  Database → neondb
+  SSL mode → require (Advanced 탭 또는 sslmode 옵션에서 설정)
+
+  ⚠️ 흔한 실수: host 필드에 <host> 부분만 입력
+     -pooler.<region>.aws.neon.tech 까지 포함해야 연결됨
 ```
 
 ```txt
@@ -388,21 +413,34 @@ Railway FRONTEND_URL = 위 URL origin만 (/recommendations 없이) → Redeploy
 
 ---
 
-# apps/web/vercel.json ⭐️⭐️⭐️
+# apps/web/vercel.json — 언제 필요한가 ⭐️⭐️⭐️
+
+```txt
+필요한 경우:
+  Vercel Root Directory = apps/web 으로 설정했을 때
+  install/build를 모노레포 루트에서 실행해야 workspace가 동작하는 구조
+
+  → Vercel이 apps/web 안에서 pnpm install을 실행하면 루트 workspace를 못 찾아 빌드 실패
+  → vercel.json으로 cd ../.. 후 루트에서 실행하도록 오버라이드
+
+필요 없는 경우 (이쪽이 더 깔끔):
+  Vercel Dashboard > Settings > Root Directory = . (루트)
+  Build Command: pnpm --filter web build
+  Install Command: pnpm install
+  → vercel.json 없이도 Dashboard에서 직접 설정 가능
+  → Vercel이 pnpm workspace를 자동 감지해서 처리
+
+⚠️ 무조건 만들어야 하는 파일이 아님
+   Dashboard에서 Build/Install Command를 직접 지정하면 불필요
+```
 
 ```json
+// Root Directory = apps/web 방식일 때만 필요
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm --filter web build"
 }
-```
-
-```txt
-Vercel Root Directory = apps/web 이지만 install/build는 모노레포 루트에서 실행해야 workspace 동작
-cd ../..로 루트로 올라간 뒤 실행 — 이 줄이 없으면 workspace를 못 찾아 빌드 실패
-
---filter web: apps/web/package.json의 "name" 필드와 일치해야 함
 ```
 
 ---
@@ -411,13 +449,13 @@ cd ../..로 루트로 올라간 뒤 실행 — 이 줄이 없으면 workspace를
 
 ## Railway (API)
 
-|변수|로컬 `.env`|프로덕션|
-|---|---|---|
-|`DATABASE_URL`|`localhost:5432/...`|Neon Connect 복사값 (`?sslmode=require` 포함)|
-|`API_JWT_SECRET`|로컬 시크릿|`openssl rand -base64 32` (로컬과 분리)|
-|`FRONTEND_URL`|`http://localhost:3031`|`https://xxx.vercel.app` (경로·슬래시 없음)|
-|`PORT`|`3000`|Railway 자동 주입|
-|`POSTGRES_*`|Docker Compose용|불필요 (Neon은 DATABASE_URL만)|
+| 변수               | 로컬 `.env`               | 프로덕션                                     |
+| ---------------- | ----------------------- | ---------------------------------------- |
+| `DATABASE_URL`   | `localhost:5432/...`    | Neon Connect 복사값 (`?sslmode=require` 포함) |
+| `API_JWT_SECRET` | 로컬 시크릿                  | `openssl rand -base64 32` (로컬과 분리)       |
+| `FRONTEND_URL`   | `http://localhost:3031` | `https://xxx.vercel.app` (경로·슬래시 없음)     |
+| `PORT`           | `3000`                  | Railway 자동 주입                            |
+| `POSTGRES_*`     | Docker Compose용         | 불필요 (Neon은 DATABASE_URL만)                |
 
 ## Vercel (Web)
 
@@ -427,10 +465,59 @@ cd ../..로 루트로 올라간 뒤 실행 — 이 줄이 없으면 workspace를
 
 ---
 
+# railway.toml — 언제 필요한가 ⭐️⭐️⭐️⭐️
+
+```txt
+필요한 경우:
+  Dockerfile로 빌드할 때 → dockerfilePath 지정
+  Start Command를 파일로 관리하고 싶을 때
+  Health check 경로·타임아웃을 커스텀할 때
+  → 코드 레벨에서 배포 설정을 관리할 때 유용
+
+필요 없는 경우 (Railway Dashboard로 충분):
+  Railway Dashboard > Settings > Build Command / Start Command 직접 입력
+  Build Command: pnpm --filter api build
+  Start Command: node dist/src/main  (또는 pnpm run start:deploy)
+  → railway.toml 없이도 배포 가능, Dashboard 설정이 우선 적용됨
+
+⚠️ 무조건 만들어야 하는 파일이 아님
+   toml을 쓴다면 dockerfilePath · startCommand가 실제 파일·스크립트와 정확히 일치해야 함
+   경로가 틀리면 (Dockerfile 없음 / 스크립트 없음) 배포 즉시 실패
+```
+
+```toml
+# Dockerfile 방식일 때만 사용
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/api/Dockerfile"
+
+[deploy]
+startCommand = "pnpm run start:deploy"
+healthcheckPath = "/health"
+```
+
+```txt
+Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
+  apps/api/package.json build 스크립트에 prisma generate 포함 필수
+  → Railway 깨끗한 환경에는 generated/ 폴더가 없음 (gitignore 대상)
+```
+
+```json
+// apps/api/package.json — Dockerfile 없는 방식
+{
+  "scripts": {
+    "build": "prisma generate --schema prisma/schema.prisma && rm -f tsconfig.build.tsbuildinfo && nest build"
+  }
+}
+```
+
+---
+
 # 트러블슈팅 ⭐️⭐️⭐️⭐️
 
 |증상|원인|해결|
 |---|---|---|
+|`Property 'xxx' does not exist on type 'PrismaService'` / `Cannot find module '../generated/prisma/client'`|`generated/` 폴더가 `.gitignore` 대상 → Railway 깨끗한 빌드 환경에 Prisma Client 없음|`apps/api/package.json` build 스크립트에 `prisma generate --schema prisma/schema.prisma &&` 먼저 추가|
 |`Cannot find module .../dist/main`|Nest 빌드 출력이 `dist/src/main.js`인데 `dist/main`으로 참조|`start:deploy` → `node dist/src/main`으로 수정|
 |`PrismaConfigEnvError: DATABASE_URL` (Docker build)|Prisma 7 `prisma.config.ts`가 빌드 시점에도 env 요구|Dockerfile `RUN`에 더미 URL 추가 (§ Dockerfile 참고)|
 |Railway 빌드 성공인데 migrate/API 연결 실패|Variables에 `DATABASE_URL` 없거나 더미 URL 넣음|Neon Connect → 복사 → Railway Variables에 진짜 URL|
@@ -457,9 +544,9 @@ cd ../..로 루트로 올라간 뒤 실행 — 이 줄이 없으면 workspace를
   □ .dockerignore — Web 앱 폴더 제외
 
 파일 추가:
-  □ apps/api/Dockerfile — 더미 DATABASE_URL RUN, --filter 이름 패키지 name에 맞게
-  □ railway.toml (루트) — dockerfilePath 경로 확인
-  □ apps/web/vercel.json — --filter 이름 Web 패키지 name에 맞게
+  □ apps/api/Dockerfile — 더미 DATABASE_URL RUN (Dockerfile 방식일 때)
+  □ railway.toml (루트) — Dockerfile 방식일 때만 / Dashboard 방식이면 불필요
+  □ apps/web/vercel.json — Root Directory=apps/web 방식일 때만 / Dashboard 설정이면 불필요
 
 로컬 검증:
   □ pnpm install

@@ -449,6 +449,79 @@ apiFetch('/posts', {
 })
 ```
 
+
+---
+
+# 패턴 B — 고도화(Robust) 버전 ⭐️⭐️⭐️⭐️⭐️
+
+> [!info]
+> 기본 패턴 B는 `res.json()`을 바로 호출함 → 서버가 204·HTML 에러·빈 body를 보내면 `SyntaxError`로 터짐.
+> `res.text()` 로 먼저 읽어서 직접 분기처리하면 세 케이스 모두 방어 가능.
+
+```typescript
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit & { token?: string | null } = {},
+): Promise<T> {
+  const { token, headers, ...rest } = options;
+
+  const res = await fetch(`${API_URL}/v1${path}`, {
+    ...rest,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  });
+
+  const raw = await res.text();       // ① 어떤 응답이든 문자열로 먼저 수신
+
+  if (res.status === 204) {           // ② 204 — body 없는 성공
+    return undefined as T;
+  }
+
+  let body: unknown = null;
+
+  if (raw.trim()) {
+    try {
+      body = JSON.parse(raw);         // ③ JSON이면 파싱
+    } catch {
+      throw new Error(               // ④ HTML·text면 앞 200자 노출
+        `JSON 파싱 실패 (HTTP ${res.status}): ${raw.slice(0, 200)}`,
+      );
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(parseApiErrorMessage(body, res.status));
+  }
+
+  if (!raw.trim()) {                  // ⑤ 2xx인데 body가 빈 경우 방어
+    throw new Error(`빈 응답 (HTTP ${res.status})`);
+  }
+
+  return body as T;                   // ⑥ 타입 단언
+}
+```
+
+```txt
+res.text() 를 쓰는 이유:
+  text()는 어떤 응답이든 string으로 읽음 — 절대 throw 안 함
+  json()은 body가 비거나 HTML이면 SyntaxError → 에러 정보 소실
+
+  text() 로 읽은 뒤 JSON.parse(raw) 직접 시도하면:
+  → 파싱 실패 시 raw 내용을 에러 메시지에 담아서 디버깅 가능
+  → 204·빈 body 도 명시적으로 처리 가능
+
+  Response body는 스트림 — text()·json()·blob() 중 하나만 호출 가능
+
+body as T:
+  JSON.parse()는 any 반환 → body: unknown 으로 받아서 타입 강제 없이 보관
+  return body as T  →  "서버 응답이 T 타입임"을 TypeScript에 단언
+  런타임 검증 없음 — 서버 스펙과 어긋나면 런타임 에러 가능
+  → 안전하게 하려면 zod.parse() 또는 [[OpenAPI_Codegen]] 사용
+```
+
 ---
 
 # 전체 흐름 요약

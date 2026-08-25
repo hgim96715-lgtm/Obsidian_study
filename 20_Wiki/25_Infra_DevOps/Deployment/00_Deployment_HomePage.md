@@ -7,7 +7,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[00_DevOps_HomePage]]"
+  - "[[00_DevOps_Ecosystem_HomePage]]"
 cssclasses:
   - max
   - table-max

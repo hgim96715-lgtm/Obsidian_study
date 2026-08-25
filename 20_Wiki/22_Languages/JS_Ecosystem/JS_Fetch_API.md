@@ -167,6 +167,46 @@ Content-Type 확인:
 ```
 
 ---
+
+# res.text() — 파싱 제어권을 직접 갖는 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+res.json()의 문제:
+  body가 비어있으면  → SyntaxError: Unexpected end of JSON input
+  body가 HTML이면   → SyntaxError: Unexpected token '<'
+  에러 정보 없이 터짐 → 어떤 응답이 왔는지 알 수 없음
+
+res.text()는 어떤 응답이든 string으로 읽음 — 절대 throw 안 함
+→ 읽은 뒤 직접 분기처리 가능
+```
+
+```typescript
+const raw = await res.text();
+
+if (!raw.trim()) {
+  // 빈 body 처리 (204 No Content 등)
+  return undefined;
+}
+
+try {
+  const body = JSON.parse(raw);  // JSON이면 파싱
+  // body 사용...
+} catch {
+  // HTML·plain text 에러 → raw 앞 200자 포함해서 throw
+  throw new Error(`JSON 파싱 실패 (HTTP ${res.status}): ${raw.slice(0, 200)}`);
+}
+```
+
+```txt
+text() vs json() 선택:
+  res.json()  서버가 항상 JSON, 빈 body 없다고 확신할 때 (간단한 경우)
+  res.text()  204·빈 body·HTML 에러 가능성 있을 때 (래퍼 함수 구현 시)
+
+  Response body는 스트림 → text()·json()·blob() 중 하나만 호출 가능
+  text()로 읽으면 이후 json() 추가 호출 불가 — JSON.parse(raw) 로 직접 파싱
+```
+
+---
 ️
 # 요청 옵션 — URL 다음에 뭘 넣는가 ⭐️⭐️⭐️⭐️
 

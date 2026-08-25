@@ -110,14 +110,13 @@ buildPatchBody(original, next)
 
 ```typescript
 // 실전 — 폼에서 변경된 것만 서버에 보내기
-const [form, setForm]       = useState(originalPost);
-const [saved, setSaved]     = useState(originalPost);
+const [form, setForm]   = useState(originalPost);
+const [saved, setSaved] = useState(originalPost);
 
 async function handleSave() {
-  const patch = buildPatchBody(saved, form);   // 변경분만 추출
+  const patch = buildPatchBody(saved, form);
   if (Object.keys(patch).length === 0) return; // 변경 없으면 skip
-
-  await updatePost(post.id, patch);            // PATCH /posts/:id
+  await updatePost(post.id, patch);
   setSaved(form);
 }
 ```
@@ -130,6 +129,210 @@ NestJS DTO 쪽의 Partial 처리:
 
 ---
 
+# 교차 타입 & 커스텀 유틸리티 패턴 ⭐️⭐️⭐️⭐️
+
+## Partial\<T\> & { 필드 } — 교차 타입으로 특정 필드 강제 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❗ Partial<T>만 쓰면 id도 optional
+type UpdateUser = Partial<User>;
+// { id?: string; email?: string; nickname?: string }
+
+// ✅ id는 required, 나머지는 optional
+type UpdateUserDto = Partial<User> & { id: string };
+// { id: string; email?: string; nickname?: string }
+
+// 새 필드 추가
+type UpdateUserWithMeta = Partial<User> & {
+  id:        string;   // User에 있는 필드를 required로 강제
+  updatedBy: string;   // 새 필드 추가
+};
+```
+
+```typescript
+// ⚠️ 동명 필드 타입 충돌 주의
+type A = Partial<User> & { nickname: string };
+// Partial<User>.nickname?: string  +  & { nickname: string }
+// → nickname: string (required로 교체됨)
+
+// 의도가 명확하게: nickname만 required로 올리기
+type B = Partial<Omit<User, 'nickname'>> & { nickname: string };
+// id?: string; email?: string; nickname: string ← required
+```
+
+```txt
+Partial<T> & { 필드: 타입 } 읽는 법:
+  Partial<User>    → User의 모든 필드를 optional로
+  & { id: string } → id는 반드시 string (required)
+
+  두 타입의 교집합(intersection), 같은 키가 있으면 & 오른쪽이 우선됨
+  → id?: string (Partial) + id: string (& 쪽) = id: string (required)
+
+PATCH API DTO 패턴:
+  UpdateUserDto = Partial<User> & { id: string }
+  → 서버에서 id는 반드시 받고, 나머지는 변경된 것만 받음
+```
+
+---
+
+## PartialBy\<T, K\> — 특정 필드만 optional ⭐️⭐️⭐️
+
+```typescript
+// K 필드만 optional, 나머지는 required 유지
+type PartialBy<T, K extends keyof T> =
+  Omit<T, K> & Partial<Pick<T, K>>;
+
+type User = { id: string; email: string; nickname: string; role: string };
+
+type CreateUserDto = PartialBy<User, 'id' | 'role'>;
+// = { email: string; nickname: string; id?: string; role?: string }
+//     ↑ required 유지               ↑ optional로
+```
+
+```txt
+언제 쓰는가:
+  POST — 대부분 필드는 필수, id·timestamps 등 일부만 선택
+  "특정 필드만 빼고 다 required"가 필요할 때
+
+  vs Omit<T, K>:
+    Omit → 해당 필드 자체를 제거 (없어짐)
+    PartialBy → 해당 필드는 남기되 optional로
+
+  vs RequiredBy (아래):
+    PartialBy  → 특정 K를 optional로, 나머지는 required
+    RequiredBy → 특정 K를 required로, 나머지는 optional
+```
+
+---
+
+## RequiredBy\<T, K\> — 특정 필드만 required ⭐️⭐️⭐️
+
+```typescript
+// K 필드만 required, 나머지는 optional 유지
+type RequiredBy<T, K extends keyof T> =
+  Partial<T> & Required<Pick<T, K>>;
+
+type UpdateUserDto = RequiredBy<User, 'id'>;
+// = { id: string; email?: string; nickname?: string }
+//     ↑ required          ↑ optional
+```
+
+```txt
+Partial<T> & { id: string } 와 같은 효과
+차이: RequiredBy는 제네릭으로 재사용 가능
+```
+
+---
+
+## Override\<T, U\> — 필드 타입 교체 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 기존 필드의 타입을 완전히 덮어씀
+type Override<T, U extends Partial<Record<keyof T, unknown>>> =
+  Omit<T, keyof U> & U;
+
+type User = { id: string; email: string; role: string; createdAt: Date; updatedAt: Date };
+
+// 활용 1: Date → string (Prisma → API 응답 타입)
+type UserResponse = Override<User, {
+  createdAt: string;
+  updatedAt: string;
+}>;
+// = { id: string; email: string; role: string; createdAt: string; updatedAt: string }
+
+// 활용 2: string → 구체적 union으로 타입 강화
+type StrictUser = Override<User, {
+  role: 'admin' | 'editor' | 'viewer';
+}>;
+
+// 활용 3: nullable 제거
+type RequiredUser = Override<User, {
+  avatarUrl: string;  // string | null → string
+}>;
+```
+
+```typescript
+// 여러 모델에 재사용
+type PostResponse    = Override<Post,    { createdAt: string; publishedAt: string | null }>;
+type CommentResponse = Override<Comment, { createdAt: string; deletedAt:  string | null }>;
+```
+
+```txt
+수동 Omit + & 방식과 비교:
+  수동:     Omit<User, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }
+  Override: Override<User, { createdAt: string; updatedAt: string }>
+  → 의미가 명확하고 재사용 가능
+```
+
+---
+
+## DeepPartial\<T\> — 중첩 객체까지 optional
+
+```typescript
+type DeepPartial<T> = T extends object
+  ? { [P in keyof T]?: DeepPartial<T[P]> }
+  : T;
+
+type Config = {
+  db:    { host: string; port: number };
+  cache: { ttl: number; maxSize: number };
+};
+
+type PartialConfig = DeepPartial<Config>;
+// = {
+//     db?:    { host?: string; port?: number };
+//     cache?: { ttl?: number; maxSize?: number };
+//   }
+```
+
+```txt
+Partial<T> vs DeepPartial<T>:
+  Partial → 최상위 필드만 optional (중첩 객체 내부는 required 유지)
+  DeepPartial → 재귀적으로 모든 중첩 필드까지 optional
+
+  Partial<Config>.db → { host: string; port: number } (내부는 required)
+  DeepPartial<Config>.db → { host?: string; port?: number } (내부도 optional)
+```
+
+---
+
+## SerializeDate\<T\> — Prisma Date → string ⭐️⭐️⭐️⭐️
+
+```typescript
+// Prisma DateTime 필드를 재귀적으로 string으로 변환
+type SerializeDate<T> = {
+  [K in keyof T]: T[K] extends Date
+    ? string
+    : T[K] extends Date | null
+    ? string | null
+    : T[K] extends object
+    ? SerializeDate<T[K]>
+    : T[K];
+};
+
+import { User, Post } from '@prisma/client';
+
+type UserResponse = SerializeDate<User>;
+// createdAt: Date → string ✅
+// updatedAt: Date → string ✅
+// 나머지 필드 타입 유지 ✅
+
+// 중첩 관계도 처리
+type UserWithPostsResponse = SerializeDate<User & { posts: Post[] }>;
+```
+
+```txt
+왜 필요한가:
+  Prisma는 DateTime 필드를 JS Date 객체로 반환
+  HTTP 응답 시 JSON.stringify() 자동 호출 → Date.toJSON() → ISO 8601 string
+  런타임은 string인데 타입은 Date → 타입-런타임 불일치
+
+  → SerializeDate<T>로 API 응답 타입을 명확히 선언
+  → 상세 원인 및 해결 패턴 → [[NestJS_Prisma]] "Date 타입 직렬화" 섹션
+```
+
+---
+
 # Required\<T\> — 전부 필수
 
 ```typescript
@@ -137,9 +340,7 @@ type Config = { timeout?: number; retries?: number; baseUrl?: string; };
 
 type RequiredConfig = Required<Config>;
 // = { timeout: number; retries: number; baseUrl: string; }
-//    ? 가 전부 제거됨
 
-// Partial 반대 — 기본값 처리 후 타입을 보장할 때
 function initConfig(config: Config): RequiredConfig {
   return {
     timeout:  config.timeout  ?? 3000,
@@ -156,13 +357,9 @@ function initConfig(config: Config): RequiredConfig {
 ```typescript
 type Point = { x: number; y: number; };
 
-type ReadonlyPoint = Readonly<Point>;
-// = { readonly x: number; readonly y: number; }
-
-const p: ReadonlyPoint = { x: 1, y: 2 };
+const p: Readonly<Point> = { x: 1, y: 2 };
 p.x = 10;  // ❌ 수정 불가
 
-// 실전 — as const와 비슷한 효과
 function processConfig(config: Readonly<Config>) {
   // config를 수정하면 안 된다는 것을 타입으로 표현
 }
@@ -174,19 +371,15 @@ function processConfig(config: Readonly<Config>) {
 
 ```typescript
 type User = {
-  id:       string;
-  email:    string;
-  nickname: string;
-  password: string;  // 민감 정보
+  id:        string;
+  email:     string;
+  nickname:  string;
+  password:  string;  // 민감 정보
   createdAt: string;
 };
 
-// 비밀번호 제외하고 공개 정보만
-type PublicUser = Pick<User, 'id' | 'nickname' | 'createdAt'>;
-// = { id: string; nickname: string; createdAt: string; }
-
-// 목록 조회용 — 필요한 필드만
-type UserListItem = Pick<User, 'id' | 'nickname'>;
+type PublicUser    = Pick<User, 'id' | 'nickname' | 'createdAt'>;
+type UserListItem  = Pick<User, 'id' | 'nickname'>;
 ```
 
 ```txt
@@ -203,30 +396,17 @@ Pick vs Omit:
 # Omit\<T, K\> — 일부 필드 제거 ⭐️⭐️⭐️⭐️
 
 ```typescript
-type User = {
-  id:       string;
-  email:    string;
-  nickname: string;
-  password: string;
-  createdAt: string;
-};
-
-// 비밀번호만 제거
 type UserWithoutPassword = Omit<User, 'password'>;
-// = { id: string; email: string; nickname: string; createdAt: string; }
-
-// 여러 필드 제거
-type UserProfile = Omit<User, 'password' | 'email'>;
+type UserProfile         = Omit<User, 'password' | 'email'>;
 ```
 
 ```typescript
 // 실전 — 자동 생성 타입에서 일부 필드 타입 교체
-// api.d.ts에서 생성된 타입의 일부를 원하는 타입으로 교체할 때
 type ApiComment = Omit<
   Schemas['CommentResponseDto'],
   'author' | 'parentId' | 'deletedAt'
 > & {
-  parentId:  string | null;  // 생성 타입이 안 맞을 때 교체
+  parentId:  string | null;
   deletedAt: string | null;
   author:    ApiAuthor;
 };
@@ -237,20 +417,9 @@ type ApiComment = Omit<
 # Record\<K, V\> — 키-값 객체 타입 ⭐️⭐️⭐️⭐️
 
 ```typescript
-// Record<키 타입, 값 타입>
-type ScoreBoard = Record<string, number>;
-// = { [key: string]: number }
-// → 어떤 문자열 키든 number 값
-
-const scores: ScoreBoard = {
-  '홍길동': 100,
-  '김철수': 95,
-};
-
 // 유니온 타입을 키로 — 모든 케이스를 강제
 type Status = 'active' | 'inactive' | 'deleted';
 type StatusLabel = Record<Status, string>;
-// = { active: string; inactive: string; deleted: string; }
 // → 셋 중 하나라도 빠지면 에러
 
 const labels: StatusLabel = {
@@ -278,18 +447,11 @@ const PROVIDER_DEFAULTS: Record<MailProvider, { host: string; port: number }> = 
 ```typescript
 type Status = 'active' | 'inactive' | 'deleted' | null | undefined;
 
-// Exclude — 제거
 type NonNullStatus = Exclude<Status, null | undefined>;
 // = 'active' | 'inactive' | 'deleted'
 
-// Extract — 추출
 type StringStatus = Extract<Status, string>;
 // = 'active' | 'inactive' | 'deleted'  (string인 것만)
-
-// 실전
-type StringOrNumber = string | number | boolean;
-type OnlyString = Extract<StringOrNumber, string>;  // string
-type WithoutBoolean = Exclude<StringOrNumber, boolean>;  // string | number
 ```
 
 ---
@@ -298,16 +460,8 @@ type WithoutBoolean = Exclude<StringOrNumber, boolean>;  // string | number
 
 ```typescript
 type MaybeString = string | null | undefined;
-
 type DefinitelyString = NonNullable<MaybeString>;
 // = string
-
-// 실전 — early return 후 타입 보장
-function process(value: string | null) {
-  if (!value) return;
-  // 여기서 value: string (TypeScript가 narrowing)
-  // NonNullable<typeof value> = string
-}
 
 // 제네릭 함수에서
 function compact<T>(arr: (T | null | undefined)[]): T[] {
@@ -326,15 +480,11 @@ function fetchUser() {
 
 type UserData = ReturnType<typeof fetchUser>;
 // = { id: string; nickname: string; email: string; }
-
-// 함수 타입을 별도로 정의하지 않아도 됨
 // 함수가 바뀌면 ReturnType도 자동으로 바뀜
 ```
 
 ```typescript
 // 실전 — 라이브러리 함수의 반환 타입
-type QueryResult = ReturnType<typeof prisma.post.findMany>;
-// Awaited<ReturnType<...>>와 조합 (비동기)
 type PostData = Awaited<ReturnType<typeof fetchPost>>;
 ```
 
@@ -348,20 +498,14 @@ type Resolved = Awaited<StringPromise>;
 // = string  (Promise가 벗겨짐)
 
 // 중첩 Promise도 처리
-type NestedPromise = Promise<Promise<number>>;
-type Resolved2 = Awaited<NestedPromise>;
+type Resolved2 = Awaited<Promise<Promise<number>>>;
 // = number
 
 // 실전 — async 함수의 반환 타입
-async function fetchPost(id: string) {
-  return await prisma.post.findUnique({ where: { id } });
-}
-
 type Post = Awaited<ReturnType<typeof fetchPost>>;
 // = Post 모델 타입 (Promise 제거 + ReturnType 추출)
 ```
 
----
 ## Awaited + ReturnType + 인덱스드 액세스 조합 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -372,7 +516,6 @@ movie: Awaited<ReturnType<TmdbService['getMovie']>> | null;
 //     ↑ Promise 벗기기
 ```
 
-
 ```txt
 분해:
 
@@ -382,15 +525,10 @@ TmdbService['getMovie']:
 
 ReturnType<TmdbService['getMovie']>:
   getMovie 함수 타입에서 반환 타입을 추출
-  getMovie()가 Promise<TmdbMovie>를 반환하면
-  → ReturnType = Promise<TmdbMovie>
+  getMovie()가 Promise<TmdbMovie>를 반환하면 → Promise<TmdbMovie>
 
 Awaited<ReturnType<TmdbService['getMovie']>>:
-  Promise를 벗겨서 안의 타입만 꺼냄
-  → TmdbMovie
-
-| null:
-  getMovie가 실패하거나 결과 없으면 null을 허용
+  Promise를 벗겨서 안의 타입만 꺼냄 → TmdbMovie
 
 전체:
   "TmdbService.getMovie()가 resolve한 값 또는 null"
@@ -410,10 +548,8 @@ type MovieState = {
   movie: Awaited<ReturnType<TmdbService['getMovie']>> | null;
   isLoading: boolean;
 };
-
-// 함수 반환 타입이 바뀌면 MovieState도 자동으로 바뀜
-// → 타입을 따로 정의·관리하지 않아도 됨
 ```
+
 ---
 
 # Parameters\<T\> — 함수 파라미터 타입 추출 ⭐️⭐️
@@ -435,7 +571,6 @@ type FirstParam = Parameters<typeof login>[0];
 ```typescript
 // ① Omit + Partial — 일부 제거 후 나머지를 optional
 type UpdatePostDto = Partial<Omit<Post, 'id' | 'createdAt'>>;
-// id와 createdAt을 제거한 후, 나머지를 전부 optional로
 
 // ② ReturnType + Awaited — async 함수 반환 타입
 type Result = Awaited<ReturnType<typeof asyncFunction>>;
@@ -450,23 +585,36 @@ type StatusConfig = Record<'active' | 'inactive' | 'deleted', {
 type CustomType = Omit<GeneratedType, '교체할필드'> & {
   교체할필드: 원하는타입;
 };
+
+// ⑤ PartialBy — 특정 필드만 optional
+type CreatePostDto = PartialBy<Post, 'id' | 'createdAt'>;
+
+// ⑥ Override — 필드 타입 통째로 교체
+type ApiResponse = Override<PrismaModel, { createdAt: string; updatedAt: string }>;
 ```
 
 ---
 
 # 한눈에 보기
 
-| 유틸리티 타입          | 하는 일                  |
-| ---------------- | --------------------- |
-| `Partial<T>`     | 모든 필드 optional (? 추가) |
-| `Required<T>`    | 모든 필드 필수 (? 제거)       |
-| `Readonly<T>`    | 모든 필드 읽기 전용           |
-| `Pick<T, K>`     | K에 해당하는 필드만 선택        |
-| `Omit<T, K>`     | K에 해당하는 필드 제거         |
-| `Record<K, V>`   | K를 키, V를 값으로 하는 객체 타입 |
-| `Exclude<T, U>`  | 유니온에서 U에 해당하는 것 제거    |
-| `Extract<T, U>`  | 유니온에서 U에 해당하는 것만 추출   |
-| `NonNullable<T>` | null · undefined 제거   |
-| `ReturnType<T>`  | 함수의 반환 타입 추출          |
-| `Awaited<T>`     | Promise 안의 타입 추출      |
-| `Parameters<T>`  | 함수의 파라미터 타입 추출        |
+| 유틸리티 타입                 | 하는 일                             |
+| ----------------------- | -------------------------------- |
+| `Partial<T>`            | 모든 필드 optional (? 추가)            |
+| `Required<T>`           | 모든 필드 필수 (? 제거)                  |
+| `Readonly<T>`           | 모든 필드 읽기 전용                      |
+| `Pick<T, K>`            | K에 해당하는 필드만 선택                   |
+| `Omit<T, K>`            | K에 해당하는 필드 제거                    |
+| `Record<K, V>`          | K를 키, V를 값으로 하는 객체 타입            |
+| `Exclude<T, U>`         | 유니온에서 U에 해당하는 것 제거               |
+| `Extract<T, U>`         | 유니온에서 U에 해당하는 것만 추출              |
+| `NonNullable<T>`        | null · undefined 제거              |
+| `ReturnType<T>`         | 함수의 반환 타입 추출                     |
+| `Awaited<T>`            | Promise 안의 타입 추출                 |
+| `Parameters<T>`         | 함수의 파라미터 타입 추출                   |
+| **커스텀 유틸리티 타입**         |                                  |
+| `Partial<T> & { K: V }` | 특정 필드만 required, 나머지는 optional   |
+| `PartialBy<T, K>`       | K 필드만 optional, 나머지는 required 유지 |
+| `RequiredBy<T, K>`      | K 필드만 required, 나머지는 optional 유지 |
+| `Override<T, U>`        | U에 해당하는 필드 타입 교체 (Omit + &)      |
+| `DeepPartial<T>`        | 재귀적으로 모든 중첩 필드까지 optional        |
+| `SerializeDate<T>`      | Date 타입 필드를 재귀적으로 string으로 변환    |

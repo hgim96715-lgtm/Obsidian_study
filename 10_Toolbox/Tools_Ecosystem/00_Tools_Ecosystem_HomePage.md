@@ -12,7 +12,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[00_DevOps_HomePage]]"
+  - "[[00_DevOps_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
 cssclasses:
   - max
@@ -30,7 +30,7 @@ cssclasses:
 파일명 prefix: Obsidian_ / VSCode_ / Postman_ / DataGrip_ / Mac_ / Snippet_
 
 이 폴더에 없는 것:
-  Git · Docker · Linux 개념     → [[00_DevOps_HomePage]]
+  Git · Docker · Linux 개념     → [[00_DevOps_Ecosystem_HomePage]]
   NestJS · Next.js 프레임워크   → [[00_NestJS_Ecosystem_HomePage]] · [[00_JS_Ecosystem_HomePage]]
   PostgreSQL SQL 문법·ER 개념  → [[00_DB_HomePage]] · [[NestJS_Prisma]]
   ESLint·Prettier "규칙이 코드에 주는 영향" → Wiki (여기는 VS Code 연동·설정)
@@ -208,4 +208,4 @@ Prisma @db.Timestamptz(3) 개념 → [[NestJS_Prisma]]
 | Postman으로 Nest API 호출 | NestJS Controller · Guard |
 | DataGrip 연결·KST 표시 | [[NestJS_Prisma]] · [[Snippet_date-statistics-pattern]] |
 | VS Code ESLint **설정** | ESLint **규칙**이 코드에 주는 영향 |
-| Git 명령어 | [[00_DevOps_HomePage]] Git 섹션 |
+| Git 명령어 | [[00_DevOps_Ecosystem_HomePage]] Git 섹션 |

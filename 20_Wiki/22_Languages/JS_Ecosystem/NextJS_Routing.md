@@ -416,6 +416,11 @@ useSearchParams:
   /posts?sort=latest&page=2 → "게시글을 최신순 2페이지로"
   /search?q=홍길동           → "'홍길동' 검색"
   → URL_Encoding·URLSearchParams → [[JS_URL_Encoding]]
+
+⚠️ useSearchParams()는 반드시 <Suspense> 안에 있는 컴포넌트에서만 사용
+  정적 렌더링 시 Suspense 없으면 빌드 에러 발생
+  → page.tsx에서 해당 컴포넌트를 <Suspense>로 감싸기
+  → 원리·패턴 [[React_Suspense#③ useSearchParams()]] · 에러 기록 [[Next_Troubleshooting]]
 ```
 
 ---

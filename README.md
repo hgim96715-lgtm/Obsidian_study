@@ -1,13 +1,15 @@
 ---
-aliases: [README]
-tags: [README]
+aliases:
+  - README
+tags:
+  - README
 related:
   - "[[00_Career_HomePage]]"
   - "[[00_Certifications_HomePage]]"
   - "[[00_Data_Engineering_Ecosystem_HomePage]]"
   - "[[00_DB_HomePage]]"
   - "[[00_Deployment_HomePage]]"
-  - "[[00_DevOps_HomePage]]"
+  - "[[00_DevOps_Ecosystem_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[00_Project_HomePage]]"
@@ -78,7 +80,7 @@ Obsidian_study/
 - `00_JS_Ecosystem_HomePage` — JS · TS · React · Next.js
 - `00_NestJS_Ecosystem_HomePage` — NestJS · Node.js
 - `00_DB_HomePage` — PostgreSQL · MySQL · Redis (예정)
-- `00_DevOps_HomePage` — Docker · Git · Linux
+- `00_DevOps_Ecosystem_HomePage` — Docker · Git · Linux
 - `00_Deployment_HomePage` — 배포 · CI/CD · 클라우드 인프라
 - `00_Python_Ecosystem_HomePage` — Python 생태계 (NumPy · Pandas · Streamlit, `Python/` 통합 예정)
 - `00_Python_HomePage` — 기존 Python 노트 목차 (→ `Python_Ecosystem`으로 이전 예정)

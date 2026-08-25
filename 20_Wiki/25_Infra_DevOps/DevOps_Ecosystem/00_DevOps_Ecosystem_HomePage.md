@@ -3,6 +3,7 @@ aliases:
   - Git
   - Docker
   - Linux
+  - GitHub Actions
 tags:
   - HomePage
 related:
@@ -14,11 +15,11 @@ cssclasses:
   - table-max
   - table-wrap
 ---
-# 00_DevOps_HomePage — Docker · Git · Linux
+# 00_DevOps_Ecosystem_HomePage — Docker · Git · Linux · GitHub Actions
 
 > [!info]
 >  언어/프레임워크가 아닌 인프라·툴링 레이어를 모아두는 홈페이지
->   Docker(컨테이너), Git(버전 관리), Linux(서버 환경) — 셋 다 어느 스택이든 공통으로 쓰인다.
+>   Docker(컨테이너), Git(버전 관리), Linux(서버 환경), GitHub Actions(자동화) — 어느 스택이든 공통으로 쓰인다.
 >   배포 자체(Vercel · Railway · Neon)는 [[00_Deployment_HomePage]] 참고.
 
 ```txt
@@ -35,21 +36,22 @@ cssclasses:
 flowchart TB
     subgraph DEVOPS["DevOps_Ecosystem (이 폴더)"]
         direction TB
-        D["Docker\nDocker_Basics · Docker_Compose\nDocker_Dockerfile · Docker_Network"]
+        D["Docker\nDocker_Compose · Docker_Dockerfile"]
         G["Git\nGit_Basics · Git_Branch\nGit_Workflow · Git_Rebase"]
         L["Linux\nLinux_Command · Linux_Permission\nLinux_Process · Linux_Shell"]
+        GA["GitHub Actions\nschedule · secrets\ncurl · cron secret"]
     end
 
     subgraph INFRA["26_Infra_DevOps (상위 폴더)"]
-        DEPLOY["Deployment/\nDeploy_CloudMVP\n00_Deployment_HomePage"]
+        DEPLOY["Deployment/\nDeploy_CloudMVP"]
     end
 
-    NEST["NestJS_Ecosystem\n(Docker Compose 활용)"]
-    DATA["데이터 엔지니어링\n(Linux 비중 높음)"]
+    NEST["NestJS_Ecosystem"]
+    DATA["데이터 엔지니어링"]
 
     D -->|"로컬 DB 환경"| NEST
     D -->|"Dockerfile"| DEPLOY
-    G -->|"GitHub Actions"| DEPLOY
+    GA -->|"API 자동 호출"| NEST
     L -->|"서버 환경"| DATA
     L -->|"CLI 도구"| D
 ```
@@ -97,8 +99,28 @@ flowchart TB
 | [[Git_Undo]]     | reset(soft/mixed/hard) · revert · stash · restore        |
 
 ```txt
-GitHub Actions(CI/CD)는 배포와 직결 → [[00_Deployment_HomePage]] 쪽에서 다룰 예정
-Git 명령어 자체는 이 폴더 / 배포 파이프라인은 Deployment 폴더
+Git 명령어 자체는 이 폴더 / 배포 플랫폼(Vercel·Railway)은 Deployment 폴더
+GitHub Actions 워크플로우 → 아래 섹션 참고
+```
+
+---
+
+# GitHub Actions ⭐️⭐️⭐️⭐️
+
+| 노트                      | 핵심 내용                                                              |
+| ----------------------- | ------------------------------------------------------------------ |
+| [[GitHub_Actions]]      | workflow · on(schedule/dispatch) · secrets · curl · cron secret 검증 |
+
+```txt
+용도:
+  스케줄 작업 (매일 특정 시간에 API 자동 호출)
+  수동 트리거 (workflow_dispatch)
+  CI/CD 파이프라인 (push → 테스트 → 배포)
+
+이 폴더에 있는 이유:
+  GitHub Actions는 도구(툴링) 레이어
+  어떤 서비스든 붙일 수 있는 범용 자동화 도구
+  특정 배포 플랫폼이 아님
 ```
 
 ---
@@ -135,7 +157,7 @@ Git 명령어 자체는 이 폴더 / 배포 파이프라인은 Deployment 폴더
   → Linux_Ecosystem/ 별도 폴더 검토
 
 26_Infra_DevOps 상위 폴더 구조:
-  Deployment/       배포 플랫폼 (Vercel · Railway · Neon · GitHub Actions)
-  DevOps_Ecosystem/ 도구 (Docker · Git · Linux)
+  Deployment/       배포 플랫폼 (Vercel · Railway · Neon)
+  DevOps_Ecosystem/ 도구 (Docker · Git · Linux · GitHub Actions)
   → "무엇을 배포하는가"와 "어떤 도구를 쓰는가"로 자연스럽게 나뉨
 ```

@@ -228,6 +228,44 @@ web 있음    web/ 제외됨 → Nest 는 src/ 만 봄 → 정상
 
 ---
 
+# ⚙️ 빌드 / 정적 렌더링 오류
+
+## useSearchParams() — Suspense 경계 필수 ⭐️⭐️⭐️⭐️
+
+|항목|내용|
+|---|---|
+|**증상**|빌드 에러: `useSearchParams() should be wrapped in a suspense boundary at page "/login"`|
+|**원인**|`useSearchParams()`는 URL 쿼리 파라미터를 읽는 훅. 정적 렌더링 시 빌드 시점에 URL을 알 수 없어 컴포넌트가 "준비 안 됨" 신호를 던지는데, 이를 받아줄 Suspense 경계가 없음|
+|**조치**|`useSearchParams()`를 쓰는 컴포넌트를 분리 → page.tsx에서 `<Suspense>`로 감싸기|
+
+```tsx
+// ❌ 에러
+export default function LoginPage() {
+  return <LoginForm />;  // LoginForm 안에 useSearchParams()
+}
+
+// ✅ 해결
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<p>불러오는 중…</p>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+```
+
+```txt
+자주 발생하는 곳:
+  /login → 이전 페이지 redirect 파라미터 읽을 때 (?redirect=/dashboard)
+  /search → 검색어 파라미터 읽을 때 (?q=keyword)
+  /callback → OAuth 콜백 코드 읽을 때 (?code=xxx)
+
+→ 공통 패턴: useSearchParams()는 반드시 Suspense 안에 있는 컴포넌트에서만 사용
+→ 개념 상세 → [[React_Suspense#③ useSearchParams()]]
+```
+
+---
+
 # 한눈에
 
 ```txt
@@ -244,6 +282,9 @@ web 있음    web/ 제외됨 → Nest 는 src/ 만 봄 → 정상
 
 🔧 NestJS 빌드에 JSX 에러 대량 발생:
   → 루트 tsconfig.json exclude 에 "web" 추가
+
+⚙️ useSearchParams() 빌드 에러:
+  → useSearchParams()를 쓰는 컴포넌트를 page.tsx에서 <Suspense>로 감싸기
 
 공통 디버깅 팁:
   PC 에서 재현 안 되면 → 반드시 실제 iPhone Safari 로 확인

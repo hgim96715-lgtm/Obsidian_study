@@ -1,10 +1,13 @@
 ---
-aliases: [00_NestJS_Ecosystem_HomePage — NestJS · NodeJS, NestJS Ecosystem HomePage]
-tags: [HomePage]
+aliases:
+  - 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
+  - NestJS Ecosystem HomePage
+tags:
+  - HomePage
 related:
   - "[[00_DB_HomePage]]"
   - "[[00_Deployment_HomePage]]"
-  - "[[00_DevOps_HomePage]]"
+  - "[[00_DevOps_Ecosystem_HomePage]]"
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[00_Project_HomePage]]"
 cssclasses:

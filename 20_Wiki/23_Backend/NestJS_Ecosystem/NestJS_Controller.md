@@ -22,6 +22,7 @@ related:
   - "[[NestJS_Concept]]"
   - "[[NestJS_JwtGuard]]"
   - "[[TS_Type_Guards]]"
+  - "[[GitHub_Actions]]"
 ---
 # NestJS_Controller — 컨트롤러
 
@@ -631,6 +632,71 @@ toggleLike(
 ) {
   return this.postsService.toggleLike(id, userId);
 }
+```
+
+## 외부 시스템 cron 엔드포인트 — x-cron-secret 패턴
+
+```txt
+x-cron-secret이란:
+  HTTP 요청 헤더에 담아 보내는 공유 비밀키(shared secret)
+  "이 요청은 신뢰할 수 있는 시스템(GitHub Actions 등)이 보낸 것"을 증명
+
+  왜 JWT 대신 secret 헤더인가:
+    JWT는 "로그인한 유저"가 발급받는 토큰 → GitHub Actions는 유저가 아님
+    cron 작업은 서버끼리의 통신 → 사전에 공유한 비밀키 비교로 충분
+    구조: 서버 .env ↔ GitHub Secret → curl 요청 헤더 → 서버에서 비교 → 불일치 시 401
+
+  x- 접두사:
+    HTTP 표준 헤더가 아닌 "커스텀 헤더"를 나타내는 관례
+    Authorization이나 Cookie 같은 표준 인증 헤더와 구분
+    이름은 자유롭게 지정 (x-api-key, x-cron-secret 등)
+```
+
+```typescript
+// ❌ 안티패턴 — 메서드마다 검증 로직 반복
+@Post('seed-pool/cron')
+seedPoolCron(@Headers('x-cron-secret') secret: string | undefined) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+    throw new UnauthorizedException('잘못된 cron secret입니다.');
+  }
+  // ...
+}
+```
+
+```typescript
+// ✅ Guard로 추출 — 범용적으로 재사용
+// cron-secret.guard.ts
+@Injectable()
+export class CronSecretGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest<Request>();
+    const secret = req.headers['x-cron-secret'];
+    if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+      throw new UnauthorizedException('잘못된 cron secret입니다.');
+    }
+    return true;
+  }
+}
+
+// 사용 — 데코레이터 하나로 어느 엔드포인트든 적용
+@UseGuards(CronSecretGuard)
+@Post('seed-pool/cron')
+@ApiQuery({ name: 'pages', required: false, example: 3 })
+seedPoolCron(
+  @Query('pages', new DefaultValuePipe(3), ParseIntPipe) pages: number,
+) {
+  return this.someService.execute(pages);
+}
+```
+
+```txt
+패턴 요약:
+  .env          CRON_SECRET="랜덤 긴 문자열 (openssl rand -hex 32 등)"
+  GitHub Secret 동일한 값 등록
+  curl 요청     -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+  서버 검증     CronSecretGuard → 불일치 시 401
+
+GitHub Actions 워크플로우 전체 → [[GitHub_Actions]]
 ```
 
 ---

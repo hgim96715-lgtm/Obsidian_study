@@ -30,7 +30,7 @@ cssclasses:
   JwtGuard·DTO·Prisma 문법 개념     → [[00_NestJS_Ecosystem_HomePage]] · [[00_DB_HomePage]]
   Next fetch · Server Actions 개념  → [[00_JS_Ecosystem_HomePage]]
   Postman · DataGrip · VS Code       → [[00_Tools_Ecosystem_HomePage]]
-  Docker · 배포 플랫폼 일반 개념      → [[00_DevOps_HomePage]] · [[00_Deployment_HomePage]]
+  Docker · 배포 플랫폼 일반 개념      → [[00_DevOps_Ecosystem_HomePage]] · [[00_Deployment_HomePage]]
 
 원본 상세 문서(길게): music-community 레포 apps/docs/ (gitignore · 로컬 작업용)
 vault 노트: 요약·ER·헷갈림·진행만 옮겨 둠 — [[MusicCommunity_DB]]처럼

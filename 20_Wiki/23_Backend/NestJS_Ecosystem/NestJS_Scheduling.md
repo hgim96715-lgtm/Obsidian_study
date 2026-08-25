@@ -12,6 +12,7 @@ related:
   - "[[JS_Date]]"
   - "[[NestJS_Logger]]"
   - "[[NestJS_Email]]"
+  - "[[GitHub_Actions]]"
 ---
 # NestJS_Scheduling — 스케줄링 · Cron
 
@@ -384,4 +385,36 @@ async snapshotYesterday() {
   실행 시간 주의 — 오래 걸리는 작업은 다음 스케줄 실행 전에 끝나야 함
   중복 실행 주의 — 스케일 아웃 환경에서 여러 인스턴스가 동시 실행 가능
                   → Redis 기반 분산 락 또는 단일 인스턴스에서만 실행 설정 필요
+```
+
+---
+
+# @Cron vs GitHub Actions 외부 트리거 ⭐️⭐️⭐️⭐️
+
+```txt
+@Cron (NestJS 내부 스케줄링):
+  NestJS 프로세스 안에서 직접 실행
+  서버가 살아 있어야 동작
+  스케줄 변경 시 코드 수정 + 재배포 필요
+  → 서버 내부 정리 작업 (세션 삭제, 캐시 갱신, 통계 집계)
+
+GitHub Actions cron (외부 HTTP 트리거):
+  GitHub 인프라에서 서버 API를 curl로 호출
+  서버 재시작과 무관하게 스케줄은 GitHub에서 관리
+  YAML만 수정하면 재배포 없이 스케줄 변경 가능
+  x-cron-secret 헤더로 호출 인증 → [[NestJS_Controller]]
+  → DB seed, 외부 API 동기화, "외부에서 시작"하는 작업
+```
+
+```txt
+선택 기준:
+  서버 내부 처리, 빠른 주기(매분·매시간)  → @Cron
+  외부에서 API 호출, 스케줄 변경 잦음     → GitHub Actions
+
+  함께 쓰는 경우:
+    @Cron:          매시간 내부 캐시 갱신
+    GitHub Actions: 매일 외부 API에서 데이터 동기화 (curl → 서버 엔드포인트)
+
+→ GitHub Actions 워크플로우 설정 → [[GitHub_Actions]]
+→ Controller에서 x-cron-secret 검증 → [[NestJS_Controller]]
 ```
