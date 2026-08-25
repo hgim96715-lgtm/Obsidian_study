@@ -5,21 +5,41 @@ aliases:
   - 타임존 변환
   - ISO 3166-1
   - Intl.DateTimeFormatPartTypes
+  - dateStyle
+  - timeStyle
+  - formatKst
+  - 상대시간
+  - 통화 포맷
 tags:
   - JavaScript
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Intl]]"
+  - "[[JS_Date]]"
   - "[[React_DatePicker]]"
+  - "[[NestJS_Excel]]"
   - "[[Snippet_date-statistics-pattern]]"
 ---
 # JS_Intl — 국제화 포맷 API
 
-> [!info] 
-> Intl = 브라우저 내장 국제화(Internationalization) API. 
-> 날짜·시간·숫자·통화·상대시간을 로케일(언어/지역)에 맞게 포맷한다. 
-> `"2024-01-15"` → `"2024년 1월 15일"` 변환, `"5분 전"` 같은 상대 시간 표현. 
-> Date 객체 생성·계산 → [[JS_Date]]
+> [!info]
+> Intl = 브라우저 · Node.js 내장 국제화(Internationalization) API. 설치 없이 사용.
+>
+> **포맷 API 3종**
+> - `Intl.DateTimeFormat` — 날짜·시간 포맷. dateStyle/timeStyle 단축, formatToParts 부분 추출, hourCycle 시간 범위 제어
+> - `Intl.RelativeTimeFormat` — `"5분 전"` `"어제"` `"3일 후"` 상대 시간
+> - `Intl.NumberFormat` — 숫자·통화·퍼센트 포맷
+>
+> **KST 유틸 패턴** (서버 사이드)
+> - `sv-SE` + timeZone → `"2024-01-15 09:30:00"` 로그용 KST 타임스탬프
+> - `en-CA` + timeZone → `"2024-01-16"` → Prisma `@db.Date` 저장용 KST 날짜
+> - `en-CA` + `T00:00:00+09:00` → KST 자정 기반 기간 범위 (`kstTodayRange`, `kstWeekRange`)
+> - `en-US` weekday `'short'` → `'Mon'`~`'Sun'` 요일 조건 판단
+>
+> **기타**
+> - `Intl.DisplayNames` — 국가 코드(`KR`) → 이름(`대한민국`) 변환
+> - ISO 3166-1 / ISO 639-1 — 로케일 코드 표준
+>
+> Date 객체 생성·계산 → [[JS_Date]] · 엑셀 날짜 포맷 활용 → [[NestJS_Excel]]
 
 ---
 
@@ -168,6 +188,64 @@ date.toLocaleString('ko-KR', { month: 'long', day: 'numeric' })
 date.toLocaleDateString('ko-KR')  // 날짜만
 date.toLocaleTimeString('ko-KR')  // 시간만
 ```
+
+## dateStyle / timeStyle — 빠른 전체 포맷 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 날짜·시간 전체를 스타일 한 단어로 — formatKst 패턴 (NestJS 서비스에서 자주 씀)
+private formatKst(value: Date): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    dateStyle: 'short',   // 날짜 → "24. 1. 15."
+    timeStyle: 'medium',  // 시간 → "오전 9:30:00"
+  }).format(value);
+}
+// → "24. 1. 15. 오전 9:30:00"
+```
+
+```txt
+dateStyle 4단계 (ko-KR 기준):
+  'full'   → "2024년 1월 15일 월요일"
+  'long'   → "2024년 1월 15일"
+  'medium' → "2024. 1. 15."
+  'short'  → "24. 1. 15."
+
+timeStyle 4단계 (ko-KR 기준):
+  'full'   → "오전 9시 30분 0초 대한민국 표준시"
+  'long'   → "오전 9:30:00 GMT+9"
+  'medium' → "오전 9:30:00"
+  'short'  → "오전 9:30"
+
+조합 예시:
+  dateStyle: 'short'  + timeStyle: 'short'  → "24. 1. 15. 오전 9:30"
+  dateStyle: 'medium' + timeStyle: 'medium' → "2024. 1. 15. 오전 9:30:00"
+  dateStyle: 'long'   + timeStyle: 'short'  → "2024년 1월 15일 오전 9:30"
+  dateStyle만 지정                           → 날짜만 출력
+  timeStyle만 지정                           → 시간만 출력
+
+vs 개별 옵션 방식:
+  개별: year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
+    → 특정 컴포넌트만 골라서 조합, 세밀한 제어 가능
+  단축: dateStyle + timeStyle
+    → 전체 날짜·시간을 한 번에, 빠른 표시용
+```
+
+> [!warning] 혼용 불가 — dateStyle/timeStyle ↔ 개별 옵션
+> ```typescript
+> // ❌ TypeError 또는 브라우저마다 결과 불일치
+> new Intl.DateTimeFormat('ko-KR', {
+>   dateStyle: 'short',
+>   year: 'numeric',   // ← 개별 옵션과 혼용 불가
+> });
+> ```
+> ```txt
+> 이유: dateStyle은 내부적으로 year + month + day를 통째로 제어함
+>       → 개별 옵션과 의미가 충돌 → 스펙상 에러 또는 undefined 동작
+>
+> 선택 규칙:
+>   빠른 전체 포맷 → dateStyle / timeStyle 단축 사용
+>   특정 컴포넌트만 조합 → year / month / day / hour / minute / second 개별 사용
+> ```
 
 ## formatToParts — 부분별로 꺼내기 ⭐️⭐️⭐️⭐️
 

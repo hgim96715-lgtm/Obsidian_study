@@ -8,6 +8,10 @@ aliases:
   - Actions
   - 자동화
   - 워크플로우
+  - set -euo pipefail
+  - upload-artifact
+  - retention-days
+  - TZ 날짜
 tags:
   - DevOps
   - GitHub
@@ -16,6 +20,7 @@ related:
   - "[[Deploy_CloudMVP]]"
   - "[[NestJS_Scheduling]]"
   - "[[NestJS_Controller]]"
+  - "[[NestJS_Excel]]"
 ---
 # GitHub_Actions — 자동화 워크플로우
 
@@ -349,6 +354,217 @@ jobs:
 실무 기준:
   단순 cron 워크플로우       → Repository Secret (yml 단순, 경고 없음)
   배포·환경 분리가 필요할 때  → Environment Secret + environment: 명시
+```
+
+---
+
+# 파일 다운로드 워크플로우 — Excel 리포트 패턴 ⭐️⭐️⭐️⭐️
+
+```yaml
+# .github/workflows/daily-excel.yml
+name: Daily Admin Excel
+
+on:
+  schedule:
+    - cron: "0 17 * * *"   # KST 02:00 = UTC 17:00
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download yesterday report
+        env:
+          API_URL: ${{ secrets.CINEMO_API_URL }}
+          CRON_SECRET: ${{ secrets.CINEMO_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          report_date="$(TZ=Asia/Seoul date -d 'yesterday' +%F)"
+          report_month="$(TZ=Asia/Seoul date -d 'yesterday' +%Y/%m)"
+          report_path="reports/${report_month}/cinemo-${report_date}.xlsx"
+
+          mkdir -p "$(dirname "$report_path")"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${API_URL}/v1/admin/reports/daily-excel/cron" \
+            --header "x-cron-secret: ${CRON_SECRET}" \
+            --output "$report_path"
+
+          test -s "$report_path"
+          echo "생성 파일: $report_path"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinemo-daily-excel-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 90
+```
+
+## set -euo pipefail — bash 안전 플래그 ⭐️⭐️⭐️⭐️
+
+```txt
+set -e   에러 시 즉시 종료 (exit on error)
+  명령이 0이 아닌 종료 코드를 반환하면 즉시 스크립트 종료
+  이게 없으면 curl 실패해도 다음 줄을 그냥 실행
+
+set -u   미정의 변수 사용 시 에러
+  $UNDEFINED_VAR 참조하면 에러 (기본은 빈 문자열로 처리됨)
+  오타 방지 — $CRON_SECERT 같은 실수를 잡아줌
+
+set -o pipefail   파이프 중간 실패도 감지
+  cmd1 | cmd2 에서 cmd1이 실패해도 기본적으로 cmd2가 성공이면 전체 성공으로 처리
+  pipefail → 파이프 어디서든 실패하면 전체 실패
+
+-euo = -e -u -o 를 합친 표기
+  pipefail은 -o 옵션으로 설정하는 방식이라 별도 -o pipefail
+  set -euo pipefail = 세 가지를 한 줄에 켜는 표준 관용구
+
+Actions run 블록에서 항상 첫 줄에 쓰는 이유:
+  Actions는 기본적으로 -e만 켜져 있음
+  -u, pipefail은 직접 켜야 완전한 보호
+```
+
+## TZ=Asia/Seoul date — 타임존 날짜 추출 ⭐️⭐️⭐️⭐️
+
+```bash
+report_date="$(TZ=Asia/Seoul date -d 'yesterday' +%F)"
+# → "2026-08-24"
+
+report_month="$(TZ=Asia/Seoul date -d 'yesterday' +%Y/%m)"
+# → "2026/08"
+```
+
+```txt
+TZ=Asia/Seoul:
+  date 명령 앞에 붙이는 환경변수
+  해당 명령 실행 동안만 타임존을 Asia/Seoul로 변경
+  GitHub Actions runner는 UTC → 그대로 쓰면 KST와 날짜가 다를 수 있음
+
+date -d 'yesterday':
+  어제 날짜를 기준으로 (today는 -d 없이 바로 사용)
+  KST 기준 어제 = UTC 기준 어제와 다를 수 있어서 TZ 지정 필수
+
+포맷 지정자:
+  +%F    = +%Y-%m-%d 의 단축형 → "2026-08-24"
+  +%Y/%m = 연도/월              → "2026/08"
+
+$(...)  명령 치환:
+  $()로 감싼 명령의 출력을 변수에 대입
+  report_date="$(date ...)" → date 출력 결과가 변수에 들어감
+```
+
+## mkdir -p "$(dirname ...)" — 경로 자동 생성 ⭐️⭐️⭐️
+
+```bash
+report_path="reports/${report_month}/cinemo-${report_date}.xlsx"
+# → "reports/2026/08/cinemo-2026-08-24.xlsx"
+
+mkdir -p "$(dirname "$report_path")"
+# → "reports/2026/08/" 폴더를 없으면 생성
+```
+
+```txt
+dirname "$report_path":
+  경로에서 파일명을 제거하고 디렉토리 부분만 반환
+  "reports/2026/08/cinemo-2026-08-24.xlsx" → "reports/2026/08"
+
+mkdir -p:
+  -p = parents: 중간 경로(reports, reports/2026)가 없어도 한 번에 생성
+  이미 있으면 에러 없이 그냥 넘어감
+
+왜 이 패턴인가:
+  report_path가 여러 단계 폴더를 포함 (reports/연도/월/파일)
+  curl --output으로 파일을 저장하려면 상위 폴더가 이미 있어야 함
+  → 먼저 mkdir로 경로 확보
+```
+
+## curl --output — 응답을 파일로 저장 ⭐️⭐️⭐️⭐️
+
+```bash
+curl --fail-with-body --silent --show-error \
+  --request POST \
+  --url "${API_URL}/v1/admin/reports/daily-excel/cron" \
+  --header "x-cron-secret: ${CRON_SECRET}" \
+  --output "$report_path"
+```
+
+```txt
+--output "$report_path":
+  curl 응답 body를 지정한 파일 경로에 저장
+  이게 없으면 응답이 stdout으로 출력됨 (터미널에 바이너리 출력)
+  xlsx처럼 바이너리 파일은 --output으로 파일에 직접 저장해야 함
+
+--fail-with-body:
+  4xx·5xx 응답 시 종료 코드 1 반환 → set -e와 함께 워크플로우 실패 처리
+  응답 body도 출력해줌 (어떤 에러인지 로그에 찍힘)
+
+--silent:
+  curl 자체의 진행 상태(전송 속도 등) 출력 숨김
+
+--show-error:
+  --silent와 같이 쓰는 짝꿍 — 에러만 출력 (진행은 숨기되 에러는 보임)
+  → 평상시 로그 깨끗 + 에러 시 원인 확인 가능
+```
+
+## test -s — 파일 비어있지 않은지 검증 ⭐️⭐️⭐️
+
+```bash
+test -s "$report_path"
+```
+
+```txt
+test -s 파일경로:
+  파일이 존재하고 크기가 0보다 크면 → 종료 코드 0 (성공)
+  파일이 없거나 비어있으면 → 종료 코드 1 (실패)
+
+set -e가 켜져 있으므로 → 실패하면 워크플로우 즉시 종료
+
+왜 필요한가:
+  curl --fail-with-body는 HTTP 에러코드는 잡지만
+  API가 200을 반환하면서 빈 body를 보내는 경우는 감지 못 함
+  → test -s로 이중 검증 → "진짜로 파일이 왔는지" 확인
+```
+
+## upload-artifact 옵션 ⭐️⭐️⭐️⭐️
+
+```yaml
+- name: Upload report artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: cinemo-daily-excel-${{ github.run_id }}
+    path: reports/
+    if-no-files-found: error
+    retention-days: 90
+```
+
+```txt
+name:
+  Actions UI에서 보이는 아티팩트 이름
+  ${{ github.run_id }} → 실행마다 고유 ID 붙여서 이름 충돌 방지
+
+path:
+  업로드할 파일/폴더 경로
+  reports/ 폴더 전체 → 폴더 구조(연도/월)까지 함께 업로드
+
+if-no-files-found:
+  warn   파일 없어도 워크플로우는 성공 처리 (기본값)
+  error  파일 없으면 step 실패 → 워크플로우 실패 처리 ← 권장
+  ignore 조용히 넘어감
+
+  error로 설정하는 이유:
+  curl 단계에서 --output 저장 실패가 set -e에 안 걸렸어도
+  upload 단계에서 반드시 걸림 → 이중 안전장치
+
+retention-days:
+  아티팩트 보관 기간 (기본: 90일, 최대: 90일 — 무료 플랜 기준)
+  기간 지나면 자동 삭제
+  Actions UI → 해당 run → Artifacts 섹션에서 다운로드
 ```
 
 ---

@@ -10,7 +10,6 @@ tags:
   - NestJS
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
-  - "[[NestJS_Deploy]]"
   - "[[NestJS_Env_Config]]"
   - "[[NestJS_FileUpload_r]]"
 ---
