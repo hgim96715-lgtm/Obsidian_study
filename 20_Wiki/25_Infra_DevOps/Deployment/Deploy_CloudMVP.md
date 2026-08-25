@@ -362,7 +362,10 @@ DataGrip (또는 다른 DB 클라이언트) 연결 시:
 ```
 
 ```txt
-⚠️ sslmode=require — Neon 프로덕션에 필요, 빼지 않기
+⚠️ sslmode — Neon 프로덕션 필수 (빼지 않기)
+  현재: sslmode=require  (최소 요건 충족)
+  권장: sslmode=verify-full  (인증서 + 호스트명까지 명시적 검증)
+  → require → verify-full 로 교체만 하면 됨, 나머지 URL은 그대로
 ⚠️ 끝에 / 없음 — .../neondb 까지
 ⚠️ Git 커밋 절대 금지 — Railway Variables · Neon Console에서만 관리
 ```

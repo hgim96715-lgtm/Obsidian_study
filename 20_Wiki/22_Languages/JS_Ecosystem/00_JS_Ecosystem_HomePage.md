@@ -142,7 +142,7 @@ React 19 form action (단순):
 | **Server Actions** | [[NextJS_Server_Actions]] |
 | **Server Actions 상태** | [[React_useFormStatus]] |
 | **FormData API · React 19 action** | [[JS_FormData]] |
-| **기타** | [[React_ControlledInput]] · [[React_DatePicker]] |
+| **기타** | [[React_DatePicker]] |
 
 ---
 
@@ -204,7 +204,7 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 | [[JS_FunctionPatterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
 | [[JS_AlgorithmPatterns]] | GCD(최대공약수) · 서로소 step · 격자 산포 배치 · clamp          |
 | [[JS_Primitive_Methods]] | String · Number · Math                            |
-| [[JS_Regex]]             | test · replace · match · 캡처그룹 · `/\/$/` 분석        |
+| [[JS_Regex]]             | test · replace · match · 캡처그룹 · Lookahead `(?=)` · 선행 0 제거 · 유니코드 범위 |
 
 ---
 

@@ -10,6 +10,7 @@ related:
   - "[[JS_Primitive_Methods]]"
   - "[[JS_Array_Methods]]"
   - "[[TS_Type_Guards]]"
+  - "[[React_FormValidation]]"
 ---
 # JS_Regex — 정규식
 
@@ -381,4 +382,56 @@ needsKoreanTranslation('Sing Street')        // false — 영문
 needsKoreanTranslation('싱 스트리트')         // false — 이미 한국어
 needsKoreanTranslation('シング・ストリート')   // true  — 일본어 → 번역 필요
 needsKoreanTranslation('少年의 時間')         // true  — 한자 → 번역 필요
+```
+---
+
+# Lookahead — 선행 0 제거 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+Lookahead: (?=패턴)
+  뒤에 오는 문자를 확인만 하고 소비하지 않음 (zero-width assertion)
+  → 매칭 위치를 이동시키지 않은 채로 "다음이 이 패턴이어야 함" 조건 추가
+```
+
+## `/^0+(?=\d)/` — 선행 0 제거
+
+```typescript
+"03".replace(/^0+(?=\d)/, '')   // "3"
+"007".replace(/^0+(?=\d)/, '')  // "7"
+"0".replace(/^0+(?=\d)/, '')    // "0"  ← 뒤에 숫자 없음 → lookahead 불만족 → 그대로
+"0.5".replace(/^0+(?=\d)/, '')  // "0.5" ← . 은 \d 아님 → 그대로
+```
+
+```txt
+정규식 분해:
+  ^       문자열 맨 앞
+  0+      하나 이상의 0
+  (?=\d)  바로 뒤에 숫자(\d)가 올 때만 — Lookahead
+
+동작 원리:
+  "03" → ^0+ 가 "0" 매칭 시도 → 뒤가 "3"(\d) → lookahead 통과 → "0" 제거 → "3"
+  "0"  → ^0+ 가 "0" 매칭 시도 → 뒤가 없음 → lookahead 실패 → 아무것도 안 바꿈
+
+Lookahead vs 단순 패턴:
+  /^0+/    → "0"도 제거됨 ("0" → "")  ← 위험
+  /^0+(?=\d)/ → 뒤에 숫자 있을 때만 제거, "0" 단독은 보존  ← 안전
+```
+
+## 실전 사용 — React 숫자 input 선행 0 제거
+
+```typescript
+// → React_ControlledInput 참조
+const normalized = value.replace(/^0+(?=\d)/, '');
+const num = normalized === '' ? 0 : Number(normalized);
+```
+
+## Lookahead 종류
+
+```txt
+(?=패턴)   긍정 전방 탐색 — 뒤에 패턴이 있을 때 매칭
+(?!패턴)   부정 전방 탐색 — 뒤에 패턴이 없을 때 매칭
+
+예:
+  /\d+(?=px)/   "10px"에서 "px" 앞의 숫자 "10" 추출 (px는 소비 안 함)
+  /0+(?!\d)/    뒤에 숫자가 없는 0 → "0" 단독 매칭
 ```

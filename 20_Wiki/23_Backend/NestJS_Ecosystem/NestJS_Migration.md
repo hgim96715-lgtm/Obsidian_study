@@ -92,7 +92,7 @@ postgresql://user:password@host:port/dbname?schema=public&sslmode=disable
 |`host:port`|접속 주소|
 |`dbname`|사용할 DB|
 |`?schema=`|기본값 `public`, 보통 그대로 사용|
-|`sslmode=`|로컬(Docker) → `disable` / 클라우드(Neon 등) → `require`|
+|`sslmode=`|로컬(Docker) → `disable` / 클라우드(Neon 등) → `require` (권장: `verify-full` — 인증서·호스트명 검증)|
 
 ## schema.prisma 기본 구성 (Prisma 7)
 
