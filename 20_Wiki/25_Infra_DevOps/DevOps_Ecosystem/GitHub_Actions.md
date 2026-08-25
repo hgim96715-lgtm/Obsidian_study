@@ -94,6 +94,31 @@ cron 표현식 — 5자리 (분 시 일 월 요일):
   이름 예: CINEMO_API_URL, CINEMO_CRON_SECRET
 ```
 
+## CINEMO_API_URL 값 — Railway 도메인 발급 방법 ⭐️⭐️⭐️⭐️
+
+```txt
+Railway 대시보드 → 프로젝트 → API 서비스 클릭
+  → Settings 탭 → Networking → Public Networking
+  → Generate Domain 버튼 클릭
+  → "Enter the port your app is listening on" 입력 창 뜸
+
+PORT 값 확인:
+  Variables 탭 → PORT 항목 값 확인
+  없으면 Railway 자동 주입값 — 서비스 로그에서 "Listening on port xxxx" 확인
+  → 숫자 입력 → Generate
+
+발급 결과: https://<service-name>.up.railway.app
+  → 이 URL 전체를 CINEMO_API_URL Secret 값으로 등록 (끝 / 없이)
+
+⚠️ Actions curl이 계속 실패할 때 PORT 불일치 확인:
+  NestJS main.ts가 app.listen(3000) 하드코딩이면
+  Railway가 다른 PORT를 주입해도 앱이 그 포트로 안 뜸
+  → 외부 도메인 접근 자체가 안 됨 → curl --fail-with-body 에러
+
+  해결: app.listen(process.env.PORT ?? 3000)
+  → [[Deploy_CloudMVP#2. Railway (API)]]
+```
+
 ```yaml
 # yml에서 사용
 env:

@@ -351,10 +351,45 @@ Settings → Root Directory: 비워둘 것 (레포 루트)
 | `DATABASE_URL`   | Neon Connect → Connection string (진짜 URL — 더미 아님)          | ✅      |
 | `API_JWT_SECRET` | `openssl rand -base64 32`                                  | ✅      |
 | `FRONTEND_URL`   | Vercel origin만 — `https://xxx.vercel.app` (경로 ❌, 3단계 후 확정) | ✅      |
-| `PORT`           | Railway 자동 주입                                              | 설정 불필요 |
+| `PORT`           | Railway 자동 주입 (Variables에 직접 입력해도 됨 — 아래 참고)              | 설정 불필요 |
+
+## ⚠️ PORT — NestJS가 반드시 process.env.PORT로 listen해야 함 ⭐️⭐️⭐️⭐️
+
+```typescript
+// apps/api/src/main.ts
+const port = process.env.PORT ?? 3000;
+await app.listen(port);
+```
 
 ```txt
-Deploy 완료 → Settings → Networking → Generate Domain
+Railway는 서비스마다 PORT를 자동 주입함
+NestJS가 하드코딩된 3000으로 listen하면 Railway 라우터가 기대하는 포트와 달라져
+→ 외부 도메인(https://xxx.up.railway.app) 접근 실패
+→ health check 실패 → 배포 실패 처리 또는 Actions curl 에러
+
+Variables 탭에 PORT가 안 보일 때:
+  Railway 자동 주입 변수는 Variables 탭에서 안 보일 수 있음
+  → Variables 탭에서 PORT = 3000 (또는 원하는 값) 직접 입력하면
+    Generate Domain 입력 창에서 그 값을 넣으면 됨
+  → 직접 지정하지 않으면 Railway가 할당한 값으로 app.listen(process.env.PORT) 동작
+```
+
+```txt
+Deploy 완료 후 공개 도메인 발급:
+  서비스 클릭 → Settings 탭 → Networking → Public Networking
+  → Generate Domain 버튼 클릭
+  → "Enter the port your app is listening on" 입력 창 뜸
+
+PORT 값 확인:
+  Variables 탭 → PORT 값 확인 (직접 설정했으면 그 값 / 없으면 3000이 일반적)
+  → 해당 숫자 입력 → Generate
+  ⚠️ 여기 입력하는 포트와 app.listen(port)의 포트가 반드시 일치해야 함
+
+발급된 도메인 형식: https://<service-name>.up.railway.app
+→ NEXT_PUBLIC_API_URL, GitHub Secret CINEMO_API_URL 등에 사용
+```
+
+```txt
 확인: GET https://<railway-domain>/health → {"ok":true}
 ```
 
@@ -518,6 +553,7 @@ Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
 |증상|원인|해결|
 |---|---|---|
 |`Property 'xxx' does not exist on type 'PrismaService'` / `Cannot find module '../generated/prisma/client'`|`generated/` 폴더가 `.gitignore` 대상 → Railway 깨끗한 빌드 환경에 Prisma Client 없음|`apps/api/package.json` build 스크립트에 `prisma generate --schema prisma/schema.prisma &&` 먼저 추가|
+|`https://<railway-domain>` 접근 실패 / Actions curl 에러|`app.listen(3000)` 하드코딩 → Railway가 주입한 PORT와 불일치|`main.ts` → `app.listen(process.env.PORT ?? 3000)` + Generate Domain 입력값과 일치 확인|
 |`Cannot find module .../dist/main`|Nest 빌드 출력이 `dist/src/main.js`인데 `dist/main`으로 참조|`start:deploy` → `node dist/src/main`으로 수정|
 |`PrismaConfigEnvError: DATABASE_URL` (Docker build)|Prisma 7 `prisma.config.ts`가 빌드 시점에도 env 요구|Dockerfile `RUN`에 더미 URL 추가 (§ Dockerfile 참고)|
 |Railway 빌드 성공인데 migrate/API 연결 실패|Variables에 `DATABASE_URL` 없거나 더미 URL 넣음|Neon Connect → 복사 → Railway Variables에 진짜 URL|

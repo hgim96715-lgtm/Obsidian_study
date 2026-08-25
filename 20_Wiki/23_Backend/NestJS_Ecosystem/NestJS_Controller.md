@@ -677,15 +677,63 @@ export class CronSecretGuard implements CanActivate {
     return true;
   }
 }
+```
 
-// 사용 — 데코레이터 하나로 어느 엔드포인트든 적용
-@UseGuards(CronSecretGuard)
+## ⚠️ 전역 JWT Guard가 있으면 @Public() 필수 ⭐️⭐️⭐️⭐️
+
+```txt
+문제:
+  JwtAuthGuard가 APP_GUARD(전역)로 등록되면 모든 라우트에 JWT 검사가 먼저 실행됨
+  GitHub Actions는 JWT 토큰이 없음 → JWT Guard에서 401 반환
+  → CronSecretGuard까지 도달하지 못하고 차단됨
+
+  증상: Railway에 요청은 도달하는데 401 → curl --fail-with-body → Actions 실패
+
+해결:
+  @Public()을 붙여서 JWT Guard를 스킵
+  대신 @UseGuards(CronSecretGuard)로 자체 인증
+
+  Guard 실행 순서:
+    전역 JWT Guard → @Public() 확인 → true면 스킵
+    메서드 레벨 CronSecretGuard → x-cron-secret 검증 → 통과
+```
+
+```typescript
+// ✅ 전역 JWT Guard + CronSecretGuard 조합 — 완성형 패턴
+@Public()                    // ① JWT Guard 스킵 (GitHub Actions는 유저 토큰 없음)
+@UseGuards(CronSecretGuard)  // ② x-cron-secret으로 자체 인증
 @Post('seed-pool/cron')
-@ApiQuery({ name: 'pages', required: false, example: 3 })
 seedPoolCron(
   @Query('pages', new DefaultValuePipe(3), ParseIntPipe) pages: number,
 ) {
   return this.someService.execute(pages);
+}
+```
+
+```typescript
+// @Public() 데코레이터 구현 (보통 common/decorators/public.decorator.ts)
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+```
+
+```typescript
+// JwtAuthGuard — IS_PUBLIC_KEY를 확인해서 스킵 여부 판단
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
+
+  canActivate(context: ExecutionContext) {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),   // 메서드 레벨 데코레이터 먼저
+      context.getClass(),     // 클래스 레벨 데코레이터
+    ]);
+    if (isPublic) return true;  // @Public() 있으면 JWT 검사 스킵
+    return super.canActivate(context);
+  }
 }
 ```
 
@@ -694,7 +742,10 @@ seedPoolCron(
   .env          CRON_SECRET="랜덤 긴 문자열 (openssl rand -hex 32 등)"
   GitHub Secret 동일한 값 등록
   curl 요청     -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
-  서버 검증     CronSecretGuard → 불일치 시 401
+  서버 검증     @Public() → JWT 스킵 → CronSecretGuard → secret 비교 → 불일치 시 401
+
+  ⚠️ @Public()만 붙이고 @UseGuards(CronSecretGuard)를 안 붙이면
+     인증 없이 누구나 호출 가능 — 반드시 세트로
 
 GitHub Actions 워크플로우 전체 → [[GitHub_Actions]]
 ```
