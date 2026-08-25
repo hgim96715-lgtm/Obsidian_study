@@ -177,6 +177,25 @@ curl 옵션:
   --header           헤더 추가
 ```
 
+```txt
+Actions 실행 중 curl 에러 원인 판단:
+
+  exit code 22 + {"statusCode":401}
+    → JWT Guard가 막음 → @Public() 누락
+    → [[NestJS_Controller#외부 시스템 cron 엔드포인트 — x-cron-secret 패턴]]
+
+  exit code 22 + {"statusCode":500, "message":"데이터베이스 오류"}
+    → API는 정상 기동, DB 테이블이 없음 → migration 미적용
+    → prisma migrate deploy 필요 → [[Deploy_CloudMVP#prisma generate vs prisma migrate deploy]]
+
+  exit code 6 또는 curl: (6) Could not resolve host
+    → API_URL Secret 값 오타 또는 Railway 도메인 미발급
+
+  exit code 22 + {"statusCode":500} (응답 없이)
+    → PORT 불일치 → app.listen(process.env.PORT ?? 3000) 확인
+    → [[Deploy_CloudMVP#2. Railway (API)]]
+```
+
 ---
 
 # NestJS — cron secret 검증 패턴 ⭐️⭐️⭐️⭐️

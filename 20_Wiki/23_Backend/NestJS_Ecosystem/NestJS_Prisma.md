@@ -1675,6 +1675,9 @@ if (exception.code === 'P2002') {
 |타입 자동완성 안 바뀜|`migrate dev`/`generate` 누락 또는 서버 재시작 안 함|[[NestJS_Migration]] 체크리스트 참고|
 |`Ambiguous relation detected`|같은 모델을 두 번 참조하는데 관계 이름 없음|충돌하는 두 필드에 `@relation("이름")`, 양쪽 동일하게|
 |`exports is not defined in ES module scope`|`moduleFormat = "cjs"` 누락|schema.prisma generator 블록에 추가|
+|배포 후 쿼리 시 500 "데이터베이스 오류" — 테이블 없음|`prisma generate`(Client 생성)만 실행, `migrate deploy`(테이블 적용) 미실행|`start:deploy` 스크립트에 `prisma migrate deploy &&` 포함 확인 → [[NestJS_Migration#migrate deploy]] · [[Deploy_CloudMVP]]|
+|`Cannot find module '../generated/prisma/client'`|Railway 등 클린 빌드 환경에 `generated/` 없음|build 스크립트에 `prisma generate` 먼저 추가 → [[Deploy_CloudMVP]]|
+|`PrismaConfigEnvError: DATABASE_URL` (Docker build 단계)|Prisma 7 `prisma.config.ts`가 빌드 시 env 요구|Dockerfile `RUN`에 더미 URL 주입 → [[Deploy_CloudMVP#Dockerfile]]|
 # TypeORM ↔ Prisma 메서드 대조
 
 |TypeORM|Prisma|용도|

@@ -119,6 +119,42 @@ migrate를 빌드 단계에 넣지 않는 이유:
   → 컨테이너 기동 시점에 migrate 먼저 실행하고 서버 올리는 것
 ```
 
+## ⚠️ prisma generate vs prisma migrate deploy — 역할 구분 ⭐️⭐️⭐️⭐️
+
+```txt
+prisma generate:
+  Prisma Client(타입·쿼리 빌더) 코드를 생성 — generated/ 폴더에 출력
+  DB 접속 없음 · 테이블 변경 없음
+  → Railway Build 단계에서 실행 (Dockerfile 또는 build 스크립트)
+
+prisma migrate deploy:
+  migrations/ 폴더의 pending(미적용) migration을 실제 DB에 적용
+  테이블 생성·컬럼 추가·인덱스 등 스키마 변경이 여기서 일어남
+  → Railway 컨테이너 기동 시점에 실행 (start:deploy 스크립트)
+  → DB에 접속해야 하므로 DATABASE_URL 필요
+
+500 "데이터베이스 오류" 원인:
+  API 코드는 배포됐지만 새 테이블·컬럼이 DB에 없는 상태
+  → start:deploy 스크립트에 prisma migrate deploy가 포함됐는지 확인
+  → 또는 Railway 재배포(재시작)가 필요한 경우
+```
+
+```txt
+Neon DB에 migration을 로컬에서 직접 적용해야 할 때:
+  (Railway 재배포 없이 즉시 반영하고 싶을 때 또는 초기 세팅 시)
+```
+
+```bash
+# apps/api/.env 에 Neon DATABASE_URL이 설정된 상태에서
+pnpm --filter api exec prisma migrate deploy
+```
+
+```txt
+  → migrations/ 안의 미적용 migration이 Neon에 즉시 적용됨
+  → Railway 재배포 없이 테이블 구조 반영 가능
+  ⚠️ 로컬 .env의 DATABASE_URL이 Neon 진짜 URL인지 확인 후 실행
+```
+
 ## env 검증 — 클라우드 전용 변수는 optional로 ⭐️⭐️⭐️
 
 ```typescript
@@ -554,6 +590,7 @@ Dockerfile 없이 Dashboard Build Command만 쓰는 경우:
 |---|---|---|
 |`Property 'xxx' does not exist on type 'PrismaService'` / `Cannot find module '../generated/prisma/client'`|`generated/` 폴더가 `.gitignore` 대상 → Railway 깨끗한 빌드 환경에 Prisma Client 없음|`apps/api/package.json` build 스크립트에 `prisma generate --schema prisma/schema.prisma &&` 먼저 추가|
 |`https://<railway-domain>` 접근 실패 / Actions curl 에러|`app.listen(3000)` 하드코딩 → Railway가 주입한 PORT와 불일치|`main.ts` → `app.listen(process.env.PORT ?? 3000)` + Generate Domain 입력값과 일치 확인|
+|500 "데이터베이스 오류" — API는 뜨는데 쿼리 실패|`prisma generate`는 Client만 생성, DB 테이블은 `migrate deploy`가 적용 — migration 누락|`start:deploy`에 `prisma migrate deploy &&` 포함 확인 / 또는 로컬에서 `pnpm --filter api exec prisma migrate deploy` 직접 실행|
 |`Cannot find module .../dist/main`|Nest 빌드 출력이 `dist/src/main.js`인데 `dist/main`으로 참조|`start:deploy` → `node dist/src/main`으로 수정|
 |`PrismaConfigEnvError: DATABASE_URL` (Docker build)|Prisma 7 `prisma.config.ts`가 빌드 시점에도 env 요구|Dockerfile `RUN`에 더미 URL 추가 (§ Dockerfile 참고)|
 |Railway 빌드 성공인데 migrate/API 연결 실패|Variables에 `DATABASE_URL` 없거나 더미 URL 넣음|Neon Connect → 복사 → Railway Variables에 진짜 URL|
