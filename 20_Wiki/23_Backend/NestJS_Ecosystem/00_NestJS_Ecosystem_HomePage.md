@@ -18,8 +18,8 @@ cssclasses:
 # 00_NestJS_Ecosystem_HomePage — NestJS · NodeJS
 
 >[!info]
->NestJS = Express 위에 TypeScript·OOP 구조를 얹은 프레임워크. 
->Module·Controller·Service 계층과 DI로 앱을 조립한다. 
+>NestJS = Express 위에 TypeScript·OOP 구조를 얹은 프레임워크.
+>Module·Controller·Service 계층과 DI로 앱을 조립한다.
 >JS/TS 범용 문법은 → [[00_JS_Ecosystem_HomePage]]
 
 ---
@@ -41,12 +41,47 @@ cssclasses:
 
 ---
 
+# NestJS 요청 처리 흐름
+
+```txt
+클라이언트 요청
+  → Middleware          (로깅·인증 전처리)
+  → Guard               (인증·인가 — JwtAuthGuard · RolesGuard)
+  → Interceptor (before) (요청 변환·로깅)
+  → Pipe                (유효성 검사·타입 변환 — ValidationPipe)
+  → Controller          (@Get·@Post — 라우팅·파라미터 추출)
+  → Service             (비즈니스 로직)
+  → Repository/Prisma   (DB 접근)
+  ← Interceptor (after) (응답 변환·에러 처리)
+  ← ExceptionFilter     (전역 에러 포맷)
+```
+
+```mermaid-beautiful
+flowchart LR
+  A[개념·DI] --> B[Controller]
+  B --> C[Module·DI]
+  C --> D[데이터베이스]
+  D --> E[인증·Guard]
+  E --> F[패턴·기법]
+  F --> G[배포]
+```
+
+---
+
 ## 📦 기초 개념
 
 | 노트 | 내용 |
 |---|---|
 | [[NestJS_Concept]] | NestJS란 · Module/Controller/Service · 요청 처리 순서 · DI · 설치 · CLI · main.ts 전역 설정 · NestExpressApplication |
 | [[HTTP_Concept]] | HTTP 요청/응답 · REST CRUD 매핑 · 멱등성 · 헤더(Authorization·Content-Type) · curl |
+
+```txt
+NestJS_Concept  NestJS = Express 래퍼 · 데코레이터 기반 OOP · Module/Controller/Service 3계층
+                DI(의존성 주입) 개념 · CLI(nest g) · main.ts(ValidationPipe·CORS·prefix 전역 설정)
+                NestExpressApplication vs NestApplication
+HTTP_Concept    HTTP 메서드(GET·POST·PUT·PATCH·DELETE) · 멱등성 · 상태코드
+                REST CRUD 매핑 · Authorization 헤더 · Content-Type · curl 테스트
+```
 
 ---
 
@@ -58,11 +93,11 @@ cssclasses:
 | **개념** | [[Auth_Concept]] |
 
 ```txt
-Auth_Concept   인증 vs 인가 · Session vs Token · JWT 구조 · Access+Refresh Token · OAuth
-NestJS_Auth    JwtModule · AuthService · login/register · bcrypt 설치 · buildAuthResponse 헬퍼
-NestJS_JwtGuard  메타데이터·Reflector · Guard · @Public · @UserId · @OptionalUserId
-                 OptionalJwtAuthGuard(ConfigService+JwtService+AuthService) · @Roles 단일 role
-                 APP_GUARD vs @UseGuards 언제 뭘 쓰는가
+Auth_Concept    인증 vs 인가 · Session vs Token · JWT 구조(header.payload.sig) · Access+Refresh Token · OAuth
+NestJS_Auth     JwtModule · AuthService · login/register · bcrypt 설치 · buildAuthResponse 헬퍼
+NestJS_JwtGuard 메타데이터·Reflector · Guard · @Public · @UserId · @OptionalUserId
+                OptionalJwtAuthGuard(ConfigService+JwtService+AuthService) · @Roles 단일 role
+                APP_GUARD(전역) vs @UseGuards(로컬) 언제 뭘 쓰는가
 ```
 
 ---
@@ -76,6 +111,7 @@ NestJS_JwtGuard  메타데이터·Reflector · Guard · @Public · @UserId · @O
 ```txt
 NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · @Req(express에서 import)
                    @Res(passthrough) · @HttpCode · @Header · CRUD 패턴
+                   외부 시스템 cron 엔드포인트 — x-cron-secret + @Public() + @UseGuards(CronSecretGuard)
 NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentials
 ```
 
@@ -101,7 +137,7 @@ NestJS_PostgreSQL  DB 연결 방법 선택 · DATABASE_URL vs POSTGRES_* 관계
 NestJS_Prisma      schema.prisma 기본구조(Prisma 7: moduleFormat cjs, output) · @map/@@map
                    findMany/findUnique · where · select/include · $queryRaw(SELECT 1 헬스체크)
                    PrismaExceptionFilter(P2002) · 방법1(try/catch) vs 방법2(ExceptionFilter)
-NestJS_Migration   migrate dev/deploy/reset · seed
+NestJS_Migration   migrate dev/deploy/reset · seed · Railway 배포 시 migrate deploy 적용 순서
 NestJS_Transaction $transaction 패턴
 ```
 
@@ -151,6 +187,7 @@ NestJS_Env_Config  환경변수란 · .env 파일 · ConfigModule(isGlobal) · C
                    forRootAsync(환경변수로 JwtModule 설정) · main.ts에서 app.get(ConfigService)
 Monorepo_PNPM      초기 설정 순서 · pnpm-workspace.yaml · allowBuilds · ERR_PNPM_UNEXPECTED_STORE
                    "type":"commonjs" · store-dir=.pnpm-store · Next.js 포트(-p 3051) · shared 패키지
+배포 상세 → [[00_Deployment_HomePage]] (Railway · Neon · GitHub Actions · Docker)
 ```
 
 ---
@@ -215,9 +252,6 @@ OpenAPI_Codegen   NestJS dump-openapi → openapi-typescript → 프론트 타�
 ---
 
 ```txt
-삭제된 노트:
-  NestJS_Idempotency → 멱등성 개념은 HTTP_Concept.md REST CRUD 섹션에 통합
-
 폴더 합친 이유:
   NestJS와 NodeJS가 실제로 얽히는 지점에서
   분류는 접두사(NestJS_ / NodeJS_)가 이미 하고 있음

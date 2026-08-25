@@ -12,7 +12,8 @@ cssclasses:
 # 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
 
 >[!info]
->NestJS(서버)를 알고 Next.js(클라이언트)로 넘어올 때 필요한 것들을 흐름 순서로 정리. JS·TS·React·Next.js는 같은 런타임과 타입 시스템 위에 있어 한 폴더로 합쳤다. 분류는 파일 접두사(JS_·TS_·React_·NextJS_)가 한다.
+>NestJS(서버)를 알고 Next.js(클라이언트)로 넘어올 때 필요한 것들을 흐름 순서로 정리.
+> JS·TS·React·Next.js는 같은 런타임과 타입 시스템 위에 있어 한 폴더로 합쳤다. 분류는 파일 접두사(JS_·TS_·React_·NextJS_)가 한다.
 
 ---
 
@@ -26,10 +27,11 @@ cssclasses:
 | 로그인 · 토큰 · 인증 상태 | [[#4️⃣ 인증 흐름]] |
 | 화면 라우팅 · 메타데이터 | [[#5️⃣ 라우팅]] |
 | 폼 · 입력 | [[#6️⃣ 폼 처리]] |
-| 비동기 UI · 상태 관리 | [[#7️⃣ 비동기 UI · 상태]] |
+| 비동기 UI · 상태 관리 · 훅 | [[#7️⃣ 비동기 UI · 상태]] |
 | 스타일링 · 브라우저 | [[#8️⃣ 스타일 · 브라우저]] |
 | JS · TS 문법 참조 | [[#9️⃣ JS · TS 참조]] |
 | 날짜 · 유틸 | [[#🔟 유틸]] |
+| 보안 | [[#🔐 보안]] |
 
 ---
 
@@ -63,6 +65,13 @@ flowchart LR
 | [[NextJS_Concept]] | NestJS↔Next.js 머릿속 지도 · SSR·CSR·SSG · lib 폴더 역할 |
 | [[NextJS_ServerClient]] | Server·Client Component 판단 기준 · Hydration · window 없음 · AuthBootstrap 분리 이유 |
 
+```txt
+React_Concept       SPA 동작 원리 · 컴포넌트 단위 개발 · JSX → createElement · State/Props 데이터 흐름 · Virtual DOM re-render
+NextJS_Concept      NestJS에서 넘어올 때 머릿속 지도 · SSR·CSR·SSG 차이 · lib/ 폴더가 NestJS Service 역할
+NextJS_ServerClient Server Component(서버 실행 · async 가능) vs Client Component('use client' · 브라우저 API·이벤트)
+                    Hydration · AuthBootstrap 분리 이유(window is not defined 방지)
+```
+
 ---
 
 ## 2️⃣ 환경 설정
@@ -71,6 +80,13 @@ flowchart LR
 |---|---|
 | [[NextJS_Env_Config]] | NEXT_PUBLIC_ 접두사 · .env.local · NestJS와 차이 · @t3-oss/env-nextjs |
 | [[Monorepo_PNPM]] | pnpm workspace · apps/api + apps/web · Docker · 초기 설정 순서 |
+
+```txt
+NextJS_Env_Config  NEXT_PUBLIC_ → 브라우저 노출 / 없으면 서버 전용 · .env.local(Git 제외)
+                   @t3-oss/env-nextjs 스키마 검증 · NestJS ConfigService와 역할 비교
+Monorepo_PNPM      pnpm-workspace.yaml · apps/api(NestJS) + apps/web(Next.js) · shared 패키지
+                   Docker · ERR_PNPM_UNEXPECTED_STORE · "type":"commonjs" · store-dir=.pnpm-store
+```
 
 ---
 
@@ -121,6 +137,12 @@ NestJS 인증 구현 → [[NestJS_Auth]] (NestJS 볼트)
 | [[NextJS_Routing]] | App Router · 동적경로 [id] · useParams · Link vs useRouter · window.location.replace |
 | [[NextJS_Metadata]] | 메타데이터 개념 · title·description·OG · title 템플릿 · generateMetadata · 파일 기반 |
 
+```txt
+NextJS_Routing   App Router 폴더 구조(page.tsx·layout.tsx) · 동적 경로([id]) · useParams·useSearchParams
+                 Link(프리페치) vs useRouter.push(코드 이동) vs window.location.replace(강제 새로고침)
+NextJS_Metadata  <head> 메타데이터 · title 템플릿(%s | 사이트명) · OG 이미지 · generateMetadata(동적) · 파일 기반(favicon.ico 등)
+```
+
 ---
 
 ## 6️⃣ 폼 처리
@@ -156,6 +178,25 @@ React 19 form action (단순):
 | [[React_useMemo_useCallback]] | 메모이제이션 · 언제 쓰는지 판단 · React.memo |
 | [[React_useEffect]] | 데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프 |
 | [[React_useRef]] | DOM 접근(focus·scroll) · 렌더링 무관 값 보관 |
+| [[React_useId]] | 서버·클라이언트 동일한 고유 ID · label htmlFor 접근성 연결 |
+| [[React_Portal_Dialog]] | createPortal · DOM 계층 밖 렌더링 · z-index 독립 · 모달·툴팁 |
+| [[React_Suspense]] · [[React_Lazy]] | lazy(() => import()) · Suspense fallback · 코드 스플리팅 |
+| [[React_useSyncExternalStore]] | 외부 스토어 구독 · SSR 안전한 getServerSnapshot |
+| [[React_Types]] | FC · ReactNode · MouseEvent<> · RefObject<> · ComponentProps<> |
+
+```txt
+React_AsyncUI              isLoading·isError·try-finally · useEffect fetch · cancelled 플래그(언마운트 후 setState 방지)
+React_Zustand              create · set/get · selector · persist(localStorage) · AuthBootstrap(앱 시작 상태 복구)
+React_Context_Provider     createContext · useContext · useCallback·useMemo 안정화 · useAuth 커스텀 훅
+React_useMemo_useCallback  렌더링 비용 최적화 · 의존성 배열 · React.memo와 조합 · 남용 주의
+React_useEffect            사이드이펙트(fetch·이벤트 리스너) · cleanup 함수 · 의존성 배열 · 무한루프 방지
+React_useRef               DOM 직접 접근(focus·scroll·크기 측정) · 렌더링 무관 값 보관(타이머 id 등)
+React_useId                서버·클라이언트 hydration 일치 고유 ID · label htmlFor 연결
+React_Portal_Dialog        createPortal(document.body 등 바깥에 렌더링) · 모달·드롭다운·툴팁
+React_Suspense / Lazy      lazy() + Suspense fallback으로 번들 분리 · 코드 스플리팅
+React_useSyncExternalStore 외부 스토어(non-React)와 동기화 · SSR getServerSnapshot
+React_Types                컴포넌트·이벤트·ref·children 타입 정리
+```
 
 ---
 
@@ -193,6 +234,12 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 | [[TS_ImportType]]     | import type · .d.ts · 경로 별칭 · declare global · declare module · express.d.ts 패턴                                                   |
 | [[TS_Class_Patterns]] | implements · extends · readonly                                                                                                   |
 
+```txt
+TS_Type_Guards / AsyncNarrowing  타입 좁히기 패턴 · async 경계 이후 narrowing 풀리는 현상 · const 캡처로 고정
+TS_Utility_Types                 자주 쓰는 유틸 타입 + PartialBy·RequiredBy·Override 커스텀 패턴
+TS_ImportType                    import type 언제 쓰는지 · .d.ts 선언 파일 · 경로 별칭(@/) 설정
+```
+
 ### JavaScript
 
 | 노트                       | 내용                                                |
@@ -205,6 +252,12 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 | [[JS_AlgorithmPatterns]] | GCD(최대공약수) · 서로소 step · 격자 산포 배치 · clamp          |
 | [[JS_Primitive_Methods]] | String · Number · Math                            |
 | [[JS_Regex]]             | test · replace · match · 캡처그룹 · Lookahead `(?=)` · 선행 0 제거 · 유니코드 범위 |
+
+```txt
+JS_AlgorithmPatterns  수학 알고리즘(GCD·서로소) · 시각화 배치(격자 산포) · 범위 고정(clamp)
+JS_FunctionPatterns   옵션 객체 패턴 · early return · async 래퍼 · undefined 폴백
+JS_Regex              정규식 메서드 · 캡처그룹 · Lookahead((?=)) · 선행 0 제거 · 유니코드 범위(한글 판별)
+```
 
 ---
 
@@ -219,6 +272,12 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 | [[JS_WebStorage]]                   | localStorage · sessionStorage · Next.js SSR 주의                                        |
 | [[JS_URL_Encoding]]                 | encodeURIComponent · new URL · URLSearchParams                                        |
 
+```txt
+JS_Date   Date 생성·계산·비교 · getTime() · 타임존 주의(UTC 기준)
+JS_Intl   DateTimeFormat(sv-SE로 YYYY-MM-DD 트릭) · 상대시간(RelativeTimeFormat) · NumberFormat(통화·퍼센트)
+JS_JSON   JSON.stringify/parse · undefined 직렬화 안 됨 · Date → 문자열 변환 주의 · structuredClone 깊은 복사
+```
+
 ---
 
 ## 🔐 보안
@@ -229,17 +288,11 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 | [[Web_Cookie]] | HttpOnly · 서드파티 · ITP |
 | [[Web_Email]] | mailto · Resend · Formspree |
 
----
-
-## React 추가 훅
-
-| 훅 | 노트 |
-|---|---|
-| 고유 ID | [[React_useId]] |
-| Portal · 모달 | [[React_Portal_Dialog]] |
-| Suspense · 지연 로딩 | [[React_Suspense]] · [[React_Lazy]] |
-| 외부 스토어 | [[React_useSyncExternalStore]] |
-| 타입 | [[React_Types]] |
+```txt
+Web_XSS_CSRF  XSS(스크립트 삽입 공격) · CSRF(위조 요청) · SameSite 쿠키로 방어
+Web_Cookie    HttpOnly(JS 접근 차단) · Secure · SameSite · 서드파티 쿠키 · ITP
+Web_Email     mailto 링크 · Resend API(트랜잭션 이메일) · Formspree(서버 없이 폼 이메일)
+```
 
 ---
 
