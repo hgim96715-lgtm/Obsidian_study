@@ -6,6 +6,8 @@ aliases:
   - main.ts
   - 패키지 설치
   - nest CLI
+  - NestFactory
+  - createApplicationContext
 tags:
   - NestJS
 related:
@@ -402,6 +404,140 @@ prisma/ (밖) vs src/prisma/ (안):
                     pnpm prisma migrate dev 가 여기를 봄
   src/prisma/     → NestJS 앱 영역 (PrismaModule, PrismaService)
                     @Injectable(), @Global(), DI로 주입되는 서비스
+```
+
+---
+
+# NestFactory — 앱 인스턴스를 만드는 공장 ⭐️⭐️⭐️⭐️
+
+```txt
+NestFactory:
+  NestJS 앱 인스턴스를 생성하는 정적 클래스
+  "앱을 어떤 모드로 시작할 것인가"를 결정하는 진입점
+
+두 가지 메서드:
+  NestFactory.create()                  → HTTP 서버 포함 풀 앱
+  NestFactory.createApplicationContext() → HTTP 서버 없이 DI 컨테이너만
+```
+
+## NestFactory.create() — HTTP 서버 앱
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  // Express 기반 HTTP 서버 + DI 컨테이너 생성
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // → 이후 CORS, Pipe, Swagger 설정 후
+  await app.listen(3000);  // 포트를 열고 요청 수신 시작
+}
+bootstrap();
+```
+
+```txt
+NestFactory.create():
+  Express(또는 Fastify) 기반 HTTP 서버를 만듦
+  DI 컨테이너 + HTTP 서버가 함께 올라옴
+  app.listen(port)로 포트를 열어야 요청을 받기 시작
+  → 일반적인 API 서버 시작에 사용
+
+제네릭 타입:
+  create<NestExpressApplication>   → Express 전용 메서드 타입 포함
+  create<NestFastifyApplication>   → Fastify 기반으로 쓸 때
+  create() 타입 없음               → 기본 NestApplication (Express 전용 API 약함)
+  → 실무에서는 NestExpressApplication이 표준
+```
+
+## NestFactory.createApplicationContext() — HTTP 없는 DI 컨테이너
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function runScript() {
+  // HTTP 서버 없이 DI 컨테이너만 생성
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,  // 스크립트 실행 시 NestJS 시작 로그 숨김
+  });
+
+  // DI로 Service 꺼내서 사용
+  const seedService = app.get(SeedService);
+  await seedService.run();
+
+  await app.close();  // 앱 종료 (DB 연결 등 cleanup)
+}
+runScript();
+```
+
+```txt
+NestFactory.createApplicationContext():
+  HTTP 서버를 열지 않음 (포트 점유 없음)
+  DI 컨테이너만 올라옴 → app.get()으로 Service 꺼내서 사용 가능
+  실행하고 끝내는 스크립트에 사용
+  app.close()로 명시적 종료 필요 (안 하면 프로세스가 안 끝날 수 있음)
+
+logger: false:
+  NestJS 기본 시작 로그 ([NestFactory] Starting..., [RoutesResolver] ...) 숨김
+  스크립트 출력이 깔끔해짐
+  서버 앱(create)에서도 쓸 수 있지만 주로 스크립트에서 사용
+```
+
+## 언제 어떤 걸 쓰는가
+
+```txt
+NestFactory.create():
+  API 서버 실행 (main.ts)
+  HTTP 요청을 받아야 하는 모든 경우
+
+NestFactory.createApplicationContext():
+  DB 시드(seed) 스크립트 — 초기 데이터 삽입
+  마이그레이션 후 데이터 변환 스크립트
+  CLI 도구 — 명령어 한 번 실행 후 종료
+  배치 작업 — 서버 없이 한 번만 실행하는 작업
+  → NestJS DI(Service, Prisma 등)는 그대로 쓰고 싶은데, HTTP 서버는 불필요할 때
+```
+
+```typescript
+// seed.ts — createApplicationContext 실사용 예
+async function seed() {
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
+
+  const prisma = app.get(PrismaService);  // DI로 꺼냄
+
+  await prisma.user.createMany({
+    data: [
+      { email: 'admin@example.com', role: 'admin' },
+      { email: 'user@example.com',  role: 'user'  },
+    ],
+    skipDuplicates: true,
+  });
+
+  await app.close();
+  console.log('Seed complete');
+}
+seed();
+```
+
+## app.get() — DI 컨테이너에서 직접 꺼내기
+
+```typescript
+// main.ts나 스크립트에서 DI 없이 직접 Service 접근
+const configService = app.get(ConfigService);
+const port = configService.get<number>('PORT') ?? 3000;
+```
+
+```txt
+app.get(Token):
+  DI 컨테이너에서 등록된 Provider를 직접 꺼냄
+  main.ts는 constructor DI가 불가능한 영역
+  → app.get()으로 필요한 서비스를 직접 가져와서 사용
+
+create()와 createApplicationContext() 둘 다 app.get() 사용 가능
 ```
 
 ---

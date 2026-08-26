@@ -373,3 +373,140 @@ async function purge() {
   WHERE email LIKE '%@demo.example.invalid' 로 정확히 필터
   실제 유저 데이터와 확실히 구분
 ```
+---
+
+# 스크립트 종료 패턴 — main().catch · process.exitCode ⭐️⭐️⭐️⭐️
+
+```txt
+NestJS CLI 스크립트(seed, test-user 등)는 비동기 함수로 작성됨
+최상위(top-level)에서 async/await를 쓰려면 async 함수로 감싸야 함
+→ 그 함수를 호출하면서 에러를 잡는 패턴이 main().catch(...)
+```
+
+## 기본 구조
+
+```typescript
+async function main() {
+  // ... 실제 작업
+}
+
+main().catch((error) => {
+  console.error('[script-name] 실패:', error);
+  process.exitCode = 1;
+});
+```
+
+```txt
+왜 이렇게 쓰는가:
+  async function main()은 Promise를 반환
+  → main()을 그냥 호출하면 에러가 나도 무시됨 (unhandled rejection)
+  → .catch()로 에러를 반드시 잡아야 함
+
+  .catch() 없이 main() 만 호출하면:
+    UnhandledPromiseRejectionWarning 경고 출력
+    Node.js v16+ 에서는 프로세스 자체가 종료될 수 있음 (비결정적)
+    CI/CD 파이프라인에서 성공으로 처리될 수 있음 (위험)
+```
+
+## process.exitCode vs process.exit()
+
+```typescript
+// 방법 A: process.exitCode 설정
+process.exitCode = 1;
+// → 현재 실행 중인 코드가 끝날 때까지 기다렸다가 종료
+// → 이벤트 루프가 자연스럽게 빠져나가면서 종료
+
+// 방법 B: process.exit(1)
+process.exit(1);
+// → 즉시 강제 종료
+// → finally 블록, 열린 DB 연결, 파일 핸들 등이 정리 안 될 수 있음
+```
+
+```txt
+exitCode vs exit() 차이:
+
+  process.exitCode = 1:
+    종료 코드를 예약만 해두고 즉시 종료 안 함
+    현재 실행 중인 코드가 끝나고 이벤트 루프가 비워지면 자연 종료
+    finally 블록이 실행됨 → app.close(), DB 연결 정리 가능
+    → 안전한 종료 (권장)
+
+  process.exit(1):
+    지금 당장 즉시 종료
+    finally 블록이 실행되지 않을 수 있음
+    → 긴급 종료나 정말 강제로 끝내야 할 때만 사용
+
+종료 코드:
+  0 = 성공 (정상 종료)
+  1 = 실패 (에러 발생)
+  → CI/CD, shell script에서 0이면 성공, 0이 아니면 실패로 판단
+     스크립트 실패 시 exitCode = 1을 안 하면 CI가 성공으로 처리함
+```
+
+## try/finally — app.close() 보장
+
+```typescript
+async function main() {
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
+
+  try {
+    const prisma = app.get(PrismaService);
+    // ... 실제 작업
+  } finally {
+    await app.close();  // 에러가 나도 반드시 실행됨
+  }
+}
+
+main().catch((error) => {
+  console.error('[test-user] 실패:', error);
+  process.exitCode = 1;
+});
+```
+
+```txt
+try/finally를 쓰는 이유:
+  try 블록에서 에러가 throw되면 → catch로 가기 전에 finally가 먼저 실행
+  → app.close()가 반드시 호출됨 → DB 연결, 열린 핸들 정리
+  → 정리 없이 종료되면 프로세스가 hang(멈춤) 상태로 남을 수 있음
+
+app.close()가 없으면:
+  PrismaService의 DB 연결이 열린 채로 남음
+  Node.js 이벤트 루프가 비워지지 않아 스크립트가 종료 안 됨
+  → 터미널이 멈춰 보이는 현상
+```
+
+## 전체 패턴 요약
+
+```typescript
+async function main() {
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,          // 시작 로그 숨김
+  });
+
+  try {
+    const service = app.get(SomeService);
+    await service.doWork();
+    console.log('[script] 완료');
+  } finally {
+    await app.close();      // 성공이든 실패든 반드시 정리
+  }
+}
+
+main().catch((error) => {
+  console.error('[script] 실패:', error);
+  process.exitCode = 1;     // CI/CD가 실패로 인식하도록
+});
+
+// main()이 성공하면 → exitCode 기본값 0 → 성공
+// main()이 실패하면 → catch에서 exitCode = 1 → 실패
+```
+
+```txt
+이 패턴이 표준인 이유:
+  에러가 나도 DB 연결 등 리소스 정리 보장 (finally)
+  CI/CD 파이프라인이 성공/실패를 올바르게 판단 (exitCode)
+  unhandled rejection 없이 깔끔하게 에러 처리 (.catch)
+  NestJS seed, 마이그레이션 스크립트, CLI 툴 전부 이 패턴 사용
+```

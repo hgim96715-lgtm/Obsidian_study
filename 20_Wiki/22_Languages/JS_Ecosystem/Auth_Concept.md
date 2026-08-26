@@ -268,3 +268,102 @@ httpOnly Cookie:
   가장 안전 (JS로도 못 탈취)
   → Access Token 저장에 적합 (짧은 만료라 재발급으로 해결)
 ```
+---
+
+# 로그인 후 리다이렉트 우선순위 ⭐️⭐️⭐️⭐️
+
+```txt
+핵심 원칙:
+  역할(role) 기반 리다이렉트가 ?next 파라미터보다 항상 먼저여야 함
+
+왜 문제가 생기는가:
+  로그인 페이지에 ?next=/room 같은 파라미터를 붙여서
+  "로그인 후 원래 보던 페이지로 돌려보내는" 패턴을 구현하는 경우
+  → next를 먼저 체크하면 관리자도 /room으로 빠짐
+  → room/page.tsx가 관리자를 막지 않으면 MY ROOM 화면이 보임
+  → 관리자는 항상 /admin으로 보내야 한다는 의도가 무너짐
+```
+
+## 안티 패턴 — next를 먼저 체크
+
+```typescript
+// ❌ 안티 패턴: next가 있으면 무조건 거기로
+const dest = next && next.startsWith('/') && !next.startsWith('//')
+  ? next        // 관리자가 ?next=/room으로 로그인하면 /room으로 빠짐
+  : '/';
+```
+
+```txt
+문제 시나리오:
+  관리자가 /room 페이지를 보다가 세션 만료
+  → /login?next=/room 으로 리다이렉트
+  → 관리자가 로그인 성공
+  → next가 있으므로 /room으로 이동
+  → room/page.tsx가 관리자를 막지 않으면 MY ROOM 화면 노출
+  → 관리자 화면으로 이동해야 한다는 의도 위반
+```
+
+## 올바른 패턴 — role 먼저, next는 fallback
+
+```typescript
+// ✅ role 기반 리다이렉트를 최우선
+const dest =
+  data.user.role === 'admin'
+    ? '/admin'                                              // 관리자 → 항상 /admin
+    : next && next.startsWith('/') && !next.startsWith('//') 
+      ? next                                               // 일반 유저 → next로
+      : '/';                                               // 없으면 홈
+
+router.replace(dest);
+```
+
+```txt
+우선순위 체계:
+  1순위: role === 'admin' → /admin  (역할이 최우선)
+  2순위: ?next 파라미터   → next가 가리키는 경로
+  3순위: 기본값           → /
+
+role이 최우선인 이유:
+  관리자는 어떤 경로를 통해 로그인하든 항상 관리자 화면이 첫 화면이어야 함
+  ?next는 "이전에 보던 페이지로 돌아가기" 편의 기능 — 역할 규칙보다 하위
+```
+
+## ?next 파라미터 검증 — Open Redirect 방지 ⭐️⭐️⭐️
+
+```typescript
+// ❌ 검증 없이 next를 그대로 사용하면 Open Redirect 공격 가능
+// 공격자가 /login?next=https://evil.com 으로 유도 → 로그인 후 외부 사이트로 이동
+
+// ✅ 반드시 내부 경로인지 검증
+const isSafeNext = (next: string) =>
+  next.startsWith('/') && !next.startsWith('//');
+//  ↑ /로 시작       ↑ //로 시작하면 //evil.com 같은 프로토콜 상대 URL이 됨
+
+const dest =
+  data.user.role === 'admin'
+    ? '/admin'
+    : next && isSafeNext(next)
+      ? next
+      : '/';
+```
+
+```txt
+Open Redirect 공격:
+  ?next=https://evil.com → 로그인 후 외부 사이트로 이동
+  ?next=//evil.com       → 프로토콜 상대 URL — 브라우저가 https://evil.com으로 해석
+  
+  방어:
+    / 로 시작하는지 체크 → 내부 경로만 허용
+    // 로 시작하면 차단 → 프로토콜 상대 URL 방어
+```
+
+## 정리 — 리다이렉트 결정 흐름
+
+```txt
+로그인 성공
+  └─ role === 'admin' ?
+       ├─ YES → /admin  ← 항상 여기 (next 무시)
+       └─ NO  → next 있음 && 내부 경로?
+                  ├─ YES → next로 이동
+                  └─ NO  → / (홈)
+```

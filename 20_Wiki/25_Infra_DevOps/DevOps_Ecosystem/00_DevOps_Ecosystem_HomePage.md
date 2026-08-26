@@ -9,6 +9,7 @@ aliases:
   - Neon
   - 배포
   - openssl
+  - CLI
 tags:
   - HomePage
   - Deploy
@@ -92,10 +93,8 @@ flowchart TB
 
 | 노트                    | 핵심 내용                                                                               |
 | --------------------- | ----------------------------------------------------------------------------------- |
-| [[Docker_Basics]]     | 이미지 vs 컨테이너 · `docker run/ps/stop/rm` · 레이어 구조                                      |
 | [[Docker_Compose]]    | `docker compose up/down` · services · volumes · networks · healthcheck · `$$` 이스케이프 |
 | [[Docker_Dockerfile]] | `FROM/COPY/RUN/CMD/ENTRYPOINT` · 멀티스테이지 빌드 · `.dockerignore`                        |
-| [[Docker_Network]]    | bridge · host · 컨테이너 간 통신 · 포트 매핑(호스트:컨테이너)                                         |
 
 ```txt
 [[Docker_Compose]]는 [[NestJS_PostgreSQL]]의 Docker Compose 섹션과 역링크로 연결
@@ -105,23 +104,6 @@ flowchart TB
   로컬 DB 띄우기    → [[NestJS_PostgreSQL]] "Docker Compose" 섹션
   배포용 빌드       → [[Deploy_FullStack]] "Dockerfile" 섹션
   개념/명령어 정리  → 이 폴더의 Docker_xxx 노트
-```
-
----
-
-# Git ⭐️⭐️⭐️⭐️
-
-| 노트               | 핵심 내용                                                    |
-| ---------------- | -------------------------------------------------------- |
-| [[Git_Basics]]   | init · add · commit · push · pull · clone · status · log |
-| [[Git_Branch]]   | branch · checkout · merge · conflict 해결                  |
-| [[Git_Rebase]]   | rebase vs merge · interactive rebase · squash            |
-| [[Git_Workflow]] | PR 흐름 · feature branch 전략 · commit 메시지 규칙                |
-| [[Git_Undo]]     | reset(soft/mixed/hard) · revert · stash · restore        |
-
-```txt
-Git 명령어 자체는 이 폴더 / 배포 플랫폼(Vercel·Railway) → 아래 Deployment 섹션
-GitHub Actions 워크플로우 → 아래 섹션 참고
 ```
 
 ---
@@ -161,20 +143,18 @@ GitHub Actions 워크플로우 → 아래 섹션 참고
 
 ---
 
-# Linux ⭐️⭐️⭐️
+
+# CLI ⭐️⭐️⭐️
+
+| 노트 | 핵심 내용 |
+|---|---|
+|[[CLI_Concept]]|터미널·쉘·CLI 도구 구분 · stdin/stdout/stderr · 종료 코드 · Node.js 스크립트 패턴|
 
 ```txt
-백엔드 서버 환경 + 데이터 엔지니어링(Kafka · Airflow · Spark) 모두 Linux 위에서 돌아감
-→ 데이터 엔지니어링 쪽 비중이 커지면 Linux_Ecosystem/ 분리 검토
+CLI = 텍스트 인터페이스로 프로그램을 조작하는 방식
+  터미널(에뮬레이터) → 쉘(bash/zsh) → CLI 도구(git/docker/node)
+  stdin(0) · stdout(1) · stderr(2) · 종료 코드(0=성공, 비0=실패)
 ```
-
-|노트|핵심 내용|
-|---|---|
-|[[Linux_Command]]|파일/디렉토리(`ls/cd/cp/mv/rm`) · 검색(`grep/find`) · 텍스트(`cat/head/tail/wc`)|
-|[[Linux_Permission]]|`chmod/chown` · `rwx` 비트 · `sudo` · 소유자/그룹|
-|[[Linux_Process]]|`ps/top/kill` · 백그라운드(`&/nohup`) · `cron` · `systemctl`|
-|[[Linux_Shell]]|변수 · 조건문 · 반복문 · 함수 · 파이프(`\|`) · 리다이렉션(`>/>>`)|
-|[[Linux_Network]]|`curl/wget` · `netstat/ss` · `ssh` · 포트 확인|
 
 ---
 

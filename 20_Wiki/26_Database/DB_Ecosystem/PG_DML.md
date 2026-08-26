@@ -433,6 +433,125 @@ DELETE vs TRUNCATE:
   조회 시: WHERE deleted_at IS NULL
 ```
 
+## FK RESTRICT 에러 — 참조된 행 삭제 시 ⭐️⭐️⭐️⭐️
+
+```txt
+에러:
+  ERROR: update or delete on table "users" violates RESTRICT setting of
+  foreign key constraint "tickets_user_id_fkey" on table "tickets"
+  Detail: Key (id)=(uuid) is referenced from table "tickets".
+
+원인:
+  tickets.user_id → users.id 외래키가 RESTRICT로 설정되어 있음
+  tickets에서 해당 user_id를 참조하는 행이 존재하는 상태에서
+  users 행을 삭제하려고 했기 때문
+  → PostgreSQL이 참조 무결성 위반으로 차단
+
+RESTRICT vs CASCADE:
+  RESTRICT  → 참조하는 자식 행이 있으면 삭제 차단 (기본값)
+  CASCADE   → 부모 삭제 시 자식 행도 자동 삭제
+  SET NULL  → 부모 삭제 시 자식의 FK 컬럼을 NULL로 변경 (nullable일 때)
+```
+
+```sql
+-- ❌ 이렇게 하면 RESTRICT 에러
+DELETE FROM users WHERE email = 'test@example.com';
+```
+
+### 즉각적 해결 — 자식 먼저 삭제 후 부모 삭제
+
+```sql
+-- 1단계: 참조하는 자식 레코드 먼저 삭제
+DELETE FROM tickets
+WHERE user_id = '01a03b5d-cba9-774b-8893-ef77205550bf';
+
+-- 2단계: 부모 레코드 삭제
+DELETE FROM users
+WHERE email = 'test@example.com';
+```
+
+```sql
+-- user_id를 모르면 서브쿼리로
+DELETE FROM tickets
+WHERE user_id = (SELECT id FROM users WHERE email = 'test@example.com');
+
+DELETE FROM users
+WHERE email = 'test@example.com';
+```
+
+### 트랜잭션으로 안전하게 (권장) ⭐️⭐️⭐️
+
+```sql
+BEGIN;
+
+-- 자식 테이블들 먼저 삭제 (FK가 걸린 테이블 순서대로)
+DELETE FROM tickets
+WHERE user_id = (SELECT id FROM users WHERE email = 'test@example.com');
+
+-- 다른 자식 테이블이 더 있으면 계속
+-- DELETE FROM orders WHERE user_id = (...);
+-- DELETE FROM reviews WHERE user_id = (...);
+
+-- 마지막에 부모 삭제
+DELETE FROM users
+WHERE email = 'test@example.com';
+
+COMMIT;
+-- 중간에 문제가 생기면 ROLLBACK; 으로 전부 취소
+```
+
+```txt
+트랜잭션으로 묶는 이유:
+  자식 삭제 후 부모 삭제 사이에 오류가 생기면
+  자식만 삭제된 채로 남아버릴 수 있음 (데이터 불일치)
+  → BEGIN/COMMIT으로 묶으면 전부 성공하거나 전부 취소됨
+```
+
+### 근본적 해결 — CASCADE 설정 (DDL 변경)
+
+```sql
+-- 기존 FK 제약 제거 후 CASCADE로 재생성
+ALTER TABLE tickets
+  DROP CONSTRAINT tickets_user_id_fkey;
+
+ALTER TABLE tickets
+  ADD CONSTRAINT tickets_user_id_fkey
+  FOREIGN KEY (user_id)
+  REFERENCES users(id)
+  ON DELETE CASCADE;   -- 부모 삭제 시 자식도 자동 삭제
+```
+
+```txt
+CASCADE 적합한 경우:
+  부모가 사라지면 자식도 의미 없는 데이터 (ex. 유저 탈퇴 시 티켓도 삭제)
+
+RESTRICT(기본값) 적합한 경우:
+  자식이 남아있어야 하는 데이터 (ex. 주문이 있는 유저는 실수로 삭제 방지)
+
+Prisma schema에서:
+  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @relation(fields: [userId], references: [id], onDelete: Restrict) ← 기본값
+```
+
+### 참조 관계 확인
+
+```sql
+-- 어떤 테이블이 users를 참조하는지 확인
+SELECT
+  tc.table_name       AS 자식테이블,
+  kcu.column_name     AS FK컬럼,
+  rc.delete_rule      AS 삭제규칙
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.referential_constraints rc
+  ON tc.constraint_name = rc.constraint_name
+JOIN information_schema.table_constraints tc2
+  ON rc.unique_constraint_name = tc2.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY'
+  AND tc2.table_name = 'users';   -- 부모 테이블명
+```
+
 ---
 
 # 자주 쓰는 패턴
