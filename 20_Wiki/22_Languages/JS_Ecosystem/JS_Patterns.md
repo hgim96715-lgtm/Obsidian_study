@@ -1,20 +1,33 @@
 ---
-aliases: [내부 함수 추출, 조기반환, 함수 설계 패턴, 화살표 함수 암시적 반환, Early Return, fallback(폴백), Fire-and-Forget, force=false]
-tags: [JavaScript, React]
+aliases:
+  - 내부 함수 추출
+  - 조기반환
+  - 함수 설계 패턴
+  - 화살표 함수 암시적 반환
+  - Early Return
+  - fallback(폴백)
+  - Fire-and-Forget
+  - force=false
+tags:
+  - JavaScript
+  - React
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Operators]]"
   - "[[JS_Promise]]"
   - "[[NextJS_WebSocket]]"
   - "[[React_AsyncUI]]"
+  - "[[JS_Algorithm_Concept]]"
+  - "[[JS_AlgorithmPatterns]]"
 ---
-# JS_FunctionPatterns — 함수 설계 패턴
+# JS_Patterns — JS 코드 패턴
 
 >[!info]
->함수 설계 패턴 모음. 
->옵션 객체, 조기 반환, async 래퍼, 화살표 함수 암시적 반환(`=>{}` vs `=>`) 등. 
->중괄호 없으면 자동 return, 중괄호 있으면 return 키워드 필수 — map 콜백에서 자주 실수. 
->**폴백(fallback)** = 주요 방법이 실패하거나 없을 때 대신 시도하는 것 — `??` 기본값·캐시 미스·에러 시 백업 서비스 등 모든 레이어에서 사용.
+>JS 코드 패턴 모음 — 함수 설계·async·폴백·Map 캐시 등 실무에서 반복되는 패턴.
+>자료구조·탐색 기초 → [[JS_Algorithm_Concept]]
+>옵션 객체·조기 반환·async 래퍼·화살표 함수 암시적 반환(`=>{}` vs `=>`) 등.
+>중괄호 없으면 자동 return, 중괄호 있으면 return 키워드 필수 — map 콜백에서 자주 실수.
+>**폴백(fallback)** = 주요 방법이 실패하거나 없을 때 대신 시도하는 것 — `??` 기본값·캐시 미스·에러 시 백업 서비스 등.
 
 ---
 
@@ -479,6 +492,55 @@ fire-and-forget 쓰면 안 되는 경우:
   → 실패해도 괜찮은 부가 작업에만 fire-and-forget
 ```
 
+
+## .catch(() => undefined) — 에러를 조용히 삼키기 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 방문 기록 — 실패해도 사용자 경험에 영향 없음
+if (accessToken) {
+  void recordLobbyVisitRequest(accessToken).catch(() => undefined);
+}
+```
+
+```txt
+.catch(() => undefined) 분해:
+  .catch(fn)       → Promise가 reject되면 fn 실행
+  () => undefined  → 에러를 받아서 undefined를 반환 (아무것도 안 함)
+  결과: reject → undefined (정상 resolve처럼 처리됨)
+  에러 메시지도 없고, 로그도 없고, 아무 일도 없었던 것처럼
+
+void + .catch(() => undefined) 조합:
+  void   → "이 Promise 결과 안 기다림" (ESLint no-floating-promises 만족)
+  .catch → "에러도 무시함"
+  → 완전히 선택적인 사이드 이펙트 처리
+```
+
+```typescript
+// .catch() 변형 3가지 비교
+
+// ① 에러 로깅 — 실패는 알고 싶지만 응답엔 영향 없을 때
+void someTask().catch(err => this.logger.warn(`실패: ${err.message}`));
+
+// ② 조용히 무시 — 실패해도 완전히 상관없을 때
+void someTask().catch(() => undefined);
+
+// ③ 기본값으로 대체 — reject 시 fallback 값이 필요할 때
+const result = await someTask().catch(() => null);
+if (!result) { /* fallback 처리 */ }
+```
+
+```txt
+언제 .catch(() => undefined) 쓰나:
+  실패해도 UX에 아무 영향 없는 순수 사이드 이펙트
+  → 방문 기록, 조회수 카운팅, 추천 알고리즘 피드백
+  → 실패 로그조차 노이즈가 될 때
+
+쓰면 안 되는 경우:
+  실패 원인을 추적해야 할 때 → ① 로깅 버전 사용
+  실패 시 fallback 처리가 필요할 때 → ③ await + catch 사용
+  중요한 작업 (결제, 인증, 데이터 저장) → 반드시 await + 에러 핸들링
+```
+
 ---
 
 # 내부 함수 추출 — 즉시 실행 vs 참조로 전달 ⭐️⭐️⭐️⭐️
@@ -772,4 +834,119 @@ async function fetchWithAuth(url: string) {
 
   return res.json();
 }
+```
+---
+
+# Map 조회 캐시 패턴 — 중복 조회 제거 ⭐️⭐️⭐️⭐️
+
+## 배경 — 왜 Map인가
+
+```txt
+배열에서 특정 항목을 반복 조회할 때:
+
+  ❌ 안티 패턴 — 매번 O(n) 선형 탐색
+  reviews.map(r => {
+    const movie = cachedMovies.find(m => m.tmdbId === r.tmdbId); // 매번 전체 탐색
+    return { ...r, title: movie?.title };
+  });
+  → reviews 100개 × cachedMovies 500개 = 최대 50,000번 비교
+
+  ✅ 패턴 — O(n) 전처리 → O(1) 조회
+  const titleMap = new Map(cachedMovies.map(m => [m.tmdbId, m.title]));
+  reviews.map(r => ({ ...r, title: titleMap.get(r.tmdbId) }));
+  → 전처리 500번 + 조회 100번 = 600번
+```
+
+## 패턴 1 — Array → Map 변환 (동기 값 조회)
+
+```typescript
+// titleMap: 로비 통계용
+// moviePool에서 영화 제목을 한 번에 가져온 뒤 tmdbId → title 로 빠르게 찾음
+// TMDB 재조회·provider 조회를 줄이는 역할
+
+const titleMap = new Map(
+  cachedMovies.map((movie) => [movie.tmdbId, movie.title]),
+);
+
+// 사용
+const title = titleMap.get(tmdbId);  // O(1)
+```
+
+```txt
+new Map([ [key, value], [key, value], ... ]) 구조
+  cachedMovies.map(movie => [movie.tmdbId, movie.title])
+  → [ [1234, 'Inception'], [5678, 'Dune'], ... ]  (엔트리 배열)
+  → Map { 1234 → 'Inception', 5678 → 'Dune', ... }
+
+언제 쓰나:
+  이미 메모리에 있는 배열을 여러 번 key로 조회할 때
+  DB/API 재호출 없이 인메모리 룩업 테이블 구성
+  반복문 안에서 .find() 대신
+```
+
+## 패턴 2 — Map<key, Promise> (비동기 중복 호출 방지)
+
+```typescript
+// movieCache: 후기 목록용
+// 여러 후기가 같은 영화를 가리킬 때 getMovieCached() 호출을 재사용
+// 같은 요청 안에서 중복 조회를 막는 역할
+
+const movieCache = new Map<
+  number,
+  ReturnType<TmdbService['getMovieCached']>  // = Promise<Movie>
+>();
+
+function getMovieCached(tmdbId: number) {
+  if (!movieCache.has(tmdbId)) {
+    // 처음 요청 → Promise를 Map에 저장
+    movieCache.set(tmdbId, tmdbService.getMovieCached(tmdbId));
+  }
+  return movieCache.get(tmdbId)!;  // 이미 있으면 같은 Promise 반환
+}
+
+// 병렬로 여러 후기 처리
+const results = await Promise.all(
+  reviews.map(async (review) => {
+    const movie = await getMovieCached(review.tmdbId);  // 같은 tmdbId면 재사용
+    return { ...review, title: movie.title };
+  }),
+);
+```
+
+```txt
+핵심: Promise 자체를 캐싱
+  movieCache.set(tmdbId, Promise)   ← API 호출 결과가 아니라 Promise를 저장
+  같은 tmdbId 두 번째 요청 → Map.has() true → 동일 Promise 반환
+  → API는 한 번만 실제로 호출됨 (Promise.all이 resolve를 기다림)
+
+Map<key, ReturnType<Service['method']>> 타입 해석:
+  ReturnType<TmdbService['getMovieCached']>
+  = TmdbService의 getMovieCached 메서드의 반환 타입
+  = Promise<Movie> (제네릭 없이 메서드 시그니처에서 추출)
+  → 하드코딩 없이 타입 안전하게 캐시 Map 선언
+
+스코프:
+  요청 단위 인메모리 캐시 (함수/요청 종료 시 GC)
+  Redis 같은 외부 캐시와 달리 영속성 없음
+  같은 API 요청 처리 안에서만 유효
+```
+
+## 두 패턴 비교
+
+| | titleMap (동기) | movieCache (비동기) |
+|---|---|---|
+| 값 타입 | `Map<number, string>` | `Map<number, Promise<Movie>>` |
+| 전처리 | `new Map(array.map(...))` | 첫 접근 시 lazy 등록 |
+| 재사용 | 인메모리 룩업 | Promise 재사용 |
+| 목적 | DB/API 조회 없이 O(1) 찾기 | 동일 키 중복 호출 방지 |
+| 스코프 | 함수 내 | 함수/요청 내 |
+
+```txt
+함께 쓰는 경우:
+  titleMap → DB에서 이미 가져온 데이터를 빠르게 찾을 때
+  movieCache → 필요할 때마다 외부 API를 호출하되 중복은 막을 때
+
+  로딩이 느릴 때 체크포인트:
+  1. 배열 반복 안에서 .find() 쓰고 있나? → titleMap으로 전환
+  2. 같은 tmdbId를 여러 번 API 호출하나? → movieCache로 전환
 ```

@@ -382,6 +382,48 @@ Joi.array()     // 배열
 .email()        // 이메일 형식
 ```
 
+
+## .email() — tlds 옵션 ⭐️⭐️⭐️
+
+```txt
+TLD(Top Level Domain) = 도메인의 마지막 부분
+  example.com   → com 이 TLD
+  test.invalid  → invalid 가 TLD
+
+Joi .email()은 기본적으로 TLD를 실제 등록된 목록과 대조해 검증함
+  → .invalid · .test · .local 같은 RFC 2606 예약 도메인은 실제 TLD가 아니므로 에러
+```
+
+```typescript
+// ❌ 기본 동작 — .invalid 도메인 거부
+[EnvKeys.TEST_USER_EMAIL]: Joi.string().email().optional(),
+// Error: "TEST_USER_EMAIL" must be a valid email
+// (seed@example.invalid → .invalid는 실제 TLD 아님)
+
+// ✅ tlds: { allow: false } — TLD 검증 비활성화
+[EnvKeys.TEST_USER_EMAIL]: Joi.string()
+  .email({ tlds: { allow: false } })
+  .optional(),
+// seed@example.invalid  → 통과 ✅
+// admin@myapp.local     → 통과 ✅
+// user@anything         → 통과 ✅  (@ 앞뒤 구조만 검사)
+```
+
+```txt
+tlds: { allow: false }:
+  TLD 유효성 검사를 완전히 끔
+  @ + 도메인 구조(user@domain.xxx 형태)만 만족하면 통과
+
+언제 쓰나:
+  테스트용 환경변수  → TEST_USER_EMAIL=seed@example.invalid
+  로컬 개발 전용    → admin@myapp.local
+  실제 메일 전송 없는 시드·시나리오용 이메일
+
+주의:
+  프로덕션 실 이메일(MAIL_USER 등)에는 그냥 .email() 사용
+  tlds 옵션은 테스트 전용 키에만 적용
+```
+
 ## env.validation.ts 작성 ⭐️⭐️⭐️⭐️
 
 ```typescript

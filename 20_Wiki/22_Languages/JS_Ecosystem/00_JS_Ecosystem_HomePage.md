@@ -248,14 +248,14 @@ TS_ImportType                    import type 언제 쓰는지 · .d.ts 선언 �
 | [[JS_Promise]]           | async/await · Promise<T> · Promise.all            |
 | [[JS_Array_Methods]]     | some · filter · map · reduce · 불변성 · Set          |
 | [[JS_Object_Methods]]    | Object.keys · entries · fromEntries · Map         |
-| [[JS_FunctionPatterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
+| [[JS_Patterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
 | [[JS_AlgorithmPatterns]] | GCD(최대공약수) · 서로소 step · 격자 산포 배치 · clamp          |
 | [[JS_Primitive_Methods]] | String · Number · Math                            |
 | [[JS_Regex]]             | test · replace · match · 캡처그룹 · Lookahead `(?=)` · 선행 0 제거 · 유니코드 범위 |
 
 ```txt
 JS_AlgorithmPatterns  수학 알고리즘(GCD·서로소) · 시각화 배치(격자 산포) · 범위 고정(clamp)
-JS_FunctionPatterns   옵션 객체 패턴 · early return · async 래퍼 · undefined 폴백
+JS_Patterns   옵션 객체 패턴 · early return · async 래퍼 · undefined 폴백
 JS_Regex              정규식 메서드 · 캡처그룹 · Lookahead((?=)) · 선행 0 제거 · 유니코드 범위(한글 판별)
 ```
 

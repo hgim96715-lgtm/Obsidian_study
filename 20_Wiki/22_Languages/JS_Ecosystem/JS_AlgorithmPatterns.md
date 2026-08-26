@@ -13,14 +13,130 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[JS_Algorithm_Concept]]"
 ---
 
 # JS_AlgorithmPatterns — 알고리즘 패턴
 
 >[!info]
->UI 레이아웃·해시·정렬 등 실무에서 만나는 알고리즘 패턴 모음. 
->GCD(최대공약수)·서로소 step·격자 산포 배치. 
+>기초 개념(자료구조·탐색·Big O) → [[JS_Algorithm_Concept]]
+>실무 알고리즘 패턴 모음 — GCD·서로소 step·격자 산포 배치·Map 조회 캐시.
 >해시 함수(FNV-1a) → [[JS_Primitive_Methods]] 해시 함수 섹션
+
+---
+
+# 시간 복잡도 (Big O) — 왜 알고리즘을 고민하나 ⭐️⭐️⭐️⭐️⭐️
+
+```txt
+Big O = 입력 크기(n)가 커질 때 연산 횟수가 얼마나 늘어나는가
+  코드의 "최악의 경우 속도"를 한 글자로 표현하는 방법
+
+n = 다루는 데이터 개수
+  배열 길이 100 → n = 100
+  배열 길이 10,000 → n = 10,000
+```
+
+## 자주 나오는 복잡도
+
+| Big O | 이름 | n=100일 때 연산 수 | 예시 |
+|---|---|---|---|
+| O(1) | 상수 | 1번 | Map.get(), 배열 인덱스 접근 |
+| O(log n) | 로그 | ~7번 | 이진 탐색 |
+| O(n) | 선형 | 100번 | 배열 한 번 순회, .find() |
+| O(n log n) | 선형로그 | ~700번 | 정렬 (Array.sort) |
+| O(n²) | 이차 | 10,000번 | 이중 반복문, 반복 안에서 .find() |
+
+```txt
+실무에서 가장 자주 만나는 상황:
+  O(n²) → O(n) 으로 줄이기
+  → 이중 루프 또는 루프 안의 .find() 를 Map으로 대체
+```
+
+## O(n²) → O(n) — 배열 안에서 .find() 제거
+
+```typescript
+// ❌ O(n²) — 반복문 안에서 .find() 매번 실행
+// reviews 100개 × movies 500개 = 최대 50,000번 비교
+reviews.map((review) => {
+  const movie = movies.find((m) => m.tmdbId === review.tmdbId); // O(n) 탐색
+  return { ...review, title: movie?.title };
+});
+
+// ✅ O(n) — Map으로 전처리 후 O(1) 조회
+// 전처리 500번 + 조회 100번 = 600번
+const titleMap = new Map(movies.map((m) => [m.tmdbId, m.title])); // O(n) 1회
+reviews.map((review) => ({
+  ...review,
+  title: titleMap.get(review.tmdbId), // O(1)
+}));
+```
+
+```txt
+new Map(array.map(item => [key, value])) 구조:
+  array.map(item => [key, value])
+  → [[1234, 'Inception'], [5678, 'Dune'], ...]  엔트리 배열 생성  O(n)
+  → new Map(엔트리 배열)
+  → Map { 1234 → 'Inception', 5678 → 'Dune', ... }  해시 테이블 구성
+
+Map.get(key) = O(1) 인 이유:
+  내부적으로 해시 테이블(Hash Table) 사용
+  key를 해시 함수로 변환 → 버킷(bucket) 위치 직접 계산
+  몇 개가 들어있든 항상 1번만 접근
+  배열 .find()는 앞에서부터 하나씩 비교 → n번
+```
+
+## O(n) 중복 비동기 호출 → Promise 캐싱
+
+```typescript
+// ❌ 같은 tmdbId를 여러 번 API 호출
+reviews.map(async (review) => {
+  const movie = await tmdbService.getMovie(review.tmdbId); // 중복 호출 발생
+  return { ...review, title: movie.title };
+});
+
+// ✅ Map<key, Promise> — 호출 1번, 결과 여러 번 재사용
+const movieCache = new Map<number, ReturnType<TmdbService['getMovieCached']>>();
+
+function getMovieCached(tmdbId: number) {
+  if (!movieCache.has(tmdbId)) {
+    movieCache.set(tmdbId, tmdbService.getMovieCached(tmdbId)); // Promise 저장
+  }
+  return movieCache.get(tmdbId)!;
+}
+
+await Promise.all(
+  reviews.map(async (review) => {
+    const movie = await getMovieCached(review.tmdbId); // 같은 id → 동일 Promise
+    return { ...review, title: movie.title };
+  }),
+);
+```
+
+```txt
+ReturnType<TmdbService['getMovieCached']> 타입 해석:
+  TmdbService['getMovieCached'] → 메서드 타입 추출
+  ReturnType<...>               → 그 메서드의 반환 타입 추출 (= Promise<Movie>)
+  → Promise<Movie> 를 하드코딩하지 않고 메서드 시그니처에서 가져옴
+  → 메서드 반환 타입이 바뀌면 자동으로 따라감
+
+Promise 자체를 캐싱하는 이유:
+  movieCache.set(tmdbId, Promise)  ← resolve된 값이 아니라 Promise 저장
+  두 번째 요청 → 동일 Promise 반환 → API 실제 호출 없음
+  await는 이미 resolve된 Promise도 즉시 값 반환
+```
+
+## 패턴 선택 기준
+
+```txt
+반복 안에 .find() 가 있다
+  → O(n²) → Map으로 전처리 후 O(1) 조회로 전환
+
+같은 key로 비동기 API를 여러 번 호출한다
+  → Map<key, Promise>로 Promise 캐싱
+
+둘 다 해당한다
+  → titleMap (동기 값) + movieCache (비동기) 함께 사용
+```
 
 ---
 

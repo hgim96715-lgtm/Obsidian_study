@@ -28,7 +28,7 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Promise]]"
-  - "[[JS_FunctionPatterns]]"
+  - "[[JS_Patterns]]"
   - "[[React_AsyncUI]]"
   - "[[JS_Array_Methods]]"
   - "[[JS_Primitive_Methods]]"
@@ -863,7 +863,7 @@ useEffect(() => {
 
 ```txt
 void vs await 판단 기준 → [[React_AsyncUI]] "fire-and-forget" 섹션
-함수 옵션 객체 패턴 (force = false, Partial<T>) → [[JS_FunctionPatterns]]
+함수 옵션 객체 패턴 (force = false, Partial<T>) → [[JS_Patterns]]
 ```
 
 ---

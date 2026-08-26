@@ -15,7 +15,7 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[JS_Operators]]"
   - "[[TS_Generics]]"
-  - "[[JS_FunctionPatterns]]"
+  - "[[JS_Patterns]]"
 ---
 # JS_Primitive_Methods — String · Number · Math
 

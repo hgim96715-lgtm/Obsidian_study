@@ -10,7 +10,7 @@ tags:
   - NextJS
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_FunctionPatterns]]"
+  - "[[JS_Patterns]]"
   - "[[JS_Operators]]"
   - "[[NestJS_WebSocket]]"
   - "[[React_Types]]"
