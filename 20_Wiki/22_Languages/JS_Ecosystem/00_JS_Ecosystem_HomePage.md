@@ -209,6 +209,7 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 |**차트**|[[React_Charts]]|
 |**브라우저 API**|[[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]|
 |**접근성**|[[HTML_ARIA]]|
+|**이미지 최적화**|[[HTML_Image]]|
 |**WebSocket**|[[NextJS_WebSocket]] · [[WebSocket_Patterns]]|
 
 ```txt

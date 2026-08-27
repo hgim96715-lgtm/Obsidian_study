@@ -19,6 +19,7 @@ related:
   - "[[PG_DDL]]"
   - "[[JS_Operators]]"
 ---
+
 # NestJS_Prisma — Prisma ORM
 
 >[!info]
@@ -29,6 +30,8 @@ related:
 
 ---
 
+---
+
 # TypeORM vs Prisma
 
 | |TypeORM|Prisma|
@@ -36,6 +39,8 @@ related:
 |정의 방식|Entity 클래스|`schema.prisma` 파일 하나|
 |흐름|코드 먼저 → DB 반영|스키마 먼저 → Client 자동 생성|
 |타입 안전성|보통|강력 (자동완성)|
+
+---
 
 ---
 
@@ -87,6 +92,8 @@ PrismaService는 거의 모든 기능 모듈이 필요로 하는 성격이라 @G
 
 ---
 
+---
+
 # schema.prisma 기본 구조 (Prisma 7) ⭐️⭐️⭐️⭐️
 
 ```prisma
@@ -118,6 +125,8 @@ Prisma 7 변경사항 — datasource url:
   이후(Prisma 7):   url을 schema.prisma에서 제거
                     prisma.config.ts에서 dotenv로 읽어서 관리
 ```
+
+---
 
 # Model — 테이블 정의
 
@@ -202,6 +211,8 @@ model Post {
 // DB 컬럼:  id, title, content, author_id, created_at, updated_at, deleted_at
 // 코드:    post.authorId, post.createdAt (camelCase 그대로 사용)
 ```
+
+---
 
 # Scalar Types
 
@@ -458,6 +469,8 @@ WHERE/ORDER BY에 자주 쓰는 컬럼에 추가 — 조회는 빨라지지만 �
 
 ---
 
+---
+
 # Relations — 관계
 
 ```prisma
@@ -551,6 +564,162 @@ model User {
 ```txt
 "문자열" — DB와 무관, 양쪽을 짝짓는 Prisma 전용 키 — 양쪽 동일해야 함
 ```
+
+---
+
+---
+
+# CRUD 기본
+
+```typescript
+// CREATE
+await this.prisma.user.create({ data: { email, passwordHash } });
+
+// READ
+const user = await this.prisma.user.findUnique({ where: { id } });
+const list = await this.prisma.post.findMany({
+  where: { isVisible: true },
+  orderBy: { createdAt: 'desc' },
+  take: 10,
+});
+
+// UPDATE
+await this.prisma.user.update({ where: { id }, data: { name } });
+
+// UPSERT — 있으면 update, 없으면 create
+await this.prisma.user.upsert({
+  where:  { email },
+  create: { email, passwordHash },
+  update: { passwordHash },
+});
+
+// DELETE
+await this.prisma.user.delete({ where: { id } });
+await this.prisma.post.deleteMany({ where: { isVisible: false } });
+```
+
+
+---
+
+---
+
+# Many 연산 — updateMany · deleteMany · createMany ⭐️⭐️⭐️⭐️
+
+```txt
+Prisma Many 연산 = WHERE 조건에 맞는 여러 행을 한 번에 처리
+  개별 update/delete를 N번 호출하는 것보다
+  DB 왕복 1번으로 N개를 처리 → 성능상 이점
+
+반환값: { count: number }  — 영향받은 행 수
+  (단건 update/create처럼 레코드 자체를 반환하지 않음)
+```
+
+## updateMany — 조건에 맞는 행을 한 번에 수정
+
+```typescript
+// 기본 구조
+const result = await this.prisma.userMovie.updateMany({
+  where: { userId, isDisplayed: true },   // 조건
+  data:  { isDisplayed: false, wallSlot: null, displayOrder: null }, // 변경값
+});
+result.count  // 수정된 행 수
+
+// 실전 예 — 벽 슬롯 교체 시 기존 표시 해제
+// "같은 wallSlot에 있는 다른 영화의 isDisplayed를 false로"
+await tx.userMovie.updateMany({
+  where: {
+    userId,
+    isDisplayed: true,
+    wallSlot:    dto.wallSlot,
+    id:          { not: userMovie.id },  // 표시 예정인 영화(userMovie)는 제외 — updateMany가 false로 밀기 전에 보호
+  },
+  data: {
+    isDisplayed:  false,
+    wallSlot:     null,
+    displayOrder: null,
+  },
+});
+```
+
+```txt
+id: { not: userMovie.id }:
+  "id가 userMovie.id가 아닌 것"
+  현재 처리 중인 행을 where에서 제외할 때 사용
+  SQL: WHERE id != $1
+
+update vs updateMany 차이:
+  update     → where가 유니크 키여야 함 (id, email 등) / 레코드 반환
+  updateMany → where가 여러 행에 매칭될 수 있음 / { count } 반환
+  → 복수의 행을 한 번에 바꿀 때는 반드시 updateMany
+```
+
+## deleteMany — 조건에 맞는 행을 한 번에 삭제
+
+```typescript
+// 기본 구조
+await this.prisma.post.deleteMany({
+  where: { authorId: userId, isVisible: false },
+});
+
+// 전체 삭제 (where 생략)
+await this.prisma.log.deleteMany({});  // 테이블 전체 — 주의
+```
+
+## createMany — 여러 행을 한 번에 삽입
+
+```typescript
+await this.prisma.tag.createMany({
+  data: [
+    { name: 'action',  movieId: 1 },
+    { name: 'sci-fi',  movieId: 1 },
+    { name: 'fantasy', movieId: 2 },
+  ],
+  skipDuplicates: true,  // 유니크 충돌 시 해당 행만 건너뜀 (에러 X)
+});
+```
+
+```txt
+skipDuplicates: true:
+  삽입 중 @@unique 충돌이 나도 에러 없이 건너뜀
+  나머지 행은 정상 삽입됨
+  → 시드 데이터·멱등 삽입에 유용
+
+주의: createMany는 include/select/nested create 불가
+  → 관계 데이터까지 한 번에 만들어야 하면 반복 create 또는 직접 SQL
+```
+
+## 트랜잭션 안에서 Many 연산
+
+```typescript
+// 가장 흔한 패턴: 기존 것 해제 → 새 것 설정
+await this.prisma.$transaction(async (tx) => {
+  // 1. 같은 슬롯의 기존 영화 표시 해제
+  await tx.userMovie.updateMany({
+    where: {
+      userId,
+      wallSlot:    dto.wallSlot,
+      isDisplayed: true,
+      id:          { not: targetId },
+    },
+    data: { isDisplayed: false, wallSlot: null, displayOrder: null },
+  });
+
+  // 2. 새 영화 표시 설정
+  await tx.userMovie.update({
+    where: { id: targetId },
+    data:  { isDisplayed: true, wallSlot: dto.wallSlot },
+  });
+});
+```
+
+```txt
+트랜잭션 안에서 Many 쓰는 이유:
+  updateMany(해제) + update(설정) 사이에 실패하면
+  → 해제만 되고 설정이 안 된 불일치 상태가 됨
+  → 트랜잭션으로 묶으면 둘 다 성공하거나 둘 다 롤백
+```
+
+---
 
 ---
 
@@ -676,35 +845,6 @@ OrThrow가 던지는 에러:
 
 ---
 
-# CRUD 기본
-
-```typescript
-// CREATE
-await this.prisma.user.create({ data: { email, passwordHash } });
-
-// READ
-const user = await this.prisma.user.findUnique({ where: { id } });
-const list = await this.prisma.post.findMany({
-  where: { isVisible: true },
-  orderBy: { createdAt: 'desc' },
-  take: 10,
-});
-
-// UPDATE
-await this.prisma.user.update({ where: { id }, data: { name } });
-
-// UPSERT — 있으면 update, 없으면 create
-await this.prisma.user.upsert({
-  where:  { email },
-  create: { email, passwordHash },
-  update: { passwordHash },
-});
-
-// DELETE
-await this.prisma.user.delete({ where: { id } });
-await this.prisma.post.deleteMany({ where: { isVisible: false } });
-```
-
 ---
 
 # where — 조건 연산자
@@ -777,6 +917,104 @@ not: tableId:
   자기 자신을 제외하고 중복 체크
   UPDATE 시 "이름을 변경하는데 다른 레코드와 중복이면 에러"
 ```
+
+---
+
+---
+
+# 중첩 where — 관계 테이블 필드로 필터링 ⭐️⭐️⭐️⭐️
+
+```txt
+단순 where: 이 테이블의 컬럼 조건
+중첩 where: 관계로 연결된 다른 테이블의 컬럼 조건
+```
+
+```typescript
+// 단순: Room의 컬럼으로 필터
+where: { status: 'active' }
+
+// 중첩: Room에 연결된 owner(User)의 컬럼으로 필터
+where: { owner: { nickname: { contains: q } } }
+// "nickname에 q가 포함된 owner를 가진 방"
+```
+
+```txt
+{ owner: { nickname: { contains: q } } } 읽는 법:
+
+  owner          →  Room과 @relation으로 연결된 User
+  nickname       →  그 User의 nickname 컬럼
+  contains: q    →  q가 포함된 것만
+
+  SQL로 표현하면:
+    JOIN users ON rooms.owner_id = users.id
+    WHERE users.nickname LIKE '%q%'
+
+  Prisma가 중첩 객체 구조를 보고 자동으로 JOIN을 생성
+  → 직접 JOIN을 작성할 필요 없음
+```
+
+## 검색 — 여러 필드를 OR로 ⭐️⭐️⭐️⭐️
+
+```typescript
+if (q) {
+  where.OR = [
+    { name:  { contains: q, mode: 'insensitive' } },  // 방 이름에 q 포함
+    { owner: { nickname: { contains: q, mode: 'insensitive' } } },  // 방장 닉네임에 q 포함
+  ];
+}
+```
+
+```txt
+mode: 'insensitive':
+  대소문자를 무시하고 검색 (PostgreSQL 전용)
+  'Hello'로 검색하면 'hello', 'HELLO', 'Hello' 전부 매칭
+
+  mode: 'default'  → 대소문자 구분 (기본값)
+  mode: 'insensitive' → 대소문자 무시
+
+OR 배열:
+  배열 안의 조건 중 하나라도 일치하면 해당 행 포함
+  [ { name: ... }, { owner: { nickname: ... } } ]
+  = "방 이름에 q가 있거나, 방장 닉네임에 q가 있는 방"
+```
+
+## 중첩 깊이 ⭐️⭐️⭐️
+
+```typescript
+// 2단계 중첩
+where: {
+  owner: {         // Room → User
+    nickname: { contains: q }
+  }
+}
+
+// 3단계 중첩 — Room → Member → User
+where: {
+  members: {
+    some: {
+      user: {      // Member → User
+        status: 'active'
+      }
+    }
+  }
+}
+```
+
+```txt
+중첩 구조가 schema.prisma의 @relation 관계를 따름
+relation이 정의된 필드만 중첩해서 조건을 걸 수 있음
+
+일반 where(scalar 필드)와 관계 where를 같이 쓸 수 있음:
+  where: {
+    status: 'active',           // scalar 조건
+    owner: {                    // 관계 조건 (중첩)
+      nickname: { contains: q }
+    },
+    members: { some: { userId } } // 관계 필터
+  }
+```
+
+---
 
 ---
 
@@ -986,6 +1224,8 @@ include용으로 만들어둔 객체의 _count 부분만 따로 꺼내서 select
 
 ---
 
+---
+
 # orderBy / take / skip / distinct
 
 ```typescript
@@ -1038,6 +1278,8 @@ SQL 대응:
 ```
 ---
 
+---
+
 # count / aggregate / groupBy
 
 ```typescript
@@ -1061,98 +1303,6 @@ const rows = await this.prisma.post.groupBy({
 |`groupBy`|컬럼 값 기준으로 그룹별 집계 (SQL `GROUP BY`)|
 
 ---
-
-# 중첩 where — 관계 테이블 필드로 필터링 ⭐️⭐️⭐️⭐️
-
-```txt
-단순 where: 이 테이블의 컬럼 조건
-중첩 where: 관계로 연결된 다른 테이블의 컬럼 조건
-```
-
-```typescript
-// 단순: Room의 컬럼으로 필터
-where: { status: 'active' }
-
-// 중첩: Room에 연결된 owner(User)의 컬럼으로 필터
-where: { owner: { nickname: { contains: q } } }
-// "nickname에 q가 포함된 owner를 가진 방"
-```
-
-```txt
-{ owner: { nickname: { contains: q } } } 읽는 법:
-
-  owner          →  Room과 @relation으로 연결된 User
-  nickname       →  그 User의 nickname 컬럼
-  contains: q    →  q가 포함된 것만
-
-  SQL로 표현하면:
-    JOIN users ON rooms.owner_id = users.id
-    WHERE users.nickname LIKE '%q%'
-
-  Prisma가 중첩 객체 구조를 보고 자동으로 JOIN을 생성
-  → 직접 JOIN을 작성할 필요 없음
-```
-
-## 검색 — 여러 필드를 OR로 ⭐️⭐️⭐️⭐️
-
-```typescript
-if (q) {
-  where.OR = [
-    { name:  { contains: q, mode: 'insensitive' } },  // 방 이름에 q 포함
-    { owner: { nickname: { contains: q, mode: 'insensitive' } } },  // 방장 닉네임에 q 포함
-  ];
-}
-```
-
-```txt
-mode: 'insensitive':
-  대소문자를 무시하고 검색 (PostgreSQL 전용)
-  'Hello'로 검색하면 'hello', 'HELLO', 'Hello' 전부 매칭
-
-  mode: 'default'  → 대소문자 구분 (기본값)
-  mode: 'insensitive' → 대소문자 무시
-
-OR 배열:
-  배열 안의 조건 중 하나라도 일치하면 해당 행 포함
-  [ { name: ... }, { owner: { nickname: ... } } ]
-  = "방 이름에 q가 있거나, 방장 닉네임에 q가 있는 방"
-```
-
-## 중첩 깊이 ⭐️⭐️⭐️
-
-```typescript
-// 2단계 중첩
-where: {
-  owner: {         // Room → User
-    nickname: { contains: q }
-  }
-}
-
-// 3단계 중첩 — Room → Member → User
-where: {
-  members: {
-    some: {
-      user: {      // Member → User
-        status: 'active'
-      }
-    }
-  }
-}
-```
-
-```txt
-중첩 구조가 schema.prisma의 @relation 관계를 따름
-relation이 정의된 필드만 중첩해서 조건을 걸 수 있음
-
-일반 where(scalar 필드)와 관계 where를 같이 쓸 수 있음:
-  where: {
-    status: 'active',           // scalar 조건
-    owner: {                    // 관계 조건 (중첩)
-      nickname: { contains: q }
-    },
-    members: { some: { userId } } // 관계 필터
-  }
-```
 
 ---
 
@@ -1215,6 +1365,8 @@ Prisma.RoomWhereInput vs let where: object = {}:
   → 실제 코드에서는 Prisma.RoomWhereInput 을 쓰는 것이 더 안전
     조건부 where 조립 패턴 → [[NestJS_Prisma_Patterns]]
 ```
+
+---
 
 ---
 
@@ -1318,6 +1470,9 @@ Json 필드를 명시적으로 비워달라고 할 때는 이 전용 상수를 �
 ```
 
 ---
+
+---
+
 # $transaction — 여러 쿼리를 한 번에 ⭐️⭐️⭐️
 
 ```typescript
@@ -1377,6 +1532,8 @@ $transaction 배열 방식:
 ```
 ---
 
+---
+
 # $queryRaw · $executeRaw — Raw SQL ⭐️⭐️⭐️
 
 ```typescript
@@ -1433,6 +1590,8 @@ SELECT 1:
   DB 연결 실패, DB 서버 다운 등
   → throw → 500 에러 → 헬스체크 실패로 감지
 ```
+
+---
 
 ---
 
@@ -1666,6 +1825,8 @@ if (exception.code === 'P2002') {
 
 ---
 
+---
+
 # 자주 만나는 에러
 
 |증상|원인|해결|
@@ -1678,6 +1839,9 @@ if (exception.code === 'P2002') {
 |배포 후 쿼리 시 500 "데이터베이스 오류" — 테이블 없음|`prisma generate`(Client 생성)만 실행, `migrate deploy`(테이블 적용) 미실행|`start:deploy` 스크립트에 `prisma migrate deploy &&` 포함 확인 → [[NestJS_Migration#migrate deploy]] · [[Deploy_FullStack]]|
 |`Cannot find module '../generated/prisma/client'`|Railway 등 클린 빌드 환경에 `generated/` 없음|build 스크립트에 `prisma generate` 먼저 추가 → [[Deploy_FullStack]]|
 |`PrismaConfigEnvError: DATABASE_URL` (Docker build 단계)|Prisma 7 `prisma.config.ts`가 빌드 시 env 요구|Dockerfile `RUN`에 더미 URL 주입 → [[Deploy_FullStack#Dockerfile]]|
+
+---
+
 # TypeORM ↔ Prisma 메서드 대조
 
 |TypeORM|Prisma|용도|
@@ -1689,4 +1853,3 @@ if (exception.code === 'P2002') {
 |`save()` (있으면 update)|`upsert({ where, create, update })`|upsert|
 |`delete({ id })`|`delete({ where })`|삭제|
 |`find({ relations: {...} })`|`findMany({ include: {...} })`|관계 조회|
-

@@ -33,13 +33,396 @@ related:
   - "[[JS_Array_Methods]]"
   - "[[JS_Primitive_Methods]]"
   - "[[NestJS_AiProvider]]"
+  - "[[TS_Type_Guards]]"
 ---
 # JS_Operators — 연산자 & 구조분해
 
 >[!info]
->구조분해 · 스프레드 · 논리 연산자처럼 매일 쓰는 문법이지만 `{ user: me }` 같은 이름 바꾸기나 `??=` 같은 할당 단축형은 처음 보면 헷갈린다.
-> `focusCommentId: _focusCommentId`처럼 `_` 접두사는 "의도적으로 안 쓰는 변수" 표시. 
-> Truthy/Falsy 전체 목록도 이 파일에 정리.
+>**읽는 순서 (개념 → 응용):**
+>Layer 1 — 값·타입 이해: `비교 연산자` → `typeof` → `Truthy/Falsy` → `!!`
+>Layer 2 — 값 선택·접근: `옵셔널 체이닝(?.)` → `논리 연산자(&&·||·??)` → `삼항 연산자`
+>Layer 3 — 구조 다루기: `구조분해` → `배열 구조분해` → `스프레드(...)` → `계산된 속성명[key]`
+>Layer 4 — 기타: `void` → `Symbol`
+
+---
+# 비교 연산자 ⭐️⭐️
+
+```typescript
+===  // 값 + 타입이 같음 (항상 이걸 쓸 것)
+!==  // 값 또는 타입이 다름
+==   // 타입 변환 후 비교 → '0' == 0 → true — 피할 것
+
+NaN === NaN          // false — NaN은 자기 자신과도 같지 않음
+Number.isNaN(value)  // NaN 확인은 이걸 쓸 것
+```
+
+---
+
+# typeof · instanceof ⭐️⭐️⭐️
+
+```typescript
+typeof 'hello'      // 'string'
+typeof 42           // 'number'
+typeof null         // 'object' ← 버그, null이 아님
+typeof undefined    // 'undefined'
+
+[] instanceof Array  // true
+err instanceof Error // true
+```
+
+```txt
+런타임 타입 확인 → [[TS_Type_Guards]] 참고
+```
+
+---
+
+# Truthy · Falsy ⭐️⭐️⭐️⭐️
+
+```txt
+JavaScript에서 if문이나 논리 연산자(&&, ||, !)는
+값을 true/false로 "해석"한다 — 이게 truthy/falsy
+
+Boolean(값)이 false가 되는 값 = falsy
+나머지 전부 = truthy
+```
+
+## Falsy 전체 목록
+
+```typescript
+Boolean(false)      // false
+Boolean(0)          // false ← 숫자 0
+Boolean(-0)         // false ← 음수 0
+Boolean(0n)         // false ← BigInt 0
+Boolean('')         // false ← 빈 문자열
+Boolean(null)       // false
+Boolean(undefined)  // false
+Boolean(NaN)        // false
+
+// 이 7가지만 falsy — 나머지는 전부 truthy
+```
+
+```typescript
+// Truthy 예시 — 헷갈리는 것들
+Boolean('false')    // true  ← 문자열 'false'는 truthy!
+Boolean('0')        // true  ← 문자열 '0'은 truthy!
+Boolean([])         // true  ← 빈 배열도 truthy
+Boolean({})         // true  ← 빈 객체도 truthy
+Boolean(-1)         // true  ← 음수도 truthy (0만 falsy)
+Boolean(Infinity)   // true
+```
+
+```txt
+가장 많이 헷갈리는 것:
+  '0'   (문자열) → truthy   vs   0 (숫자) → falsy
+  'false' (문자열) → truthy  vs  false (불린) → falsy
+  []  빈 배열 → truthy
+  {}  빈 객체 → truthy
+```
+
+## Falsy를 이용한 패턴
+
+```typescript
+// 값이 있는지 확인
+if (value) { ... }          // null, undefined, '', 0, false, NaN → 통과 안 됨
+
+// 기본값 설정 (||)
+const name = input || '익명';   // input이 falsy면 '익명'
+
+// 조건부 실행 (&&)
+user && doSomething(user);      // user가 truthy일 때만 실행
+
+// Boolean 변환
+!!value                         // truthy → true, falsy → false
+Boolean(value)                  // 동일
+```
+
+```txt
+⚠️ || 를 기본값으로 쓸 때 주의:
+  0이나 '' 도 유효한 값인데 falsy라서 기본값으로 넘어감
+  count || 10  →  count가 0이면 10이 됨 (의도와 다를 수 있음)
+  → 0, '' 도 유효한 값이면 ?? (nullish coalescing) 사용
+  count ?? 10  →  count가 null/undefined일 때만 10
+```
+
+## ! (논리 NOT) — truthy를 false로, falsy를 true로 ⭐️⭐️⭐️⭐️
+
+```typescript
+!true           // false
+!false          // true
+!isRoomMuted()  // isRoomMuted()가 true면 false, false면 true
+!user           // user가 null/undefined/''/''/0 이면 true
+
+!null        // true  (null은 falsy → 뒤집으면 true)
+!undefined   // true
+!''          // true  (빈 문자열은 falsy → 뒤집으면 true)
+!0           // true
+
+!'hello'     // false (문자열은 truthy → 뒤집으면 false)
+!{}          // false (객체는 truthy → 뒤집으면 false)
+![]          // false (배열은 truthy → 뒤집으면 false)
+```
+
+```txt
+! 는 "아닌" — 조건을 반대로 뒤집음
+
+  !isRoomMuted(userId, roomId) → "뮤트가 아닌" — 뮤트 안 된 방
+  !e.shiftKey                  → "Shift 키 안 눌림"
+  !e.nativeEvent.isComposing   → "한글 조합 중 아님"
+```
+
+```typescript
+// 실전 패턴 — !값으로 boolean 반환
+async function checkEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+
+  if (!normalized) return { available: false };
+  //   ↑ ""(빈 문자열)은 falsy → !""  = true → 조건 진입
+  //     "abc"는 truthy       → !"abc" = false → 조건 통과
+
+  const existing = await this.prisma.user.findUnique({ ... });
+
+  return { available: !existing };
+  //                  ↑ existing이 null이면  → !null  = true  (사용 가능)
+  //                    existing이 객체이면  → !{...} = false (이미 사용 중)
+}
+```
+
+```txt
+! 를 쓰는 이유:
+  "null이면 true, 아니면 false" 를 한 글자로 표현
+  !existing = existing === null ? true : false 와 같은 의미
+
+  !normalized:
+  "" (빈 문자열) → falsy → !""  = true  → if 조건 진입
+  "abc"          → truthy → !"abc" = false → if 건너뜀
+
+  !existing:
+  null  → falsy → !null   = true  → "사용 가능"
+  객체  → truthy → !{...} = false → "이미 사용 중"
+```
+
+```txt
+⚠️ || 를 기본값으로 쓸 때 주의:
+  0이나 '' 도 유효한 값인데 falsy라서 기본값으로 넘어감
+  count || 10  →  count가 0이면 10이 됨 (의도와 다를 수 있음)
+  → 0, '' 도 유효한 값이면 ?? (nullish coalescing) 사용
+  count ?? 10  →  count가 null/undefined일 때만 10
+```
+
+---
+
+# !! vs Boolean() — 불린 변환 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 셋 다 완전히 동일한 동작
+!!room.unread           // false → false, 0 → false, "abc" → true
+Boolean(room.unread)    // 동일
+room.unread ? true : false  // 동일 (비권장 — 길기만 하고 같음)
+```
+
+```txt
+!! vs Boolean() — 동작은 같고 스타일 차이:
+  !!          짧고 자주 쓰임, 코드 안에서 인라인으로
+  Boolean()   읽을 때 "불린으로 변환한다"는 의도가 더 명확
+              특히 setState나 함수 인자에 단독으로 쓸 때 가독성 좋음
+
+왜 변환이 필요한가 — 타입이 boolean이 아닌 경우:
+  room.unread 가 number | undefined 타입이라면
+  setRoomsUnread(room.unread)  → TS 에러 (boolean 자리에 number 올 수 없음)
+  setRoomsUnread(!!room.unread)      → ✅ boolean
+  setRoomsUnread(Boolean(room.unread)) → ✅ boolean
+
+  && 체이닝 결과:
+  const canDelete = actionMsg && user && room;
+  // 타입: Message | User | Room | undefined (마지막 truthy 값, boolean 아님)
+
+  const canDelete = !!actionMsg && !!user && !!room;
+  // 타입: boolean ✅
+```
+
+## 복합 조건 패턴 — &&, ||, ! 조합 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 실전 예시
+setRoomsUnread(
+  mine.some(
+    (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
+  ),
+);
+setDmsUnread(dms.some((dm) => dm.unread) || requests.length > 0);
+```
+
+```txt
+위 코드 읽는 법:
+
+  mine.some((room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id))
+  → "방 목록(mine) 중에서 하나라도 (읽지 않았고 && 뮤트가 아닌) 방이 있는가?"
+  → .some() = "하나라도" → boolean 반환 → setRoomsUnread(boolean)에 딱 맞음
+
+  dms.some((dm) => dm.unread) || requests.length > 0
+  → "DM 중 읽지 않은 게 하나라도 있거나 || 친구 요청이 하나라도 있으면"
+  → 둘 중 하나라도 true면 전체 true
+
+&& 조건 연결:
+  A && B    A가 true이고 B도 true일 때 → 둘 다 만족
+  A && !B   A가 true이고 B는 false일 때 → "A인데 B는 아닌"
+
+|| 조건 연결:
+  A || B    A가 true이거나 B가 true일 때 → 하나라도 만족
+
+! 단독:
+  !fn()     fn()의 반환값을 반대로 — "이 함수가 false를 반환할 때"
+```
+
+```typescript
+// 복합 조건을 변수로 분리해서 읽기 쉽게
+const hasUnreadRoom = mine.some(
+  (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
+);
+const hasUnreadDm = dms.some((dm) => dm.unread);
+const hasPendingRequest = requests.length > 0;
+
+setRoomsUnread(hasUnreadRoom);
+setDmsUnread(hasUnreadDm || hasPendingRequest);
+// 각각 변수 이름이 의도를 설명해줌 → 한 줄이 너무 복잡하면 이 방식 권장
+```
+
+---
+
+# 옵셔널 체이닝 (?.) ⭐️⭐️⭐️⭐️
+
+```typescript
+user?.name           // user가 null/undefined면 undefined (에러 안 남)
+user?.address?.city  // 중간 어디서든 없으면 거기서 멈추고 undefined 반환
+arr?.[0]             // 배열/동적 키 접근에도 동일
+fn?.()               // 함수 존재할 때만 호출, 없으면 아무 일도 안 함
+```
+
+```txt
+?. 없이 쓰면:
+  user.name  →  user가 null이면 "Cannot read properties of null" TypeError로 죽음
+
+?. 쓰면:
+  user?.name  →  user가 null/undefined면 그 자리에서 멈추고 undefined 반환
+  체인이 길어도 중간 어디서든 끊어줌 (a?.b?.c?.d)
+```
+
+## ?.() — 함수 호출에 적용 ⭐️⭐️⭐️⭐️
+
+```typescript
+onClose?.();
+// onClose가 함수면 호출, undefined/null이면 아무 일도 안 일어남
+// if (onClose) onClose(); 와 동일
+```
+
+## prev?.() — 기존 콜백 보존 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 전역 이벤트 핸들러에 새 동작을 추가하되, 기존 콜백도 유지해야 할 때
+const prev = window.onSomeEvent;  // 기존 콜백 저장
+
+window.onSomeEvent = () => {
+  prev?.();       // 기존 콜백이 있으면 먼저 실행
+  doNewThing();   // 그다음 새 동작
+};
+```
+
+```txt
+prev?.()가 필요한 이유:
+  다른 라이브러리가 이미 window.onSomeEvent를 등록해뒀을 수 있음
+  그냥 덮어쓰면 기존 콜백이 사라짐 → 다른 기능이 망가질 수 있음
+  → 기존 것을 prev에 저장 → 새 핸들러에서 prev?.()로 기존 것도 같이 실행
+
+  prev가 undefined면 prev?.()는 아무 일도 안 함
+  prev가 함수면 먼저 실행하고 새 동작 실행
+
+외부 스크립트 로드 시 자주 등장 (YouTube IFrame API 등)
+```
+
+---
+
+# 논리 연산자 ⭐️⭐️⭐️⭐️
+
+## && — 앞이 truthy일 때만 뒤를 반환
+
+```typescript
+user && user.name           // user 있으면 user.name
+isLoggedIn && <UserMenu />  // 조건부 렌더링
+```
+
+## || — 앞이 falsy면 뒤를 반환
+
+```typescript
+name || '익명'  // name이 falsy(undefined, null, '', 0 등)면 '익명'
+port || 3000   // ⚠️ port가 0이면 0도 falsy로 처리됨
+```
+
+## ?? — null/undefined일 때만 뒤를 반환 ⭐️⭐️⭐️⭐️
+
+```typescript
+name ?? '익명'  // null 또는 undefined일 때만 '익명'
+port ?? 3000   // 0은 그대로 0 (유효한 값 보존)
+```
+
+## ?? vs || — 가장 헷갈리는 차이 ⭐️⭐️⭐️⭐️
+
+```typescript
+const count = 0;
+count || 10  // 10  ← 0은 falsy라 || 가 기본값으로 넘어감 (의도와 다를 수 있음)
+count ?? 10  //  0  ← 0은 null/undefined가 아니므로 ?? 는 그대로 0 유지
+```
+
+| 연산자               | 기본값으로 넘어가는 조건                                             |
+| ----------------- | --------------------------------------------------------- |
+| <code>\|\|</code> | falsy 전부 (`0`, `''`, `false`, `null`, `undefined`, `NaN`) |
+| `??`              | 정확히 `null` 또는 `undefined`일 때만                             |
+
+```txt
+"0이나 빈 문자열도 유효한 값으로 살리고 싶다"면 반드시 ??
+페이지 번호(0이 유효한 값), 카운터, 빈 문자열 입력 → || 쓰면 의도와 다르게 동작
+```
+
+## ?.와 ?? 조합 — 에러 메시지 추출 패턴 ⭐️⭐️⭐️
+
+```typescript
+// error?.message ?? '기본 메시지'
+// ?.와 ??가 짝으로 자주 보이는 이유:
+//   ?.  → "혹시 없을 수도 있는 값"을 안전하게 꺼내고
+//   ??  → "그게 진짜 없으면 쓸 기본값"을 바로 옆에 정해두는 조합
+
+const error = (await res.json()) as { message?: string | string[] } | null;
+const message = Array.isArray(error?.message)
+  ? error.message[0]
+  : error?.message;
+throw new Error(message ?? `요청 실패: ${res.status} ${res.statusText}`);
+```
+
+## &&= · ||= · ??= — 논리 할당 단축형 ⭐️⭐️
+
+```typescript
+a &&= b   // if (a) a = b
+a ||= b   // if (!a) a = b
+a ??= b   // if (a == null) a = b
+
+// 실전 패턴
+cache ??= await fetchData();    // 캐시가 없을 때만 fetch
+user.nickname ||= '익명';        // 닉네임 없으면 기본값 설정
+```
+
+---
+
+# 삼항 연산자 ⭐️⭐️⭐️
+
+```typescript
+const label = isLoggedIn ? '로그아웃' : '로그인';
+
+// JSX 조건부 렌더링
+{isLoading ? <Spinner /> : <Content />}
+```
+
+```txt
+중첩 삼항은 가독성이 나빠짐 → 변수로 미리 계산하거나 if문 사용 권장
+```
 
 ---
 
@@ -387,390 +770,6 @@ const options = {
     null 방어 = 타입 안전을 위한 방어 코드
 ```
 
-
----
-
-# Truthy · Falsy ⭐️⭐️⭐️⭐️
-
-```txt
-JavaScript에서 if문이나 논리 연산자(&&, ||, !)는
-값을 true/false로 "해석"한다 — 이게 truthy/falsy
-
-Boolean(값)이 false가 되는 값 = falsy
-나머지 전부 = truthy
-```
-
-## Falsy 전체 목록
-
-```typescript
-Boolean(false)      // false
-Boolean(0)          // false ← 숫자 0
-Boolean(-0)         // false ← 음수 0
-Boolean(0n)         // false ← BigInt 0
-Boolean('')         // false ← 빈 문자열
-Boolean(null)       // false
-Boolean(undefined)  // false
-Boolean(NaN)        // false
-
-// 이 7가지만 falsy — 나머지는 전부 truthy
-```
-
-```typescript
-// Truthy 예시 — 헷갈리는 것들
-Boolean('false')    // true  ← 문자열 'false'는 truthy!
-Boolean('0')        // true  ← 문자열 '0'은 truthy!
-Boolean([])         // true  ← 빈 배열도 truthy
-Boolean({})         // true  ← 빈 객체도 truthy
-Boolean(-1)         // true  ← 음수도 truthy (0만 falsy)
-Boolean(Infinity)   // true
-```
-
-```txt
-가장 많이 헷갈리는 것:
-  '0'   (문자열) → truthy   vs   0 (숫자) → falsy
-  'false' (문자열) → truthy  vs  false (불린) → falsy
-  []  빈 배열 → truthy
-  {}  빈 객체 → truthy
-```
-
-## Falsy를 이용한 패턴
-
-```typescript
-// 값이 있는지 확인
-if (value) { ... }          // null, undefined, '', 0, false, NaN → 통과 안 됨
-
-// 기본값 설정 (||)
-const name = input || '익명';   // input이 falsy면 '익명'
-
-// 조건부 실행 (&&)
-user && doSomething(user);      // user가 truthy일 때만 실행
-
-// Boolean 변환
-!!value                         // truthy → true, falsy → false
-Boolean(value)                  // 동일
-```
-
-```txt
-⚠️ || 를 기본값으로 쓸 때 주의:
-  0이나 '' 도 유효한 값인데 falsy라서 기본값으로 넘어감
-  count || 10  →  count가 0이면 10이 됨 (의도와 다를 수 있음)
-  → 0, '' 도 유효한 값이면 ?? (nullish coalescing) 사용
-  count ?? 10  →  count가 null/undefined일 때만 10
-```
-
-## ! (논리 NOT) — truthy를 false로, falsy를 true로 ⭐️⭐️⭐️⭐️
-
-```typescript
-!true           // false
-!false          // true
-!isRoomMuted()  // isRoomMuted()가 true면 false, false면 true
-!user           // user가 null/undefined/''/''/0 이면 true
-
-!null        // true  (null은 falsy → 뒤집으면 true)
-!undefined   // true
-!''          // true  (빈 문자열은 falsy → 뒤집으면 true)
-!0           // true
-
-!'hello'     // false (문자열은 truthy → 뒤집으면 false)
-!{}          // false (객체는 truthy → 뒤집으면 false)
-![]          // false (배열은 truthy → 뒤집으면 false)
-```
-
-```txt
-! 는 "아닌" — 조건을 반대로 뒤집음
-
-  !isRoomMuted(userId, roomId) → "뮤트가 아닌" — 뮤트 안 된 방
-  !e.shiftKey                  → "Shift 키 안 눌림"
-  !e.nativeEvent.isComposing   → "한글 조합 중 아님"
-```
-
-```typescript
-// 실전 패턴 — !값으로 boolean 반환
-async function checkEmail(email: string) {
-  const normalized = email.trim().toLowerCase();
-
-  if (!normalized) return { available: false };
-  //   ↑ ""(빈 문자열)은 falsy → !""  = true → 조건 진입
-  //     "abc"는 truthy       → !"abc" = false → 조건 통과
-
-  const existing = await this.prisma.user.findUnique({ ... });
-
-  return { available: !existing };
-  //                  ↑ existing이 null이면  → !null  = true  (사용 가능)
-  //                    existing이 객체이면  → !{...} = false (이미 사용 중)
-}
-```
-
-```txt
-! 를 쓰는 이유:
-  "null이면 true, 아니면 false" 를 한 글자로 표현
-  !existing = existing === null ? true : false 와 같은 의미
-
-  !normalized:
-  "" (빈 문자열) → falsy → !""  = true  → if 조건 진입
-  "abc"          → truthy → !"abc" = false → if 건너뜀
-
-  !existing:
-  null  → falsy → !null   = true  → "사용 가능"
-  객체  → truthy → !{...} = false → "이미 사용 중"
-```
-
-```txt
-⚠️ || 를 기본값으로 쓸 때 주의:
-  0이나 '' 도 유효한 값인데 falsy라서 기본값으로 넘어감
-  count || 10  →  count가 0이면 10이 됨 (의도와 다를 수 있음)
-  → 0, '' 도 유효한 값이면 ?? (nullish coalescing) 사용
-  count ?? 10  →  count가 null/undefined일 때만 10
-```
-
-
-
----
-
-# 논리 연산자 ⭐️⭐️⭐️⭐️
-
-## && — 앞이 truthy일 때만 뒤를 반환
-
-```typescript
-user && user.name           // user 있으면 user.name
-isLoggedIn && <UserMenu />  // 조건부 렌더링
-```
-
-## || — 앞이 falsy면 뒤를 반환
-
-```typescript
-name || '익명'  // name이 falsy(undefined, null, '', 0 등)면 '익명'
-port || 3000   // ⚠️ port가 0이면 0도 falsy로 처리됨
-```
-
-## ?? — null/undefined일 때만 뒤를 반환 ⭐️⭐️⭐️⭐️
-
-```typescript
-name ?? '익명'  // null 또는 undefined일 때만 '익명'
-port ?? 3000   // 0은 그대로 0 (유효한 값 보존)
-```
-
-## ?? vs || — 가장 헷갈리는 차이 ⭐️⭐️⭐️⭐️
-
-```typescript
-const count = 0;
-count || 10  // 10  ← 0은 falsy라 || 가 기본값으로 넘어감 (의도와 다를 수 있음)
-count ?? 10  //  0  ← 0은 null/undefined가 아니므로 ?? 는 그대로 0 유지
-```
-
-| 연산자               | 기본값으로 넘어가는 조건                                             |
-| ----------------- | --------------------------------------------------------- |
-| <code>\|\|</code> | falsy 전부 (`0`, `''`, `false`, `null`, `undefined`, `NaN`) |
-| `??`              | 정확히 `null` 또는 `undefined`일 때만                             |
-
-```txt
-"0이나 빈 문자열도 유효한 값으로 살리고 싶다"면 반드시 ??
-페이지 번호(0이 유효한 값), 카운터, 빈 문자열 입력 → || 쓰면 의도와 다르게 동작
-```
-
-## ?.와 ?? 조합 — 에러 메시지 추출 패턴 ⭐️⭐️⭐️
-
-```typescript
-// error?.message ?? '기본 메시지'
-// ?.와 ??가 짝으로 자주 보이는 이유:
-//   ?.  → "혹시 없을 수도 있는 값"을 안전하게 꺼내고
-//   ??  → "그게 진짜 없으면 쓸 기본값"을 바로 옆에 정해두는 조합
-
-const error = (await res.json()) as { message?: string | string[] } | null;
-const message = Array.isArray(error?.message)
-  ? error.message[0]
-  : error?.message;
-throw new Error(message ?? `요청 실패: ${res.status} ${res.statusText}`);
-```
-
-## &&= · ||= · ??= — 논리 할당 단축형 ⭐️⭐️
-
-```typescript
-a &&= b   // if (a) a = b
-a ||= b   // if (!a) a = b
-a ??= b   // if (a == null) a = b
-
-// 실전 패턴
-cache ??= await fetchData();    // 캐시가 없을 때만 fetch
-user.nickname ||= '익명';        // 닉네임 없으면 기본값 설정
-```
-
----
-
-# 삼항 연산자 ⭐️⭐️⭐️
-
-```typescript
-const label = isLoggedIn ? '로그아웃' : '로그인';
-
-// JSX 조건부 렌더링
-{isLoading ? <Spinner /> : <Content />}
-```
-
-```txt
-중첩 삼항은 가독성이 나빠짐 → 변수로 미리 계산하거나 if문 사용 권장
-```
-
----
-
-# 비교 연산자 ⭐️⭐️
-
-```typescript
-===  // 값 + 타입이 같음 (항상 이걸 쓸 것)
-!==  // 값 또는 타입이 다름
-==   // 타입 변환 후 비교 → '0' == 0 → true — 피할 것
-
-NaN === NaN          // false — NaN은 자기 자신과도 같지 않음
-Number.isNaN(value)  // NaN 확인은 이걸 쓸 것
-```
-
----
-
-# typeof · instanceof ⭐️⭐️⭐️
-
-```typescript
-typeof 'hello'      // 'string'
-typeof 42           // 'number'
-typeof null         // 'object' ← 버그, null이 아님
-typeof undefined    // 'undefined'
-
-[] instanceof Array  // true
-err instanceof Error // true
-```
-
-```txt
-런타임 타입 확인 → [[TS_Type_Guards]] 참고
-```
-
----
-
-# 옵셔널 체이닝 (?.) ⭐️⭐️⭐️⭐️
-
-```typescript
-user?.name           // user가 null/undefined면 undefined (에러 안 남)
-user?.address?.city  // 중간 어디서든 없으면 거기서 멈추고 undefined 반환
-arr?.[0]             // 배열/동적 키 접근에도 동일
-fn?.()               // 함수 존재할 때만 호출, 없으면 아무 일도 안 함
-```
-
-```txt
-?. 없이 쓰면:
-  user.name  →  user가 null이면 "Cannot read properties of null" TypeError로 죽음
-
-?. 쓰면:
-  user?.name  →  user가 null/undefined면 그 자리에서 멈추고 undefined 반환
-  체인이 길어도 중간 어디서든 끊어줌 (a?.b?.c?.d)
-```
-
-## ?.() — 함수 호출에 적용 ⭐️⭐️⭐️⭐️
-
-```typescript
-onClose?.();
-// onClose가 함수면 호출, undefined/null이면 아무 일도 안 일어남
-// if (onClose) onClose(); 와 동일
-```
-
-## prev?.() — 기존 콜백 보존 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 전역 이벤트 핸들러에 새 동작을 추가하되, 기존 콜백도 유지해야 할 때
-const prev = window.onSomeEvent;  // 기존 콜백 저장
-
-window.onSomeEvent = () => {
-  prev?.();       // 기존 콜백이 있으면 먼저 실행
-  doNewThing();   // 그다음 새 동작
-};
-```
-
-```txt
-prev?.()가 필요한 이유:
-  다른 라이브러리가 이미 window.onSomeEvent를 등록해뒀을 수 있음
-  그냥 덮어쓰면 기존 콜백이 사라짐 → 다른 기능이 망가질 수 있음
-  → 기존 것을 prev에 저장 → 새 핸들러에서 prev?.()로 기존 것도 같이 실행
-
-  prev가 undefined면 prev?.()는 아무 일도 안 함
-  prev가 함수면 먼저 실행하고 새 동작 실행
-
-외부 스크립트 로드 시 자주 등장 (YouTube IFrame API 등)
-```
-
----
-
-# !! vs Boolean() — 불린 변환 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 셋 다 완전히 동일한 동작
-!!room.unread           // false → false, 0 → false, "abc" → true
-Boolean(room.unread)    // 동일
-room.unread ? true : false  // 동일 (비권장 — 길기만 하고 같음)
-```
-
-```txt
-!! vs Boolean() — 동작은 같고 스타일 차이:
-  !!          짧고 자주 쓰임, 코드 안에서 인라인으로
-  Boolean()   읽을 때 "불린으로 변환한다"는 의도가 더 명확
-              특히 setState나 함수 인자에 단독으로 쓸 때 가독성 좋음
-
-왜 변환이 필요한가 — 타입이 boolean이 아닌 경우:
-  room.unread 가 number | undefined 타입이라면
-  setRoomsUnread(room.unread)  → TS 에러 (boolean 자리에 number 올 수 없음)
-  setRoomsUnread(!!room.unread)      → ✅ boolean
-  setRoomsUnread(Boolean(room.unread)) → ✅ boolean
-
-  && 체이닝 결과:
-  const canDelete = actionMsg && user && room;
-  // 타입: Message | User | Room | undefined (마지막 truthy 값, boolean 아님)
-
-  const canDelete = !!actionMsg && !!user && !!room;
-  // 타입: boolean ✅
-```
-
-## 복합 조건 패턴 — &&, ||, ! 조합 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 실전 예시
-setRoomsUnread(
-  mine.some(
-    (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
-  ),
-);
-setDmsUnread(dms.some((dm) => dm.unread) || requests.length > 0);
-```
-
-```txt
-위 코드 읽는 법:
-
-  mine.some((room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id))
-  → "방 목록(mine) 중에서 하나라도 (읽지 않았고 && 뮤트가 아닌) 방이 있는가?"
-  → .some() = "하나라도" → boolean 반환 → setRoomsUnread(boolean)에 딱 맞음
-
-  dms.some((dm) => dm.unread) || requests.length > 0
-  → "DM 중 읽지 않은 게 하나라도 있거나 || 친구 요청이 하나라도 있으면"
-  → 둘 중 하나라도 true면 전체 true
-
-&& 조건 연결:
-  A && B    A가 true이고 B도 true일 때 → 둘 다 만족
-  A && !B   A가 true이고 B는 false일 때 → "A인데 B는 아닌"
-
-|| 조건 연결:
-  A || B    A가 true이거나 B가 true일 때 → 하나라도 만족
-
-! 단독:
-  !fn()     fn()의 반환값을 반대로 — "이 함수가 false를 반환할 때"
-```
-
-```typescript
-// 복합 조건을 변수로 분리해서 읽기 쉽게
-const hasUnreadRoom = mine.some(
-  (room) => Boolean(room.unread) && !isRoomMuted(user.id, room.id),
-);
-const hasUnreadDm = dms.some((dm) => dm.unread);
-const hasPendingRequest = requests.length > 0;
-
-setRoomsUnread(hasUnreadRoom);
-setDmsUnread(hasUnreadDm || hasPendingRequest);
-// 각각 변수 이름이 의도를 설명해줌 → 한 줄이 너무 복잡하면 이 방식 권장
-```
-
 ---
 
 # 계산된 속성명 — `[key]: value` ⭐️⭐️⭐️⭐️
@@ -827,6 +826,42 @@ TypeScript에서 안전하게 쓰려면:
   → 존재하지 않는 컬럼명 방지
 ```
 
+## React state — 특정 키만 부분 업데이트 ⭐️⭐️⭐️⭐️
+
+```typescript
+// selectedPosters: Record<number, Movie>  (슬롯번호 → 영화)
+const [selectedPosters, setSelectedPosters] = useState<Record<number, Movie>>({});
+
+// wallSlot = 1, movie = { title: 'Inception', ... }
+setSelectedPosters((current) => ({
+  ...current,          // 기존 슬롯 전부 유지
+  [wallSlot]: movie,   // 슬롯 1만 교체 → { ...current, 1: movie }
+}));
+```
+
+```txt
+...current + [wallSlot]: movie 조합:
+  스프레드로 기존 상태 복사 → 특정 키만 덮어쓰기
+  wallSlot이 없던 키면 → 새로 추가됨
+  wallSlot이 있던 키면 → 기존 값을 덮어씀
+
+  결과:
+  before: { 1: Inception, 2: Dune }
+  after:  { 1: Interstellar, 2: Dune }  (슬롯 1만 교체)
+
+왜 함수형 업데이터 ((current) => ...) 를 쓰나:
+  setSelectedPosters({ ...selectedPosters, [wallSlot]: movie })
+  → 클로저 시점의 selectedPosters 참조 (stale closure 위험)
+
+  setSelectedPosters((current) => ({ ...current, [wallSlot]: movie }))
+  → React가 최신 상태를 current로 주입 → 항상 최신 값 기반으로 업데이트
+
+패턴이 쓰이는 곳:
+  폼 필드 상태 관리  → { ...form, [field]: value }
+  슬롯/맵 구조 상태  → { ...slots, [slotId]: item }
+  토글 상태         → { ...flags, [key]: !flags[key] }
+```
+
 ---
 
 # void — 의도적 무시 ⭐️⭐️⭐️
@@ -861,12 +896,63 @@ useEffect(() => {
 }, [deps]);
 ```
 
+## onClick — void 유무 차이 ⭐️⭐️⭐️⭐️
+
+```tsx
+// Case 1 — void 없음
+onClick={() => onSelect(movie)}
+
+// Case 2 — void 있음
+onClick={() => void onSelect(movie)}
+```
+
+```txt
+onSelect가 동기 함수(void 반환)일 때:
+  → 둘 다 완전히 동일, 차이 없음
+
+onSelect가 async 함수(Promise 반환)일 때:
+  Case 1: 화살표 함수가 Promise를 그대로 반환
+          → 아무도 그 Promise를 await하거나 .catch()하지 않음
+          → "floating promise" → ESLint no-floating-promises 경고 발생
+
+  Case 2: void가 Promise를 받아서 undefined 반환
+          → 화살표 함수는 undefined를 반환 (= void 타입)
+          → "의도적으로 무시했다"고 명시 → 경고 없음
+```
+
+```tsx
+// ❌ onSelect가 async면 floating promise
+<button onClick={() => onSelect(movie)}>선택</button>
+
+// ✅ void로 명시적 무시
+<button onClick={() => void onSelect(movie)}>선택</button>
+
+// ✅ 결과를 처리해야 한다면 — async 래퍼
+<button onClick={async () => {
+  await onSelect(movie);
+  setDone(true);
+}}>선택</button>
+```
+
+```txt
+왜 React onClick은 void 반환을 기대하는가?
+  MouseEventHandler 타입 = (event: MouseEvent) => void
+  TypeScript에서 void 반환 타입은 "호출자가 반환값을 사용하지 않는다"는 의미
+  → Promise<T>도 형식적으로는 void에 할당 가능 (TS 타입 에러 없음)
+  → 문제는 ESLint 규칙 — 실제로 Promise가 처리되지 않는 걸 잡아냄
+
+결론:
+  onSelect가 동기면 void 생략해도 무방
+  onSelect가 async면 void를 붙여서 의도를 명시하는 것이 관습
+```
+
 ```txt
 void vs await 판단 기준 → [[React_AsyncUI]] "fire-and-forget" 섹션
 함수 옵션 객체 패턴 (force = false, Partial<T>) → [[JS_Patterns]]
 ```
 
 ---
+
 # Symbol — 전역 유일 식별자 ⭐️⭐️⭐️
 
 ```typescript
@@ -908,4 +994,3 @@ obj.name       // '공개값'
 Object.keys(obj)   // ['name']  (Symbol 키는 열거 안 됨)
 JSON.stringify(obj) // '{"name":"공개값"}' (Symbol 무시됨)
 ```
-

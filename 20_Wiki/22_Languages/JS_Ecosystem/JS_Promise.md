@@ -17,12 +17,15 @@ related:
   - "[[React_AsyncUI]]"
   - "[[JS_Operators]]"
 ---
+
 # JS_Promise — 비동기 처리
 
 > [!info] 
 > Promise = 지금은 모르지만 나중에 결과가 나올 값을 표현하는 객체. 
 > async/await는 이것을 더 읽기 쉽게 만든 문법.
 >  대부분은 async/await로 충분하고, new Promise()는 콜백 기반 API를 래핑할 때만 필요.
+
+---
 
 ---
 
@@ -115,6 +118,8 @@ Promise가 다루는 것:
 
 ---
 
+---
+
 # Promise란 — 비동기 결과를 담는 그릇 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -141,6 +146,8 @@ const promise = fetch('/api/data');
 // 이 시점: pending (응답 안 왔으니까)
 // 나중에:  fulfilled (응답 옴) 또는 rejected (에러)
 ```
+
+---
 
 ---
 
@@ -208,6 +215,77 @@ async function load() {
 
 ---
 
+---
+
+# new Promise() — 언제 직접 만드는가 ⭐️⭐️⭐️
+
+```txt
+이미 Promise를 반환하는 함수(fetch, prisma, axios)는 → async/await로 충분
+콜백 기반 API(setTimeout, 이벤트, 구형 라이브러리)는 → new Promise()로 래핑
+
+판단 기준: 이 API가 Promise를 반환하는가?
+  반환함 → async/await로 바로 사용
+  안 함  → new Promise()로 감싸서 Promise로 만들기
+```
+
+```javascript
+// new Promise() 기본 구조
+const promise = new Promise((resolve, reject) => {
+  // executor: 즉시 실행됨
+  // 성공 시: resolve(값) 호출 → fulfilled
+  // 실패 시: reject(에러) 호출 → rejected
+});
+```
+
+## 가장 기본적인 예시 — setTimeout 래핑
+
+```javascript
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(), ms);
+  });
+}
+
+await delay(1000);
+console.log('1초 후');
+```
+
+## 스크립트 로드 래핑
+
+```typescript
+function loadScript(src: string): Promise<void> {
+  if (document.querySelector(`script[src="${src}"]`)) {
+    return Promise.resolve(); // 이미 있으면 즉시 완료
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src     = src;
+    script.onload  = () => resolve();
+    script.onerror = () => reject(new Error(`로드 실패: ${src}`));
+    document.body.appendChild(script);
+  });
+}
+
+await loadScript('https://www.youtube.com/iframe_api');
+```
+
+## 흔한 실수 — 불필요한 래핑
+
+```typescript
+// ❌ 이미 Promise를 반환하는 함수를 또 new Promise로 감쌈
+return new Promise(async (resolve) => {
+  const data = await fetchData();
+  resolve(data);
+});
+
+// ✅ 그냥 async/await
+return await fetchData();
+```
+
+---
+
+---
+
 # `Promise<T>` 타입 — 무엇을 넣어야 하는가 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -271,6 +349,163 @@ void와 unknown의 차이:
   Promise<unknown>이면 await action()의 결과가 unknown 타입
   → 그대로 사용 불가, 타입 단언이나 가드 필요
   → 결과를 쓰고 싶으면 제네릭으로 받는 게 나음 (아래 "반환값이 있는 버전" 참고)
+```
+
+---
+
+---
+
+# Promise.all — 동시에 실행 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 받은 요청 · 보낸 요청 — 서로 결과 안 보고 각자 조회 → 동시에 돌려도 됨
+const [received, sent] = await Promise.all([
+  this.prisma.friendship.findMany({ where: { addresseeId: userId } }),
+  this.prisma.friendship.findMany({ where: { requesterId: userId } }),
+]);
+```
+
+```txt
+직렬 (순서대로):
+  받은 조회 완료 → 보낸 조회 완료
+  총 시간 = A + B
+
+병렬 Promise.all:
+  받은 조회 ──┐
+  보낸 조회 ──┴── 둘 다 완료
+  총 시간 = max(A, B)
+
+언제 Promise.all을 쓰는가:
+  다음 작업이 이전 작업의 결과를 필요로 하지 않을 때
+  서로 독립적인 여러 요청을 동시에 보낼 때
+
+언제 순서대로 await를 쓰는가:
+  B가 A의 결과를 필요로 할 때
+  const user = await getUser(id);
+  const posts = await getPostsByUser(user.nickname); // user 결과 필요
+```
+
+## ⚠️ 하나라도 실패하면 전체 실패
+
+```txt
+Promise.all은 하나라도 reject되면 즉시 전체 reject
+다른 것들이 이미 성공했어도 그 결과는 버려짐
+
+일부 실패를 허용하고 싶으면:
+  Promise.allSettled → 성공/실패 무관하게 전부 기다린 뒤 각각의 결과를 배열로 반환
+```
+
+## 배열 구조분해
+
+```typescript
+// Promise.all 반환: Promise<[T1, T2, ...]>
+// 넣은 순서 = 꺼내는 순서 (먼저 끝난 순서 아님)
+
+const [friends, requests] = await Promise.all([
+  fetchFriends(),   // → friends
+  fetchRequests(),  // → requests
+]);
+```
+
+---
+
+## 배열 비동기 변환 — array.map + Promise.all ⭐️⭐️⭐️⭐️
+
+```typescript
+// rows 배열의 각 항목마다 비동기 작업을 동시에 실행 → 결과를 새 객체로 변환
+const items = await Promise.all(
+  rows.map(async (row) => ({
+    tmdbId:       row.tmdbId,
+    wallSlot:     row.wallSlot,
+    displayOrder: row.displayOrder,
+    movie: await this.tmdbService.getMovieCached(row.tmdbId), // 각 row마다 비동기
+  })),
+);
+```
+
+```txt
+왜 Promise.all이 필요한가?
+
+  rows.map(async fn)  →  Promise<T>[]  (배열 각 항목이 미완료 약속)
+  await Promise.all(...)  →  T[]       (전부 동시에 완료 대기)
+
+직렬 vs 병렬:
+  // ❌ 직렬 — 하나 완료 → 다음 시작, 총 시간 = A × n
+  const items = [];
+  for (const row of rows) {
+    const movie = await tmdbService.getMovieCached(row.tmdbId);
+    items.push({ ...row, movie });
+  }
+
+  // ✅ 병렬 — 전부 동시 시작, 총 시간 = max(A, B, C, ...)
+  const items = await Promise.all(
+    rows.map(async (row) => ({
+      ...row,
+      movie: await tmdbService.getMovieCached(row.tmdbId),
+    })),
+  );
+```
+
+## Promise.all vs $transaction — 무엇이 다른가 ⭐️⭐️⭐️⭐️
+
+```txt
+                  Promise.all                     $transaction
+목적        독립 작업을 동시에 실행          여러 DB 쿼리를 원자적으로 실행
+관심사      "빠르게 전부 완료"              "전부 성공하거나, 전부 실패"
+실패 시     나머지 취소 안 됨 (결과만 버림)  완료된 쿼리도 전부 롤백
+DB 연결     각 쿼리가 별도 연결 사용         단일 트랜잭션 내 동일 연결
+롤백        ❌ 없음                           ✅ 자동 롤백
+```
+
+```typescript
+// Promise.all — 외부 API 병렬 호출 (원자성 없음)
+const items = await Promise.all(
+  rows.map(async (row) => ({
+    ...row,
+    movie: await tmdbService.getMovieCached(row.tmdbId), // 외부 API
+  })),
+);
+// 하나의 TMDB 호출 실패 → 해당 항목만 실패, 이미 완료된 캐시는 롤백 없음
+
+// $transaction — DB 쓰기의 원자성 보장
+await prisma.$transaction([
+  prisma.userMovie.update({ where: { id: A }, data: { isDisplayed: false } }),
+  prisma.userMovie.update({ where: { id: B }, data: { isDisplayed: true } }),
+]);
+// 두 번째 update 실패 → 첫 번째도 자동 롤백 → DB 원래 상태 유지
+```
+
+```txt
+핵심 판단 기준:
+  "이 작업들이 전부 성공해야만 데이터가 일관된 상태인가?"
+  → YES : $transaction  (원자성 필요 — DB 쓰기)
+  → NO  : Promise.all   (빠른 병렬 실행 — 조회·외부 API)
+
+흔한 조합:
+  DB 조회(findMany) → 외부 API 병렬 호출(Promise.all) → DB 쓰기($transaction)
+  ↑ listDisplayed()가 정확히 이 패턴 — 조회 후 TMDB API를 병렬로 호출
+```
+
+---
+
+# Promise 메서드 비교
+
+|메서드|동작|실패 처리|
+|---|---|---|
+|`Promise.all([...])`|전부 완료될 때까지 기다림|하나라도 실패 → 즉시 전체 실패|
+|`Promise.allSettled([...])`|전부 완료될 때까지 기다림|성공/실패 무관하게 전부 결과 수집|
+|`Promise.race([...])`|가장 먼저 끝난 것(성공/실패 무관) 하나만|가장 빠른 것이 실패면 전체 실패|
+|`Promise.any([...])`|가장 먼저 성공한 것 하나만|전부 실패해야 전체 실패|
+|`Promise.resolve(value)`|즉시 fulfilled인 Promise|—|
+|`Promise.reject(reason)`|즉시 rejected인 Promise|—|
+
+```typescript
+// Promise.allSettled — 실패해도 나머지 결과를 수집
+const results = await Promise.allSettled([fetchA(), fetchB(), fetchC()]);
+results.forEach((result) => {
+  if (result.status === 'fulfilled') console.log(result.value);
+  if (result.status === 'rejected')  console.log(result.reason);
+});
 ```
 
 ---
@@ -383,144 +618,3 @@ fn: () => Promise<unknown> 타입이라 모든 코드 경로에서 Promise를 �
 ```
 
 ---
-
-# new Promise() — 언제 직접 만드는가 ⭐️⭐️⭐️
-
-```txt
-이미 Promise를 반환하는 함수(fetch, prisma, axios)는 → async/await로 충분
-콜백 기반 API(setTimeout, 이벤트, 구형 라이브러리)는 → new Promise()로 래핑
-
-판단 기준: 이 API가 Promise를 반환하는가?
-  반환함 → async/await로 바로 사용
-  안 함  → new Promise()로 감싸서 Promise로 만들기
-```
-
-```javascript
-// new Promise() 기본 구조
-const promise = new Promise((resolve, reject) => {
-  // executor: 즉시 실행됨
-  // 성공 시: resolve(값) 호출 → fulfilled
-  // 실패 시: reject(에러) 호출 → rejected
-});
-```
-
-## 가장 기본적인 예시 — setTimeout 래핑
-
-```javascript
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(), ms);
-  });
-}
-
-await delay(1000);
-console.log('1초 후');
-```
-
-## 스크립트 로드 래핑
-
-```typescript
-function loadScript(src: string): Promise<void> {
-  if (document.querySelector(`script[src="${src}"]`)) {
-    return Promise.resolve(); // 이미 있으면 즉시 완료
-  }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src     = src;
-    script.onload  = () => resolve();
-    script.onerror = () => reject(new Error(`로드 실패: ${src}`));
-    document.body.appendChild(script);
-  });
-}
-
-await loadScript('https://www.youtube.com/iframe_api');
-```
-
-## 흔한 실수 — 불필요한 래핑
-
-```typescript
-// ❌ 이미 Promise를 반환하는 함수를 또 new Promise로 감쌈
-return new Promise(async (resolve) => {
-  const data = await fetchData();
-  resolve(data);
-});
-
-// ✅ 그냥 async/await
-return await fetchData();
-```
-
----
-
-# Promise.all — 동시에 실행 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 받은 요청 · 보낸 요청 — 서로 결과 안 보고 각자 조회 → 동시에 돌려도 됨
-const [received, sent] = await Promise.all([
-  this.prisma.friendship.findMany({ where: { addresseeId: userId } }),
-  this.prisma.friendship.findMany({ where: { requesterId: userId } }),
-]);
-```
-
-```txt
-직렬 (순서대로):
-  받은 조회 완료 → 보낸 조회 완료
-  총 시간 = A + B
-
-병렬 Promise.all:
-  받은 조회 ──┐
-  보낸 조회 ──┴── 둘 다 완료
-  총 시간 = max(A, B)
-
-언제 Promise.all을 쓰는가:
-  다음 작업이 이전 작업의 결과를 필요로 하지 않을 때
-  서로 독립적인 여러 요청을 동시에 보낼 때
-
-언제 순서대로 await를 쓰는가:
-  B가 A의 결과를 필요로 할 때
-  const user = await getUser(id);
-  const posts = await getPostsByUser(user.nickname); // user 결과 필요
-```
-
-## ⚠️ 하나라도 실패하면 전체 실패
-
-```txt
-Promise.all은 하나라도 reject되면 즉시 전체 reject
-다른 것들이 이미 성공했어도 그 결과는 버려짐
-
-일부 실패를 허용하고 싶으면:
-  Promise.allSettled → 성공/실패 무관하게 전부 기다린 뒤 각각의 결과를 배열로 반환
-```
-
-## 배열 구조분해
-
-```typescript
-// Promise.all 반환: Promise<[T1, T2, ...]>
-// 넣은 순서 = 꺼내는 순서 (먼저 끝난 순서 아님)
-
-const [friends, requests] = await Promise.all([
-  fetchFriends(),   // → friends
-  fetchRequests(),  // → requests
-]);
-```
-
----
-
-# Promise 메서드 비교
-
-|메서드|동작|실패 처리|
-|---|---|---|
-|`Promise.all([...])`|전부 완료될 때까지 기다림|하나라도 실패 → 즉시 전체 실패|
-|`Promise.allSettled([...])`|전부 완료될 때까지 기다림|성공/실패 무관하게 전부 결과 수집|
-|`Promise.race([...])`|가장 먼저 끝난 것(성공/실패 무관) 하나만|가장 빠른 것이 실패면 전체 실패|
-|`Promise.any([...])`|가장 먼저 성공한 것 하나만|전부 실패해야 전체 실패|
-|`Promise.resolve(value)`|즉시 fulfilled인 Promise|—|
-|`Promise.reject(reason)`|즉시 rejected인 Promise|—|
-
-```typescript
-// Promise.allSettled — 실패해도 나머지 결과를 수집
-const results = await Promise.allSettled([fetchA(), fetchB(), fetchC()]);
-results.forEach((result) => {
-  if (result.status === 'fulfilled') console.log(result.value);
-  if (result.status === 'rejected')  console.log(result.reason);
-});
-```

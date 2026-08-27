@@ -13,6 +13,7 @@ related:
   - "[[TS_Generics]]"
   - "[[TS_TypeAssertion]]"
   - "[[NestJS_Controller]]"
+  - "[[JS_Operators]]"
 ---
 # TS_Type_Guards — 타입 좁히기
 

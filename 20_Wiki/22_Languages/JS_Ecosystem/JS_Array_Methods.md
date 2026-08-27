@@ -607,6 +607,62 @@ reduce 읽는 법:
   그룹핑이나 집계 → reduce가 적합
 ```
 
+## 배열 → Record — 1:1 키-값 매핑 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 각 item을 특정 key(wallSlot)로 인덱싱
+const posters = response.items.reduce<Record<number, GachaMovie>>(
+  (current, item) => {
+    current[item.wallSlot] = item.movie;
+    return current;
+  },
+  {},
+);
+// 결과: { 1: GachaMovie, 2: GachaMovie, 3: GachaMovie }
+// posters[1] → O(1) 즉시 조회
+```
+
+```txt
+그룹핑과의 차이:
+  그룹핑 (1:N)  acc[key] ??= []; acc[key].push(item)  — key 하나에 여러 값
+  매핑  (1:1)   acc[key] = value                       — key 하나에 값 하나
+
+제네릭 <Record<number, GachaMovie>> 위치:
+  reduce<T> 에서 T = 누적값(acc)의 타입
+  → TS가 초기값 {}를 T로 추론 → acc에서 타입 자동완성 동작
+```
+
+```typescript
+// 동일한 결과, 세 가지 방법
+
+// 1. reduce — 변환 로직이 복잡하거나 조건 분기 있을 때
+const posters = items.reduce<Record<number, GachaMovie>>((acc, item) => {
+  acc[item.wallSlot] = item.movie;
+  return acc;
+}, {});
+
+// 2. Object.fromEntries — 단순 매핑이면 가장 선언적
+const posters = Object.fromEntries(
+  items.map(item => [item.wallSlot, item.movie]),
+) as Record<number, GachaMovie>;
+
+// 3. for 루프 — 디버깅 중이거나 break가 필요할 때
+const posters: Record<number, GachaMovie> = {};
+for (const item of items) {
+  posters[item.wallSlot] = item.movie;
+}
+```
+
+```txt
+O(1) 조회가 목적이라면 Map도 고려:
+  new Map(items.map(item => [item.wallSlot, item.movie]))
+  → [[JS_AlgorithmPatterns]] titleMap 패턴 참고
+
+Record vs Map 선택:
+  JSON 직렬화 필요 / 키가 string·number → Record
+  키가 객체·Symbol / 삽입 순서 보장 필요 → Map
+```
+
 ## 실전 예 — 배열 + Set 조합
 
 ```typescript
