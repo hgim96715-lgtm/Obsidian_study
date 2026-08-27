@@ -126,6 +126,52 @@ padStart 사용 예:
   ID 앞에 0 붙이기: id.toString().padStart(6, '0')  → '000001'
 ```
 
+
+## toLowerCase vs toLocaleLowerCase ⭐️⭐️⭐️⭐️
+
+```typescript
+'Hello'.toLowerCase()            // 'hello'
+'Hello'.toLocaleLowerCase()      // 'hello'  — 대부분의 언어에서 동일
+
+'Hello'.toUpperCase()            // 'HELLO'
+'Hello'.toLocaleUpperCase()      // 'HELLO'
+```
+
+```txt
+차이가 생기는 경우 — 터키어(Turkish):
+  영어 'I' → toLowerCase → 'i'  (점 있는 소문자)
+  터키어 'I' → toLocaleLowerCase('tr') → 'ı'  (점 없는 소문자)
+
+  터키어에는 i가 4가지:
+    İ (대문자 점 있음)  ↔  i (소문자 점 있음)
+    I (대문자 점 없음)  ↔  ı (소문자 점 없음)
+
+  toLowerCase()는 로케일 무관 → 항상 'i' 반환
+  toLocaleLowerCase('tr')는 로케일 적용 → 'ı' 반환
+```
+
+```typescript
+// 로케일 명시 가능
+'HELLO'.toLocaleLowerCase('tr')  // 'hello' — 영문은 차이 없음
+'I'.toLocaleLowerCase('tr')      // 'ı'     — 터키어에서 차이 발생
+'I'.toLocaleLowerCase('en')      // 'i'     — 영문 로케일
+
+// 로케일 생략 시 → 브라우저/환경의 현재 로케일 자동 적용
+'I'.toLocaleLowerCase()          // 실행 환경에 따라 다름
+```
+
+```txt
+실무 선택 기준:
+  사용자 입력 검색·비교 (화면에 보이는 텍스트)
+    → toLocaleLowerCase()  (로케일 인식, 더 정확한 대소문자 처리)
+
+  시스템 값 (URL, ID, API 키, DB 컬럼명 등)
+    → toLowerCase()  (로케일 무관, 일관된 결과 보장)
+
+  한국어·영어 환경에서는 둘 다 결과 동일
+  → 글로벌 서비스이거나 터키어 지원 시 toLocaleXxx 사용 권장
+```
+
 ## normalize — 유니코드 정규화 ⭐️⭐️⭐️
 
 ```typescript

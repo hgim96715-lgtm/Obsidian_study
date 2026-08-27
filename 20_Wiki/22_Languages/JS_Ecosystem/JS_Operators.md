@@ -646,6 +646,54 @@ setState(prev => ({ ...prev, name: '새이름' }));
   깊은 복사가 필요하면 structuredClone() → [[JS_BrowserAPI]]
 ```
 
+
+## 스프레드 = 얕은 복사 — 왜 "복사"인가 ⭐️⭐️⭐️⭐️
+
+```typescript
+const a = { x: 1, y: 2 };
+const b = { ...a };  // 새 객체 생성
+
+a === b          // false — 다른 참조 (복사됨)
+a.x === b.x      // true  — 값은 같음
+
+b.x = 99;
+a.x              // 1 — 원본 안 바뀜 (독립된 복사본)
+```
+
+```txt
+{ ...obj } 가 하는 일:
+  1. 빈 객체 {} 를 새로 만든다
+  2. obj의 최상위 키-값을 전부 거기 복사한다
+  3. 그 새 객체를 반환한다
+
+"얕은 복사"의 의미:
+  최상위 키 → 값을 복사 (독립적)
+  중첩 객체 → 참조만 복사 (공유됨)
+
+  const a = { name: 'A', address: { city: '서울' } };
+  const b = { ...a };
+
+  b.name = 'B';          a.name       // 'A' — 독립
+  b.address.city = '부산'; a.address.city // '부산' — 공유됨 ⚠️
+```
+
+```txt
+React state에서 왜 반드시 복사해야 하는가?
+  React는 이전 state와 새 state를 참조(===)로 비교
+  → 같은 참조면 "변화 없음" → 리렌더링 안 됨
+
+  ❌ 원본 직접 수정
+    state.name = '새이름';
+    setState(state);  // state 참조가 동일 → 리렌더링 없음
+
+  ✅ 복사 후 수정
+    setState({ ...state, name: '새이름' });  // 새 참조 → 리렌더링
+
+  delete도 마찬가지:
+    ❌ delete state[key];          return state;  // 참조 동일
+    ✅ const next = { ...state };  delete next[key];  return next;
+```
+
 ## 조건부 스프레드 — 조건이 참일 때만 속성 추가 ⭐️⭐️⭐️⭐️
 
 ```typescript
@@ -952,6 +1000,94 @@ void vs await 판단 기준 → [[React_AsyncUI]] "fire-and-forget" 섹션
 ```
 
 ---
+
+---
+
+# delete — 객체 프로퍼티 제거 ⭐️⭐️⭐️⭐️
+
+```typescript
+const obj = { a: 1, b: 2, c: 3 };
+delete obj.b;
+// obj → { a: 1, c: 3 }
+
+// 계산된 키(변수)로도 사용
+const key = 'b';
+delete obj[key];  // obj['b'] 삭제
+```
+
+```txt
+delete 연산자:
+  객체에서 특정 프로퍼티를 완전히 제거
+  → undefined 대입과 다름: 키 자체가 사라짐
+
+  delete obj.key    → 점 표기법
+  delete obj['key'] → 대괄호 표기법
+  delete obj[var]   → 변수(계산된 키) 표기법
+
+  반환값: true (성공 시) / false (삭제 불가 프로퍼티)
+```
+
+## ⚠️ undefined 대입과의 차이
+
+```typescript
+const obj = { a: 1, b: 2 };
+
+obj.b = undefined;
+console.log('b' in obj);      // true  — 키는 존재, 값만 undefined
+console.log(Object.keys(obj)); // ['a', 'b']
+
+delete obj.b;
+console.log('b' in obj);      // false — 키 자체가 사라짐
+console.log(Object.keys(obj)); // ['a']
+```
+
+## React state — 특정 키 제거 ⭐️⭐️⭐️⭐️
+
+```typescript
+// Record<number, Movie>에서 특정 슬롯 제거
+setSelectedPosters((current) => {
+  const next = { ...current };  // 1. 먼저 복사 (불변성 유지)
+  delete next[wallSlot];         // 2. 복사본에서 키 제거
+  return next;                   // 3. 새 객체 반환
+});
+```
+
+```txt
+왜 반드시 spread 후 delete 하는가?
+  current를 직접 수정하면 React가 변화를 감지 못함 (참조가 동일)
+  → 복사본(next)을 만들고 → 복사본에서 삭제 → 새 참조 반환
+  → React가 상태 변화를 감지하고 리렌더링
+
+❌ 직접 삭제 (절대 금지)
+  delete current[wallSlot];  // 원본 state 직접 변이 → 렌더링 안 됨
+  return current;
+
+❌ 스프레드만으로는 제거 불가
+  return { ...current, [wallSlot]: undefined }  // 키가 남아 있음
+```
+
+## TypeScript — delete는 optional 프로퍼티만 가능
+
+```typescript
+type Posters = Record<number, Movie>;  // { [key: number]: Movie }
+
+// Record<K, V>의 값은 항상 V (optional 아님)
+// → 엄격 모드에서 delete 시 TS 에러 발생 가능
+
+// 해결: 타입을 optional로 선언
+type Posters = Partial<Record<number, Movie>>;
+// = { [key: number]?: Movie }
+// → delete next[wallSlot] 허용
+
+// 또는 { [key: number]: Movie | undefined }
+```
+
+```txt
+단항 연산자 비교 (typeof · void · delete):
+  typeof   → 값의 타입을 문자열로 반환
+  void     → 표현식 평가 후 undefined 반환 (결과 무시)
+  delete   → 객체 프로퍼티를 제거하고 true/false 반환
+```
 
 # Symbol — 전역 유일 식별자 ⭐️⭐️⭐️
 

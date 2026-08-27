@@ -440,6 +440,36 @@ const PROVIDER_DEFAULTS: Record<MailProvider, { host: string; port: number }> = 
 // MailProvider에 새 값이 추가되면 여기도 추가해야 함 → 실수 방지
 ```
 
+## Partial\<Record\<K, V\>\> — 동적 키 추가·제거 ⭐️⭐️⭐️⭐️
+
+```typescript
+// Record<number, Movie> — 모든 키가 반드시 존재해야 함
+type Posters = Record<number, Movie>;
+const p: Posters = {};
+delete p[1];  // ❌ TS 에러: delete 대상은 optional이어야 함
+
+// Partial<Record<number, Movie>> — 키가 있을 수도 없을 수도 있음
+type Posters = Partial<Record<number, Movie>>;
+// = { [key: number]?: Movie }
+
+const p: Posters = {};
+p[1] = movie;    // ✅ 추가
+delete p[1];     // ✅ 제거 (optional이라 허용)
+p[1]?.title;     // ✅ undefined 가능성 있으므로 ?. 사용
+```
+
+```txt
+언제 Partial<Record> vs Record:
+  키가 고정·전부 존재 보장  → Record<K, V>          (누락 시 TS 에러로 실수 방지)
+  키가 동적·일부만 존재     → Partial<Record<K, V>> (React state 슬롯 맵 등)
+
+React state 슬롯 패턴:
+  선택된 포스터 { [wallSlot]: Movie } — 슬롯이 비어있으면 키가 없어야 함
+  → Partial<Record<number, Movie>> 적합
+  → delete next[wallSlot] 가능 → [[JS_Operators]] delete 섹션
+```
+
+
 ---
 
 # Exclude\<T, U\> · Extract\<T, U\> — 유니온 필터 ⭐️⭐️⭐️

@@ -429,6 +429,13 @@ const picked = { id, name };
 // 객체 특정 키 제거 (omit)
 const { password, ...rest } = user;  // password 제외한 나머지
 
+// 동적 키 제거 — 변수로 키 지정 (정적 키 제거는 구조분해 rest 사용)
+const next = { ...obj };
+delete next[dynamicKey];  // → [[JS_Operators]] delete 섹션
+
+// 정적 키 제거 (키 이름을 미리 알 때)
+const { password, ...rest } = user;  // password 제외
+
 // 객체가 비어있는지
 Object.keys(obj).length === 0
 
