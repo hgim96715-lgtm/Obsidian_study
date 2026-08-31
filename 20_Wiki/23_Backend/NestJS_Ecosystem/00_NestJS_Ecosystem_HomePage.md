@@ -107,6 +107,7 @@ NestJS_JwtGuard 메타데이터·Reflector · Guard · @Public · @UserId · @Op
 | | 노트 |
 |---|---|
 | **NestJS** | [[NestJS_Controller]] · [[NestJS_CORS]] |
+| **네트워크 개념** | [[Network_Proxy]] · [[HTTP_Concept]] |
 
 ```txt
 NestJS_Controller  @Get/@Post/@Patch/@Delete · @Param/@Query/@Body · @Req(express에서 import)
@@ -119,16 +120,16 @@ NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentia
 
 ## 🗄️ 데이터베이스
 
-|                | 노트                                                |
-| -------------- | ------------------------------------------------- |
-| **연결**         | [[NestJS_PostgreSQL]]                             |
-| **Prisma**     | [[NestJS_Prisma]]                                 |
-| **마이그레이션**     | [[NestJS_Migration]]                              |
-| **비동기 백그라운드 작업** | [[NestJS_AsyncJob]]                           |
-| **트랜잭션**       | [[NestJS_Transaction]]                            |
-| **PostgreSQL** | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
-| **통계**         | [[NestJS_StatsBucket]]                            |
-| **DB 전체**      | [[00_DB_HomePage]]                                |
+|                  | 노트                                                |
+| ---------------- | ------------------------------------------------- |
+| **연결**           | [[NestJS_PostgreSQL]]                             |
+| **Prisma**       | [[NestJS_Prisma]]                                 |
+| **마이그레이션**       | [[NestJS_Migration]]                              |
+| **비동기 백그라운드 작업** | [[NestJS_AsyncJob]]                               |
+| **트랜잭션**         | [[NestJS_Transaction]]                            |
+| **PostgreSQL**   | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
+| **통계**           | [[NestJS_StatsBucket]]                            |
+| **DB 전체**        | [[00_DB_HomePage]]                                |
 
 ```txt
 NestJS_PostgreSQL  DB 연결 방법 선택 · DATABASE_URL vs POSTGRES_* 관계
