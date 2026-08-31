@@ -124,6 +124,7 @@ NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentia
 | **연결**         | [[NestJS_PostgreSQL]]                             |
 | **Prisma**     | [[NestJS_Prisma]]                                 |
 | **마이그레이션**     | [[NestJS_Migration]]                              |
+| **비동기 백그라운드 작업** | [[NestJS_AsyncJob]]                           |
 | **트랜잭션**       | [[NestJS_Transaction]]                            |
 | **PostgreSQL** | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
 | **통계**         | [[NestJS_StatsBucket]]                            |
@@ -174,12 +175,12 @@ NestJS_Pipe  ValidationPipe(transform·whitelist·forbidNonWhitelisted) · Parse
 
 ## 🚀 설정 · 보안 · 배포
 
-| | 노트 |
-|---|---|
-| **환경변수** | [[NestJS_Env_Config]] |
-| **CORS** | [[NestJS_CORS]] |
-| **모노레포** | [[Monorepo_PNPM]] |
-| **배포** | [[00_Deployment_HomePage]] |
+|          | 노트                               |
+| -------- | -------------------------------- |
+| **환경변수** | [[NestJS_Env_Config]]            |
+| **CORS** | [[NestJS_CORS]]                  |
+| **모노레포** | [[Monorepo_PNPM]]                |
+| **배포**   | [[00_DevOps_Ecosystem_HomePage]] |
 
 ```txt
 NestJS_Env_Config  환경변수란 · .env 파일 · ConfigModule(isGlobal) · ConfigService.getOrThrow
@@ -187,7 +188,7 @@ NestJS_Env_Config  환경변수란 · .env 파일 · ConfigModule(isGlobal) · C
                    forRootAsync(환경변수로 JwtModule 설정) · main.ts에서 app.get(ConfigService)
 Monorepo_PNPM      초기 설정 순서 · pnpm-workspace.yaml · allowBuilds · ERR_PNPM_UNEXPECTED_STORE
                    "type":"commonjs" · store-dir=.pnpm-store · Next.js 포트(-p 3051) · shared 패키지
-배포 상세 → [[00_Deployment_HomePage]] (Railway · Neon · GitHub Actions · Docker)
+배포 상세 → [[00_DevOps_Ecosystem_HomePage]] (Railway · Neon · GitHub Actions · Docker)
 ```
 
 ---
