@@ -9,10 +9,10 @@ tags:
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[React_Concept]]"
-  - "[[NextJS_UI_Types]]"
   - "[[NextJS_API_Client]]"
   - "[[JS_Loops_Conditionals]]"
   - "[[React_LucideIcons]]"
+  - "[[React_Input]]"
 ---
 # React_Component — 함수형 컴포넌트 & JSX
 

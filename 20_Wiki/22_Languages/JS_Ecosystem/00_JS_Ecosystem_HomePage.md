@@ -161,6 +161,7 @@ React 19 form action (단순):
 | | 노트 |
 |---|---|
 | **폼 패턴 비교 · Zod · RHF** | [[React_FormValidation]] |
+| **입력 컴포넌트 · 제어 vs 비제어 · 숫자 입력** | [[React_Input]] |
 | **Server Actions** | [[NextJS_Server_Actions]] |
 | **Server Actions 상태** | [[React_useFormStatus]] |
 | **FormData API · React 19 action** | [[JS_FormData]] |
