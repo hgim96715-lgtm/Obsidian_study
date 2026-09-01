@@ -1,14 +1,11 @@
 ---
-aliases:
-  - current
-  - ref
-  - useRef
-  - 렌더마다 재생성 안 되는 상자
-tags:
-  - React
-related:
+aliases: [렌더마다 재생성 안 되는 상자, current, ref, useRef]
+tags: [React]
+relations:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[HTML_ElementTypes]]"
   - "[[JS_DOM]]"
+  - "[[React_Input]]"
   - "[[TS_DOM_Events]]"
 ---
 # React_useRef — 렌더마다 재생성 안 되는 상자
@@ -178,16 +175,25 @@ setBody('')로 textarea 내용을 비울 수 있지만
 style.height는 React state가 아니라 DOM 속성 → ref로 직접 초기화해야 함
 ```
 
-## 요소별 타입
+## 요소별 타입 → [[HTML_ElementTypes]]
 
 ```typescript
-useRef<HTMLInputElement>(null)       // <input>
+useRef<HTMLInputElement>(null)       // <input>  → .value, .checked, .files
 useRef<HTMLTextAreaElement>(null)    // <textarea>
 useRef<HTMLDivElement>(null)         // <div>
-useRef<HTMLButtonElement>(null)      // <button>
-useRef<HTMLVideoElement>(null)       // <video>
-useRef<HTMLCanvasElement>(null)      // <canvas>
+useRef<HTMLButtonElement>(null)      // <button> → .disabled, .form
+useRef<HTMLDetailsElement>(null)     // <details> → .open (열림/닫힘)
+useRef<HTMLVideoElement>(null)       // <video>  → .play(), .pause(), .currentTime
+useRef<HTMLCanvasElement>(null)      // <canvas> → .getContext()
 useRef<HTMLElement>(null)            // 정확한 타입 모를 때 — 공통 타입
+```
+
+```txt
+정확한 타입을 넣어야 해당 요소 고유 프로퍼티에 타입 안전하게 접근 가능
+HTMLElement로 쓰면 → .open, .value 접근 시 TS 에러
+
+DOM 타입 계층 전체 · HTMLDetailsElement 외부 클릭 닫기 패턴
+→ [[HTML_ElementTypes]]
 ```
 
 ---

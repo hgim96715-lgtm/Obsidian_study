@@ -179,6 +179,7 @@ React 19 form action (단순):
 | [[React_useMemo_useCallback]] | 메모이제이션 · 언제 쓰는지 판단 · React.memo |
 | [[React_useEffect]] | 데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프 |
 | [[React_useRef]] | DOM 접근(focus·scroll) · 렌더링 무관 값 보관 |
+| [[HTML_ElementTypes]] | HTMLDetailsElement · HTMLInputElement · useRef 제네릭 타입 |
 | [[React_useId]] | 서버·클라이언트 동일한 고유 ID · label htmlFor 접근성 연결 |
 | [[React_Portal_Dialog]] | createPortal · DOM 계층 밖 렌더링 · z-index 독립 · 모달·툴팁 |
 | [[React_Suspense]] · [[React_Lazy]] | lazy(() => import()) · Suspense fallback · 코드 스플리팅 |
@@ -192,6 +193,8 @@ React_Context_Provider     createContext · useContext · useCallback·useMemo �
 React_useMemo_useCallback  렌더링 비용 최적화 · 의존성 배열 · React.memo와 조합 · 남용 주의
 React_useEffect            사이드이펙트(fetch·이벤트 리스너) · cleanup 함수 · 의존성 배열 · 무한루프 방지
 React_useRef               DOM 직접 접근(focus·scroll·크기 측정) · 렌더링 무관 값 보관(타이머 id 등)
+HTML_ElementTypes          HTMLDetailsElement · HTMLInputElement · DOM 타입 계층 · useRef 제네릭 타입
+React_Input                제어 vs 비제어 컴포넌트 · 숫자 입력 선행 0 제거(onInput + DOM 직접 패치)
 React_useId                서버·클라이언트 hydration 일치 고유 ID · label htmlFor 연결
 React_Portal_Dialog        createPortal(document.body 등 바깥에 렌더링) · 모달·드롭다운·툴팁
 React_Suspense / Lazy      lazy() + Suspense fallback으로 번들 분리 · 코드 스플리팅
