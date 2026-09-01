@@ -1,23 +1,15 @@
 ---
-aliases:
-  - 서브쿼리
-  - CTE(WITH)
-  - DELETE
-  - INSERT
-  - JOIN
-  - SELECT
-  - UPDATE
-tags:
-  - SQL
-  - PostgreSQL
+aliases: [서브쿼리, CTE(WITH), DELETE, INSERT, JOIN, SELECT, UPDATE]
+tags: [SQL, PostgreSQL]
 related:
   - "[[00_DB_HomePage]]"
+  - "[[NestJS_CacheTable]]"
   - "[[NestJS_PostgreSQL]]"
   - "[[NestJS_Prisma]]"
   - "[[PG_Aggregate]]"
   - "[[PG_DDL]]"
+  - "[[PG_StringFunctions]]"
   - "[[PG_Types]]"
-  - "[[NestJS_CacheTable]]"
 ---
 # PG_DML — PostgreSQL 데이터 조작 언어
 

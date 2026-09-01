@@ -1,8 +1,8 @@
 ---
 aliases:
-  - PostgreSQL
-  - 패턴
   - 주의사항
+  - 패턴
+  - PostgreSQL
   - UNIQUE+NULL
 tags:
   - PostgreSQL
@@ -11,6 +11,7 @@ related:
   - "[[00_DB_HomePage]]"
   - "[[DB_Transaction]]"
   - "[[NestJS_Prisma_Patterns]]"
+  - "[[DB_MigrationPattern]]"
 ---
 # PG_Patterns — PostgreSQL 패턴 · 주의사항
 

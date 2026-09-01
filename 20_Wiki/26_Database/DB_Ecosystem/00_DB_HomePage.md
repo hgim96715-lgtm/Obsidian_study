@@ -30,10 +30,12 @@ cssclasses:
 | 찾는 것 | 노트 |
 |---|---|
 | CREATE · ALTER · DROP · 제약조건 | [[PG_DDL]] |
-| SELECT · INSERT · UPDATE · DELETE · JOIN | [[PG_DML]] |
+| SELECT · INSERT · UPDATE · DELETE · JOIN · 서브쿼리 | [[PG_DML]] |
+| btrim · lower · ILIKE · concat_ws · regexp_replace | [[PG_StringFunctions]] |
 | COUNT · SUM · GROUP BY · 윈도우 함수 | [[PG_Aggregate]] |
 | NULL UNIQUE 함정 · ON CONFLICT · 인덱스 | [[PG_Patterns]] |
 | 테이블·오브젝트 존재 여부 확인 (`to_regclass`) | [[PG_Patterns]] |
+| Expand-Contract · Backfill · CONCURRENTLY | [[DB_MigrationPattern]] |
 | 트랜잭션 · 격리 수준 · DEADLOCK | [[PG_Transaction]] |
 | ACID · BASE · CAP 이론 | [[DB_Transaction]] |
 | 캐싱 · TTL · Pub/Sub | [[Redis_Patterns]] |
@@ -47,6 +49,7 @@ cssclasses:
 | ---------------- | ------------------------------------------------------------------- |
 | [[PG_DDL]]       | CREATE TABLE · ALTER · DROP · 제약조건 · 인덱스 DDL                        |
 | [[PG_DML]]       | SELECT · INSERT · UPDATE · DELETE · JOIN · 서브쿼리 · ORDER BY RANDOM() |
+| [[PG_StringFunctions]] | btrim · ltrim · rtrim · lower · upper · ILIKE · concat_ws · regexp_replace |
 | [[PG_Aggregate]] | COUNT · SUM · AVG · GROUP BY · HAVING · 윈도우 함수                      |
 
 ```txt
@@ -72,6 +75,16 @@ PG_Aggregate — 집계:
   GROUP BY · HAVING
   윈도우 함수 — ROW_NUMBER · RANK · LAG · LEAD · OVER(PARTITION BY)
   DISTINCT · FILTER
+
+PG_StringFunctions — 문자열 함수:
+  trim 계열  — btrim(양쪽) · ltrim(왼쪽) · rtrim(오른쪽)
+  변환       — lower · upper · initcap
+  길이       — length · octet_length
+  이어붙이기  — concat · concat_ws(구분자 포함) · || 연산자
+  부분 추출  — substring · left · right
+  교체       — replace · regexp_replace
+  검색       — position · strpos
+  패턴 검색  — LIKE(대소문자 구분) · ILIKE(무시, PostgreSQL 전용)
 ```
 
 ---
@@ -107,6 +120,7 @@ PG_Transaction:
 | 노트 | 내용 |
 |---|---|
 | [[DB_Transaction]] | ACID · BASE · CAP 이론 · 트랜잭션 개념 · 격리 수준 이론 |
+| [[DB_MigrationPattern]] | Expand-Contract · Backfill UPDATE · CONCURRENTLY · 무중단 스키마 변경 |
 
 ```txt
 DB_Transaction:
@@ -116,6 +130,12 @@ DB_Transaction:
   격리 수준 이론 — Dirty Read · Non-Repeatable Read · Phantom Read
 
 → PostgreSQL에서의 실제 적용 → [[PG_Transaction]]
+
+DB_MigrationPattern — 무중단 마이그레이션:
+  Expand-Contract — ① 새 구조 추가(nullable) ② Backfill 데이터 이전 ③ 기존 구조 제거
+  Backfill UPDATE — UPDATE ... FROM · btrim 공백 필터 · 배치 처리(LIMIT + sleep)
+  CONCURRENTLY    — CREATE INDEX CONCURRENTLY · 락 없이 인덱스 생성 (트랜잭션 밖에서)
+  NOT NULL 추가   — nullable 추가 → Backfill → NOT NULL 설정 순서
 ```
 
 ---

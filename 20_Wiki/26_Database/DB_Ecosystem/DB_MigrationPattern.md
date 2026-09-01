@@ -1,16 +1,12 @@
 ---
-aliases:
-  - Expand
-  - Migrate
-  - Contract
-tags:
-  - SQL
-  - PostgreSQL
+aliases: [Contract, Expand, Migrate]
+tags: [SQL, PostgreSQL]
 related:
   - "[[00_DB_HomePage]]"
   - "[[Deploy_FullStack]]"
   - "[[NestJS_Migration]]"
   - "[[PG_DDL]]"
+  - "[[PG_StringFunctions]]"
 ---
 # DB_MigrationPattern — 무중단 마이그레이션 패턴
 
@@ -232,6 +228,88 @@ migrate dev 한 번으로 끝내는 게 아니라
   npx prisma migrate deploy (운영 DB)
   → [[NestJS_Migration]] "배포 시 migrate deploy" 참고
 ```
+
+---
+
+# Backfill 패턴 — 컬럼 추가 후 기존 데이터 채우기
+
+```txt
+Expand-Contract 2단계(Migrate)에서 사용하는 패턴
+새 컬럼을 nullable로 추가 → 기존 행의 값을 다른 테이블에서 채워넣기
+
+실전 사례:
+  quote_posts 테이블에 movie_title 컬럼 추가
+  → 기존 레코드는 movie_title = NULL
+  → movie_pool 테이블의 title을 tmdb_id 기준으로 join해서 채움
+```
+
+## UPDATE ... FROM — PostgreSQL JOIN UPDATE
+
+```sql
+-- Backfill: movie_title이 없는 기존 quote_posts에 movie_pool.title 채우기
+UPDATE "quote_posts" AS quote
+SET "movie_title" = movie.title
+FROM "movie_pool" AS movie
+WHERE quote."movie_title" IS NULL          -- 아직 채워지지 않은 행만
+  AND quote."tmdb_id" = movie."tmdb_id"   -- JOIN 조건
+  AND movie."title" IS NOT NULL           -- NULL title 제외
+  AND btrim(movie."title") <> '';         -- 빈 문자열(공백만) 제외
+```
+
+```txt
+UPDATE ... FROM 구조 (PostgreSQL 전용):
+  표준 SQL에는 없음 — PostgreSQL 확장
+  다른 테이블과 JOIN해서 UPDATE할 때 사용
+  MySQL의 UPDATE ... JOIN 과 같은 역할
+
+  UPDATE 대상   AS alias
+  SET 컬럼 = 다른테이블.컬럼
+  FROM 다른테이블 AS alias
+  WHERE JOIN 조건 + 필터
+```
+
+## btrim() — 양쪽 공백 제거 → [[PG_StringFunctions]]
+
+```txt
+btrim = "both trim" — 양쪽 공백 제거
+빈 문자열 필터링 패턴:
+  AND btrim(column) <> ''
+  → '   ' 같은 공백만 있는 값도 trim 후 '' 가 되어 필터됨
+  → NULL은 별도 IS NOT NULL 조건으로 처리
+
+자세한 내용 → [[PG_StringFunctions]]
+```
+
+## 실행 시 주의사항
+
+```txt
+대용량 테이블 Backfill:
+  한 번에 전체 UPDATE → 테이블 락 + 트랜잭션 로그 폭발 위험
+  → 배치로 나눠 실행 (WHERE ... LIMIT + OFFSET 또는 id 범위 기준)
+
+배치 Backfill 예시:
+  DO $$
+  DECLARE
+    batch_size INT := 1000;
+    updated    INT;
+  BEGIN
+    LOOP
+      UPDATE "quote_posts" AS quote
+      SET "movie_title" = movie.title
+      FROM "movie_pool" AS movie
+      WHERE quote."movie_title" IS NULL
+        AND quote."tmdb_id" = movie."tmdb_id"
+        AND movie."title" IS NOT NULL
+        AND btrim(movie."title") <> ''
+      LIMIT batch_size;
+
+      GET DIAGNOSTICS updated = ROW_COUNT;
+      EXIT WHEN updated = 0;
+      PERFORM pg_sleep(0.05);  -- 부하 분산
+    END LOOP;
+  END $$;
+```
+
 
 ---
 
