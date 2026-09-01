@@ -76,13 +76,15 @@ NextJS_ServerClient Server Component(서버 실행 · async 가능) vs Client Co
 
 ## 2️⃣ 환경 설정
 
-| 노트 | 내용 |
-|---|---|
-| [[NextJS_Env_Config]] | NEXT_PUBLIC_ 접두사 · .env.local · NestJS와 차이 · @t3-oss/env-nextjs |
-| [[Monorepo_PNPM]] | pnpm workspace · apps/api + apps/web · Docker · 초기 설정 순서 |
+| 노트                    | 내용                                                                     |
+| --------------------- | ---------------------------------------------------------------------- |
+| [[NextJS_Env_Config]] | `NEXT_PUBLIC_ 접두사` · .env.local · NestJS와 차이 · @t3-oss/env-nextjs      |
+| [[NextJS_Config]]     | next.config.ts · transpilePackages · images.remotePatterns · redirects |
+| [[Monorepo_PNPM]]     | pnpm workspace · apps/api + apps/web · Docker · 초기 설정 순서               |
 
 ```txt
 NextJS_Env_Config  NEXT_PUBLIC_ → 브라우저 노출 / 없으면 서버 전용 · .env.local(Git 제외)
+NextJS_Config      next.config.ts · transpilePackages(ESM 전용 패키지) · images.remotePatterns(외부 이미지 허용)
                    @t3-oss/env-nextjs 스키마 검증 · NestJS ConfigService와 역할 비교
 Monorepo_PNPM      pnpm-workspace.yaml · apps/api(NestJS) + apps/web(Next.js) · shared 패키지
                    Docker · ERR_PNPM_UNEXPECTED_STORE · "type":"commonjs" · store-dir=.pnpm-store
