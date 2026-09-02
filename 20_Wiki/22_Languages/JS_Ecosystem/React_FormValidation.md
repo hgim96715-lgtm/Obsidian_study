@@ -505,6 +505,136 @@ reset({ email: '', password: '' });
 
 ---
 
+# reset — 폼 값 초기화 / 외부 데이터 동기화 ⭐️⭐️⭐️⭐️
+
+## reset() 기본
+
+```typescript
+const { reset } = useForm<FormValues>({
+  resolver: zodResolver(schema),
+  defaultValues: { email: '', password: '' },
+});
+
+// 제출 성공 후 → defaultValues로 돌아가기
+reset();
+
+// 특정 값으로 초기화
+reset({ email: 'new@email.com', password: '' });
+```
+
+```txt
+reset() 인자 없음  → defaultValues로 초기화
+reset({ ... })     → 전달한 값으로 폼 전체 교체
+  → isDirty, dirtyFields, errors 전부 클리어됨
+  → 폼이 "새 defaultValues를 기준으로 다시 시작"하는 것
+```
+
+## defaultValues는 마운트 시 한 번만 읽힘 ⭐️⭐️⭐️⭐️
+
+```tsx
+// ❌ 문제 — screening이 나중에 로드되면 폼이 업데이트 안 됨
+const { register } = useForm<FormValues>({
+  defaultValues: {
+    watchedAt: screening?.watchedAt ?? '',  // 첫 렌더 시 undefined → ''
+  },
+});
+// 이후 screening이 API로 로드돼도 폼 값은 여전히 ''
+```
+
+```txt
+defaultValues가 undefined → '' 로 굳어진 이후
+나중에 screening이 로드되어도 폼은 자동으로 갱신되지 않음
+
+이유: react-hook-form이 defaultValues를 마운트 시 딱 한 번 읽음
+→ 이후 props/state 변경으로 defaultValues가 바뀌어도 폼 내부 값은 그대로
+```
+
+## useEffect + reset() — 외부 데이터 동기화 ⭐️⭐️⭐️⭐️
+
+```tsx
+const { reset } = useForm<MovieScreeningFormValues>({
+  resolver: zodResolver(movieScreeningSchema),
+  defaultValues: {
+    watchedAt:       screening?.watchedAt?.slice(0, 10) ?? '',
+    viewingType:     screening?.viewingType     ?? '',
+    viewingPlatform: screening?.viewingPlatform ?? '',
+    viewingLocation: screening?.viewingLocation ?? '',
+    review:          screening?.review          ?? '',
+    rating:          screening?.rating          ?? null,
+  },
+});
+
+// screening이 바뀔 때마다 폼을 새 데이터로 동기화
+useEffect(() => {
+  reset({
+    watchedAt:       screening?.watchedAt?.slice(0, 10) ?? '',
+    viewingType:     screening?.viewingType     ?? '',
+    viewingPlatform: screening?.viewingPlatform ?? '',
+    viewingLocation: screening?.viewingLocation ?? '',
+    review:          screening?.review          ?? '',
+    rating:          screening?.rating          ?? null,
+  });
+}, [screening, reset]);
+//  ↑ screening 변경 감지 → reset 호출
+```
+
+```txt
+흐름:
+  1. 컴포넌트 마운트
+     → screening = undefined (아직 로드 전)
+     → defaultValues의 ?? '' 로 폼 초기화
+
+  2. API 응답 도착 → screening 값 채워짐
+     → useEffect 실행 (screening이 바뀌었으니까)
+     → reset({ watchedAt: '2026-09-01', ... }) 호출
+     → 폼이 실제 데이터로 업데이트됨
+
+  3. 다른 screening으로 교체 (목록에서 다른 항목 선택 등)
+     → screening 다시 바뀜 → useEffect 다시 실행 → 폼 다시 초기화
+```
+
+```txt
+왜 useEffect + reset인가:
+  defaultValues만으론 마운트 후 변경되는 데이터를 반영 못함
+  reset()이 폼 내부 상태 전체(값+검증+dirty 상태)를 교체
+  → "편집 모달"처럼 선택한 항목이 바뀔 때마다 폼을 새로 세팅해야 하는 경우에 필수
+```
+
+## watchedAt?.slice(0, 10) 패턴
+
+```typescript
+watchedAt: screening?.watchedAt?.slice(0, 10) ?? '',
+//                               ↑ ISO 문자열 → date input 형식으로
+```
+
+```txt
+screening.watchedAt → DB에서 오는 ISO 8601: "2026-09-01T00:00:00.000Z"
+input type="date"의 value → "YYYY-MM-DD" 형식만 허용
+
+slice(0, 10) → "2026-09-01T00:00:00.000Z".slice(0, 10) = "2026-09-01"
+
+?.slice(0, 10):
+  watchedAt이 null/undefined이면 → ?. 단락 → undefined
+  ?? '' → undefined이면 빈 문자열 (미선택 상태)
+```
+
+## 언제 useEffect + reset을 쓰는가
+
+```txt
+✅ 쓰는 상황:
+  편집 모달 — 선택한 항목 데이터로 폼 채우기
+  부모에서 props로 초기값이 내려오고 나중에 바뀔 수 있을 때
+  API 로드 후 폼 초기화
+
+❌ 쓰지 않아도 되는 상황:
+  항상 빈 폼으로 시작 (생성 폼)
+  defaultValues가 처음부터 확정되어 있음
+  → useForm({ defaultValues: { ... } }) 만으로 충분
+```
+
+
+---
+
 # NestJS DTO ↔ Zod 스키마 대응 ⭐️⭐️⭐️
 
 | NestJS DTO | Zod 스키마 |

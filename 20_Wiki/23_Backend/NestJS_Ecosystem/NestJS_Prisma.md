@@ -150,6 +150,7 @@ model User {
 |`@db.Uuid`|PostgreSQL 네이티브 `uuid` 타입으로 저장 (안 붙이면 `TEXT`)|
 |`@db.Timestamptz(n)`|PostgreSQL 네이티브 `timestamptz(n)` 타입으로 저장 (안 붙이면 `timestamp`)|
 |`@db.Date`|날짜만 저장 — 시각 없음 (생년월일·예약일 등 "며칠"이 중요한 것)|
+|`@db.SmallInt`|`Int` → `SMALLINT` (2바이트, -32768~32767) — month, rating처럼 작은 정수에 사용|
 
 ## @map · @@map — 이름 매핑 ⭐️⭐️⭐️⭐️
 
@@ -271,6 +272,42 @@ id String @id @default(uuid(7))   // v7 — 생성 시각 순으로 정렬됨
 v7은 값 앞부분에 타임스탬프가 들어가 있어서 생성 순서대로 정렬됨
 INSERT가 많은 테이블의 PK라면 v7이 인덱스 단편화를 줄여 더 유리
 추측하기 어려운 정도는 v4와 동일
+```
+
+## @db.SmallInt — 작은 정수 ⭐️⭐️⭐️
+
+```prisma
+model Movie {
+  id     Int @id @default(autoincrement())
+  year   Int @db.SmallInt   // 개봉연도 (1900~2100 범위면 충분)
+  month  Int @db.SmallInt   // 1~12
+  rating Int @db.SmallInt   // 0~100 등 작은 점수
+}
+```
+
+```txt
+Prisma Int → PostgreSQL 기본값: INTEGER (4바이트, 약 ±21억)
+@db.SmallInt → SMALLINT (2바이트, -32768 ~ 32767)
+
+언제 쓰는가:
+  값의 범위가 작을 때 — month(1~12), rating(0~5), age(0~150) 등
+  대용량 테이블에서 컬럼 크기를 줄여 저장 공간 + 인덱스 효율 개선
+  비즈니스 규칙상 32767을 넘을 수 없는 것이 확실할 때
+
+쓰지 말아야 할 때:
+  count, totalViews처럼 무한정 증가할 수 있는 값 → INTEGER 유지
+  32767 초과 가능성이 있으면 → INTEGER 또는 @db.BigInt
+```
+
+| @db 타입 | PostgreSQL 타입 | 바이트 | 범위 |
+|---|---|---|---|
+| (없음, 기본) | `INTEGER` | 4 | ±2,147,483,647 |
+| `@db.SmallInt` | `SMALLINT` | 2 | ±32,767 |
+| `@db.BigInt` | `BIGINT` | 8 | ±9.2×10¹⁸ |
+
+```txt
+Prisma TS 타입은 여전히 number (또는 bigint) — @db.SmallInt는 DB 컬럼 타입만 변경
+범위 초과 삽입 시 → DB 레벨에서 에러 발생 (서버 유효성 검사로 미리 막아야 함)
 ```
 
 ## @db.VarChar(n) — 최대 길이 문자열 ⭐️⭐️⭐️
