@@ -40,10 +40,32 @@ related:
 
 # timestamp vs timestamptz ⭐️⭐️⭐️⭐️
 
+## UTC — 기준 시각 개념
+
+```txt
+UTC (Coordinated Universal Time):
+  전 세계가 공통으로 사용하는 기준 시각
+  "지구상 어디서나 같은 순간을 하나의 숫자로 표현"하기 위한 약속
+
+  한국(KST) = UTC+9  → UTC보다 9시간 빠름
+  UTC 09:00 = KST 18:00 (같은 순간)
+  UTC 00:00 = KST 09:00
+
+Epoch (Unix Timestamp):
+  UTC 기준 1970-01-01 00:00:00 부터 지금까지의 경과 밀리초(ms)
+  → 어느 나라 서버에서 저장해도 항상 같은 숫자
+  → DB, API, 언어 간 시각 동기화의 핵심 단위
+
+Time Zone (TZ):
+  UTC 기준에서 각 지역으로 변환하는 오프셋
+  Asia/Seoul  = UTC+9  (고정)
+  America/New_York = UTC-5 (표준) / UTC-4 (서머타임)
+  → 서버/DB/클라이언트가 TZ 설정이 다르면 같은 값도 다르게 보임
+```
+
 ## 두 타입 비교
 
-|
-|`TIMESTAMP`|`TIMESTAMPTZ`|
+| 구분 | `TIMESTAMP` | `TIMESTAMPTZ` |
 |---|---|---|
 |정식 명칭|`timestamp without time zone`|`timestamp with time zone`|
 |저장 방식|날짜+시간 문자열처럼 — TZ 정보 없음|UTC epoch(ms)로 변환해서 저장|
@@ -126,8 +148,7 @@ model User {
 
 ## JSON vs JSONB
 
-|
-|`JSON`|`JSONB`|
+| 구분 | `JSON` | `JSONB` |
 |---|---|---|
 |저장 방식|텍스트 그대로 (exact copy)|binary로 분해해서 저장|
 |저장 시|빠름 (그냥 저장)|느림 (파싱 후 저장)|
@@ -218,8 +239,7 @@ Prisma Json 필드는 읽기/쓰기 타입이 다름:
 
 ## TEXT vs 네이티브 UUID
 
-|
-|`String` (TEXT)|`String @db.Uuid` (UUID)|
+| 구분 | `String` (TEXT) | `String @db.Uuid` (UUID) |
 |---|---|---|
 |PostgreSQL 타입|`TEXT`|`UUID` (16바이트 고정)|
 |저장 크기|36바이트 (하이픈 포함 문자열)|16바이트|

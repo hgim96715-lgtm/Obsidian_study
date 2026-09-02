@@ -127,6 +127,7 @@ NestJS_CORS        app.enableCors() · frontendOrigin 삼항 패턴 · credentia
 | **마이그레이션**       | [[NestJS_Migration]]                              |
 | **비동기 백그라운드 작업** | [[NestJS_AsyncJob]]                               |
 | **트랜잭션**         | [[NestJS_Transaction]]                            |
+| **Prisma 패턴**     | [[NestJS_Prisma_Patterns]]                        |
 | **PostgreSQL**   | [[PG_Transaction]] · [[PG_DML]] · [[PG_Patterns]] |
 | **통계**           | [[NestJS_StatsBucket]]                            |
 | **DB 전체**        | [[00_DB_HomePage]]                                |
@@ -140,7 +141,8 @@ NestJS_Prisma      schema.prisma 기본구조(Prisma 7: moduleFormat cjs, output
                    findMany/findUnique · where · select/include · $queryRaw(SELECT 1 헬스체크)
                    PrismaExceptionFilter(P2002) · 방법1(try/catch) vs 방법2(ExceptionFilter)
 NestJS_Migration   migrate dev/deploy/reset · seed · Railway 배포 시 migrate deploy 적용 순서
-NestJS_Transaction $transaction 패턴
+NestJS_Transaction      $transaction 패턴
+NestJS_Prisma_Patterns  날짜 범위 쿼리(gte/lt) · Promise.all 병렬 처리 · kstDayRange · 동적 where 조립
 ```
 
 ---

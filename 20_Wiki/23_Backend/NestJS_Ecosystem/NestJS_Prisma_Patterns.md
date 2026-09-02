@@ -420,6 +420,118 @@ if (feed === 'friends') {
 ```
 ---
 
+# 날짜 범위 쿼리 — 캘린더 패턴 ⭐️⭐️⭐️
+
+## KST 기준 월 범위 조회
+
+```typescript
+async getCalendar(userId: string, year: number, month: number) {
+  // 1. 월 범위 계산 (KST 기준)
+  const monthKey = `${year}-${String(month).padStart(2, '0')}-01`;
+  const nextMonth = new Date(Date.UTC(year, month, 1)); // month는 0-based 아님 주의
+  const nextMonthKey = `${nextMonth.getUTCFullYear()}-${String(
+    nextMonth.getUTCMonth() + 1,
+  ).padStart(2, '0')}-01`;
+
+  const start = kstDayRange(monthKey).start;  // KST 00:00 → UTC instant
+  const end   = kstDayRange(nextMonthKey).start;
+
+  // 2. Prisma 날짜 범위 필터 — gte/lt 패턴
+  const rows = await this.prisma.userMovie.findMany({
+    where: {
+      userId,
+      kind: 'watched',
+      watchedAt: { gte: start, lt: end },   // start 포함, end 미포함
+    },
+    orderBy: { watchedAt: 'asc' },
+    select: { tmdbId: true, watchedAt: true },  // 필요한 컬럼만 선택
+  });
+
+  // 3. Promise.all — 각 행에 대해 병렬 async 처리
+  const items = await Promise.all(
+    rows.map(async (row) => ({
+      tmdbId:    row.tmdbId,
+      date:      kstDateKey(row.watchedAt!),   // null assertion — select로 보장됨
+      watchedAt: row.watchedAt!.toISOString(),
+      movie:     await this.tmdbService.getMovieCached(row.tmdbId),
+    })),
+  );
+
+  return { year, month, items };
+}
+```
+
+```txt
+날짜 범위 필터 — gte / lt:
+  gte: start  → start 이상 (start 포함)
+  lt:  end    → end 미만  (end 미포함)
+  → "7월 1일 KST 00:00 ~ 8월 1일 KST 00:00 미만" = 7월 전체
+
+  lte (end 포함)가 아닌 lt (end 미포함):
+    다음 달 1일 00:00 KST = 전날 마지막 순간 바로 다음
+    → lt로 경계를 딱 잘라냄 (lte 쓰면 8월 1일 00:00 데이터도 포함돼버림)
+
+select — 필요한 컬럼만:
+  select: { tmdbId: true, watchedAt: true }
+  → id, userId, kind 등 불필요한 컬럼을 DB에서 전송하지 않음
+  → 쿼리 결과 크기 ↓, 직렬화 비용 ↓
+  → 단, select 사용 시 include와 함께 쓸 수 없음 (Prisma 제약)
+
+row.watchedAt!  — null assertion 이유:
+  Prisma 스키마에서 watchedAt이 DateTime? (optional)로 정의된 경우
+  where 절에 watchedAt: { gte: start } 조건이 있어도
+  Prisma의 타입 추론은 여전히 Date | null로 반환됨
+  → 실제로 null이 올 수 없음을 개발자가 알고 있으므로 ! 로 단언
+```
+
+## Promise.all vs for...of await
+
+```txt
+rows.map(async (row) => ...) + Promise.all:
+  rows 전체를 동시에 실행 → 병렬 처리
+  외부 API(TMDB) 호출이 있는 경우 전체 시간 = 가장 느린 한 건의 시간
+  → 10건이라면 10개 API 요청이 동시에 나감
+
+for...of + await:
+  한 건씩 순서대로 실행 → 직렬 처리
+  전체 시간 = 모든 건의 합산
+  → 10건이라면 10개 API 요청이 순서대로 나감
+
+선택 기준:
+  외부 I/O(API, DB)가 독립적이면 → Promise.all (빠름)
+  앞 결과가 다음 입력에 필요하면 → for...of + await (순서 보장)
+  건수가 많고 API rate limit 있으면 → p-limit으로 동시 실행 수 제한
+```
+
+```typescript
+// p-limit — 동시 실행 수 제한 예시
+import pLimit from 'p-limit';
+const limit = pLimit(5); // 최대 5개 동시
+
+const items = await Promise.all(
+  rows.map((row) =>
+    limit(async () => ({
+      tmdbId: row.tmdbId,
+      movie:  await this.tmdbService.getMovieCached(row.tmdbId),
+    }))
+  )
+);
+```
+
+```txt
+kstDayRange(key):
+  'YYYY-MM-DD' 형태의 KST 날짜 문자열을 받아
+  { start: Date, end: Date } UTC 기준 범위로 변환하는 유틸
+  → KST 기준 하루의 시작/끝을 UTC로 정확하게 변환
+  ([[JS_Date]] 월 범위 계산 섹션 참고)
+
+kstDateKey(date: Date):
+  UTC Date 객체를 받아 KST 기준 'YYYY-MM-DD' 문자열 반환
+  → DB에 UTC로 저장된 값을 클라이언트에 KST 날짜로 표시할 때 사용
+```
+
+---
+
 # $transaction — 트랜잭션
 
 ```txt

@@ -249,7 +249,6 @@ vs 개별 옵션 방식:
 
 ## formatToParts — 부분별로 꺼내기 ⭐️⭐️⭐️⭐️
 
-
 ```typescript
 // format()  → "2024년 1월 15일 월요일 오후 3시 30분" (완성된 문자열)
 // formatToParts() → [{ type: 'year', value: '2024' }, { type: 'month', ... }]
@@ -314,6 +313,53 @@ get() 헬퍼 패턴:
   → type으로 찾고 value만 꺼내는 패턴을 함수로 재사용
   Intl.DateTimeFormatPartTypes로 type에 자동완성 + 오타 방지
 ```
+
+## KST 기준 year/month 추출 — 실용 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// TZ 안전하게 KST 기준 year·month 꺼내기
+function getKstYearMonth(date = new Date()): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    year:     'numeric',
+    month:    'numeric',
+  }).formatToParts(date);
+
+  return {
+    year:  Number(parts.find((p) => p.type === 'year')?.value),
+    month: Number(parts.find((p) => p.type === 'month')?.value),
+  };
+}
+
+// 사용
+const { year, month } = getKstYearMonth();            // 현재 KST 기준
+const { year, month } = getKstYearMonth(someDate);    // 특정 Date 기준
+```
+
+```txt
+왜 new Date()로 직접 getFullYear()/getMonth() 안 쓰는가:
+
+  new Date().getFullYear() / getMonth():
+    실행 환경의 로컬 TZ 기준
+    UTC 서버에서는 UTC 기준으로 반환 → KST와 최대 9시간 차이
+    예: UTC 2025-01-31 15:30 = KST 2025-02-01 00:30
+    → UTC 서버에서 getFullYear()=2025, getMonth()=0 (1월)
+    → KST 기준으로는 2월인데 1월로 잘못 계산됨
+
+  Intl.DateTimeFormat + timeZone: 'Asia/Seoul':
+    실행 환경 TZ와 무관하게 항상 KST 기준 year·month 반환
+    → 서버(UTC), 브라우저(로컬 TZ) 어디서 실행해도 동일
+
+왜 'en-US' locale을 쓰는가:
+  month: 'numeric'이 'ko-KR'에서는 "1월"처럼 텍스트가 붙을 수 있음
+  'en-US'는 순수 숫자 "1", "12"로 반환 → Number() 변환이 안전
+
+parts.find((p) => p.type === 'month')?.value:
+  formatToParts()가 반환하는 배열에서 type='month'인 항목의 value 꺼냄
+  ?. — 해당 type이 없으면 undefined 반환 (실제로는 항상 있음)
+  Number() — 문자열 "1" → 숫자 1로 변환
+```
+
 
 ---
 

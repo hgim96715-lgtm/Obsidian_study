@@ -1,20 +1,19 @@
 ---
-aliases: [Array.from, Fetch, fetchAPI, HTTP, Network]
+aliases: [Array.from, 배열 메서드, JS 배열]
 tags: [JavaScript]
-related:
+relations:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Object_Methods]]"
+  - "[[JS_Map_Set]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[React_useState]]"
 ---
-# JS_Array_Methods — 배열 메서드 · Set
+# JS_Array_Methods — 배열 메서드
 
 >[!info]
->배열 메서드 = 함수를 인자로 받아 각 요소에 실행하는 것. 
->`filter` · `map` · `some` · `find` — 전부 이 하나의 구조다.
-> `sort`는 비교 함수의 반환값(음수/0/양수)으로 순서를 결정하며, 문자열·날짜 정렬엔 `localeCompare`를 쓴다. 
-> `slice(1)` · `slice(0, N)` · `slice(-N)`으로 배열 일부를 추출한다. 
-> `Array.from({ length: n }, (_, i) => ...)` — 숫자 n개만큼 반복하는 배열을 만들 때. 
-> Set은 중복 없는 값의 모음 — `ReadonlySet<T>`으로 읽기 전용을 표현한다.
+> 배열 메서드 = 함수를 인자로 받아 각 요소에 실행하는 패턴 하나.
+> `filter` · `map` · `some` · `find` 전부 이 구조다.
+> Map · Set 자료구조 → [[JS_Map_Set]] 참고.
 
 ---
 
@@ -71,16 +70,15 @@ users.filter((user) => user.role === 'admin');
 |`findIndex`|`number` (`-1` 없음)|첫 번째 일치 인덱스|
 |`filter`|새 배열|조건 맞는 것만 남기기|
 |`map`|새 배열 (같은 길이)|각 요소를 변환|
-|`reduce`|값 하나|배열 → 합계·객체·Map|
 |`flatMap`|새 배열|map 후 한 단계 펼치기|
-|`forEach`|`undefined`|반복 실행 (반환 없음)|
+|`reduce`|값 하나|배열 → 합계·객체·Map|
 |`sort`|원본 배열|비교 함수로 정렬 (원본 변경 주의)|
+|`slice`|새 배열|원본 유지하며 일부 추출|
+|`forEach`|`undefined`|반복 실행 (반환 없음)|
 
 ---
 
-# 찾기 · 확인 — 존재 여부, 항목 꺼내기
-
-## some · every — boolean 반환 ⭐️⭐️⭐️⭐️
+# boolean — some · every · includes ⭐️⭐️⭐️⭐️
 
 ```typescript
 const nums = [1, 2, 3, 4, 5];
@@ -112,23 +110,11 @@ const hasUnreadRoom = rooms.some(
   (room) => Boolean(room.unread) && !isRoomMuted(userId, room.id),
 );
 setRoomsUnread(hasUnreadRoom);
-
-const hasDmNotification = dms.some((dm) => dm.unread) || requests.length > 0;
-setDmsUnread(hasDmNotification);
 ```
 
-```txt
-Boolean(room.unread):
-  room.unread가 number | undefined 타입이면
-  boolean 자리에 number를 넣으면 TS 에러
-  → Boolean() 또는 !! 로 명시적으로 변환
+---
 
-!isRoomMuted(userId, room.id):
-  isRoomMuted()가 true면 ! 로 false → "뮤트가 아닌"
-  → [[JS_Operators]] ! · Boolean() · !! 섹션 참고
-```
-
-## find · findLast — 항목 하나 꺼내기 ⭐️⭐️⭐️
+# 찾기 — find · findLast · findIndex ⭐️⭐️⭐️
 
 ```typescript
 const users = [
@@ -168,7 +154,7 @@ const lastRec = messages.findLast(
 
 ---
 
-# 걸러내기 · 변환 — 새 배열 만들기
+# 새 배열 — filter · map · flatMap
 
 ## filter ⭐️⭐️⭐️⭐️
 
@@ -181,9 +167,8 @@ const admins = users.filter((u) => u.role === 'admin');
 
 // null / undefined 제거
 const values  = [1, null, 2, undefined, 3];
-const cleaned = values.filter((v) => v != null);  // [1, 2, 3]
-// 타입 서술어로 → [[TS_Type_Guards]]
-const cleaned = values.filter((v): v is number => v != null);
+const cleaned = values.filter((v): v is number => v != null);  // [1, 2, 3]
+// 타입 서술어 → [[TS_Type_Guards]]
 ```
 
 ```txt
@@ -226,7 +211,188 @@ nested.flat(2);  // 2단계 중첩까지 펼치기
 
 ---
 
-# slice — 배열 일부 추출 ⭐️⭐️⭐️⭐️
+# 줄이기 — reduce ⭐️⭐️⭐️
+
+```typescript
+const nums = [1, 2, 3, 4, 5];
+
+// 합계
+const sum = nums.reduce((acc, n) => acc + n, 0);  // 15
+//                       ↑   ↑                ↑
+//                    누적값 현재요소       초기값
+
+// 배열 → 객체 (그룹핑)
+const byRole = users.reduce<Record<string, User[]>>((acc, user) => {
+  (acc[user.role] ??= []).push(user);
+  return acc;
+}, {});
+// { admin: [...], user: [...] }
+```
+
+```txt
+reduce 읽는 법:
+  (acc, item) => 새로운 acc
+
+  acc  = 지금까지 누적된 결과 (초기값에서 시작)
+  item = 현재 요소
+  반환값 = 다음 acc
+
+  초기값이 0이면 합계, {}이면 객체, []이면 배열, new Map이면 Map
+
+언제 reduce 대신 다른 메서드:
+  새 배열 만들기 → map 또는 flatMap이 더 명확
+  조건 맞는 것만 → filter가 더 명확
+  그룹핑이나 집계 → reduce가 적합
+
+Map 그루핑 → [[JS_Map_Set]] — Map<string, T[]> 그루핑 패턴
+```
+
+## 배열 → Record — 1:1 키-값 매핑 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 각 item을 특정 key(wallSlot)로 인덱싱
+const posters = response.items.reduce<Record<number, GachaMovie>>(
+  (current, item) => {
+    current[item.wallSlot] = item.movie;
+    return current;
+  },
+  {},
+);
+// 결과: { 1: GachaMovie, 2: GachaMovie, 3: GachaMovie }
+// posters[1] → O(1) 즉시 조회
+```
+
+```typescript
+// 동일한 결과, 세 가지 방법
+
+// 1. reduce — 변환 로직이 복잡하거나 조건 분기 있을 때
+const posters = items.reduce<Record<number, GachaMovie>>((acc, item) => {
+  acc[item.wallSlot] = item.movie;
+  return acc;
+}, {});
+
+// 2. Object.fromEntries — 단순 매핑이면 가장 선언적
+const posters = Object.fromEntries(
+  items.map(item => [item.wallSlot, item.movie]),
+) as Record<number, GachaMovie>;
+
+// 3. for 루프 — 디버깅 중이거나 break가 필요할 때
+const posters: Record<number, GachaMovie> = {};
+for (const item of items) {
+  posters[item.wallSlot] = item.movie;
+}
+```
+
+```txt
+그룹핑과의 차이:
+  그룹핑 (1:N)  acc[key] ??= []; acc[key].push(item)  — key 하나에 여러 값
+  매핑  (1:1)   acc[key] = value                       — key 하나에 값 하나
+
+Record vs Map 선택:
+  JSON 직렬화 필요 / 키가 string·number → Record
+  키가 객체·Symbol / 삽입 순서 보장 필요 → Map  → [[JS_Map_Set]]
+```
+
+---
+
+# 정렬 — sort ⭐️⭐️⭐️⭐️
+
+```typescript
+arr.sort((a, b) => 비교값);
+```
+
+|반환값|의미|
+|---|---|
+|음수|a가 b보다 앞에|
+|양수|b가 a보다 앞에|
+|`0`|순서 유지|
+
+```txt
+외우는 법:
+  a - b → 오름차순 (작은 것이 앞)
+  b - a → 내림차순 (큰 것이 앞)
+
+⚠️ sort는 원본 배열을 직접 바꿈
+  React state에서는 [...prev].sort(...)로 복사 후 정렬
+```
+
+```typescript
+// 숫자
+nums.sort((a, b) => a - b);  // 오름차순
+nums.sort((a, b) => b - a);  // 내림차순
+
+// 날짜 (최신순)
+messages.sort((a, b) =>
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+);
+
+// 문자열 (한국어 포함)
+names.sort((a, b) => a.localeCompare(b, 'ko'));  // 오름차순 (가나다순)
+```
+
+## localeCompare — 문자열 비교 ⭐️⭐️⭐️⭐️
+
+```typescript
+'apple'.localeCompare('banana')     // -1  (apple이 banana보다 앞)
+'banana'.localeCompare('apple')     // 1   (banana가 apple보다 뒤)
+'apple'.localeCompare('apple')      // 0   (같음)
+```
+
+```txt
+localeCompare란:
+  두 문자열을 비교해서 -1 · 0 · 1을 반환
+  sort의 비교 함수가 기대하는 음수/0/양수를 그대로 반환
+  → sort((a, b) => a.localeCompare(b))로 바로 사용 가능
+
+왜 a - b 대신 localeCompare를 쓰는가:
+  a - b는 숫자에서만 작동
+  문자열을 < > 로 비교하면 유니코드 코드 포인트 순서 → 한글·특수문자 이상하게 정렬됨
+  localeCompare는 언어 규칙에 맞게 비교 (한국어는 'ko')
+```
+
+## ISO 날짜 문자열 정렬 ⭐️⭐️⭐️⭐️
+
+```typescript
+// "YYYY-MM-DD" 형식은 문자열 사전순 = 날짜 순서가 일치
+messages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+//                       ↑ b가 앞 → 최신순 (내림차순)
+messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+//                       ↑ a가 앞 → 오래된 순 (오름차순)
+```
+
+```txt
+b.localeCompare(a) 읽는 법:
+  b가 a보다 크면(최신이면) 양수 → b가 앞 → 최신순
+
+  new Date().getTime() 방식과의 차이:
+    getTime() 방식  → Date 객체를 두 번 생성 → 약간 느림
+    localeCompare   → 문자열 직접 비교 → 더 빠름
+
+  단, ISO 형식이 아닌 날짜 문자열 ("2024년 1월 15일" 등)은 불가
+  → 반드시 "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ssZ" 형식이어야 함
+```
+
+## 다중 조건 정렬 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 방장을 항상 앞에, 나머지는 입장 시각 순
+members.sort((a, b) => {
+  if (a.role === 'owner' && b.role !== 'owner') return -1;  // a 앞
+  if (b.role === 'owner' && a.role !== 'owner') return 1;   // b 앞
+  return a.joinedAt - b.joinedAt;  // 둘 다 같은 역할 → 시각 순
+});
+```
+
+```txt
+다중 조건 정렬 읽는 법:
+  return -1 → a, b 순서 그대로 (a 앞)
+  return 1  → b, a로 바꿈 (b 앞)
+  마지막 return → 1차 조건이 같을 때 2차 기준으로 결정
+```
+
+---
+
+# 일부 추출 — slice ⭐️⭐️⭐️⭐️
 
 ```typescript
 const arr = ['a', 'b', 'c', 'd', 'e'];
@@ -246,38 +412,148 @@ slice(start, end):
   음수  → 뒤에서부터 (-1 = 마지막)
 
   원본 배열을 바꾸지 않음 → 새 배열 반환 (안전)
+
+splice와 헷갈리지 말 것:
+  slice  → 원본 변경 없음, 새 배열 반환
+  splice → 원본을 직접 변경 (React state에서 쓰면 안 됨)
 ```
 
-## 자주 쓰는 패턴 ⭐️⭐️⭐️⭐️
+```typescript
+// 자주 쓰는 패턴
+const replies = thread.slice(1);               // 첫 번째 요소 제외 (나머지만)
+const preview = thread.slice(0, PREVIEW_COUNT); // 처음 N개만
+const recent  = messages.slice(-5);            // 최근 5개
+const copy    = arr.slice();                   // 전체 복사 (원본 변경 방지)
+```
+
+---
+
+# 반복 생성 — Array.from ⭐️⭐️⭐️⭐️
+
+```txt
+Array.from(배열처럼 생긴 것, 변환함수?)
+
+배열이 아닌데 배열처럼 순회하고 싶을 때:
+  문자열, Set, Map, NodeList, arguments 등
+  또는 { length: n } 으로 원하는 길이의 배열을 만들 때
+```
 
 ```typescript
-// 첫 번째 요소 제외 (나머지만)
-const replies = thread.slice(1);
-// thread = [원글, 답글1, 답글2, ...]
-// replies = [답글1, 답글2, ...]  (인덱스 0 제거)
+// 기본 사용
+Array.from('hello')                        // ['h', 'e', 'l', 'l', 'o']
+Array.from(new Set([1, 2, 2, 3]))          // [1, 2, 3]
+Array.from([1, 2, 3], (x) => x * 2)       // [2, 4, 6]  — map처럼 변환
+```
 
-// 처음 N개만
-const preview = thread.slice(0, REPLY_PREVIEW_COUNT);
-// REPLY_PREVIEW_COUNT = 3 → 앞에서 3개
+## { length: n } — 원하는 길이로 배열 생성 ⭐️⭐️⭐️⭐️
 
-// 마지막 N개만
-const recent = messages.slice(-5);  // 최근 5개
+```typescript
+Array.from({ length: 3 })                  // [undefined, undefined, undefined]
 
-// 배열 전체 복사 (원본 변경 방지)
-const copy = arr.slice();   // [...arr]과 동일
+Array.from({ length: 3 }, (_, i) => i)    // [0, 1, 2]
+//                          ↑   ↑
+//                        값(무시) 인덱스
+
+Array.from({ length: 5 }, (_, i) => i + 1)  // [1, 2, 3, 4, 5]
+Array.from({ length: 5 }, () => 0)           // [0, 0, 0, 0, 0]  고정값
+Array.from({ length: 5 }, () => [])          // 독립된 빈 배열 5개 ← 중요
+Array.from({ length: 5 }, () => null)        // [null, null, null, null, null]
 ```
 
 ```txt
-slice(1) 읽는 법:
-  "인덱스 1번부터 끝까지"
-  = 첫 번째 요소(인덱스 0)를 건너뛰고 나머지
+_ 가 뭔가:
+  Array.from의 변환 함수는 (값, 인덱스) 두 인자를 받음
+  { length: n }으로 만들면 값이 undefined라 쓸모없음
+  → _  로 "이 인자는 안 쓴다"는 관례, i 로 인덱스만 사용
 
-  thread[0] = 원글, thread[1]~ = 답글들 구조라면:
-  thread.slice(1) = 답글들만 추출
+왜 new Array(n).fill([]) 대신 Array.from:
+  new Array(3).fill([]) → [ref, ref, ref]  같은 배열 참조 공유!
+  arr[0].push(1) → arr[1]도 바뀜
 
-splice와 헷갈리지 말 것:
-  slice  → 원본 변경 없음, 새 배열 반환 (안전)
-  splice → 원본을 직접 변경 (React state에서 쓰면 안 됨)
+  Array.from({ length: 3 }, () => []) → 독립된 배열 3개
+  초기값이 원시값(0, '', null)이면 fill()도 안전
+  초기값이 객체·배열이면 Array.from 사용
+```
+
+```typescript
+// 실전 — 시간대별 통계 버킷 초기화
+const series = Array.from({ length: 24 }, () => 0);
+// [0, 0, ..., 0]  길이 24
+
+for (const time of times) {
+  const slot = Math.floor((time.getTime() - start.getTime()) / slotMs);
+  if (slot >= 0 && slot < 24) series[slot]++;
+}
+
+// React — 별점·슬롯·반복 UI
+Array.from({ length: full }, (_, i) => <Star key={`f${i}`} fill="currentColor" />)
+Array.from({ length: 12 }, (_, i) => <div key={i} className="grid-cell" />)
+
+// 페이지 번호 버튼
+Array.from({ length: totalPages }, (_, i) => (
+  <button key={i} onClick={() => goTo(i + 1)}>{i + 1}</button>
+))
+```
+
+---
+
+# 반복 실행 — forEach ⚠️
+
+```typescript
+// ❌ forEach + async — await를 기다리지 않음
+users.forEach(async (user) => {
+  await sendEmail(user.email);  // 완료를 기다리지 않고 다음으로 넘어감
+});
+
+// ✅ for...of — 순서대로 기다림
+for (const user of users) {
+  await sendEmail(user.email);
+}
+
+// ✅ Promise.all — 동시에 실행, 전부 완료될 때까지 기다림
+await Promise.all(users.map((user) => sendEmail(user.email)));
+```
+
+```txt
+forEach가 async를 기다리지 않는 이유:
+  forEach는 콜백의 반환값을 무시하도록 설계됨
+  async 함수는 Promise를 반환하는데 forEach가 그 Promise를 기다리지 않음
+  → 루프가 끝나도 이메일이 다 발송되지 않은 상태
+
+순서가 중요 → for...of + await
+순서 무관, 동시에 빠르게 → Promise.all + map
+```
+
+---
+
+# 조건 함수 (predicate) 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// filter / some / find / every에 넘기는 함수 = 조건 함수 (predicate)
+// 이 함수가 true를 반환하면 "이 요소는 조건에 맞음"
+
+function matchesQuery(room: Room, raw: string): boolean {
+  const q = raw.trim().toLowerCase();
+
+  if (!q) return true;
+  //       ↑ 검색어 없음 → 모든 방이 조건에 맞음 (filter에서 전부 통과)
+
+  if (room.name.toLowerCase().includes(q)) return true;
+  //                                         ↑ 이름에 있으면 확정 → 조기 반환
+
+  return room.tags.some((t) => t.toLowerCase().includes(q));
+  //     ↑ 이름엔 없었음 → 태그에서 확인 → true 또는 false 둘 다 가능
+}
+
+// 사용
+rooms.filter((room) => matchesQuery(room, searchQuery));
+```
+
+```txt
+early return 읽는 법:
+  답이 확실한 순간 바로 반환 → 이후 검사를 안 해도 됨
+  else 중첩 없이 위에서 아래로 평탄하게 읽힘
+  "여기까지 왔으면" = 위의 return들에 걸리지 않은 상황
 ```
 
 ---
@@ -323,23 +599,20 @@ setState((prev) =>
 
 ```typescript
 setState((prev) => {
-  if (prev.includes(item))       return prev;  // 이미 있으면 그대로
-  if (prev.length >= MAX)        return prev;  // 꽉 찼으면 그대로
-  return [...prev, item];                      // 여기까지 오면 추가
+  if (prev.includes(item))  return prev;  // 이미 있으면 그대로
+  if (prev.length >= MAX)   return prev;  // 꽉 찼으면 그대로
+  return [...prev, item];                  // 여기까지 오면 추가
 });
 ```
 
 ```txt
 return prev의 의미:
   React는 setState(fn)에서 반환된 값과 이전 값을 Object.is()로 비교
-  return prev  → 같은 참조 → "변경 없음" → 리렌더 없음
-  return [...prev, item]  → 새 배열 → 다른 참조 → 리렌더 발생
+  return prev         → 같은 참조 → "변경 없음" → 리렌더 없음
+  return [...prev, item] → 새 배열 → 다른 참조 → 리렌더 발생
 
   return [...prev]  ← 내용이 같아도 새 배열 → 리렌더 O
   return prev       ← 참조가 같으면 리렌더 X
-
-  early return 패턴:
-  "여기까지 왔으면 위의 조건에 하나도 안 걸린 것" → 안전하게 추가
 ```
 
 ## 중복 방지 — some 활용 ⭐️⭐️⭐️⭐️
@@ -356,10 +629,9 @@ const appendMessage = useCallback((message: ApiRoomMessage) => {
 
 ```txt
 some을 쓰는 이유:
-  "이미 있나?"라는 불린 질문 → some이 정확한 선택
+  "이미 있나?"라는 boolean 질문 → some이 정확한 선택
   있으면 prev를 그대로 반환 (새 배열 불필요)
   find를 쓰면 항목이 반환되는데 여기선 항목이 필요하지 않음
-  filter를 쓰면 새 배열이 반환되는데 여기서도 불필요
 ```
 
 ## 중첩 배열 수정 — map + filter ⭐️⭐️⭐️⭐️
@@ -388,684 +660,4 @@ return { ...msg, reactions: [...without, newReaction] }:
 filter 먼저, 추가 나중:
   기존 반응을 먼저 지우고 새 반응을 추가하는 순서를 지키면
   이모지 교체 시 같은 userId의 반응이 두 개 생기는 것 방지
-```
-
----
-
-# 조건 함수 (predicate) — return true/false의 의미 ⭐️⭐️⭐️⭐️
-
-```typescript
-// filter / some / find / every에 넘기는 함수 = 조건 함수 (predicate)
-// 이 함수가 true를 반환하면 "이 요소는 조건에 맞음"
-
-function matchesQuery(room: Room, raw: string): boolean {
-  const q = raw.trim().toLowerCase();
-
-  if (!q) return true;
-  //       ↑ 검색어 없음 → 모든 방이 조건에 맞음 (filter에서 전부 통과)
-
-  if (room.name.toLowerCase().includes(q)) return true;
-  //                                         ↑ 이름에 있으면 확정 → 조기 반환
-
-  return room.tags.some((t) => t.toLowerCase().includes(q));
-  //     ↑ 이름엔 없었음 → 태그에서 확인 → true 또는 false 둘 다 가능
-}
-
-// 사용
-rooms.filter((room) => matchesQuery(room, searchQuery));
-```
-
-```txt
-each return이 뜻하는 것:
-
-  if (!q) return true
-    빈 문자열은 falsy → !q = true → 검색어 없음 → 전부 보여줘야 함
-    → filter에서 모든 방이 통과
-
-  if (...includes(q)) return true
-    이름에서 찾았으면 더 볼 필요 없음 → 즉시 반환 (조기 종료)
-
-  return room.tags.some(...)
-    여기까지 온 것 = 이름에는 없었음
-    태그 중 하나라도 일치하면 true, 전부 불일치면 false
-    이 한 줄이 두 경우를 모두 처리
-
-early return 읽는 법:
-  답이 확실한 순간 바로 반환 → 이후 검사를 안 해도 됨
-  else 중첩 없이 위에서 아래로 평탄하게 읽힘
-  "여기까지 왔으면" = 위의 return들에 걸리지 않은 상황
-```
-
----
-
-# sort — 비교 함수 규칙 ⭐️⭐️⭐️⭐️
-
-```typescript
-arr.sort((a, b) => 비교값);
-```
-
-|반환값|의미|
-|---|---|
-|음수|a가 b보다 앞에|
-|양수|b가 a보다 앞에|
-|`0`|순서 유지|
-
-```txt
-외우는 법:
-  a - b → 오름차순 (작은 것이 앞)
-  b - a → 내림차순 (큰 것이 앞)
-```
-
-```typescript
-// 숫자
-nums.sort((a, b) => a - b);  // 오름차순
-nums.sort((a, b) => b - a);  // 내림차순
-
-// 날짜 (최신순)
-messages.sort((a, b) =>
-  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-);
-
-// 문자열 (한국어 포함)
-names.sort((a, b) => a.localeCompare(b, 'ko'));  // 오름차순
-```
-
-## localeCompare — 문자열 비교 ⭐️⭐️⭐️⭐️
-
-```typescript
-'apple'.localeCompare('banana')     // -1  (apple이 banana보다 앞)
-'banana'.localeCompare('apple')     // 1   (banana가 apple보다 뒤)
-'apple'.localeCompare('apple')      // 0   (같음)
-
-// sort와 조합
-names.sort((a, b) => a.localeCompare(b, 'ko'))  // 오름차순 (가나다순)
-names.sort((a, b) => b.localeCompare(a, 'ko'))  // 내림차순
-```
-
-```txt
-localeCompare란:
-  두 문자열을 비교해서 -1 · 0 · 1을 반환
-  sort의 비교 함수가 기대하는 음수/0/양수를 그대로 반환
-  → sort((a, b) => a.localeCompare(b))로 바로 사용 가능
-
-왜 a - b 대신 localeCompare를 쓰는가:
-  a - b는 숫자에서만 작동
-  문자열을 < > 로 비교하면 유니코드 코드 포인트 순서 → 한글·특수문자가 이상하게 정렬됨
-  localeCompare는 언어 규칙에 맞게 비교 (한국어는 'ko')
-
-두 번째 인자 로케일:
-  a.localeCompare(b)        → 브라우저/시스템 언어 기준
-  a.localeCompare(b, 'ko')  → 한국어 정렬 규칙 (가나다순)
-  a.localeCompare(b, 'en')  → 영어 정렬 규칙 (abc순)
-```
-
-## ISO 날짜 문자열 정렬 — localeCompare ⭐️⭐️⭐️⭐️
-
-```typescript
-// "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ss.sssZ" 형식은
-// 문자열 사전순 = 날짜 순서가 일치
-
-messages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-//                       ↑ b가 앞 → 최신순 (내림차순)
-
-messages.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-//                       ↑ a가 앞 → 오래된 순 (오름차순)
-```
-
-```txt
-b.createdAt.localeCompare(a.createdAt) 읽는 법:
-  localeCompare는 "호출한 것 vs 인자"를 비교
-  b.localeCompare(a) → b가 a보다 크면(최신이면) 양수 → b가 앞 → 최신순
-
-  new Date().getTime() 방식과의 차이:
-    getTime() 방식  → Date 객체를 두 번 생성 → 약간 느림
-    localeCompare   → 문자열 직접 비교 → 더 빠름
-
-  단, ISO 형식이 아닌 날짜 문자열 ("2024년 1월 15일" 등)은 localeCompare로 정렬 불가
-  → 반드시 "YYYY-MM-DD" 또는 "YYYY-MM-DDTHH:mm:ssZ" 형식이어야 함
-```
-
-## 다중 조건 정렬 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 방장을 항상 앞에, 나머지는 입장 시각 순
-members.sort((a, b) => {
-  if (a.role === 'owner' && b.role !== 'owner') return -1;  // a 앞
-  if (b.role === 'owner' && a.role !== 'owner') return 1;   // b 앞
-  return a.joinedAt - b.joinedAt;  // 둘 다 같은 역할 → 시각 순
-});
-```
-
-```txt
-다중 조건 정렬 읽는 법:
-  return -1 → a, b 순서 그대로 (a 앞)
-  return 1  → b, a로 바꿈 (b 앞)
-  마지막 return → 1차 조건이 같을 때 2차 기준으로 결정
-
-⚠️ sort는 원본 배열을 직접 바꿈
-  React state에서는 [...prev].sort(...)로 복사 후 정렬
-```
-
-```typescript
-// 방장을 항상 앞에, 나머지는 입장 시각 순
-members.sort((a, b) => {
-  if (a.role === 'owner' && b.role !== 'owner') return -1;  // a 앞
-  if (b.role === 'owner' && a.role !== 'owner') return 1;   // b 앞
-  return a.joinedAt - b.joinedAt;  // 둘 다 같은 역할 → 시각 순
-});
-```
-
-```txt
-다중 조건 정렬 읽는 법:
-  return -1 → a, b 순서 그대로 (a 앞)
-  return 1  → b, a로 바꿈 (b 앞)
-  마지막 return → 1차 조건이 같을 때 2차 기준으로 결정
-
-⚠️ sort는 원본 배열을 직접 바꿈
-  React state에서는 [...prev].sort(...)로 복사 후 정렬
-```
-
----
-
-# reduce — 배열을 값 하나로 ⭐️⭐️⭐️
-
-```typescript
-const nums = [1, 2, 3, 4, 5];
-
-// 합계
-const sum = nums.reduce((acc, n) => acc + n, 0);  // 15
-//                       ↑   ↑                ↑
-//                    누적값 현재요소       초기값
-
-// 배열 → 객체 (그룹핑)
-const byRole = users.reduce<Record<string, User[]>>((acc, user) => {
-  (acc[user.role] ??= []).push(user);
-  return acc;
-}, {});
-// { admin: [...], user: [...] }
-
-// 배열 → Map
-const userMap = users.reduce((map, user) => {
-  map.set(user.id, user);
-  return map;
-}, new Map<string, User>());
-```
-
-```txt
-reduce 읽는 법:
-  (acc, item) => 새로운 acc
-
-  acc  = 지금까지 누적된 결과 (초기값에서 시작)
-  item = 현재 요소
-  반환값 = 다음 acc
-
-  초기값이 0이면 합계, {}이면 객체, []이면 배열, new Map이면 Map
-
-언제 reduce 대신 다른 메서드:
-  새 배열 만들기 → map 또는 flatMap이 더 명확
-  조건 맞는 것만 → filter가 더 명확
-  그룹핑이나 집계 → reduce가 적합
-```
-
-## 배열 → Record — 1:1 키-값 매핑 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 각 item을 특정 key(wallSlot)로 인덱싱
-const posters = response.items.reduce<Record<number, GachaMovie>>(
-  (current, item) => {
-    current[item.wallSlot] = item.movie;
-    return current;
-  },
-  {},
-);
-// 결과: { 1: GachaMovie, 2: GachaMovie, 3: GachaMovie }
-// posters[1] → O(1) 즉시 조회
-```
-
-```txt
-그룹핑과의 차이:
-  그룹핑 (1:N)  acc[key] ??= []; acc[key].push(item)  — key 하나에 여러 값
-  매핑  (1:1)   acc[key] = value                       — key 하나에 값 하나
-
-제네릭 <Record<number, GachaMovie>> 위치:
-  reduce<T> 에서 T = 누적값(acc)의 타입
-  → TS가 초기값 {}를 T로 추론 → acc에서 타입 자동완성 동작
-```
-
-```typescript
-// 동일한 결과, 세 가지 방법
-
-// 1. reduce — 변환 로직이 복잡하거나 조건 분기 있을 때
-const posters = items.reduce<Record<number, GachaMovie>>((acc, item) => {
-  acc[item.wallSlot] = item.movie;
-  return acc;
-}, {});
-
-// 2. Object.fromEntries — 단순 매핑이면 가장 선언적
-const posters = Object.fromEntries(
-  items.map(item => [item.wallSlot, item.movie]),
-) as Record<number, GachaMovie>;
-
-// 3. for 루프 — 디버깅 중이거나 break가 필요할 때
-const posters: Record<number, GachaMovie> = {};
-for (const item of items) {
-  posters[item.wallSlot] = item.movie;
-}
-```
-
-```txt
-O(1) 조회가 목적이라면 Map도 고려:
-  new Map(items.map(item => [item.wallSlot, item.movie]))
-  → [[JS_AlgorithmPatterns]] titleMap 패턴 참고
-
-Record vs Map 선택:
-  JSON 직렬화 필요 / 키가 string·number → Record
-  키가 객체·Symbol / 삽입 순서 보장 필요 → Map
-```
-
-## 실전 예 — 배열 + Set 조합
-
-```typescript
-// 태그 목록 — 선택/해제 토글
-setState((prev) =>
-  prev.includes(tag)
-    ? prev.filter(t => t !== tag)   // 있으면 제거
-    : [...prev, tag]                 // 없으면 추가
-);
-```
-
----
-
-# Set — 중복 없는 값의 모음 ⭐️⭐️⭐️⭐️
-
-```txt
-Set = 같은 값이 두 번 들어갈 수 없는 배열 같은 자료구조
-주로 배열에서 중복 제거 또는 "있냐 없냐" 빠른 확인에 사용
-```
-
-```typescript
-const set = new Set<string>();
-
-set.add('apple')
-set.add('banana')
-set.add('apple')   // 이미 있으면 무시
-set.size           // 2 (apple 하나만)
-
-set.has('apple')   // true  — O(1) 탐색
-set.has('grape')   // false
-set.delete('apple')
-```
-
-## 배열 ↔ Set 변환 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 배열 → Set (중복 제거)
-const arr = ['a', 'b', 'a', 'c', 'b'];
-const unique = [...new Set(arr)];   // ['a', 'b', 'c']
-// 또는
-Array.from(new Set(arr))
-
-// Set → 배열
-const set = new Set(['x', 'y', 'z']);
-const arr2 = [...set];              // ['x', 'y', 'z']
-```
-
-## Set.has() vs Array.includes() ⭐️⭐️⭐️
-
-```typescript
-// 성능 비교
-array.includes(id)  // O(n) — 처음부터 끝까지 순회
-set.has(id)         // O(1) — 즉시 확인
-
-// 반복 탐색이 많다면 Set으로 변환 후 사용
-const friendIds = new Set(friends.map(f => f.id));
-
-members.map(member => ({
-  ...member,
-  isFriend: friendIds.has(member.id),  // 매번 O(1)
-}));
-// friends.some(f => f.id === member.id) 로 하면 매번 O(n) → 전체 O(n²)
-```
-
-```txt
-언제 Set을 쓰는가:
-  배열에서 중복 제거 → [...new Set(arr)]
-  "이 값이 목록에 있는가" 를 여러 번 확인할 때 → Set.has()
-  순서가 필요 없는 고유 값들의 컬렉션
-
-언제 배열을 쓰는가:
-  순서가 중요할 때
-  같은 값이 여러 번 나와야 할 때
-  index로 접근이 필요할 때
-```
-
-## Set을 필터 가드로 — 중복 제거 + 변환 ⭐️⭐️⭐️⭐️
-
-```typescript
-// 여러 배열을 합쳤을 때 id가 겹칠 수 있는 경우
-const all = [
-  ...kr.flatrate ?? [],   // 구독 서비스
-  ...kr.rent    ?? [],    // 대여
-  ...kr.buy     ?? [],    // 구매
-];
-// 같은 provider가 flatrate·rent 둘 다 있을 수 있음 → 중복 제거 필요
-
-const seen = new Set<number>();
-
-const unique = all
-  .filter((p) => {
-    if (seen.has(p.provider_id)) return false;  // 이미 본 것 → 제거
-    seen.add(p.provider_id);                    // 처음 본 것 → 기록
-    return true;                                // 처음 본 것 → 통과
-  })
-  .map((p) => ({                                // 통과한 것만 변환
-    id:        p.provider_id,
-    name:      p.provider_name,
-    logo_path: p.logo_path,
-  }));
-```
-
-```txt
-seen Set이 하는 일:
-  filter를 돌면서 "이미 지나친 id"를 기억하는 가드
-  처음 보는 id → seen에 추가 → true (통과)
-  다시 보는 id → 이미 있음 → false (제거)
-
-왜 [...new Set(arr)] 대신 이 방식인가:
-  [...new Set(arr)] → 원시값(숫자, 문자열) 중복 제거에만 가능
-  객체 배열에서 특정 필드 기준으로 중복 제거 → Set + filter 필요
-  + filter와 map을 체이닝해서 한 번에 처리 가능
-
-.filter().map() 체이닝:
-  filter → 조건 통과한 것만 남김  (여기서는 중복 제거)
-  map    → 형태를 바꿈            (여기서는 필드명 변환)
-  두 작업을 배열 순회 하나로 처리
-
-  순서가 중요:
-  filter 먼저 → 줄어든 배열을 map → 효율적
-  map 먼저   → 전체 변환 후 filter → 불필요한 변환 발생
-```
-
-```typescript
-// 범용 패턴 — 어떤 필드로든 중복 제거
-function uniqueBy<T>(arr: T[], key: (item: T) => string | number): T[] {
-  const seen = new Set<string | number>();
-  return arr.filter((item) => {
-    const k = key(item);
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
-}
-
-// 사용
-uniqueBy(providers, p => p.provider_id)
-uniqueBy(users, u => u.email)
-uniqueBy(tags, t => t.id)
-```
-
-```txt
-언제 Set을 쓰는가:
-  배열에서 중복 제거 → [...new Set(arr)]
-  "이 값이 목록에 있는가" 를 여러 번 확인할 때 → Set.has()
-  순서가 필요 없는 고유 값들의 컬렉션
-
-언제 배열을 쓰는가:
-  순서가 중요할 때
-  같은 값이 여러 번 나와야 할 때
-  index로 접근이 필요할 때
-```
-
-## React state에서 Set ⭐️⭐️⭐️
-
-```typescript
-// Set을 직접 state로 쓰면 React가 변경 감지 못함
-// → 배열로 저장, 필요할 때 Set 변환
-
-const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-// 토글 — 있으면 제거, 없으면 추가
-const toggleId = (id: string) => {
-  setSelectedIds(prev =>
-    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-  );
-};
-
-// 탐색이 많은 경우 — 렌더 중 Set으로 변환해서 사용
-const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-
-return items.map(item => (
-  <Item key={item.id} isSelected={selectedSet.has(item.id)} />
-));
-```
-
-## Set TypeScript 타입 — Set\<T\> · ReadonlySet\<T\> ⭐️⭐️⭐️⭐️
-
-```typescript
-// Set<T> — 일반 Set, 추가·삭제 가능
-const roomIds = new Set<string>();
-roomIds.add('room-1');     // ✅
-roomIds.delete('room-1'); // ✅
-
-// ReadonlySet<T> — 읽기 전용, 추가·삭제 불가
-const expandedIds: ReadonlySet<string> = new Set(['id-1', 'id-2']);
-expandedIds.has('id-1');   // ✅ 읽기는 가능
-expandedIds.add('id-3');   // ❌ TypeScript 에러 — 수정 불가
-```
-
-```txt
-ReadonlySet<T>란:
-  Set의 읽기 전용 버전 — has()·size·순회는 가능, add()·delete()·clear()는 불가
-  "이 Set을 받은 쪽에서는 수정하면 안 된다"를 타입으로 표현
-
-언제 ReadonlySet을 쓰는가:
-  함수의 인자로 Set을 받을 때 — "이 함수는 Set을 수정하지 않는다"는 계약
-  Context나 props로 Set을 전달할 때 — 받는 쪽이 원본을 바꾸는 것을 막음
-
-  function visibleCommentIds(
-    flat: ApiComment[],
-    expandedRootIds: ReadonlySet<string>,  // ← 이 함수 안에서 expandedRootIds를 수정 안 함
-  ): Set<string> { ... }
-  // 반환은 Set<string> — 호출한 쪽에서 자유롭게 수정 가능
-```
-
-```typescript
-// Set<T> → ReadonlySet<T> 할당 가능 (더 좁은 → 더 넓은 타입)
-const mutable = new Set<string>(['a', 'b']);
-const readonly: ReadonlySet<string> = mutable;  // ✅ OK
-
-// ReadonlySet<T> → Set<T> 불가 (더 넓은 → 더 좁은)
-const readonly2: ReadonlySet<string> = new Set(['a']);
-const mutable2: Set<string> = readonly2;  // ❌ 에러 — 강제 변환 필요
-```
-
-```txt
-함수 인자 타입 선언 요령:
-  인자로 받은 Set을 수정하지 않는다면 → ReadonlySet<T>
-  인자로 받은 Set에 값을 추가해야 한다면 → Set<T>
-  반환 타입은 호출한 쪽에서 수정 여부에 따라 결정
-```
-
----
-
-# ⚠️ forEach — async와 함께 쓰면 안 됨 ⭐️⭐️⭐️
-
-```typescript
-// ❌ forEach + async — await를 기다리지 않음
-users.forEach(async (user) => {
-  await sendEmail(user.email);  // 완료를 기다리지 않고 다음으로 넘어감
-});
-
-// ✅ for...of — 순서대로 기다림
-for (const user of users) {
-  await sendEmail(user.email);
-}
-
-// ✅ Promise.all — 동시에 실행, 전부 완료될 때까지 기다림
-await Promise.all(users.map((user) => sendEmail(user.email)));
-```
-
-```txt
-forEach가 async를 기다리지 않는 이유:
-  forEach는 콜백의 반환값을 무시하도록 설계됨
-  async 함수는 Promise를 반환하는데 forEach가 그 Promise를 기다리지 않음
-  → 루프가 끝나도 이메일이 다 발송되지 않은 상태
-
-순서가 중요 → for...of + await
-순서 무관, 동시에 빠르게 → Promise.all + map
-```
-----
-# Array.from — 배열이 아닌 것을 배열로 ⭐️⭐️⭐️⭐️
-
-```txt
-Array.from(배열처럼 생긴 것, 변환함수?)
-
-배열이 아닌데 배열처럼 순회하고 싶을 때:
-  문자열, Set, Map, NodeList, arguments 등
-  또는 { length: n } 으로 원하는 길이의 배열을 만들 때
-```
-
-## 기본 사용
-
-```typescript
-// 문자열 → 배열 (한 글자씩)
-Array.from('hello')           // ['h', 'e', 'l', 'l', 'o']
-
-// Set → 배열 (중복 제거 후 배열로)
-Array.from(new Set([1, 2, 2, 3]))  // [1, 2, 3]
-
-// NodeList → 배열 (DOM 쿼리 결과)
-Array.from(document.querySelectorAll('li'))
-
-// 두 번째 인자 — 변환 함수 (map처럼)
-Array.from([1, 2, 3], (x) => x * 2)  // [2, 4, 6]
-```
-
-## { length: n } — 원하는 길이로 배열 생성 ⭐️⭐️⭐️⭐️
-
-```typescript
-// n번 반복하는 배열이 필요할 때
-Array.from({ length: 3 })
-// [undefined, undefined, undefined]  — 3칸
-
-Array.from({ length: 3 }, (_, i) => i)
-// [0, 1, 2]
-//   ↑ 첫 번째 인자: 현재 값 (undefined라 _ 로 무시)
-//      ↑ 두 번째 인자: 인덱스
-
-Array.from({ length: 5 }, (_, i) => i + 1)
-// [1, 2, 3, 4, 5]
-```
-
-```txt
-(_, i) 에서 _ 가 뭔가:
-  Array.from의 변환 함수는 (값, 인덱스) 두 인자를 받음
-  { length: n }으로 만들면 값이 undefined라 쓸모없음
-  → _  로 "이 인자는 안 쓴다"는 관례
-  → i  로 인덱스만 사용
-
-왜 .map() 안 쓰는가:
-  5.map(...)      → 숫자는 .map() 없음 (배열 아님)
-  [].map(...)     → 빈 배열에 .map()하면 결과도 빈 배열
-  Array.from({ length: 5 }, ...) → 길이만 알면 배열 생성 가능
-```
-
-## 초기값으로 채우기 — 통계 버킷 패턴 ⭐️⭐️⭐️⭐️
-
-```typescript
-// () => 0 — 변환 함수로 인덱스 무시하고 고정값으로 채움
-const series = Array.from({ length: slotCount }, () => 0);
-// slotCount가 7이면 → [0, 0, 0, 0, 0, 0, 0]
-
-// 비교: (_, i) vs () =>
-Array.from({ length: 5 }, (_, i) => i)  // [0, 1, 2, 3, 4]  인덱스 값
-Array.from({ length: 5 }, () => 0)      // [0, 0, 0, 0, 0]  고정값
-Array.from({ length: 5 }, () => [])     // [[], [], [], [], []]  빈 배열
-Array.from({ length: 5 }, () => null)   // [null, null, null, null, null]
-```
-
-```txt
-왜 new Array(n).fill(0) 대신 Array.from을 쓰는가:
-
-  new Array(5).fill(0)           → [0, 0, 0, 0, 0]   간단한 경우
-  Array.from({ length: 5 }, () => 0) → 같은 결과
-
-  차이점:
-  new Array(n).fill(obj)는 같은 객체 참조를 공유
-    new Array(3).fill([])       → [ref, ref, ref]  같은 배열!
-    arr[0].push(1) → arr[1]도 바뀜 (참조 공유)
-
-  Array.from({ length: n }, () => []) → 독립된 배열 3개
-    arr[0].push(1) → arr[1] 영향 없음
-
-  초기값이 원시값(0, '', null)이면 fill()도 안전
-  초기값이 객체·배열이면 Array.from 사용
-```
-
-```typescript
-// 실전 — 시간대별 통계 버킷 초기화
-const slotCount = 24;  // 24시간
-const series = Array.from({ length: slotCount }, () => 0);
-// [0, 0, 0, ..., 0]  길이 24
-
-// 이후 데이터가 들어올 때마다 해당 슬롯을 증가
-for (const time of times) {
-  const slot = Math.floor((time.getTime() - start.getTime()) / slotMs);
-  if (slot >= 0 && slot < slotCount) {
-    series[slot]++;  // 해당 시간대 카운트 증가
-  }
-}
-// 결과: [3, 0, 1, 5, 0, 0, 2, ...]  시간대별 집계
-```
-
-
-
-
-## React — 별점·슬롯·반복 UI ⭐️⭐️⭐️⭐️
-
-```typescript
-// 별점 컴포넌트 (4.5점 → ★★★★☆ + 반쪽)
-function RatingStars({ rating }: { rating: number }) {
-  const full  = Math.floor(rating);          // 꽉 찬 별 수
-  const half  = rating - full >= 0.5;        // 반쪽 별 여부
-  const empty = 5 - full - (half ? 1 : 0);  // 빈 별 수
-
-  return (
-    <span aria-label={`${rating}점`}>
-      {Array.from({ length: full }, (_, i) => (
-        <Star key={`f${i}`} fill="currentColor" />
-        //                   ↑ key에 f/e 접두사 — full과 empty가 겹치지 않게
-      ))}
-      {half && <StarHalf fill="currentColor" />}
-      {Array.from({ length: empty }, (_, i) => (
-        <Star key={`e${i}`} />  // fill 없음 = 빈 별
-      ))}
-    </span>
-  );
-}
-```
-
-
-```typescript
-// 그리드·슬롯 반복
-Array.from({ length: 12 }, (_, i) => (
-  <div key={i} className="grid-cell" />
-))
-
-// 페이지 번호 버튼
-Array.from({ length: totalPages }, (_, i) => (
-  <button key={i} onClick={() => goTo(i + 1)}>{i + 1}</button>
-))
-
-// 스켈레톤 UI (로딩 중 자리 표시)
-Array.from({ length: 5 }, (_, i) => (
-  <div key={i} className="skeleton-card" />
-))
-```
-
-```txt
-key에 접두사를 붙이는 이유:
-  full 별 i=0,1,2 / empty 별 i=0,1 → 같은 인덱스 충돌
-  key="f0", "f1" / "e0", "e1" → 중복 없음
-  React는 key로 요소를 식별하므로 같은 레벨에서 유일해야 함
 ```

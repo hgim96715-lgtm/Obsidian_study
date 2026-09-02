@@ -12,7 +12,7 @@ tags:
   - SQL
   - string
   - 문자열
-relations:
+related:
   - "[[00_DB_HomePage]]"
   - "[[PG_DML]]"
   - "[[PG_Patterns]]"

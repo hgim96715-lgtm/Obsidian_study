@@ -1,15 +1,11 @@
 ---
-aliases:
-  - Date 객체
-  - format
-  - ISO
-  - toISOString()
-  - 날짜 범위 순회
-tags:
-  - JavaScript
+aliases: [날짜 범위 순회, Date 객체, format, ISO, toISOString()]
+tags: [JavaScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
   - "[[JS_Intl]]"
+  - "[[NestJS_Prisma_Patterns]]"
+  - "[[PG_Types]]"
   - "[[React_DatePicker]]"
   - "[[Snippet_date-statistics-pattern]]"
 ---
@@ -375,3 +371,84 @@ function dayKeyRange(from: string, to: string): string[] {
   통계 버킷 초기화 — 빈 날짜도 0으로 채우기
   → Snippet_date-statistics-pattern 참고
 ```
+---
+
+# 월 범위 계산 — 캘린더 쿼리 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+캘린더 API에서 "해당 월 전체" 조회가 필요할 때
+  → 월의 첫 날 ~ 다음 달 첫 날 범위로 gte/lt 쿼리
+
+핵심:
+  padStart(2, '0')  — 월/일을 항상 2자리로 포맷 ('1' → '01')
+  Date.UTC(y, m, 1) — m이 12일 때 자동으로 다음 해 1월로 넘어감
+                       TZ 무관하게 UTC 기준으로 안전하게 계산
+```
+
+## padStart — 월/일 2자리 포맷
+
+```typescript
+String(month).padStart(2, '0')   // 1 → '01', 12 → '12'
+String(day).padStart(2, '0')     // 3 → '03', 15 → '15'
+
+// 날짜 키 만들기
+const monthKey = `${year}-${String(month).padStart(2, '0')}-01`;
+// year=2024, month=1  →  '2024-01-01'
+// year=2024, month=12 →  '2024-12-01'
+```
+
+## Date.UTC — 다음 달 첫 날 계산
+
+```typescript
+// month가 1~12 기준이라면 month 자체가 "다음 달의 인덱스(0-based)"가 됨
+const nextMonth = new Date(Date.UTC(year, month, 1));
+// year=2024, month=12 → Date.UTC(2024, 12, 1) → 2025-01-01T00:00:00.000Z
+//                        month 12 → JS Date의 0-based 인덱스에서 자동으로 연도 올림
+
+const nextMonthKey = `${nextMonth.getUTCFullYear()}-${String(
+  nextMonth.getUTCMonth() + 1,  // getUTCMonth()는 0-based → +1 필요
+).padStart(2, '0')}-01`;
+```
+
+```txt
+Date.UTC(year, month, 1) 에서 month를 1~12로 받아서 그대로 넣으면:
+  month=1  (1월) → Date.UTC(year, 1, 1)  → 2월 1일  (0-based 인덱스 1 = 2월)
+  → 이 코드는 외부에서 month를 1~12로 받되 Date.UTC에 그대로 넘겨
+    "month번째 달의 다음 달" 을 계산하는 트릭
+
+  year=2024, month=12 → Date.UTC(2024, 12, 1)
+    → JS가 자동으로 2025년 1월로 처리 (연도 자동 올림)
+    → 수동으로 if (month === 12) year++ 불필요
+
+getUTCFullYear() / getUTCMonth() 사용 이유:
+  서버 TZ에 따라 getFullYear()/getMonth() 결과가 달라질 수 있음
+  UTC 계열 메서드로 TZ 무관하게 안전하게 추출
+```
+
+## 전체 패턴 — 월 범위 start/end 추출
+
+```typescript
+function getMonthRange(year: number, month: number) {
+  // month: 1~12
+  const monthKey = `${year}-${String(month).padStart(2, '0')}-01`;
+
+  const nextMonthDate = new Date(Date.UTC(year, month, 1)); // month 그대로 → 다음달
+  const nextMonthKey = `${nextMonthDate.getUTCFullYear()}-${String(
+    nextMonthDate.getUTCMonth() + 1,
+  ).padStart(2, '0')}-01`;
+
+  const start = kstDayRange(monthKey).start;    // 해당 월 1일 KST 00:00 → UTC
+  const end   = kstDayRange(nextMonthKey).start; // 다음 월 1일 KST 00:00 → UTC
+
+  return { start, end };
+  // Prisma: watchedAt: { gte: start, lt: end }
+  // → 해당 월 전체 KST 날짜 커버
+}
+```
+
+| 함수 | 역할 |
+|---|---|
+| `padStart(2, '0')` | 1자리 월/일을 2자리로 포맷 |
+| `Date.UTC(y, m, 1)` | TZ 무관 UTC 날짜 생성, 월 자동 올림 처리 |
+| `getUTCFullYear()` / `getUTCMonth()` | TZ 무관 연/월 추출 |
+| `kstDayRange(key).start` | 날짜 키 → KST 기준 UTC 범위 변환 |

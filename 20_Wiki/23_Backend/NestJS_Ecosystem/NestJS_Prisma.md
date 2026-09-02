@@ -1,23 +1,17 @@
 ---
-aliases:
-  - $queryRaw · $executeRaw
-  - Model
-  - NestJS Prisma
-  - Prisma
-  - Prisma ORM
-  - PrismaExceptionFilter
-tags:
-  - NestJS
+aliases: [$queryRaw · $executeRaw, Model, NestJS Prisma, Prisma, Prisma ORM, PrismaExceptionFilter]
+tags: [NestJS]
 related:
   - "[[00_NestJS_Ecosystem_HomePage]]"
   - "[[HTTP_Concept]]"
+  - "[[JS_Operators]]"
   - "[[NestJS_Migration]]"
   - "[[NestJS_PostgreSQL]]"
   - "[[NestJS_Prisma_Patterns]]"
   - "[[NestJS_Service_Provider]]"
   - "[[NestJS_Transaction]]"
   - "[[PG_DDL]]"
-  - "[[JS_Operators]]"
+  - "[[PG_Types]]"
 ---
 
 # NestJS_Prisma — Prisma ORM

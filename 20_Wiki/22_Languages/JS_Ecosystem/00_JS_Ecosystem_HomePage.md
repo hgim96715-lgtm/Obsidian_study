@@ -1,5 +1,5 @@
 ---
-aliases: [00_JS_Ecosystem_HomePage — JS · TS · React · Next.js]
+aliases: [00_JS_Ecosystem_HomePage — JS · TS · React · Next.js · HTML]
 tags: [HomePage]
 related:
   - "[[00_DB_HomePage]]"
@@ -9,11 +9,11 @@ cssclasses:
   - table-max
   - table-wrap
 ---
-# 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js
+# 00_JS_Ecosystem_HomePage — JS · TS · React · Next.js · HTML
 
 >[!info]
 >NestJS(서버)를 알고 Next.js(클라이언트)로 넘어올 때 필요한 것들을 흐름 순서로 정리.
-> JS·TS·React·Next.js는 같은 런타임과 타입 시스템 위에 있어 한 폴더로 합쳤다. 분류는 파일 접두사(JS_·TS_·React_·NextJS_)가 한다.
+> JS·TS·React·Next.js·HTML은 같은 런타임과 타입 시스템 위에 있어 한 폴더로 합쳤다. 분류는 파일 접두사(JS_·TS_·React_·NextJS_·HTML_)가 한다.
 
 ---
 
@@ -167,7 +167,18 @@ React 19 form action (단순):
 | **Server Actions** | [[NextJS_Server_Actions]] |
 | **Server Actions 상태** | [[React_useFormStatus]] |
 | **FormData API · React 19 action** | [[JS_FormData]] |
-| **기타** | [[React_DatePicker]] |
+| **날짜 선택 컴포넌트** | [[React_DatePicker]] |
+| **달력 그리드 · Map 그루핑** | [[React_Calendar]] |
+
+```txt
+React_FormValidation  폼 패턴 비교 · Zod 스키마 · react-hook-form · setError('root')
+React_Input           제어 vs 비제어 · 숫자 입력 선행 0 제거(onInput + DOM 패치)
+NextJS_Server_Actions Server Actions · use server · revalidatePath · redirect
+React_useFormStatus   useFormStatus(pending) · useActionState · 서버 에러 처리
+JS_FormData           FormData 기본 · React 19 action 자동 전달 · append/get
+React_DatePicker      input type=date · string vs Date · Range · react-datepicker 설치
+React_Calendar        달력 그리드(getCalendarDays) · firstDay/lastDate 트릭 · Map 그루핑 + useMemo
+```
 
 ---
 
@@ -179,6 +190,7 @@ React 19 form action (단순):
 | [[React_Zustand]] | create · selector · set/get · AuthBootstrap · persist middleware |
 | [[React_Context_Provider]] | Context 공유 상자 · useCallback·useMemo 안정화 · useAuth 커스텀 훅 |
 | [[React_useMemo_useCallback]] | 메모이제이션 · 언제 쓰는지 판단 · React.memo |
+| [[React_useState]] | state 기초 · 함수형 업데이트 · 지연 초기화(new Set/Map) |
 | [[React_useEffect]] | 데이터 fetch · 이벤트 리스너 · cleanup · 의존성 · 무한루프 |
 | [[React_useRef]] | DOM 접근(focus·scroll) · 렌더링 무관 값 보관 |
 | [[HTML_ElementTypes]] | HTMLDetailsElement · HTMLInputElement · useRef 제네릭 타입 |
@@ -193,6 +205,7 @@ React_AsyncUI              isLoading·isError·try-finally · useEffect fetch ·
 React_Zustand              create · set/get · selector · persist(localStorage) · AuthBootstrap(앱 시작 상태 복구)
 React_Context_Provider     createContext · useContext · useCallback·useMemo 안정화 · useAuth 커스텀 훅
 React_useMemo_useCallback  렌더링 비용 최적화 · 의존성 배열 · React.memo와 조합 · 남용 주의
+React_useState             state 기초 · prev 패턴 · 지연 초기화(() => new Set/Map) · localStorage 초기값
 React_useEffect            사이드이펙트(fetch·이벤트 리스너) · cleanup 함수 · 의존성 배열 · 무한루프 방지
 React_useRef               DOM 직접 접근(focus·scroll·크기 측정) · 렌더링 무관 값 보관(타이머 id 등)
 HTML_ElementTypes          HTMLDetailsElement · HTMLInputElement · DOM 타입 계층 · useRef 제네릭 타입
@@ -214,6 +227,9 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 |**CSS 패턴**|[[CSS_Tricks]]|
 |**차트**|[[React_Charts]]|
 |**브라우저 API**|[[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]|
+|**시맨틱 구조**|[[HTML_Semantics]]|
+|**데이터 테이블**|[[HTML_Table]]|
+|**head·meta**|[[HTML_Head_Meta]]|
 |**접근성**|[[HTML_ARIA]]|
 |**이미지 최적화**|[[HTML_Image]]|
 |**ESLint**|[[JS_ESLint]]|
@@ -223,6 +239,10 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 React_CSSProperties  인라인 style 타입 · camelCase · CSS 변수(--var) + as CSSProperties
 CSS_Tricks           line-clamp · overflow:hidden + ::after 클리핑 문제 · 말풍선 꼬리
 React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데이터 변환 패턴
+HTML_Semantics       시맨틱 태그(section/article/div 판단) · header/nav/main/aside/footer · h1~h6 계층 · dl/dt/dd · select/option
+HTML_Table           table/thead/tbody/th(scope) · colspan/rowspan · 정렬 패턴 · 반응형 · table vs div
+HTML_Head_Meta       <head> 구조 · charset · viewport · OG 태그 · canonical · robots · ImageResponse
+HTML_ARIA            aria-hidden·aria-label·aria-live("polite"/"assertive") · sr-only · role · 인터랙티브 중첩 금지
 ```
 
 ---
@@ -254,7 +274,8 @@ TS_ImportType                    import type 언제 쓰는지 · .d.ts 선언 �
 | ------------------------ | ------------------------------------------------- |
 | [[JS_Operators]]         | 구조분해 · 스프레드 · ?. · ?? · !! · Truthy/Falsy         |
 | [[JS_Promise]]           | async/await · Promise<T> · Promise.all            |
-| [[JS_Array_Methods]]     | some · filter · map · reduce · 불변성 · Set          |
+| [[JS_Array_Methods]]     | some · filter · map · reduce · sort · slice · Array.from · 불변성 패턴 |
+| [[JS_Map_Set]]           | Map vs 객체 선택 기준 · Map 그루핑 · Set 중복 제거 · ReadonlyMap/Set |
 | [[JS_Object_Methods]]    | Object.keys · entries · fromEntries · Map         |
 | [[JS_Patterns]]  | 옵션 객체 · early return · async 래퍼 · 폴백(fallback) 패턴 |
 | [[JS_AlgorithmPatterns]] | GCD(최대공약수) · 서로소 step · 격자 산포 배치 · clamp          |
@@ -262,6 +283,7 @@ TS_ImportType                    import type 언제 쓰는지 · .d.ts 선언 �
 | [[JS_Regex]]             | test · replace · match · 캡처그룹 · Lookahead `(?=)` · 선행 0 제거 · 유니코드 범위 |
 
 ```txt
+JS_Map_Set            Map vs {}(동적 키·삽입순서·has O(1)) · Map<string,T[]> 그루핑 · Set 중복 제거 · ReadonlyMap/Set
 JS_AlgorithmPatterns  수학 알고리즘(GCD·서로소) · 시각화 배치(격자 산포) · 범위 고정(clamp)
 JS_Patterns   옵션 객체 패턴 · early return · async 래퍼 · undefined 폴백
 JS_Regex              정규식 메서드 · 캡처그룹 · Lookahead((?=)) · 선행 0 제거 · 유니코드 범위(한글 판별)
@@ -306,7 +328,7 @@ Web_Email     mailto 링크 · Resend API(트랜잭션 이메일) · Formspree(�
 
 ```txt
 폴더를 합친 이유:
-  js / nextjs / react / typescript 네 폴더가 실제로 서로 계속 얽혀서 참조됨
-  분류는 접두사(JS_ / TS_ / React_ / NextJS_)가 이미 하고 있음
+  js / nextjs / react / typescript / html 다섯이 실제로 서로 계속 얽혀서 참조됨
+  분류는 접두사(JS_ / TS_ / React_ / NextJS_ / HTML_)가 이미 하고 있음
   Python은 한 번도 얽힌 적 없어서 별도 유지
 ```
