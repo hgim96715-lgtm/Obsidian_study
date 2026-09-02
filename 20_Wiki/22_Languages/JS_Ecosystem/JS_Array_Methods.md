@@ -495,6 +495,79 @@ Array.from({ length: totalPages }, (_, i) => (
 ))
 ```
 
+## 역순 숫자 배열 — year - index 패턴 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 현재 연도부터 2000년까지 내림차순 배열
+const year = new Date().getFullYear();  // 예: 2026
+
+Array.from({ length: year - 1999 }, (_, index) => year - index)
+// length = 2026 - 1999 = 27
+// index: 0, 1, 2, ..., 26
+// 결과:  [2026, 2025, 2024, ..., 2000]
+```
+
+```txt
+분해:
+  { length: year - 1999 }
+    → 배열 길이 = "현재 연도 - 1999"
+    → 2026이면 length=27 (2000~2026 = 27개)
+
+  (_, index) => year - index
+    _ = 값 (undefined, 무시)
+    index = 0, 1, 2, ... (오름차순)
+    year - index = 2026-0=2026, 2026-1=2025, 2026-2=2024 ...
+    → 최신 연도가 앞에 오는 내림차순
+
+왜 i + 2000이 아닌 year - index인가:
+  i + 2000 → [2000, 2001, ..., 2026]  오름차순 (가장 오래된 것부터)
+  year - index → [2026, 2025, ..., 2000]  내림차순 (최신 것부터)
+  select 드롭다운에서는 "올해"가 기본값이고 위에 있어야 UX에 좋음
+```
+
+```tsx
+// 실전 — 연도 select 드롭다운
+const year = new Date().getFullYear();
+
+<select
+  value={selectedYear}
+  onChange={(e) => setSelectedYear(Number(e.target.value))}
+  aria-label="통계 연도 선택"
+>
+  {Array.from({ length: year - 1999 }, (_, index) => year - index).map(
+    (optionYear) => (
+      <option key={optionYear} value={optionYear}>
+        {optionYear}년
+      </option>
+    ),
+  )}
+</select>
+```
+
+```txt
+포인트:
+  value={optionYear}       숫자로 저장 (Number 타입 유지)
+  onChange에서 Number(e.target.value)  select value는 항상 string → 숫자로 변환
+  key={optionYear}         고유한 숫자 → key로 적합
+  기본 선택: selectedYear 초기값을 year로 설정하면 "올해"가 선택됨
+
+범용 변형:
+  2000 ~ 올해    { length: year - 1999 }, (_, i) => year - i   → 내림차순
+  올해 ~ 5년 후  { length: 6 },           (_, i) => year + i   → 오름차순
+  1900 ~ 올해    { length: year - 1899 }, (_, i) => year - i   → 생년월일 드롭다운
+```
+
+```typescript
+// 월 배열 (1~12)
+Array.from({ length: 12 }, (_, i) => i + 1)
+// [1, 2, 3, ..., 12]
+
+// 일 배열 (1~31)
+Array.from({ length: 31 }, (_, i) => i + 1)
+// [1, 2, 3, ..., 31]
+```
+
+
 ---
 
 # 반복 실행 — forEach ⚠️

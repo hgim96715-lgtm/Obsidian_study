@@ -497,3 +497,109 @@ T['fieldName'] vs T[number]:
 → [[TS_Type_Guards]] never 섹션
 → [[TS_Utility_Types]] Awaited + ReturnType 조합
 ```
+
+---
+
+# Array\<T\> vs T\[\] — 배열 타입 표기 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 두 표기는 완전히 동일 — 컴파일 결과 동일
+string[]        // 단축 표기
+Array<string>   // 제네릭 표기
+```
+
+```txt
+언제 Array<T>를 쓰는가:
+  T가 복잡할 때 — 인라인 객체, 유니온, 함수 타입
+  가독성이 더 좋을 때
+
+  string[]                      → 단순 → 단축 표기
+  { month: number; count: number }[]  → 복잡 → Array<...> 쪽이 명확
+```
+
+---
+
+# Array\<\{ ... \}\> — 인라인 객체 타입 배열 ⭐️⭐️⭐️⭐️
+
+```typescript
+// 이 타입이 뭔지 읽는 법
+export type UserMovieStats = {
+  year:   number;
+  total:  number;
+  monthly: Array<{ month: number; count: number }>;
+//         ↑ 제네릭  ↑ T 자리에 인라인 객체 타입이 들어온 것
+};
+```
+
+```txt
+Array<{ month: number; count: number }> 분해:
+  Array<T>                  → 배열 타입 (T 자리에 타입 대입)
+  { month: number; count: number }  → T = 이 익명 객체 타입
+
+  → "month(숫자)와 count(숫자)를 가진 객체의 배열"
+
+실제 값 예시:
+  monthly: [
+    { month: 1, count: 5 },
+    { month: 2, count: 12 },
+    { month: 3, count: 8 },
+  ]
+```
+
+## 인라인 vs 이름 있는 타입 — 언제 뭘 쓰는가 ⭐️⭐️⭐️⭐️
+
+```typescript
+// ❌ 인라인 — 같은 타입을 여러 곳에서 재사용하면 중복 발생
+type UserMovieStats = {
+  monthly: Array<{ month: number; count: number }>;
+};
+type TeamMovieStats = {
+  monthly: Array<{ month: number; count: number }>;  // 또 작성
+};
+
+// ✅ 이름 있는 타입으로 추출 — 재사용 가능
+type MonthlyStat = { month: number; count: number };
+
+type UserMovieStats = {
+  monthly: MonthlyStat[];  // 단축 표기도 OK
+};
+type TeamMovieStats = {
+  monthly: MonthlyStat[];
+};
+```
+
+```txt
+인라인 객체 타입:
+  이 타입을 이 배열에서만 씀 → 바로 써도 됨
+  MonthlyStat를 따로 쓸 일이 없음 → 굳이 이름 붙이지 않아도 됨
+
+이름 있는 타입:
+  여러 곳에서 재사용 → 추출
+  독립적인 의미가 있음 (MonthlyStat, MovieItem 등)
+  응답 타입 전체를 정의할 때 (API 응답 타입은 전부 named type)
+```
+
+## 배열 요소 타입 꺼내기 — T\[number\] ⭐️⭐️⭐️
+
+```typescript
+type UserMovieStats = {
+  monthly: Array<{ month: number; count: number }>;
+};
+
+// monthly 배열의 요소 타입만 꺼내기
+type MonthlyStat = UserMovieStats['monthly'][number];
+//   결과: { month: number; count: number }
+
+// 사용
+function processMonth(stat: MonthlyStat) {
+  console.log(stat.month, stat.count);
+}
+```
+
+```txt
+T['monthly']        → monthly 필드의 타입 = Array<{ month: number; count: number }>
+T['monthly'][number] → 그 배열의 요소 타입 = { month: number; count: number }
+
+인라인 타입을 나중에 꺼내야 할 때 유용
+→ [number] 인덱스 접근 전체 → [[TS_Generics]] 조건부 타입 섹션
+```

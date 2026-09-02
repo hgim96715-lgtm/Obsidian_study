@@ -1,15 +1,11 @@
 ---
-aliases:
-  - CSS 실전 패턴
-  - line-clamp
-  - overflow
-  - ::after
-tags:
-  - CSS
+aliases: [::after, CSS 실전 패턴, line-clamp, overflow]
+tags: [CSS]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
+  - "[[CSS_Grid]]"
+  - "[[CSS_Layout]]"
 ---
-
 # CSS_Tricks — CSS 실전 패턴
 
 >[!info]

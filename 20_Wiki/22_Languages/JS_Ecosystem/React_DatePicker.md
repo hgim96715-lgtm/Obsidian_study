@@ -56,6 +56,51 @@ input type="date" 로 충분한 경우:
   미선택  → "" (빈 문자열, undefined·null 아님)
 ```
 
+
+## 달력 팝업은 어떻게 나오는가 ⭐️⭐️⭐️⭐️
+
+```txt
+input type="date"만 쓰면 달력은 자동으로 나옴
+→ 브라우저가 알아서 렌더링 (코드로 따로 만드는 게 아님)
+→ 캘린더 아이콘 클릭 또는 input 클릭 → 브라우저 네이티브 달력 팝업
+
+화면의 달력 UI는 OS + 브라우저가 결정:
+  어두운 테마(다크모드) → OS 다크모드 설정이면 자동 적용
+  한국어 날짜 표기 ("2026년 9월", "일 월 화 수 목 금 토") → 브라우저 언어 설정이 한국어
+  모양(Chrome/Firefox/Safari 각자 다름) → 브라우저마다 다른 네이티브 UI
+```
+
+```txt
+코드로 제어할 수 있는 것:
+  max / min   → 선택 가능한 날짜 범위 제한
+  value       → 선택된 날짜 (YYYY-MM-DD 문자열)
+  disabled    → 입력 비활성화
+
+코드로 제어할 수 없는 것:
+  달력 팝업의 색상, 폰트, 레이아웃 → OS/브라우저가 그림
+  CSS로 스타일링 불가 (::picker 등 일부 실험적 기능 제외)
+  언어/로케일 → 브라우저 설정에 따름
+
+→ 달력 UI를 직접 디자인해야 하면 라이브러리 필요 (아래 ② 참고)
+```
+
+```tsx
+// max로 "오늘 이후 선택 불가" 구현
+function getKstTodayDate(): string {
+  // KST 기준 오늘 날짜를 "YYYY-MM-DD"로 반환
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
+
+<input
+  type="date"
+  value={watchedAt}
+  max={getKstTodayDate()}   // 오늘까지만 선택 가능 → 미래 날짜는 비활성화
+  onChange={(e) => setWatchedAt(e.target.value)}
+/>
+```
+
 ## 기본 사용
 
 ```tsx
@@ -71,6 +116,59 @@ function DateInput() {
   );
 }
 ```
+
+
+## label + htmlFor — 클릭 영역 확장 + 접근성 ⭐️⭐️⭐️⭐️
+
+```tsx
+<label htmlFor="watched-date-input">새로운 관람일</label>
+<input
+  id="watched-date-input"
+  type="date"
+  value={watchedAt}
+  max={getKstTodayDate()}
+  onChange={(e) => setWatchedAt(e.target.value)}
+  disabled={isPending}
+/>
+```
+
+```txt
+htmlFor + id 연결 구조:
+  <label htmlFor="watched-date-input"> ← "이 id를 가진 input과 연결됨"
+  <input id="watched-date-input" ...>  ← "watched-date-input"이라는 id를 가짐
+
+  → label 텍스트 클릭 = input 클릭과 동일
+  → type="date"에서: 라벨 클릭 시 달력 팝업이 열림
+
+왜 htmlFor인가 — HTML for vs React htmlFor:
+  HTML  : <label for="id">
+  React : <label htmlFor="id">
+
+  for는 JavaScript 예약어 (for 루프에 쓰는 그 for)
+  → JSX에서 그대로 쓰면 문법 충돌
+  → React가 htmlFor로 이름을 바꿈 (HTML className과 같은 이유)
+
+  className ← HTML class (JS 예약어 class와 충돌)
+  htmlFor   ← HTML for  (JS 예약어 for와 충돌)
+```
+
+```txt
+label + htmlFor 없으면:
+  input 박스 자체만 클릭 가능 → 클릭 영역이 작음
+  스크린리더가 이 input이 무엇을 입력하는 필드인지 모름
+
+label + htmlFor 있으면:
+  라벨 텍스트("새로운 관람일")를 클릭해도 input 활성화
+  → 모바일에서 터치 타깃 확장
+  스크린리더: "새로운 관람일, 날짜 입력" 으로 안내
+```
+
+| HTML 속성 | React prop | 이유 |
+|---|---|---|
+| `class` | `className` | `class`는 JS 예약어 |
+| `for` | `htmlFor` | `for`는 JS 예약어 |
+| `tabindex` | `tabIndex` | camelCase 통일 |
+| `readonly` | `readOnly` | camelCase 통일 |
 
 ## string vs Date — 상태를 뭘로 관리하는가 ⭐️⭐️⭐️⭐️
 

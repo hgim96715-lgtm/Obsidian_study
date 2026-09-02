@@ -224,6 +224,8 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 | |노트|
 |---|---|
 |**스타일**|[[React_CSSProperties]] · [[React_Styling]] · [[React_LucideIcons]] · [[NextJS_Font]]|
+|**CSS 레이아웃**|[[CSS_Layout]]|
+|**CSS Grid**|[[CSS_Grid]]|
 |**CSS 패턴**|[[CSS_Tricks]]|
 |**차트**|[[React_Charts]]|
 |**브라우저 API**|[[JS_BrowserAPI]] · [[JS_DOM]] · [[JS_Canvas]] · [[JS_FileAPI]] · [[JS_CustomEvent]]|
@@ -237,6 +239,8 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 
 ```txt
 React_CSSProperties  인라인 style 타입 · camelCase · CSS 변수(--var) + as CSSProperties
+CSS_Layout           position(absolute/fixed/sticky) · z-index · stacking context · place-items · pointer-events · cursor · :not() 선택자 · gradient · box-shadow · @media
+CSS_Grid             grid-template · fr · repeat/minmax · grid-column/row · span · 1/-1 · align/justify · auto-fill/fit
 CSS_Tricks           line-clamp · overflow:hidden + ::after 클리핑 문제 · 말풍선 꼬리
 React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통계 데이터 변환 패턴
 HTML_Semantics       시맨틱 태그(section/article/div 판단) · header/nav/main/aside/footer · h1~h6 계층 · dl/dt/dd · select/option

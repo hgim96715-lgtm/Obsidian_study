@@ -452,3 +452,127 @@ function getMonthRange(year: number, month: number) {
 | `Date.UTC(y, m, 1)` | TZ 무관 UTC 날짜 생성, 월 자동 올림 처리 |
 | `getUTCFullYear()` / `getUTCMonth()` | TZ 무관 연/월 추출 |
 | `kstDayRange(key).start` | 날짜 키 → KST 기준 UTC 범위 변환 |
+
+---
+
+# Invalid Date — 날짜 유효성 검사 ⭐️⭐️⭐️⭐️
+
+```txt
+핵심:
+  new Date("abc") → 에러를 던지지 않음 → "Invalid Date" 객체를 반환
+  "Invalid Date"의 getTime() → NaN
+  → Number.isNaN(date.getTime()) 으로 유효성 검사
+```
+
+## new Date()는 잘못된 입력에 throw하지 않는다
+
+```typescript
+const valid   = new Date('2024-01-15');    // 정상 Date 객체
+const invalid = new Date('abc');           // ❌ 에러 없음 → Invalid Date 객체
+
+console.log(valid.toString());    // "Mon Jan 15 2024 ..."
+console.log(invalid.toString());  // "Invalid Date"
+
+// try/catch로는 잡을 수 없음
+try {
+  const d = new Date('abc');     // 여기서 throw 안 함
+  // d는 Invalid Date
+} catch {
+  // 절대 여기 안 옴
+}
+```
+
+```txt
+왜 throw하지 않는가:
+  Date 생성자의 설계가 그렇게 되어있음
+  잘못된 입력 → NaN을 내부 타임스탬프로 저장 → Invalid Date 객체 생성
+  → try/catch로는 절대 유효성 검사 불가
+```
+
+## getTime() + Number.isNaN() — 유일한 방법
+
+```typescript
+const watchedDate = new Date(dto.watchedDate);
+
+// ❌ 검사 없이 쓰면
+watchedDate.toISOString()  // "Invalid Date"를 그대로 DB에 저장할 수도 있음
+
+// ✅ getTime()이 NaN인지 확인
+if (Number.isNaN(watchedDate.getTime())) {
+  throw new BadRequestException('관람일이 올바르지 않습니다.');
+}
+```
+
+```txt
+왜 getTime()인가:
+  Invalid Date에서 getTime()을 호출하면 NaN을 반환
+  정상 Date면 숫자(밀리초)를 반환
+  → NaN 여부만 확인하면 유효성 판단 가능
+```
+
+## Number.isNaN() vs isNaN() — 반드시 Number.isNaN 써야 함
+
+```typescript
+// ❌ isNaN() — 타입 변환 후 검사 (함정 있음)
+isNaN('hello')        // true  ← 문자열을 숫자로 변환 시도 → NaN → true
+isNaN(undefined)      // true  ← undefined → NaN → true
+isNaN(new Date())     // false ← Date → 숫자(ms) → 유효한 숫자 → false
+isNaN(new Date('x'))  // true  ← Invalid Date → NaN → true (여기선 맞음)
+
+// ✅ Number.isNaN() — 타입 변환 없이 순수 NaN 체크
+Number.isNaN('hello')              // false (문자열은 NaN이 아님)
+Number.isNaN(undefined)            // false (undefined는 NaN이 아님)
+Number.isNaN(NaN)                  // true  (진짜 NaN)
+Number.isNaN(new Date().getTime()) // false (정상 Date → 숫자 → NaN 아님)
+Number.isNaN(new Date('x').getTime()) // true (Invalid Date → NaN)
+```
+
+```txt
+isNaN() 함정:
+  내부적으로 Number(value)로 변환 후 NaN인지 체크
+  isNaN('hello') → Number('hello') = NaN → true
+  → 문자열도 true가 되어버려서 오탐 가능
+
+Number.isNaN():
+  변환 없이 "이 값이 정확히 NaN인가?" 만 체크
+  getTime()이 반환하는 값이 NaN인지 정확하게 판단
+
+결론: Date 유효성 검사에는 항상 Number.isNaN(date.getTime())
+```
+
+## NestJS 서비스 실전 패턴
+
+```typescript
+// NestJS — 날짜 문자열을 받아서 DB 저장 전 검사
+async create(dto: CreateRecordDto) {
+  const watchedDate = new Date(dto.watchedDate);  // string → Date 변환
+
+  // ① Invalid Date 검사 — getTime() + Number.isNaN
+  if (Number.isNaN(watchedDate.getTime())) {
+    throw new BadRequestException('관람일이 올바르지 않습니다.');
+  }
+
+  // ② 통과하면 유효한 Date — DB에 저장
+  return this.prisma.record.create({
+    data: { watchedDate, ... },
+  });
+}
+```
+
+```txt
+흐름:
+  1. dto.watchedDate (string) → new Date() 로 변환
+     → 잘못된 값이면 Invalid Date 객체 (throw 없음)
+  2. getTime() → Invalid Date면 NaN, 정상이면 숫자
+  3. Number.isNaN() → NaN이면 throw BadRequestException
+  4. 통과하면 신뢰할 수 있는 Date 객체
+```
+
+| 상황 | getTime() 결과 | Number.isNaN() |
+|---|---|---|
+| `new Date('2024-01-15')` | `1705276800000` | `false` ✅ |
+| `new Date('abc')` | `NaN` | `true` ❌ |
+| `new Date('')` | `NaN` | `true` ❌ |
+| `new Date(undefined)` | `NaN` | `true` ❌ |
+| `new Date(null)` | `0` (1970-01-01) | `false` ⚠️ |
+| `new Date(1705276800000)` | `1705276800000` | `false` ✅ |
