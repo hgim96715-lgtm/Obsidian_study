@@ -233,7 +233,7 @@ React_Types                컴포넌트·이벤트·ref·children 타입 정리
 |**데이터 테이블**|[[HTML_Table]]|
 |**head·meta**|[[HTML_Head_Meta]]|
 |**접근성**|[[HTML_ARIA]]|
-|**이미지 최적화**|[[HTML_Image]]|
+|**이미지 최적화**|[[HTML_Image]] · [[NextJS_Image]]|
 |**ESLint**|[[JS_ESLint]]|
 |**WebSocket**|[[NextJS_WebSocket]] · [[WebSocket_Patterns]]|
 
@@ -246,6 +246,7 @@ React_Charts         Nivo(상세) · Recharts · Chart.js · Tremor 비교 + 통
 HTML_Semantics       시맨틱 태그(section/article/div 판단) · header/nav/main/aside/footer · h1~h6 계층 · dl/dt/dd · select/option
 HTML_Table           table/thead/tbody/th(scope) · colspan/rowspan · 정렬 패턴 · 반응형 · table vs div
 HTML_Head_Meta       <head> 구조 · charset · viewport · OG 태그 · canonical · robots · ImageResponse
+NextJS_Image         <img> vs next/image · WebP 자동변환 · lazy loading · CLS 방지 · remotePatterns · fill · priority
 HTML_ARIA            aria-hidden·aria-label·aria-live("polite"/"assertive") · sr-only · role · 인터랙티브 중첩 금지
 ```
 
