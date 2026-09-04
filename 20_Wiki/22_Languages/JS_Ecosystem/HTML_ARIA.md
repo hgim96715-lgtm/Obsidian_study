@@ -258,38 +258,10 @@ role="status" = aria-live="polite"   + aria-atomic="true" 단축
 ```
 
 ```txt
-aria-expanded   → 드롭다운, 아코디언, 서브메뉴 — 펼침/접힘
-aria-pressed    → 토글 버튼 — 눌림/안눌림 (isMuted, isBookmarked)
-aria-selected   → 탭, listbox의 선택 항목 — 선택됨/안됨
-aria-haspopup   → 이 버튼이 팝업을 열어준다는 신호 (드롭다운 트리거에 필수)
-aria-invalid    → 입력값 유효성 — true면 "유효하지 않음" 읽힘
-```
-
-## aria-haspopup — 팝업 트리거 ⭐️⭐️⭐️
-
-```tsx
-// 커스텀 드롭다운 트리거 버튼
-<button
-  type="button"
-  aria-haspopup="listbox"   // "listbox 팝업을 여는 버튼이야"
-  aria-expanded={open}      // 현재 열림/닫힘 상태
-  onClick={() => setOpen((v) => !v)}
->
-  선택하세요
-</button>
-```
-
-```txt
-aria-haspopup 값:
-  "true" / "menu"   → 일반 드롭다운 메뉴
-  "listbox"         → role="listbox" 드롭다운 (커스텀 select)
-  "dialog"          → 모달/다이얼로그
-
-항상 aria-expanded와 함께 사용:
-  aria-haspopup → "열 수 있는 무언가가 있다"
-  aria-expanded → "지금 열려있는지/닫혀있는지"
-
-  → 커스텀 드롭다운 전체 구현 패턴 → [[React_CustomSelect]]
+aria-expanded  → 드롭다운, 아코디언, 서브메뉴 — 펼침/접힘
+aria-pressed   → 토글 버튼 — 눌림/안눌림 (isMuted, isBookmarked)
+aria-selected  → 탭, 리스트 선택 — 선택됨/안됨
+aria-invalid   → 입력값 유효성 — true면 "유효하지 않음" 읽힘
 ```
 
 ## aria-invalid — 입력값 에러 ⭐️⭐️⭐️
@@ -340,9 +312,6 @@ aria-haspopup 값:
 |`main`|메인 콘텐츠|`<main>`|
 |`list`·`listitem`|목록·항목|`<ul>` · `<li>`|
 |`tab`·`tabpanel`|탭 UI|없음|
-|`listbox`|선택 가능한 목록 컨테이너 (커스텀 드롭다운)|`<select>`|
-|`option`|listbox 안의 각 선택 항목|`<option>`|
-|`combobox`|검색+선택 콤보 (input + listbox 조합)|없음|
 
 ```txt
 가능하면 role 대신 의미 있는 HTML 태그 사용:
