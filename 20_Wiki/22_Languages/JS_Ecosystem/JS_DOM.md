@@ -338,6 +338,73 @@ isComposing은 원본 KeyboardEvent의 속성이므로 e.nativeEvent로 접근
 
 ---
 
+
+# 포커스 이벤트 — focus · blur ⭐️⭐️⭐️
+
+```txt
+focus: 요소가 포커스를 받을 때 발생 (클릭 또는 Tab으로 도달)
+blur:  요소가 포커스를 잃을 때 발생 (다른 곳 클릭 또는 Tab으로 이탈)
+
+React 타입: React.FocusEvent<T>
+네이티브 타입: FocusEvent
+```
+
+```tsx
+<input
+  onFocus={() => setIsOpen(true)}
+  onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+    // e.target         포커스를 잃은 요소 (이 input)
+    // e.relatedTarget  포커스를 가져간 요소 (null이면 페이지 바깥으로 이탈)
+    setIsOpen(false);
+  }}
+/>
+```
+
+```txt
+e.relatedTarget 활용 — 드롭다운 내부로 포커스가 이동했는지 구분:
+  onBlur={(e) => {
+    if (dropdownRef.current?.contains(e.relatedTarget as Node)) return;
+    // 드롭다운 내부 요소로 포커스가 이동했으면 닫지 않음
+    setIsOpen(false);
+  }}
+
+onBlur + 드롭다운 클릭 버그:
+  blur는 click보다 먼저 발생
+  → 드롭다운 항목을 onClick으로 처리하면 blur가 먼저 드롭다운을 닫아버림
+  → 해결: 드롭다운 항목에 onPointerDown + e.preventDefault()
+  → 상세 → [[TS_DOM_Events#onBlur race condition — 드롭다운 클릭 무시 버그]]
+```
+
+## focus/blur vs focusin/focusout
+
+```txt
+focus / blur       버블링 안 됨 — 자식에서 발생해도 부모까지 전파 X
+focusin / focusout 버블링 됨
+
+React의 onFocus / onBlur:
+  네이티브 focus/blur와 이름이 같지만
+  실제로는 focusin/focusout 기반으로 동작 → 버블링 됨
+
+→ 컨테이너에 onBlur를 달면 자식 중 어떤 요소가 포커스를 잃어도 발화됨
+  (드롭다운 컨테이너 전체의 포커스 이탈 감지에 유용)
+```
+
+```tsx
+// 컨테이너 전체에서 포커스가 빠져나갈 때 닫기
+<div
+  onBlur={(e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      // 포커스가 이 div 바깥으로 나갔을 때만 닫기
+      setIsOpen(false);
+    }
+  }}
+>
+  <input onFocus={() => setIsOpen(true)} />
+  {isOpen && <ul>{/* 드롭다운 항목 */}</ul>}
+</div>
+```
+
+---
 # Pointer Events — 마우스 · 터치 · 펜 통합 ⭐️⭐️⭐️⭐️
 
 ```txt
@@ -666,4 +733,75 @@ break-words:
 aria-selected와 차이:
   aria-pressed  → button role에서 on/off 상태
   aria-selected → listbox, tablist에서 선택된 항목
+```
+
+## click-outside 감지 — document.addEventListener + cleanup ⭐️⭐️⭐️⭐️
+
+```txt
+문제:
+  드롭다운·모달이 열린 상태에서 바깥 영역 클릭 시 자동으로 닫혀야 함
+  React 이벤트 시스템은 컴포넌트 트리 안에서만 동작
+  → "컴포넌트 바깥 클릭"을 감지하려면 document에 직접 리스너 필요
+
+해결:
+  useEffect 안에서 document.addEventListener 등록
+  rootRef.current.contains(event.target) 으로 내/외부 판별
+  cleanup에서 반드시 removeEventListener
+```
+
+```tsx
+const rootRef = useRef<HTMLDivElement>(null);
+const [open, setOpen] = useState(false);
+
+useEffect(() => {
+  if (!open) return;  // 닫혀있으면 리스너 불필요
+
+  function handlePointerDown(event: PointerEvent) {
+    // rootRef 안을 클릭했는지 판별
+    if (!rootRef.current?.contains(event.target as Node)) {
+      setOpen(false);  // 바깥 클릭 → 닫기
+    }
+  }
+
+  document.addEventListener('pointerdown', handlePointerDown);
+
+  // cleanup: open=false가 되거나 컴포넌트 언마운트 시 제거
+  return () => {
+    document.removeEventListener('pointerdown', handlePointerDown);
+  };
+}, [open]);
+
+return (
+  <div ref={rootRef}>
+    <button onClick={() => setOpen((v) => !v)}>열기</button>
+    {open && <div>드롭다운 내용</div>}
+  </div>
+);
+```
+
+```txt
+contains(event.target as Node):
+  Node.contains(node) — 이 요소가 node를 자손으로 포함하는지 확인
+  true  → 컴포넌트 안 클릭 → 아무것도 안 함
+  false → 컴포넌트 밖 클릭 → setOpen(false)
+
+  event.target은 EventTarget 타입 → contains()는 Node 메서드 → as Node 단언 필요
+  rootRef.current가 null일 수 있으므로 ?. 옵셔널 체이닝 사용
+
+cleanup이 필수인 이유:
+  open=true일 때 리스너 등록
+  open=false(또는 언마운트)가 될 때 cleanup 실행 → 리스너 제거
+  제거 안 하면 → 닫힌 상태에서도 리스너가 document에 계속 살아있음
+  → 메모리 누수 + 의도치 않은 setOpen 호출
+
+open을 의존성에 넣는 이유:
+  open: false → true: cleanup 없이 새 리스너 추가됨 (기존 cleanup 실행 + 새 등록)
+  open: true → false: cleanup 실행(리스너 제거) + if(!open) return으로 재등록 안 함
+
+pointerdown 사용 이유:
+  click보다 먼저 발생 (pointerdown → pointerup → click 순서)
+  마우스·터치·펜 통합 (Pointer Events API)
+  → 외부 클릭 감지에 pointerdown이 관례
+
+  → 커스텀 드롭다운 전체 구현 → [[React_CustomSelect]]
 ```
