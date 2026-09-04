@@ -218,6 +218,7 @@ NestJS_Throttle    스로틀링 · 서비스 레벨 force 패턴
 NestJS_Seed        테스트 데이터 생성 · $transaction · cleanup
 NestJS_StatsBucket 통계 버킷 · 사전집계 vs 실시간 · upsert increment · 차트 연동
 NestJS_CacheTable  외부 API(TMDB 등) 캐시 테이블 패턴 · MoviePool · ORDER BY RANDOM() · N+1 해소 · rate limit
+NestJS_AiProvider  IAiProvider 인터페이스 · Symbol DI 토큰 · Strategy Pattern · Claude SDK · JSON 파싱 + 런타임 타입 검증
 NestJS_Excel       xlsx 설치 · json_to_sheet · 월별 폴더 축적 · 사본 생성 · 버퍼 다운로드
 멱등성 개념 → [[HTTP_Concept]] REST CRUD 섹션
 ```
