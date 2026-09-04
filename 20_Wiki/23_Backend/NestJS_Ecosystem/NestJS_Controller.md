@@ -331,6 +331,44 @@ POST 상태 코드 구분:
   403 Forbidden    → 로그인은 했지만 "당신은 이걸 할 권한이 없음"
 ```
 
+
+## HttpException 클래스 — throw로 직접 사용 ⭐️⭐️⭐️⭐️
+
+NestJS 내장 예외 클래스. `throw`하면 ExceptionFilter가 자동으로 JSON 에러 응답 생성.  
+Controller뿐 아니라 **Service에서 throw해도 자동 버블링**됨.
+
+```typescript
+import {
+  NotFoundException, BadRequestException, ForbiddenException,
+  UnauthorizedException, ConflictException,
+  ServiceUnavailableException, InternalServerErrorException,
+} from '@nestjs/common';
+
+throw new NotFoundException('사용자를 찾을 수 없습니다.');
+throw new ServiceUnavailableException('외부 결제 API 응답 시간 초과');
+```
+
+| 클래스 | 상태 코드 | 사용 시점 |
+|--------|----------|----------|
+| `BadRequestException` | 400 | 입력값 형식 오류 (ValidationPipe 자동 사용) |
+| `UnauthorizedException` | 401 | 인증 없음 (토큰 없음·만료) |
+| `ForbiddenException` | 403 | 인증은 됐지만 권한 없음 |
+| `NotFoundException` | 404 | 리소스 없음 (DB 조회 결과 null) |
+| `ConflictException` | 409 | 중복·충돌 (이미 존재하는 이메일 등) |
+| `InternalServerErrorException` | 500 | 예상 못한 서버 에러 |
+| `ServiceUnavailableException` | 503 | 외부 API·DB 등 의존 서비스 불가 |
+
+```txt
+503 ServiceUnavailableException 언제 쓰나?
+  — 카카오·네이버·결제 등 외부 API 호출 실패
+  — fetch 타임아웃 (AbortSignal.timeout) 초과
+  — 내 서버 로직 문제가 아닌 "외부가 안 됨"을 표현할 때
+
+Service에서 throw하면?
+  Controller까지 자동 버블링 → GlobalExceptionFilter가 잡음
+  try/catch 없어도 됨 (의도적 에러는 throw, 예상 못한 에러만 catch)
+```
+
 ## @Header — 응답 헤더 추가 ⭐️⭐️
 
 ```typescript

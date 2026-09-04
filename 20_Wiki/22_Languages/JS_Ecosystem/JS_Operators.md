@@ -1,38 +1,14 @@
 ---
-aliases:
-  - 구조분해
-  - deps 배열
-  - rest
-  - Promise.all
-  - 쉼표로 건너뛰기
-  - 스프레드
-  - 논리 연산자
-  - 삼항 연산자
-  - 비교 연산자
-  - typeof
-  - instanceof
-  - 옵셔널 체이닝
-  - 불린 강제 변환
-  - "[key]: value"
-  - void
-  - 불린 변환
-  - 조건부 스프레드
-  - Truthy
-  - Falsy
-  - _접두사
-  - "! 연산자"
-  - null 방어 스프레드
-  - Symbol
-tags:
-  - JavaScript
-related:
+aliases: [_접두사, "! 연산자", "[key]: value", 구조분해, 논리 연산자, 불린 강제 변환, 불린 변환, 비교 연산자, 삼항 연산자, 쉼표로 건너뛰기, 스프레드, 옵셔널 체이닝, 조건부 스프레드, deps 배열, Falsy, instanceof, null 방어 스프레드, Promise.all, rest, Symbol, Truthy, typeof, void]
+tags: [JavaScript]
+relations:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Promise]]"
-  - "[[JS_Patterns]]"
-  - "[[React_AsyncUI]]"
   - "[[JS_Array_Methods]]"
+  - "[[JS_Patterns]]"
   - "[[JS_Primitive_Methods]]"
+  - "[[JS_Promise]]"
   - "[[NestJS_AiProvider]]"
+  - "[[React_AsyncUI]]"
   - "[[TS_Type_Guards]]"
 ---
 # JS_Operators — 연산자 & 구조분해

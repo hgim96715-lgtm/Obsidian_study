@@ -553,6 +553,45 @@ cancelled 플래그 패턴과의 차이:
   AbortController → 네트워크 요청 자체를 취소 (더 효율적)
 ```
 
+## AbortSignal.timeout() — 타임아웃 전용 단축 ⭐️⭐️⭐️
+
+`AbortController` 없이 한 줄로 타임아웃 설정. Node.js 17.3+ / 브라우저 모두 지원.
+
+```typescript
+const res = await fetch(url, {
+  signal: AbortSignal.timeout(5000),  // 5초 초과 → TimeoutError throw
+});
+```
+
+```txt
+AbortController.abort()  → err.name === 'AbortError'
+AbortSignal.timeout()    → err.name === 'TimeoutError'   ← 이름이 다름, 구분해서 catch
+
+언제 쓰나?
+  외부 API(카카오·네이버·결제 등) 서버사이드 호출 시
+  → 응답 없으면 서버 스레드 점유 → 다른 요청까지 지연 → 장애 전파
+  → 타임아웃으로 빠르게 실패(fail fast)
+
+AbortController와 차이:
+  AbortController — 컴포넌트 언마운트 등 "외부 조건으로 취소" 에 적합
+  AbortSignal.timeout — 단순 시간 제한에 적합, 코드가 더 짧음
+```
+
+```typescript
+// TimeoutError 잡기
+try {
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+} catch (err) {
+  if (err.name === 'TimeoutError') {
+    // 5초 내 응답 없음
+  }
+  throw err;
+}
+```
+
+
 ---
 
 # fetch vs apiFetch ⭐️⭐️⭐️

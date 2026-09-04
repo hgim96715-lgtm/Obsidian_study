@@ -1,26 +1,14 @@
 ---
-aliases:
-  - Zod
-  - 폼 검증
-  - react-hook-form
-  - isSubmitting
-  - useForm
-  - setValue
-  - shouldDirty
-  - shouldValidate
-  - zodResolver
-  - register
-  - handleSubmit
-  - watch
-tags:
-  - React
-  - NextJS
+aliases: [폼 검증, handleSubmit, isSubmitting, react-hook-form, register, setValue, shouldDirty, shouldValidate, useForm, watch, Zod, zodResolver]
+tags: [React, NextJS]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[NestJS_DTO]]"
+  - "[[JS_DOM]]"
   - "[[JS_FormData]]"
   - "[[JS_Regex]]"
+  - "[[NestJS_DTO]]"
   - "[[React_Component]]"
+  - "[[TS_DOM_Events]]"
 ---
 # React_FormValidation — 폼 검증 (Zod + react-hook-form)
 
@@ -186,6 +174,15 @@ reset 이름 충돌 방지:
 ```
 
 ## mode — 검증 트리거 시점 ⭐️⭐️⭐️⭐️
+
+```txt
+onBlur: input에서 포커스가 빠져나갈 때 발생하는 이벤트
+  사용자가 해당 필드 입력을 "완료"하고 다른 곳으로 이동했다는 신호로 쓰임
+  → mode: 'onBlur' 설정 시 RHF가 각 필드의 onBlur 시점에 Zod 검증을 실행
+  → register가 spread하는 onBlur도 이 역할 (포커스 이탈 → 검증 트리거)
+  → 이벤트 개념 상세 → [[TS_DOM_Events#onBlur — 포커스 해제 이벤트]]
+```
+
 
 ```typescript
 useForm({

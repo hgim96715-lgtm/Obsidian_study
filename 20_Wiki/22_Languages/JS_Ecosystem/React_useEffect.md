@@ -14,7 +14,7 @@ related:
 >[!info]
 >`useEffect` = 컴포넌트가 외부 시스템과 동기화하는 훅.
 > 데이터 fetch, 이벤트 리스너, 타이머, WebSocket 구독. cleanup 함수로 이전 것을 정리한다.
->  DOM 측정이 필요하면 `useLayoutEffect`. React Strict Mode에서는 개발 환경에서 두 번 실행된다.
+> DOM 측정이 필요하면 `useLayoutEffect`. React Strict Mode에서는 개발 환경에서 두 번 실행된다.
 
 ---
 
@@ -70,36 +70,54 @@ useEffect(
 
 ---
 
+# cleanup 함수 ⭐️⭐️⭐️⭐️
+
+```txt
+cleanup이 실행되는 두 가지 시점:
+  ① 의존성이 바뀌어서 effect가 재실행되기 직전
+  ② 컴포넌트가 언마운트될 때
+```
+
+```typescript
+useEffect(() => {
+  const id = setInterval(() => tick(), 1000);
+
+  return () => {
+    clearInterval(id); // ① 재실행 직전 or ② 언마운트 시 취소
+  };
+}, []);
+```
+
+```txt
+cleanup이 필요한 경우:
+  이벤트 리스너 등록 → removeEventListener로 해제
+  타이머 설정        → clearInterval / clearTimeout 취소
+  데이터 fetch       → cancelled 플래그로 응답 무시
+  WebSocket 연결     → disconnect / close
+
+cleanup 없으면:
+  컴포넌트가 사라진 뒤에도 타이머·리스너가 실행
+  언마운트된 컴포넌트에 setState → React 경고 + 메모리 누수
+```
+
+---
+
 # 자주 쓰는 패턴
 
-## 데이터 Fetch — .then vs async/await ⭐️⭐️⭐️⭐️
+## 데이터 Fetch — async/await ⭐️⭐️⭐️⭐️
 
 ```txt
 핵심: .then() 방식과 async/await 방식은 동작이 완전히 같다.
 문법만 다른 것 — 둘 중 하나를 고르면 됨.
+
+useEffect에 직접 async를 못 쓰는 이유:
+  async 함수는 항상 Promise를 반환
+  useEffect는 cleanup 함수(또는 undefined)만 인정
+  → 내부에 async function 선언 후 void로 호출이 표준
 ```
 
 ```typescript
-// 방법 A — Promise chain (.then)
-useEffect(() => {
-  let cancelled = false;
-
-  fetchRoom(roomId)
-    .then((data) => {
-      if (!cancelled) setRoom(data);
-    })
-    .catch((err) => {
-      if (!cancelled) setError(err.message);
-    })
-    .finally(() => {
-      if (!cancelled) setLoading(false);
-    });
-
-  return () => { cancelled = true; };
-}, [roomId]);
-
-
-// 방법 B — async/await (내부 함수)
+// 방법 A — async/await (권장)
 useEffect(() => {
   let cancelled = false;
 
@@ -117,82 +135,91 @@ useEffect(() => {
   void load();
   return () => { cancelled = true; };
 }, [roomId]);
+
+// 방법 B — Promise chain (.then)
+useEffect(() => {
+  let cancelled = false;
+
+  fetchRoom(roomId)
+    .then((data) => { if (!cancelled) setRoom(data); })
+    .catch((err) => { if (!cancelled) setError(err.message); })
+    .finally(() => { if (!cancelled) setLoading(false); });
+
+  return () => { cancelled = true; };
+}, [roomId]);
 ```
 
 ```txt
 .then(data => ...)  = async/await에서 const data = await ...
 .catch(err => ...)  = try/catch의 catch 블록
 .finally(() => ...) = try/catch의 finally 블록
-
-useEffect에 직접 async를 못 쓰는 이유:
-  async 함수는 항상 Promise를 반환
-  useEffect는 cleanup 함수(또는 undefined)만 인정
-  → 내부에 async function 선언 후 void로 호출이 표준
-
-취향 차이:
-  .then()   → 중첩 없이 평탄한 구조
-  async/await → try/catch 구조가 더 익숙한 경우
 ```
 
-## cancelled 플래그 ⭐️⭐️⭐️⭐️
+## cancelled 플래그 — Race Condition 방지 ⭐️⭐️⭐️⭐️
+
+```txt
+Race Condition(경쟁 조건):
+  두 개의 비동기 요청이 "어느 것이 먼저 완료되느냐"에 따라 결과가 달라지는 버그
+
+실제 상황 예시 — 검색창에 빠르게 타이핑
+  query = "강"   → 요청 A 시작 (느린 서버, 1.2초 걸림)
+  query = "강남" → 요청 B 시작 (빠른 서버, 0.3초 걸림)
+
+  요청 B 완료 → "강남" 결과 표시 ✅
+  요청 A 완료 → "강" 결과가 "강남" 결과를 덮어씀 ❌ ← Race Condition
+
+  나중에 시작한 요청(B)이 먼저 끝났는데
+  이전 요청(A)이 나중에 도착해서 화면을 덮어쓰는 버그
+```
+
+```txt
+타임라인 비교
+
+❌ cancelled 없을 때
+  t=0ms  roomId='A' → 요청 A 시작
+  t=100  roomId='B' → 요청 B 시작
+  t=300  요청 B 응답 → setRoom(B 데이터) → 화면: B ✅
+  t=800  요청 A 응답 → setRoom(A 데이터) → 화면: A ❌ (B가 덮임)
+
+✅ cancelled 있을 때
+  t=0ms  roomId='A' → cancelled_A=false, 요청 A 시작
+  t=100  roomId='B' → cleanup(cancelled_A=true), cancelled_B=false, 요청 B 시작
+  t=300  요청 B 응답 → if (!cancelled_B) → true  → setRoom(B 데이터) → 화면: B ✅
+  t=800  요청 A 응답 → if (!cancelled_A) → false → 무시 ✅
+```
 
 ```typescript
 useEffect(() => {
-  let cancelled = false;          // ① 이 effect 인스턴스의 유효성 플래그
+  if (!query.trim()) { setResults([]); return; }
 
-  fetchRoom(roomId).then((data) => {
-    if (!cancelled) setRoom(data); // ③ 아직 유효할 때만 state 갱신
-  });
+  let cancelled = false;        // ① 이 effect 인스턴스의 유효성 플래그
 
-  return () => { cancelled = true; }; // ② 언마운트 or deps 변경 시 무효화
-}, [roomId]);
+  async function search() {
+    setLoading(true);
+    try {
+      const data = await searchPlacesRequest(token, query);
+      if (!cancelled) setResults(data); // ③ 아직 유효할 때만 state 갱신
+    } catch {
+      if (!cancelled) setResults([]);
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  }
+
+  void search();
+  return () => { cancelled = true; }; // ② deps 변경 or 언마운트 시 무효화
+}, [query, token]);
 ```
 
 ```txt
 cancelled가 막는 것:
-  fetch를 멈추는 게 아님 — 요청은 끝까지 날아감
-  "이미 무효화된 effect의 응답이 setState하는 것"을 막음
+  fetch 요청 자체를 취소하는 게 아님 — 네트워크 요청은 끝까지 날아감
+  "이미 무효화된 effect의 응답이 state를 갱신하는 것"을 막음
 
-왜 필요한가 (race condition):
-  roomId = 'A' → fetch 시작
-  roomId = 'B' 로 바뀜 → cleanup(cancelled=true) → 새 effect 시작
-  'A' 응답이 나중에 도착 → if (!cancelled) → cancelled=true → 무시 ✅
-
-  이 체크가 없으면:
-  현재 화면은 'B'인데 'A'의 데이터가 덮어쓰는 경쟁 조건 발생
-
-비동기 패턴 전체 → [[React_AsyncUI]]
-```
-
-```typescript
-useEffect(() => {
-  let cancelled = false;   // 클린업 플래그
-
-  async function load() {
-    try {
-      const data = await fetchUser(userId);
-      if (!cancelled) setUser(data);   // 언마운트 후면 setState 안 함
-    } catch (err) {
-      if (!cancelled) setError(err);
-    }
-  }
-
-  void load();
-
-  return () => { cancelled = true; };  // 정리
-}, [userId]);   // userId가 바뀔 때마다 재실행
-```
-
-```txt
-cancelled 플래그가 왜 필요한가:
-  userId가 빠르게 바뀌면 이전 요청이 나중에 완료될 수 있음
-  이미 다른 userId로 바뀐 상태인데 이전 응답으로 setState → 잘못된 데이터 표시
-  cancelled = true → 응답이 와도 setState 안 함
-
-async 함수를 직접 useEffect에 못 쓰는 이유:
-  useEffect 콜백은 cleanup 함수(동기)를 반환해야 함
-  async function은 항상 Promise를 반환 → 타입 불일치
-  → 내부에 async function 선언 후 즉시 호출 (void load())
+cancelled 플래그 vs AbortController:
+  cancelled 플래그  — 요청은 날아감, setState만 차단, 구현 단순
+  AbortController  — 요청 자체 중단, 서버 부하 감소, 구현 중간
+  외부 API(카카오, 구글 등) → AbortController 권장 → [[JS_Fetch_API]]
 ```
 
 ## 이벤트 리스너 ⭐️⭐️⭐️⭐️
@@ -208,85 +235,130 @@ useEffect(() => {
   window.addEventListener('keydown', onKeyDown);
   return () => window.removeEventListener('keydown', onKeyDown);
   // ↑ 반드시 해제 — 안 하면 언마운트 후에도 리스너 남아있음
-
 }, [open, onClose]);
-```
-
-## 외부 상태 동기화 ⭐️⭐️⭐️
-
-```typescript
-// open이 바뀔 때마다 body overflow 제어
-useEffect(() => {
-  document.body.style.overflow = open ? 'hidden' : '';
-  return () => { document.body.style.overflow = ''; };  // 정리
-}, [open]);
 ```
 
 ## 타이머 ⭐️⭐️⭐️
 
 ```typescript
+// 한 번만 실행
 useEffect(() => {
-  const id = window.setTimeout(() => {
-    setVisible(false);
-  }, 3000);
-
-  return () => window.clearTimeout(id);  // 언마운트 시 타이머 취소
+  const id = window.setTimeout(() => setVisible(false), 3000);
+  return () => window.clearTimeout(id);
 }, []);
-```
 
----
-
-# cleanup 함수 ⭐️⭐️⭐️⭐️
-
-```typescript
+// 반복 실행
 useEffect(() => {
-  // 실행
-  const id = setInterval(() => tick(), 1000);
-
-  return () => {
-    // cleanup — 다음 두 가지 경우에 실행:
-    //   ① 의존성이 바뀌어서 effect가 재실행되기 전
-    //   ② 컴포넌트가 언마운트될 때
-    clearInterval(id);
-  };
+  const id = window.setInterval(() => {
+    setCount(c => c + 1); // 함수형 업데이트 — count를 deps에 안 넣어도 됨
+  }, 1000);
+  return () => window.clearInterval(id);
 }, []);
 ```
 
 ```txt
-cleanup이 필요한 경우:
-  이벤트 리스너 등록 → 해제
-  타이머 설정 → 취소
-  데이터 fetch → 응답 무시 (cancelled 플래그)
-  WebSocket 연결 → 해제
+setCount(count + 1) 이면 count가 deps에 필요 → 바뀔 때마다 interval 재등록
+setCount(c => c + 1) 이면 이전 값을 인자로 받아 계산 → deps 없이도 항상 최신값
+```
 
-cleanup 없으면:
-  컴포넌트가 사라진 뒤에도 타이머·리스너가 실행
-  언마운트된 컴포넌트에 setState → React 경고 + 메모리 누수
+## 디바운스 (Debounce) ⭐️⭐️⭐️⭐️
+
+```txt
+디바운스: 연속 입력 중 마지막 입력 후 N ms가 지났을 때만 실행
+  검색창 타이핑 중 매 키입력마다 API 요청 방지
+  setTimeout + clearTimeout(cleanup) + cancelled 플래그를 함께 사용
+```
+
+```typescript
+useEffect(() => {
+  const query = value.trim();
+  if (query.length < 2) return;  // 최소 글자 수 미달이면 요청 안 함
+
+  let cancelled = false;
+
+  const timer = window.setTimeout(() => {
+    async function search() {
+      try {
+        const results = await searchRequest(query);
+        if (!cancelled) setResults(results);
+      } catch {
+        if (!cancelled) setResults([]);
+      }
+    }
+    void search();
+  }, 300);  // 300ms 동안 deps 변경 없으면 실행
+
+  return () => {
+    cancelled = true;
+    window.clearTimeout(timer);  // 다음 effect 실행 전 이전 타이머 취소
+  };
+}, [value]);
+```
+
+```txt
+타이머 + cancelled 플래그 둘 다 필요한 이유:
+  clearTimeout — 타이머가 아직 실행 안 됐을 때 (타이핑 중 debounce)
+  cancelled    — 타이머 실행 후 API 응답 대기 중에 deps가 바뀐 경우 (race condition)
+
+타이핑 "강" → "강남" → "강남역" (300ms 내 연타):
+  "강"   → timer 설정 → "강남" deps 변경 → cleanup: timer 취소 (cancelled 필요 없음, 아직 실행 전)
+  "강남" → timer 설정 → "강남역" deps 변경 → cleanup: timer 취소
+  "강남역" → 300ms 경과 → timer 실행 → API 요청 1건만 날아감
+
+타이핑 "강" → 300ms 후 요청 → 타이핑 "강남" → 300ms 후 요청 (두 요청 동시 비행):
+  "강" 응답이 느리면 "강남" 응답 후에 도착할 수 있음 → cancelled 플래그로 setState 차단
+```
+
+## 외부 구독 ⭐️⭐️⭐️
+
+```typescript
+// WebSocket, EventEmitter 등 외부 이벤트 구독
+useEffect(() => {
+  const off = onItemCreated((item) => {
+    setItems(prev => [...prev, item]);
+  });
+  return off;  // cleanup = 구독 해제 함수
+}, []);
+
+// 브라우저 네트워크 상태 구독
+useEffect(() => {
+  const handler = () => setOnline(navigator.onLine);
+  window.addEventListener('online',  handler);
+  window.addEventListener('offline', handler);
+  return () => {
+    window.removeEventListener('online',  handler);
+    window.removeEventListener('offline', handler);
+  };
+}, []);
+```
+
+## 외부 상태 동기화 ⭐️⭐️⭐️
+
+```typescript
+// open이 바뀔 때마다 body overflow 제어 (모달/다이얼로그 패턴)
+useEffect(() => {
+  document.body.style.overflow = open ? 'hidden' : '';
+  return () => { document.body.style.overflow = ''; };
+}, [open]);
 ```
 
 ---
 
 # 의존성 — 무엇을 넣어야 하는가 ⭐️⭐️⭐️⭐️
 
-```typescript
-// 규칙: useEffect 안에서 쓰는 값은 전부 의존성에 넣어야 함
-useEffect(() => {
-  const data = transform(input, config);
-  setResult(data);
-}, [input, config]);  // transform은? → 외부 함수면 안정적이라 생략 가능
-```
-
 ```txt
-의존성에 넣지 않아도 되는 것:
-  setState 함수 — React가 보장하는 안정적 참조
-  useRef.current — ref는 안정적 (current가 바뀌어도 ref 자체는 안 바뀜)
+규칙: useEffect 안에서 쓰는 값은 전부 의존성에 넣어야 함
+
+넣지 않아도 되는 것:
+  setState 함수 — React가 안정적 참조 보장
+  useRef.current — ref 자체는 렌더 간 동일 참조
   외부 상수 (모듈 스코프 변수)
   순수 함수 (매 렌더마다 같은 결과)
 
-의존성에 넣어야 하는 것:
+넣어야 하는 것:
   props (userId, open 등)
   state (count, items 등)
-  컴포넌트 안에서 선언된 변수/함수
+  컴포넌트 안에서 선언된 변수·함수
 ```
 
 ## 함수를 의존성에 넣으면 무한루프 ⭐️⭐️⭐️⭐️
@@ -294,7 +366,7 @@ useEffect(() => {
 ```typescript
 // ❌ 무한루프
 function Component() {
-  const fetchData = async () => {      // 매 렌더마다 새 함수 생성
+  const fetchData = async () => {      // 매 렌더마다 새 함수 객체 생성
     const data = await api.get('/items');
     setItems(data);
   };
@@ -304,11 +376,11 @@ function Component() {
   }, [fetchData]);   // fetchData가 매 렌더마다 새 참조 → 무한 재실행
 }
 
-// ✅ 방법 1 — useEffect 안에서 함수 정의
+// ✅ 방법 1 — useEffect 안에서 함수 정의 (가장 단순)
 useEffect(() => {
   async function fetchData() { ... }
   void fetchData();
-}, [userId]);  // 함수를 의존성에 안 넣어도 됨
+}, [userId]);
 
 // ✅ 방법 2 — useCallback으로 참조 안정화
 const fetchData = useCallback(async () => {
@@ -318,7 +390,7 @@ const fetchData = useCallback(async () => {
 
 useEffect(() => {
   void fetchData();
-}, [fetchData]);   // 이제 userId가 바뀔 때만 실행
+}, [fetchData]);
 ```
 
 ---
@@ -334,7 +406,7 @@ useEffect(() => {
 // ✅ 그냥 렌더링 중에 계산
 const fullName = `${firstName} ${lastName}`;
 
-// ❌ props가 바뀔 때 state 초기화 — useEffect로 하면 불필요한 렌더 발생
+// ❌ props가 바뀔 때 state 초기화 — 불필요한 렌더 발생
 useEffect(() => {
   setComment('');
 }, [postId]);
@@ -344,37 +416,13 @@ useEffect(() => {
 ```
 
 ```txt
+useEffect를 쓰기 전에:
+  "이걸 렌더링 중에 계산하거나 이벤트 핸들러에서 할 수 없나?" 먼저 고려
+
 useEffect가 필요 없는 대표적인 경우:
   렌더링 중 계산할 수 있는 값 → 변수로
   props에서 파생되는 state → 렌더링 중 계산
   이벤트 핸들러에서 할 수 있는 것 → 이벤트 핸들러로
-
-useEffect를 쓰기 전에:
-  "이걸 렌더링 중에 계산하거나 이벤트 핸들러에서 할 수 없나?" 먼저 고려
-```
-
----
-
-# setInterval — 주기적 실행 ⭐️⭐️⭐️
-
-```typescript
-useEffect(() => {
-  const id = window.setInterval(() => {
-    setCount(c => c + 1);   // 함수형 업데이트로 deps 불필요
-  }, 1000);
-
-  return () => window.clearInterval(id);  // 반드시 cleanup
-}, []);  // 1회 등록
-```
-
-```txt
-setInterval cleanup이 빠지면:
-  컴포넌트가 언마운트되어도 interval이 계속 실행
-  언마운트된 컴포넌트에 setState → "Can't perform a React state update on an unmounted component"
-
-setCount(c => c + 1) — 함수형 업데이트:
-  setCount(count + 1) 이면 count가 deps에 필요 → 바뀔 때마다 interval 재등록
-  setCount(c => c + 1) 이면 이전 값을 받아서 계산 → deps 없이도 항상 최신값
 ```
 
 ---
@@ -382,11 +430,10 @@ setCount(c => c + 1) — 함수형 업데이트:
 # useLayoutEffect — DOM 측정 후 즉시 ⭐️⭐️⭐️
 
 ```typescript
-// useEffect: 화면에 그린 뒤 실행 → 위치가 잘못된 상태로 잠깐 보일 수 있음
+// useEffect:       화면에 그린 뒤 실행 → 위치 잘못된 채로 잠깐 보일 수 있음
 // useLayoutEffect: DOM 업데이트 후, 화면에 그리기 전 실행 → 깜빡임 없음
 
 useLayoutEffect(() => {
-  // DOM 측정 (getBoundingClientRect 등)
   const rect = ref.current?.getBoundingClientRect();
   setPos({ top: rect.top, left: rect.left });
 }, [open]);
@@ -395,12 +442,7 @@ useLayoutEffect(() => {
 ```txt
 useLayoutEffect를 쓰는 경우:
   DOM 측정이 필요한 경우 (getBoundingClientRect, offsetHeight 등)
-  측정 결과로 즉시 위치/크기를 업데이트해야 할 때 (드롭다운, 툴팁)
-  → 화면에 그려지기 전에 계산 완료 → 깜빡임 없음
-
-useEffect를 쓰는 경우:
-  데이터 fetch, 이벤트 리스너 등록
-  DOM 측정이 필요 없는 대부분의 경우
+  측정 결과로 즉시 위치·크기를 업데이트해야 할 때 (드롭다운, 툴팁)
 
 SSR(Next.js) 주의:
   useLayoutEffect는 서버에서 실행되지 않음
@@ -433,29 +475,4 @@ useEffect(() => {
   fetch → cancelled 플래그
   addEventListener → removeEventListener
   setInterval → clearInterval
-```
-
----
-
-# 외부 구독 패턴 ⭐️⭐️⭐️
-
-```typescript
-// WebSocket, EventEmitter 등 외부 이벤트 구독
-useEffect(() => {
-  const off = onItemCreated((item) => {
-    setItems(prev => [...prev, item]);
-  });
-  return off;  // cleanup = 구독 해제 함수
-}, []);
-
-// 브라우저 이벤트 구독
-useEffect(() => {
-  const handler = () => setOnline(navigator.onLine);
-  window.addEventListener('online',  handler);
-  window.addEventListener('offline', handler);
-  return () => {
-    window.removeEventListener('online',  handler);
-    window.removeEventListener('offline', handler);
-  };
-}, []);
 ```

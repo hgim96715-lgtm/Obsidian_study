@@ -1,10 +1,11 @@
 ---
-aliases: [Array.from, 배열 메서드, JS 배열]
+aliases: [배열 메서드, Array.from, JS 배열]
 tags: [JavaScript]
 relations:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[JS_Object_Methods]]"
   - "[[JS_Map_Set]]"
+  - "[[JS_Object_Methods]]"
+  - "[[JS_Operators]]"
   - "[[JS_Primitive_Methods]]"
   - "[[React_useState]]"
 ---
@@ -177,6 +178,32 @@ filter 조건 방향:
   제거할 것 → 부정 조건  (m.id !== deletedId)
 
   "이 항목 빼고 나머지" = 삭제 패턴 → filter(x => x.id !== 삭제할id)
+```
+
+### filter(Boolean) — falsy 제거 관용 패턴 ⭐️⭐️⭐️
+
+```typescript
+// filter(Boolean) = filter((v) => Boolean(v)) = filter((v) => !!v)
+// falsy 값 전부 제거: "" null undefined 0 NaN false
+
+const tags = ['react', '', 'typescript', null, 'nestjs', undefined];
+tags.filter(Boolean);
+// → ['react', 'typescript', 'nestjs']
+
+// split + filter(Boolean) — 공백 입력 처리의 표준 패턴
+'  강남역  카페  '.split(/\s+/).filter(Boolean);
+// split 결과: ["", "강남역", "카페", ""] ← 앞뒤 빈 문자열 생김
+// filter 결과: ["강남역", "카페"]         ← 빈 문자열 제거
+```
+
+```txt
+왜 filter(Boolean)이 filter(v => !!v)보다 선호되는가:
+  Boolean은 JS 내장 함수 — 콜백으로 바로 전달 가능
+  코드가 짧고 의도가 명확 ("falsy 제거")
+
+주의: 0이나 false가 유효한 값인 배열에는 쓰면 안 됨
+  [0, 1, 2].filter(Boolean) → [1, 2]  ← 0이 사라짐 ❌
+  그럴 땐 filter(v => v != null) 사용
 ```
 
 ## map ⭐️⭐️⭐️⭐️
@@ -388,6 +415,47 @@ members.sort((a, b) => {
   return -1 → a, b 순서 그대로 (a 앞)
   return 1  → b, a로 바꿈 (b 앞)
   마지막 return → 1차 조건이 같을 때 2차 기준으로 결정
+```
+
+## 스코어 기반 정렬 — 품질 점수로 우선순위 결정 ⭐️⭐️⭐️⭐️
+
+```typescript
+// sort 콜백 안에 if 중첩을 넣는 대신,
+// getScore()로 점수를 먼저 계산하고 sort는 단순히 숫자 차이만 비교
+const getScore = (item: T): number => {
+  if (/* 완전 일치 */)    return 0;
+  if (/* 전방 일치 */)    return 1;
+  if (/* 부분 일치 */)    return 2;
+  return 3; // 기타
+};
+
+items.sort((a, b) => {
+  const diff = getScore(a) - getScore(b);
+  if (diff !== 0) return diff;              // 점수 다르면 점수 순 (낮을수록 앞)
+  return a.name.length - b.name.length;    // 점수 같으면 이름 짧은 것 앞 (tiebreaker)
+});
+```
+
+```txt
+왜 getScore를 분리하는가:
+  sort 콜백은 (a, b) 두 요소의 비교 관계를 반환하는 곳
+  안에 복잡한 if를 넣으면 "a가 b보다 왜 앞인가"가 안 보임
+  score를 분리하면 sort 콜백이 단순 숫자 뺄셈으로 줄어듦
+
+  diff !== 0  → 점수가 다름 → 그 차이로 결정 (early return)
+  diff === 0  → 점수가 같음 → tiebreaker로 결정
+
+tiebreaker 선택 기준:
+  이름 짧은 것 앞     → a.name.length - b.name.length (짧을수록 핵심적)
+  날짜 최신 것 앞     → new Date(b.date).getTime() - new Date(a.date).getTime()
+  가나다 순           → a.name.localeCompare(b.name, 'ko')
+
+실전 예시 → [[Map_Kakao_Local]] getMatchScore 패턴:
+  0 → 이름 완전 일치
+  1 → 이름 전방 일치 (startsWith)
+  2 → 이름에 검색 토큰 전부 포함 (AND)
+  3 → 주소에 검색 토큰 전부 포함 (AND)
+  4 → 약한 매칭
 ```
 
 ---
