@@ -1,24 +1,12 @@
 ---
-aliases:
-  - Omit
-  - Partial
-  - Record
-  - 유틸리티 타입
-  - Exclude
-  - Extract
-  - NonNullable
-  - ReturnType
-  - Pick
-  - Readonly
-  - Required
-  - Awaited
-tags:
-  - TypeScript
+aliases: [유틸리티 타입, Awaited, Exclude, Extract, NonNullable, Omit, Partial, Pick, Readonly, Record, Required, ReturnType]
+tags: [TypeScript]
 related:
   - "[[00_JS_Ecosystem_HomePage]]"
-  - "[[TS_Generics]]"
-  - "[[OpenAPI_Codegen]]"
   - "[[NestJS_DTO]]"
+  - "[[OpenAPI_Codegen]]"
+  - "[[React_FormValidation]]"
+  - "[[TS_Generics]]"
 ---
 # TS_Utility_Types — 유틸리티 타입
 

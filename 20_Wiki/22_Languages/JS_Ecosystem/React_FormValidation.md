@@ -9,6 +9,7 @@ related:
   - "[[NestJS_DTO]]"
   - "[[React_Component]]"
   - "[[TS_DOM_Events]]"
+  - "[[TS_Utility_Types]]"
 ---
 # React_FormValidation — 폼 검증 (Zod + react-hook-form)
 
@@ -622,6 +623,136 @@ const handleSave = handleSubmit(
 > 이때는 각각 별도 `useState`로 관리해야 어떤 버튼이 로딩 중인지 구분 가능.
 
 ---
+
+## RHF 상태를 자식 컴포넌트로 분리 — prop 타입 패턴 ⭐️⭐️⭐️⭐️
+
+```txt
+복잡한 폼은 부모(useForm 보유) + 자식(폼 UI) 로 분리하는 경우가 많음
+
+부모:
+  useForm<T>() 로 control · errors · register · setValue · handleSubmit · isSubmitting 보유
+  handleSubmit(fn) 으로 제출 핸들러 생성 → 자식에게 onSubmit prop으로 전달
+
+자식:
+  RHF 상태를 props로 받아서 form UI만 담당
+  → useForm을 직접 호출하지 않음
+
+문제:
+  자식 컴포넌트 props의 타입을 어떻게 잡는가?
+  → RHF가 공개하는 유틸리티 타입을 사용
+```
+
+### RHF props 타입 목록
+
+```typescript
+import {
+  Control,
+  FieldErrors,
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormHandleSubmit,
+} from "react-hook-form";
+
+type FormProps = {
+  control:      Control<MyFormValues>;
+  errors:       FieldErrors<MyFormValues>;
+  register:     UseFormRegister<MyFormValues>;
+  setValue:     UseFormSetValue<MyFormValues>;
+  onSubmit:     ReturnType<UseFormHandleSubmit<MyFormValues>>;
+  isSubmitting: boolean;
+};
+```
+
+### `ReturnType<UseFormHandleSubmit<T>>` 이해 ⭐️⭐️⭐️⭐️
+
+```txt
+UseFormHandleSubmit<T>
+  → useForm()이 반환하는 handleSubmit 함수 자체의 타입
+  → handleSubmit(fn) 처럼 fn을 받아서 이벤트 핸들러를 반환하는 함수
+
+ReturnType<UseFormHandleSubmit<T>>
+  → handleSubmit(fn) 을 호출했을 때 반환되는 함수의 타입
+  → 실제 타입: (e?: BaseSyntheticEvent) => Promise<void>
+  → 즉, <form onSubmit={...}> 에 바로 꽂을 수 있는 타입
+```
+
+```typescript
+// 타입 별칭으로 추출 (부모 파일 또는 types 파일에 정의)
+type MovieDetailSubmitHandler = ReturnType<
+  UseFormHandleSubmit<MovieScreeningFormValues>
+>;
+// = (e?: BaseSyntheticEvent) => Promise<void>
+```
+
+```typescript
+// 부모 — handleSubmit(fn) 결과를 prop으로 전달
+function MovieDetailModal() {
+  const {
+    control,
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<MovieScreeningFormValues>({ resolver: zodResolver(schema) });
+
+  const onSubmit = handleSubmit(async (values) => {
+    await saveScreening(values);
+  });
+
+  return (
+    <MovieDetailScreeningForm
+      control={control}
+      errors={errors}
+      register={register}
+      setValue={setValue}
+      onSubmit={onSubmit}           // ReturnType<UseFormHandleSubmit<T>>
+      isSubmitting={isSubmitting}
+    />
+  );
+}
+
+// 자식 — RHF 상태를 props로 받아서 form UI만 렌더링
+type MovieDetailScreeningFormProps = {
+  control:      Control<MovieScreeningFormValues>;
+  errors:       FieldErrors<MovieScreeningFormValues>;
+  register:     UseFormRegister<MovieScreeningFormValues>;
+  setValue:     UseFormSetValue<MovieScreeningFormValues>;
+  onSubmit:     MovieDetailSubmitHandler;
+  isSubmitting: boolean;
+};
+
+function MovieDetailScreeningForm({
+  control,
+  errors,
+  register,
+  setValue,
+  onSubmit,
+  isSubmitting,
+}: MovieDetailScreeningFormProps) {
+  return (
+    <form onSubmit={onSubmit}>
+      {/* 폼 UI */}
+      <button type="submit" disabled={isSubmitting}>저장</button>
+    </form>
+  );
+}
+```
+
+```txt
+왜 onSubmit: React.FormEventHandler<HTMLFormElement> 가 아닌가:
+  React.FormEventHandler<HTMLFormElement>
+  = (e: React.FormEvent<HTMLFormElement>) => void
+  → 동기 핸들러 — Promise 반환 타입 없음
+
+  ReturnType<UseFormHandleSubmit<T>>
+  = (e?: BaseSyntheticEvent) => Promise<void>
+  → async 핸들러 — isSubmitting 연동에 필수
+
+  → RHF handleSubmit이 반환한 함수는 async이므로
+    React.FormEventHandler 타입으로는 좁게 선언하면 타입 불일치
+    → ReturnType<UseFormHandleSubmit<T>> 로 정확하게 맞춤
+```
+
 
 # 실전 전체 예시 — MovieDetailModal ⭐️⭐️⭐️⭐️⭐️
 
